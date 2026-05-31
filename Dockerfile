@@ -28,8 +28,10 @@ COPY api/Tranga.sln /src
 COPY api/API/API.csproj /src/API/API.csproj
 RUN dotnet restore /src/API/API.csproj
 COPY api/ /src/
+# GitVersion=false: no .git in the build context, so let GitInfo skip deriving the
+# package version from git (otherwise it emits an invalid "0.0.0+main." and fails).
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
-    dotnet publish /src/API/API.csproj -c Release --property:OutputPath=/publish -maxcpucount:1 --no-cache
+    dotnet publish /src/API/API.csproj -c Release --property:OutputPath=/publish -p:GitVersion=false -maxcpucount:1 --no-cache
 
 # ---- Stage 4: final runtime ----
 FROM base AS runtime
