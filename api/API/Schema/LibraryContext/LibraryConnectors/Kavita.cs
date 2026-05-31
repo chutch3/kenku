@@ -24,7 +24,7 @@ public class Kavita(string baseUrl, string auth) : LibraryConnector(LibraryType.
     {
         Log.Debug("Getting Token...");
         string apiKey = $"apiKey={Auth}";
-        string pluginName = "pluginName=Tranga";
+        string pluginName = "pluginName=Kenku";
         string path = $"/api/Plugin/authenticate?{apiKey}&{pluginName}";
 
         if (await _netClient.PostAsync(BuildUri(path), null) is not { IsSuccessStatusCode: true } responseMessage)

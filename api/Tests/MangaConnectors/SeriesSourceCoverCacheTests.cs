@@ -14,7 +14,7 @@ public class SeriesSourceCoverCacheTests
     /// <summary>Minimal connector whose download client is backed by a faked HTTP boundary.</summary>
     private sealed class FakeConnector : SeriesSource
     {
-        public FakeConnector(TrangaSettings settings, IDownloadClient client)
+        public FakeConnector(KenkuSettings settings, IDownloadClient client)
             : base("Fake:Conn", ["en"], ["fake.com"], "icon", settings)
         {
             downloadClient = client;
@@ -40,11 +40,11 @@ public class SeriesSourceCoverCacheTests
     [Fact]
     public async Task SaveCoverImageToCache_ReturnedFilename_MatchesFileWrittenToCache()
     {
-        string tempRoot = Path.Combine(Path.GetTempPath(), "tranga-cover-" + Guid.NewGuid().ToString("N"));
+        string tempRoot = Path.Combine(Path.GetTempPath(), "kenku-cover-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempRoot);
         try
         {
-            var settings = new TrangaSettings { AppData = tempRoot };
+            var settings = new KenkuSettings { AppData = tempRoot };
             byte[] jpeg = CreateJpegBytes();
 
             var inner = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)

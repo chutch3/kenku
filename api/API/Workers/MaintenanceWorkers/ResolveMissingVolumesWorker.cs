@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace API.Workers.MaintenanceWorkers;
 
-public class ResolveMissingVolumesWorker(TrangaSettings settings, IBatchWorkerFactory<string> factory, IEnumerable<BaseWorker>? dependsOn = null)
+public class ResolveMissingVolumesWorker(KenkuSettings settings, IBatchWorkerFactory<string> factory, IEnumerable<BaseWorker>? dependsOn = null)
     : BaseWorkerWithContexts(dependsOn), IPeriodic
 {
     private SeriesContext _mangaContext = null!;

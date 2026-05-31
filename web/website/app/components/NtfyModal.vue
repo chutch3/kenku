@@ -36,7 +36,7 @@ import type { components } from '#open-fetch-schemas/api';
 type CreateNtfyConnectorRecord = components['schemas']['CreateNtfyConnectorRecord'];
 const { $api } = useNuxtApp();
 
-const requestData = ref<CreateNtfyConnectorRecord>({ name: 'Ntfy', url: '', priority: 3, username: '', password: '', topic: 'Tranga' });
+const requestData = ref<CreateNtfyConnectorRecord>({ name: 'Ntfy', url: '', priority: 3, username: '', password: '', topic: 'Kenku' });
 
 const allowSend = computed(
     () =>

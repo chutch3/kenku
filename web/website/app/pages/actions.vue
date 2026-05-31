@@ -1,5 +1,5 @@
 <template>
-    <TrangaPage rimless>
+    <KenkuPage rimless>
         <template #center>
             <UButton color="primary" icon="i-lucide-rotate-ccw" class="max-md:order-1" @click="resetFilter" />
             <USelect v-model="params.action" :items="ActionTypes" class="w-70 max-md:order-3" @change="refreshData" />
@@ -67,7 +67,7 @@
                 </template>
             </UTable>
         </div>
-    </TrangaPage>
+    </KenkuPage>
 </template>
 
 <script setup lang="ts">

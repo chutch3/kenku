@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace API.Workers.MaintenanceWorkers;
 
-public class BundleVolumeWorker(string mangaId, int volumeNumber, TrangaSettings settings, IEnumerable<BaseWorker>? dependsOn = null)
+public class BundleVolumeWorker(string mangaId, int volumeNumber, KenkuSettings settings, IEnumerable<BaseWorker>? dependsOn = null)
     : BaseWorkerWithContexts(dependsOn)
 {
     private SeriesContext _mangaContext = null!;

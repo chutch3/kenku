@@ -13,7 +13,7 @@ namespace API.Controllers;
 [ApiVersion(2)]
 [ApiController]
 [Route("v{v:apiVersion}/[controller]")]
-public class SeriesSourceController(SeriesContext context, IEnumerable<MangaConnectorImpl> connectors, TrangaSettings settings) : ControllerBase
+public class SeriesSourceController(SeriesContext context, IEnumerable<MangaConnectorImpl> connectors, KenkuSettings settings) : ControllerBase
 {
     /// <summary>
     /// Get all <see cref="API.MangaConnectors.SeriesSource"/> (Scanlation-Sites)

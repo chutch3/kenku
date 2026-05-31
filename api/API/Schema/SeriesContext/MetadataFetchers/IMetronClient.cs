@@ -13,7 +13,7 @@ public interface IMetronClient
     Task<MetronSeries?> GetSeries(string id, CancellationToken ct);
 }
 
-/// <summary>Subset of Metron series fields Tranga maps onto a <see cref="Series"/>.</summary>
+/// <summary>Subset of Metron series fields Kenku maps onto a <see cref="Series"/>.</summary>
 public record MetronSeries(
     string Id,
     string Name,

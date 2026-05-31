@@ -16,7 +16,7 @@ public class TorrentCompletionWorkerTests
 {
     private sealed class FakeTorrentSource : SeriesSource
     {
-        public FakeTorrentSource(TrangaSettings s) : base("FakeTorrent", ["en"], ["fake.test"], "i", s) { }
+        public FakeTorrentSource(KenkuSettings s) : base("FakeTorrent", ["en"], ["fake.test"], "i", s) { }
         public override AcquisitionKind Kind => AcquisitionKind.Torrent;
         public override Task<(Series, SourceId<Series>)[]> SearchManga(string s) => throw new NotSupportedException();
         public override Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string u) => throw new NotSupportedException();
@@ -28,7 +28,7 @@ public class TorrentCompletionWorkerTests
     [Fact]
     public async Task DoWork_MovesCbzAndMarksDownloaded_WhenTorrentCompleted()
     {
-        string tempRoot = Path.Combine(Path.GetTempPath(), "tranga-cw-" + Guid.NewGuid().ToString("N"));
+        string tempRoot = Path.Combine(Path.GetTempPath(), "kenku-cw-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempRoot);
         string libraryRoot = Path.Combine(tempRoot, "library");
         Directory.CreateDirectory(libraryRoot);
@@ -55,7 +55,7 @@ public class TorrentCompletionWorkerTests
             context.MangaConnectorToChapter.Add(chId);
             await context.SaveChangesAsync();
 
-            var settings = new TrangaSettings { AppData = tempRoot, ChapterNamingScheme = "%M - Ch.%C" };
+            var settings = new KenkuSettings { AppData = tempRoot, ChapterNamingScheme = "%M - Ch.%C" };
             var torrent = new Mock<ITorrentClient>();
             torrent.Setup(t => t.GetStatus(chId.Key, It.IsAny<CancellationToken>()))
                    .ReturnsAsync(new TorrentStatus.Completed(savePath));
@@ -98,7 +98,7 @@ public class TorrentCompletionWorkerTests
     [Fact]
     public async Task DoWork_DoesNothing_WhenTorrentNotYetCompleted()
     {
-        string tempRoot = Path.Combine(Path.GetTempPath(), "tranga-cw-" + Guid.NewGuid().ToString("N"));
+        string tempRoot = Path.Combine(Path.GetTempPath(), "kenku-cw-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempRoot);
         try
         {
@@ -118,7 +118,7 @@ public class TorrentCompletionWorkerTests
             context.MangaConnectorToChapter.Add(chId);
             await context.SaveChangesAsync();
 
-            var settings = new TrangaSettings { AppData = tempRoot };
+            var settings = new KenkuSettings { AppData = tempRoot };
             var torrent = new Mock<ITorrentClient>();
             torrent.Setup(t => t.GetStatus(chId.Key, It.IsAny<CancellationToken>()))
                    .ReturnsAsync(new TorrentStatus.Downloading(0.3));

@@ -9,12 +9,12 @@ namespace API.Tests.Controllers;
 public class SettingsControllerTests : IDisposable
 {
     private readonly string _tmpDir;
-    private readonly TrangaSettings _settings;
+    private readonly KenkuSettings _settings;
 
     public SettingsControllerTests()
     {
         _tmpDir = Path.Combine(Path.GetTempPath(), $"SettingsTest_{Guid.NewGuid()}");
-        _settings = new TrangaSettings { AppData = _tmpDir };
+        _settings = new KenkuSettings { AppData = _tmpDir };
     }
 
     public void Dispose()
@@ -38,7 +38,7 @@ public class SettingsControllerTests : IDisposable
     {
         var result = CreateController().GetSettings();
 
-        var ok = Assert.IsType<Ok<TrangaSettings>>(result);
+        var ok = Assert.IsType<Ok<KenkuSettings>>(result);
         Assert.Same(_settings, ok.Value);
     }
 
@@ -68,7 +68,7 @@ public class SettingsControllerTests : IDisposable
 
         CreateController().ResetUserAgent();
 
-        Assert.Equal(TrangaSettings.DefaultUserAgent, _settings.UserAgent);
+        Assert.Equal(KenkuSettings.DefaultUserAgent, _settings.UserAgent);
     }
 
     [Fact]

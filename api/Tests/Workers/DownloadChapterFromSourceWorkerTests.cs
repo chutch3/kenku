@@ -48,11 +48,11 @@ public class DownloadChapterFromSourceWorkerTests
     [Fact]
     public async Task DoWorkInternal_DisposesSourceImageStream_AfterProcessing()
     {
-        string tempRoot = Path.Combine(Path.GetTempPath(), "tranga-test-" + Guid.NewGuid().ToString("N"));
+        string tempRoot = Path.Combine(Path.GetTempPath(), "kenku-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempRoot);
         try
         {
-            var settings = new TrangaSettings { AppData = tempRoot, ImageCompression = 40 }; // 40 => processing path
+            var settings = new KenkuSettings { AppData = tempRoot, ImageCompression = 40 }; // 40 => processing path
             var libraryPath = Path.Combine(tempRoot, "library");
             Directory.CreateDirectory(libraryPath);
 
@@ -133,7 +133,7 @@ public class DownloadChapterFromSourceWorkerTests
         context.MangaConnectorToChapter.Add(connectorId);
         await context.SaveChangesAsync();
 
-        var settings = new TrangaSettings { AppData = "/tmp", ChapterNamingScheme = "%M - %C" };
+        var settings = new KenkuSettings { AppData = "/tmp", ChapterNamingScheme = "%M - %C" };
         
         var mockConnector = new Mock<SeriesSource>("MockConnector", new[] { "en" }, new[] { "mock.com" }, "icon", settings);
         

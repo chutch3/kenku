@@ -18,7 +18,7 @@ public class ChaptersControllerTests: IDisposable
 
     public ChaptersControllerTests()
     {
-        // Ensure the directory exists for TrangaSettings during tests
+        // Ensure the directory exists for KenkuSettings during tests
         _testWorkDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(_testWorkDir);
     }
@@ -33,7 +33,7 @@ public class ChaptersControllerTests: IDisposable
 
     private static ChaptersController CreateController(SeriesContext ctx)
     {
-        var testSettings = new API.TrangaSettings { AppData = Path.GetTempPath() };
+        var testSettings = new API.KenkuSettings { AppData = Path.GetTempPath() };
 
         var mockWorkerQueue = new Mock<IWorkerQueue>();
         var connectors = Enumerable.Empty<API.MangaConnectors.SeriesSource>();

@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thank you for contributing. Please make sure you have read [Contributing](https://github.com/C9Glax/tranga#contributing).
+        Thank you for contributing. Please make sure you have read [Contributing](https://github.com/chutch3/kenku#contributing).
         Just for the sake of completion:
   - type: checkboxes
     id: Contributing
@@ -16,7 +16,7 @@ body:
       options:
         - label: Formatting (if not done yet, mark this PR as draft)
           required: false
-        - label: I have read https://github.com/C9Glax/tranga#if-you-want-to-add-a-new-website-connector
+        - label: I have read https://github.com/chutch3/kenku#if-you-want-to-add-a-new-website-connector
           required: true
   - type: input
     attributes:

@@ -17,15 +17,15 @@ using Xunit;
 
 namespace API.Tests.Schema;
 
-public class TrangaTests
+public class KenkuTests
 {
     // Helper to build our Fake Dependency Injection Container
     private IServiceProvider BuildMockServiceProvider(
         List<SeriesSource>? connectors = null,
-        TrangaSettings? settings = null,
+        KenkuSettings? settings = null,
         Mock<IWorkerQueue>? workerQueueMock = null)
     {
-        var testSettings = settings ?? new TrangaSettings { AppData = "./test_data" };
+        var testSettings = settings ?? new KenkuSettings { AppData = "./test_data" };
         var services = new ServiceCollection();
 
         // 1. Inject Settings
@@ -71,7 +71,7 @@ public class TrangaTests
         services.AddDbContext<NotificationsContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
 
         // 5. Register the Manager itself
-        services.AddSingleton<Tranga>();
+        services.AddSingleton<Kenku>();
 
         return services.BuildServiceProvider();
     }
@@ -87,7 +87,7 @@ public class TrangaTests
     [Fact]
     public void TryGetMangaConnector_GivenValidName_ReturnsConnectorCaseInsensitive()
     {
-        var mockSettings = new TrangaSettings { AppData = "./test_data" };
+        var mockSettings = new KenkuSettings { AppData = "./test_data" };
 
         // We have to mock the abstract base class SeriesSource
         var mockMangaworld = new Mock<SeriesSource>("Mangaworld", new[] {"it"}, new[] {"mangaworld.cx"}, "icon.png", mockSettings);
@@ -99,11 +99,11 @@ public class TrangaTests
             mockMangaDex.Object
         });
 
-        var trangaManager = provider.GetRequiredService<Tranga>();
+        var kenkuManager = provider.GetRequiredService<Kenku>();
 
-        bool foundMangaworld = trangaManager.TryGetSeriesSource("mangaWORLD", out var resolvedMangaworld);
-        bool foundMangaDex = trangaManager.TryGetSeriesSource("mangadex", out var resolvedMangaDex);
-        bool foundMissing = trangaManager.TryGetSeriesSource("FakeSite", out var resolvedMissing);
+        bool foundMangaworld = kenkuManager.TryGetSeriesSource("mangaWORLD", out var resolvedMangaworld);
+        bool foundMangaDex = kenkuManager.TryGetSeriesSource("mangadex", out var resolvedMangaDex);
+        bool foundMissing = kenkuManager.TryGetSeriesSource("FakeSite", out var resolvedMissing);
 
         Assert.True(foundMangaworld);
         Assert.Equal("Mangaworld", resolvedMangaworld?.Name);
@@ -120,9 +120,9 @@ public class TrangaTests
     {
         var mockQueue = new Mock<IWorkerQueue>();
         var provider = BuildMockServiceProvider(workerQueueMock: mockQueue);
-        var trangaManager = provider.GetRequiredService<Tranga>();
+        var kenkuManager = provider.GetRequiredService<Kenku>();
 
-        trangaManager.AddDefaultWorkers();
+        kenkuManager.AddDefaultWorkers();
 
         mockQueue.Verify(x => x.AddWorker(It.IsAny<UpdateMetadataWorker>()), Times.Once);
         mockQueue.Verify(x => x.AddWorker(It.IsAny<NotifyOnNewDownloadsWorker>()), Times.Once);
@@ -139,14 +139,14 @@ public class TrangaTests
     public async Task AddMangaToContext_WhenMangaIsNew_AddsToDatabaseAndSpawnsDownloadWorker()
     {
         var provider = BuildMockServiceProvider();
-        var trangaManager = provider.GetRequiredService<Tranga>();
+        var kenkuManager = provider.GetRequiredService<Kenku>();
 
         using var dbContext = GetInMemoryDbContext();
 
         var newManga = new Series("Berserk", "A dark fantasy", "cover.jpg", SeriesReleaseStatus.Continuing, [], [], [], []);
         var newConnectorId = new SourceId<Series>(newManga, "MangaDex", "12345", "https://mangadex.org/title/12345");
 
-        var result = await trangaManager.AddMangaToContext(dbContext, newManga, newConnectorId, CancellationToken.None);
+        var result = await kenkuManager.AddMangaToContext(dbContext, newManga, newConnectorId, CancellationToken.None);
 
         Assert.NotNull(result);
         Assert.Equal("Berserk", result.Value.manga.Name);

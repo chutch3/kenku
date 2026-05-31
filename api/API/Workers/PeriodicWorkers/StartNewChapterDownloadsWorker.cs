@@ -10,7 +10,7 @@ namespace API.Workers.PeriodicWorkers;
 /// <summary>
 /// Create new Workers for Chapters on Series marked for Download, that havent been downloaded yet.
 /// </summary>
-public class StartNewChapterDownloadsWorker(TrangaSettings settings, IWorkerQueue workerQueue, IEnumerable<SeriesSource> connectors, IEnumerable<IChapterAcquirer>? acquirers = null, TimeSpan? interval = null, IEnumerable<BaseWorker>? dependsOn = null)
+public class StartNewChapterDownloadsWorker(KenkuSettings settings, IWorkerQueue workerQueue, IEnumerable<SeriesSource> connectors, IEnumerable<IChapterAcquirer>? acquirers = null, TimeSpan? interval = null, IEnumerable<BaseWorker>? dependsOn = null)
     : BaseWorkerWithContexts(dependsOn), IPeriodic
 {
     private readonly IChapterAcquirer[] _acquirers = acquirers?.ToArray() ?? [];

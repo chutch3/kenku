@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace API.Schema.ActionsContext;
 
-public class ActionsContext(DbContextOptions<ActionsContext> options) : TrangaBaseContext<ActionsContext>(options)
+public class ActionsContext(DbContextOptions<ActionsContext> options) : KenkuBaseContext<ActionsContext>(options)
 {
     public DbSet<ActionRecord> Actions  { get; set; }
     

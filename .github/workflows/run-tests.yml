@@ -23,10 +23,10 @@ jobs:
           dotnet-version: '10.x'
 
       - name: Restore dependencies
-        run: dotnet restore ./Tranga.sln
+        run: dotnet restore ./Kenku.sln
 
       - name: Build the solution
-        run: dotnet build ./Tranga.sln --configuration Release --no-restore -p:DisableOpenApiGeneration=true -m:1
+        run: dotnet build ./Kenku.sln --configuration Release --no-restore -p:DisableOpenApiGeneration=true -m:1
 
       - name: Run unit tests with report
         run: dotnet test ./Tests/Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=TestResults.trx"

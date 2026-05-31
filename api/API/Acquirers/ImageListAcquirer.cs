@@ -13,10 +13,10 @@ namespace API.Acquirers;
 /// <summary>
 /// Acquires a chapter by fetching each page image individually from the connector, optionally
 /// re-encoding them (compression / black-and-white), and packaging the lot into a .cbz with a
-/// ComicInfo.xml. This is the historical Tranga path — preserved verbatim from
+/// ComicInfo.xml. This is the historical Kenku path — preserved verbatim from
 /// DownloadChapterFromSourceWorker so the rename is a behaviour-preserving refactor.
 /// </summary>
-public class ImageListAcquirer(TrangaSettings settings) : IChapterAcquirer
+public class ImageListAcquirer(KenkuSettings settings) : IChapterAcquirer
 {
     private static readonly ILog Log = LogManager.GetLogger(typeof(ImageListAcquirer));
 

@@ -17,7 +17,7 @@ namespace API.Controllers;
 [ApiVersion(2)]
 [ApiController]
 [Route("v{v:apiVersion}/Series/{MangaId}")]
-public class VolumeController(SeriesContext context, TrangaSettings settings, IWorkerQueue workerQueue)
+public class VolumeController(SeriesContext context, KenkuSettings settings, IWorkerQueue workerQueue)
     : ControllerBase
 {
     /// <summary>
@@ -370,7 +370,7 @@ public class VolumeController(SeriesContext context, TrangaSettings settings, IW
 
     // ─── Private helpers ──────────────────────────────────────────────────────
 
-    private static string ComputeTargetPath(SchemaManga manga, Schema.SeriesContext.Chapter chapter, TrangaSettings settings)
+    private static string ComputeTargetPath(SchemaManga manga, Schema.SeriesContext.Chapter chapter, KenkuSettings settings)
     {
         string fileName = chapter.GetArchiveFileName(settings.ChapterNamingScheme);
         return manga.LibraryLayout switch

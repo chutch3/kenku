@@ -40,7 +40,7 @@ public class VolumeControllerTests : IDisposable
 
     private (VolumeController controller, Mock<IWorkerQueue> workerQueueMock) CreateController(SeriesContext ctx)
     {
-        var settings = new TrangaSettings { AppData = _tempDir };
+        var settings = new KenkuSettings { AppData = _tempDir };
         var workerQueueMock = new Mock<IWorkerQueue>();
         var controller = new VolumeController(ctx, settings, workerQueueMock.Object);
         controller.ControllerContext = new ControllerContext
@@ -85,11 +85,11 @@ public class VolumeControllerTests : IDisposable
         ctx.Series.Add(manga);
 
         var ch1 = new SchemaChapter(manga,"1", 1);
-        ch1.FileName = ch1.GetArchiveFileName(new TrangaSettings().ChapterNamingScheme);
+        ch1.FileName = ch1.GetArchiveFileName(new KenkuSettings().ChapterNamingScheme);
         var ch2 = new SchemaChapter(manga,"2", 1);
-        ch2.FileName = ch2.GetArchiveFileName(new TrangaSettings().ChapterNamingScheme);
+        ch2.FileName = ch2.GetArchiveFileName(new KenkuSettings().ChapterNamingScheme);
         var ch3 = new SchemaChapter(manga,"10", 2);
-        ch3.FileName = ch3.GetArchiveFileName(new TrangaSettings().ChapterNamingScheme);
+        ch3.FileName = ch3.GetArchiveFileName(new KenkuSettings().ChapterNamingScheme);
         ctx.Chapters.AddRange(ch1, ch2, ch3);
         await ctx.SaveChangesAsync();
 
@@ -118,7 +118,7 @@ public class VolumeControllerTests : IDisposable
         var manga = MakeTestManga("Berserk", library);
         ctx.Series.Add(manga);
 
-        var settings = new TrangaSettings();
+        var settings = new KenkuSettings();
         var chGood = new SchemaChapter(manga,"1", 1);
         chGood.FileName = chGood.GetArchiveFileName(settings.ChapterNamingScheme); // correct name
         var chBad = new SchemaChapter(manga,"2", 1);
@@ -144,9 +144,9 @@ public class VolumeControllerTests : IDisposable
         ctx.Series.Add(manga);
 
         var chAssigned = new SchemaChapter(manga,"1", 1);
-        chAssigned.FileName = chAssigned.GetArchiveFileName(new TrangaSettings().ChapterNamingScheme);
+        chAssigned.FileName = chAssigned.GetArchiveFileName(new KenkuSettings().ChapterNamingScheme);
         var chUnassigned = new SchemaChapter(manga,"99", null); // no volume
-        chUnassigned.FileName = chUnassigned.GetArchiveFileName(new TrangaSettings().ChapterNamingScheme);
+        chUnassigned.FileName = chUnassigned.GetArchiveFileName(new KenkuSettings().ChapterNamingScheme);
 
         ctx.Chapters.AddRange(chAssigned, chUnassigned);
         await ctx.SaveChangesAsync();
@@ -170,7 +170,7 @@ public class VolumeControllerTests : IDisposable
         ctx.Series.Add(manga);
 
         var ch = new SchemaChapter(manga,"1", 1);
-        ch.FileName = ch.GetArchiveFileName(new TrangaSettings().ChapterNamingScheme);
+        ch.FileName = ch.GetArchiveFileName(new KenkuSettings().ChapterNamingScheme);
         ch.IsBundled = true;
         ctx.Chapters.Add(ch);
 
@@ -199,7 +199,7 @@ public class VolumeControllerTests : IDisposable
         ctx.Series.Add(manga);
 
         var ch = new SchemaChapter(manga,"1", 3);
-        ch.FileName = ch.GetArchiveFileName(new TrangaSettings().ChapterNamingScheme);
+        ch.FileName = ch.GetArchiveFileName(new KenkuSettings().ChapterNamingScheme);
         ctx.Chapters.Add(ch);
 
         var volMeta = new VolumeMetadata(manga, 3, "Slave");
@@ -238,7 +238,7 @@ public class VolumeControllerTests : IDisposable
         var manga = MakeTestManga("Fullmetal Alchemist", library);
         ctx.Series.Add(manga);
 
-        var settings = new TrangaSettings();
+        var settings = new KenkuSettings();
         var ch = new SchemaChapter(manga,"1", 1);
         ch.FileName = ch.GetArchiveFileName(settings.ChapterNamingScheme);
         ctx.Chapters.Add(ch);
@@ -346,7 +346,7 @@ public class VolumeControllerTests : IDisposable
         var manga = MakeTestManga("Fairy Tail", library);
         ctx.Series.Add(manga);
 
-        var settings = new TrangaSettings();
+        var settings = new KenkuSettings();
         var ch = new SchemaChapter(manga,"1", 1);
         ch.FileName = ch.GetArchiveFileName(settings.ChapterNamingScheme);
         ctx.Chapters.Add(ch);
@@ -407,7 +407,7 @@ public class VolumeControllerTests : IDisposable
 
         // Chapter with volume 1 — under VolumeFolder layout, target path should contain "Vol 1"
         var ch = new SchemaChapter(manga, "1", 1);
-        ch.FileName = ch.GetArchiveFileName(new TrangaSettings().ChapterNamingScheme); // flat path
+        ch.FileName = ch.GetArchiveFileName(new KenkuSettings().ChapterNamingScheme); // flat path
         ctx.Chapters.Add(ch);
         await ctx.SaveChangesAsync();
 

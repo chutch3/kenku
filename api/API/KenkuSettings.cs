@@ -5,7 +5,7 @@ using Newtonsoft.Json.Converters;
 
 namespace API;
 
-public class TrangaSettings
+public class KenkuSettings
 {
     private static string ComputeDefaultAppData() =>
         Environment.GetEnvironmentVariable("APP_DATA") ??
@@ -19,7 +19,7 @@ public class TrangaSettings
     [JsonIgnore] public int Port => int.Parse(Environment.GetEnvironmentVariable("PORT") ?? "6531");
     [JsonIgnore] public bool Debug => bool.Parse(Environment.GetEnvironmentVariable("DEBUG") ?? "false");
 
-    [JsonIgnore] public string WorkingDirectory => Path.Join(AppData, "tranga-api");
+    [JsonIgnore] public string WorkingDirectory => Path.Join(AppData, "kenku-api");
     [JsonIgnore] public string SettingsFilePath => Path.Join(WorkingDirectory, "settings.json");
     [JsonIgnore] public string CoverImageCache => Path.Join(WorkingDirectory, "imageCache");
     [JsonIgnore] public string CoverImageCacheOriginal => Path.Join(CoverImageCache, "original");
@@ -28,7 +28,7 @@ public class TrangaSettings
     [JsonIgnore] public string CoverImageCacheSmall => Path.Join(CoverImageCache, "small");
 
     public string DefaultDownloadLocation => Environment.GetEnvironmentVariable("DOWNLOAD_LOCATION") ?? (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "/Series" : Path.Join(Directory.GetCurrentDirectory(), "Series"));
-    [JsonIgnore] internal static readonly string DefaultUserAgent = $"Tranga/2.0 ({Enum.GetName(Environment.OSVersion.Platform)}; {(Environment.Is64BitOperatingSystem ? "x64" : "")})";
+    [JsonIgnore] internal static readonly string DefaultUserAgent = $"Kenku/2.0 ({Enum.GetName(Environment.OSVersion.Platform)}; {(Environment.Is64BitOperatingSystem ? "x64" : "")})";
     public string UserAgent { get; set; } = DefaultUserAgent;
     public int ImageCompression{ get; set; } = 40;
     public bool BlackWhiteImages { get; set; } = false;
@@ -122,20 +122,20 @@ public class TrangaSettings
     public string[] ReleasePreferredTokens { get; set; } = ["cbz"];
     public string[] ReleaseBlockedTokens { get; set; } = ["cbr", "pdf"];
 
-    public TrangaSettings()
+    public KenkuSettings()
     {
         // WorkingDirectory is created by the AppData setter when AppData is overridden
         // (e.g. via object initializer). For the default path it is created in Save().
     }
 
-    public static TrangaSettings Load()
+    public static KenkuSettings Load()
     {
         // 1. Use the "Safety Net" logic to find where the file SHOULD be
-        string discoveryPath = Path.Join(ComputeDefaultAppData(), "tranga-api", "settings.json");
+        string discoveryPath = Path.Join(ComputeDefaultAppData(), "kenku-api", "settings.json");
 
         if (!File.Exists(discoveryPath))
         {
-            var defaults = new TrangaSettings();
+            var defaults = new KenkuSettings();
             // Defaults already has AppData set to _defaultAppData
             defaults.Save();
             return defaults;
@@ -144,8 +144,8 @@ public class TrangaSettings
         // 2. Load the file. If the file has a different "AppData" inside it,
         // the json deserializer will overwrite the default value.
         var json = File.ReadAllText(discoveryPath);
-        return JsonConvert.DeserializeObject<TrangaSettings>(json, new StringEnumConverter())
-               ?? new TrangaSettings();
+        return JsonConvert.DeserializeObject<KenkuSettings>(json, new StringEnumConverter())
+               ?? new KenkuSettings();
     }
 
     public void Save()

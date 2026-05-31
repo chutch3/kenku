@@ -22,7 +22,7 @@ public class TorrentFlowIntegrationTests
 {
     private sealed class FakeTorrentSource : SeriesSource
     {
-        public FakeTorrentSource(TrangaSettings s) : base("FakeProwlarr", ["en"], ["fake.test"], "i", s) { }
+        public FakeTorrentSource(KenkuSettings s) : base("FakeProwlarr", ["en"], ["fake.test"], "i", s) { }
         public override AcquisitionKind Kind => AcquisitionKind.Torrent;
         public override Task<(Series, SourceId<Series>)[]> SearchManga(string s) => throw new NotSupportedException();
         public override Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string u) => throw new NotSupportedException();
@@ -34,7 +34,7 @@ public class TorrentFlowIntegrationTests
     [Fact]
     public async Task EndToEnd_AcquirerHandsOff_ThenCompletionWorkerFinalisesChapter()
     {
-        string tempRoot = Path.Combine(Path.GetTempPath(), "tranga-flow-" + Guid.NewGuid().ToString("N"));
+        string tempRoot = Path.Combine(Path.GetTempPath(), "kenku-flow-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempRoot);
         string libraryRoot = Path.Combine(tempRoot, "library");
         Directory.CreateDirectory(libraryRoot);
@@ -57,7 +57,7 @@ public class TorrentFlowIntegrationTests
             context.MangaConnectorToChapter.Add(chId);
             await context.SaveChangesAsync();
 
-            var settings = new TrangaSettings { AppData = tempRoot, ChapterNamingScheme = "%M - Ch.%C" };
+            var settings = new KenkuSettings { AppData = tempRoot, ChapterNamingScheme = "%M - Ch.%C" };
             var source = new FakeTorrentSource(settings);
 
             // --- Indexer + torrent client mocks ---

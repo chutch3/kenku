@@ -23,7 +23,7 @@ public class QBittorrentClient(HttpClient http, string baseUrl, string username,
             ["urls"] = downloadUrl,
             ["savepath"] = saveDir,
             ["tags"] = tag,
-            ["category"] = "tranga"
+            ["category"] = "kenku"
         };
         using HttpResponseMessage resp = await Post("/api/v2/torrents/add", form, ct);
         if (!resp.IsSuccessStatusCode)

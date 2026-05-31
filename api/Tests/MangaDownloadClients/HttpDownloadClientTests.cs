@@ -9,7 +9,7 @@ public class HttpDownloadClientTests
 {
     private static HttpDownloadClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler)
     {
-        var settings = new TrangaSettings { AppData = Path.GetTempPath() };
+        var settings = new KenkuSettings { AppData = Path.GetTempPath() };
         var rateLimit = new RateLimitHandler(settings, new FakeHttpMessageHandler(handler));
         return new HttpDownloadClient(rateLimit, settings);
     }

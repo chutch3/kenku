@@ -9,7 +9,7 @@ public class Global : SeriesSource
 {
     private readonly IServiceProvider _serviceProvider;
 
-    public Global(TrangaSettings settings, IServiceProvider serviceProvider) : base("Global", ["all"], [""], "https://avatars.githubusercontent.com/u/13404778", settings)
+    public Global(KenkuSettings settings, IServiceProvider serviceProvider) : base("Global", ["all"], [""], "https://avatars.githubusercontent.com/u/13404778", settings)
     {
         _serviceProvider = serviceProvider;
     }

@@ -12,7 +12,7 @@ public class DirectArchiveAcquirerTests
 {
     private sealed class FakeSource : SeriesSource
     {
-        public FakeSource(TrangaSettings settings)
+        public FakeSource(KenkuSettings settings)
             : base("FakeArchive", ["en"], ["fake.test"], "icon", settings) { }
 
         public override AcquisitionKind Kind => AcquisitionKind.DirectArchive;
@@ -23,12 +23,12 @@ public class DirectArchiveAcquirerTests
         internal override Task<string[]> GetChapterImageUrls(SourceId<Chapter> c) => throw new NotSupportedException();
     }
 
-    private static (Series series, Chapter chapter, SourceId<Chapter> sourceId, FakeSource source, TrangaSettings settings, string tempRoot)
+    private static (Series series, Chapter chapter, SourceId<Chapter> sourceId, FakeSource source, KenkuSettings settings, string tempRoot)
         BuildFixture(string archiveUrl)
     {
-        string tempRoot = Path.Combine(Path.GetTempPath(), "tranga-da-" + Guid.NewGuid().ToString("N"));
+        string tempRoot = Path.Combine(Path.GetTempPath(), "kenku-da-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempRoot);
-        var settings = new TrangaSettings { AppData = tempRoot };
+        var settings = new KenkuSettings { AppData = tempRoot };
         var library = new FileLibrary(Path.Combine(tempRoot, "lib"), "Lib");
         var series = new Series("S", "d", "https://x/c.png", SeriesReleaseStatus.Continuing,
             new List<Author>(), new List<SeriesTag>(), new List<Link>(), new List<AltTitle>(),

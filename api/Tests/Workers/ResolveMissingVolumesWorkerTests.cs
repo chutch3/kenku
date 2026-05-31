@@ -48,13 +48,13 @@ public class ResolveMissingVolumesWorkerTests : IDisposable
         _actionsContext.Dispose();
     }
 
-    private ResolveMissingVolumesWorker MakeCoordinator(TrangaSettings settings) =>
+    private ResolveMissingVolumesWorker MakeCoordinator(KenkuSettings settings) =>
         new(settings, _mockFactory.Object);
 
     [Fact]
     public async Task DoWork_WhenStrategyDisabled_ReturnsEmpty_AndFactoryNeverCalled()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.Disabled };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.Disabled };
 
         var result = await MakeCoordinator(settings).DoWork(_mockScope.Object);
 
@@ -65,7 +65,7 @@ public class ResolveMissingVolumesWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenNoChaptersMissingVolumes_ReturnsEmpty_AndFactoryNeverCalled()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
         var library = new FileLibrary("/tmp/test", "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("Test", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -82,7 +82,7 @@ public class ResolveMissingVolumesWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenOneMangaWithHighParallelism_ReturnsOneWorker()
     {
-        var settings = new TrangaSettings
+        var settings = new KenkuSettings
         {
             VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly,
             VolumeResolutionParallelism = 3
@@ -104,7 +104,7 @@ public class ResolveMissingVolumesWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenThreeMangaWithParallelism2_ReturnsTwoWorkers()
     {
-        var settings = new TrangaSettings
+        var settings = new KenkuSettings
         {
             VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly,
             VolumeResolutionParallelism = 2
@@ -130,7 +130,7 @@ public class ResolveMissingVolumesWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_AllWorkersShareSameQueueInstance()
     {
-        var settings = new TrangaSettings
+        var settings = new KenkuSettings
         {
             VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly,
             VolumeResolutionParallelism = 3
@@ -158,7 +158,7 @@ public class ResolveMissingVolumesWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenParallelismIsZero_ClampsToAtLeastOneWorker()
     {
-        var settings = new TrangaSettings
+        var settings = new KenkuSettings
         {
             VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly,
             VolumeResolutionParallelism = 0
@@ -180,7 +180,7 @@ public class ResolveMissingVolumesWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_QueueContainsAllDistinctMangaIds()
     {
-        var settings = new TrangaSettings
+        var settings = new KenkuSettings
         {
             VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly,
             VolumeResolutionParallelism = 1

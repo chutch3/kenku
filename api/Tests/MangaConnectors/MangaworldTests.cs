@@ -11,7 +11,7 @@ namespace API.Tests.MangaConnectors;
 
 public class MangaworldTests
 {
-    private static TrangaSettings CreateSettings() => new TrangaSettings();
+    private static KenkuSettings CreateSettings() => new KenkuSettings();
     private static RateLimitHandler CreateRateLimitHandler() => new RateLimitHandler(CreateSettings());
 
     private static Mock<IDownloadClient> CreateMockClient(string responseContent, HttpStatusCode statusCode = HttpStatusCode.OK)

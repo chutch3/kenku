@@ -13,7 +13,7 @@ namespace API.Workers.MaintenanceWorkers;
 
 public class ResolveMissingVolumesForMangaWorker(
     ConcurrentQueue<string> queue,
-    TrangaSettings settings,
+    KenkuSettings settings,
     IMangaDexVolumeResolver mangaDexVolumeResolver,
     IMangaDexSearchService mangaDexSearchService,
     IEnumerable<BaseWorker>? dependsOn = null)

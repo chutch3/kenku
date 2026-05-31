@@ -51,7 +51,7 @@ public class RetrieveChaptersFromSourceWorkerTests : IDisposable
         var manga = new Series("Test Series", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], []);
         _mangaContext.Series.Add(manga);
 
-        var mockConnector = new Mock<SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new TrangaSettings());
+        var mockConnector = new Mock<SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
         
         var mangaMcId = new SourceId(manga, "MangaDex", "manga-id", "url");
         manga.SourceIds.Add(mangaMcId);

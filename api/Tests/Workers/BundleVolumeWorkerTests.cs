@@ -104,7 +104,7 @@ public class BundleVolumeWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenVolumeNotFound_CompletesWithoutError()
     {
-        var settings = new TrangaSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
+        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
         var worker = new BundleVolumeWorker("nonexistent-manga", 1, settings);
         var ex = await Record.ExceptionAsync(() => worker.DoWork(_mockScope.Object));
         Assert.Null(ex);
@@ -123,7 +123,7 @@ public class BundleVolumeWorkerTests : IDisposable
         }
         await _mangaContext.SaveChangesAsync();
 
-        var settings = new TrangaSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
+        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
         var worker = new BundleVolumeWorker(manga.Key, vol.VolumeNumber, settings);
         var result = await worker.DoWork(_mockScope.Object);
         Assert.Empty(result);
@@ -138,7 +138,7 @@ public class BundleVolumeWorkerTests : IDisposable
     {
         var (manga, vol, chapters) = await SetupAsync(volumeNumber: 1, chapterCount: 2, pagesPerChapter: 3);
 
-        var settings = new TrangaSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
+        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
         var worker = new BundleVolumeWorker(manga.Key, vol.VolumeNumber, settings);
         await worker.DoWork(_mockScope.Object);
 
@@ -161,7 +161,7 @@ public class BundleVolumeWorkerTests : IDisposable
     {
         var (manga, vol, chapters) = await SetupAsync(volumeNumber: 1, chapterCount: 2, pagesPerChapter: 3);
 
-        var settings = new TrangaSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
+        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
         var worker = new BundleVolumeWorker(manga.Key, vol.VolumeNumber, settings);
         await worker.DoWork(_mockScope.Object);
 
@@ -181,7 +181,7 @@ public class BundleVolumeWorkerTests : IDisposable
     {
         var (manga, vol, _) = await SetupAsync(volumeNumber: 1, chapterCount: 2, pagesPerChapter: 3);
 
-        var settings = new TrangaSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
+        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
         var worker = new BundleVolumeWorker(manga.Key, vol.VolumeNumber, settings);
         await worker.DoWork(_mockScope.Object);
 
@@ -198,7 +198,7 @@ public class BundleVolumeWorkerTests : IDisposable
     {
         var (manga, vol, _) = await SetupAsync(volumeNumber: 1, chapterCount: 2, pagesPerChapter: 3);
 
-        var settings = new TrangaSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
+        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
         var worker = new BundleVolumeWorker(manga.Key, vol.VolumeNumber, settings);
         await worker.DoWork(_mockScope.Object);
 
@@ -212,7 +212,7 @@ public class BundleVolumeWorkerTests : IDisposable
         var (manga, vol, chapters) = await SetupAsync(volumeNumber: 1, chapterCount: 2, pagesPerChapter: 3);
         string mangaDir = Path.Combine(_testRoot, manga.DirectoryName);
 
-        var settings = new TrangaSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
+        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
         var worker = new BundleVolumeWorker(manga.Key, vol.VolumeNumber, settings);
         await worker.DoWork(_mockScope.Object);
 
@@ -225,7 +225,7 @@ public class BundleVolumeWorkerTests : IDisposable
     {
         var (manga, vol, _) = await SetupAsync(volumeNumber: 2, chapterCount: 1, pagesPerChapter: 2);
 
-        var settings = new TrangaSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
+        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
         var worker = new BundleVolumeWorker(manga.Key, vol.VolumeNumber, settings);
         await worker.DoWork(_mockScope.Object);
 

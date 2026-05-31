@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace API.Workers.MaintenanceWorkers;
 
-public class RenameChapterFileWorker(string chapterKey, string newFileName, TrangaSettings settings, IEnumerable<BaseWorker>? dependsOn = null)
+public class RenameChapterFileWorker(string chapterKey, string newFileName, KenkuSettings settings, IEnumerable<BaseWorker>? dependsOn = null)
     : BaseWorkerWithContexts(dependsOn)
 {
     private SeriesContext _mangaContext = null!;

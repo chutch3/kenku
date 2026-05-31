@@ -1,5 +1,5 @@
 <template>
-    <TrangaPage v-bind="$props">
+    <KenkuPage v-bind="$props">
         <template #left>
             <div class="flex flex-col gap-2">
                 <SeriesCover v-if="series" :series="series" class="self-center" />
@@ -29,12 +29,12 @@
             <slot name="actions" />
         </template>
         <slot />
-    </TrangaPage>
+    </KenkuPage>
 </template>
 
 <script setup lang="ts">
 import type { components } from '#open-fetch-schemas/api';
-import TrangaPage, { type PageProps } from '~/components/TrangaPage.vue';
+import KenkuPage, { type PageProps } from '~/components/KenkuPage.vue';
 type Series = components['schemas']['Series'];
 
 export interface SeriesDetailPageProps extends PageProps {

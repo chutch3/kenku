@@ -16,7 +16,7 @@ namespace API.MangaConnectors;
 
 public class WeebCentral : SeriesSource
 {
-    public WeebCentral(TrangaSettings settings, RateLimitHandler rateLimitHandler) : base("WeebCentral", new[] { "en" }, new[] { "weebcentral.com" }, "https://weebcentral.com/static/images/brand.png", settings)
+    public WeebCentral(KenkuSettings settings, RateLimitHandler rateLimitHandler) : base("WeebCentral", new[] { "en" }, new[] { "weebcentral.com" }, "https://weebcentral.com/static/images/brand.png", settings)
     {
         this.downloadClient = new HttpDownloadClient(rateLimitHandler, settings);
     }

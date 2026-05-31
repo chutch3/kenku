@@ -16,24 +16,24 @@ using Microsoft.Extensions.DependencyInjection; // Required for GetRequiredServi
 namespace API;
 
 // 1. Removed 'static' from the class definition
-public class Tranga
+public class Kenku
 {
-    private static readonly ILog Log = LogManager.GetLogger(typeof(Tranga));
+    private static readonly ILog Log = LogManager.GetLogger(typeof(Kenku));
 
     private readonly IServiceProvider _serviceProvider;
     private readonly RateLimitHandler _rateLimitHandler;
-    private readonly TrangaSettings _settings;
+    private readonly KenkuSettings _settings;
     private readonly IWorkerQueue _workerQueue;
 
     public IEnumerable<SeriesSource> Connectors { get; }
     public IEnumerable<MetadataFetcher> MetadataFetchers { get; }
 
-    public Tranga(
+    public Kenku(
         IServiceProvider serviceProvider,
         IEnumerable<SeriesSource> connectors,
         IEnumerable<MetadataFetcher> fetchers,
         RateLimitHandler rateLimitHandler,
-        TrangaSettings settings,
+        KenkuSettings settings,
         IWorkerQueue workerQueue)
     {
         _serviceProvider = serviceProvider;
@@ -89,7 +89,7 @@ public class Tranga
         return seriesSource != null;
     }
 
-    // 5. Removed 'this' from SeriesContext. It is now just a normal method you call on Tranga.
+    // 5. Removed 'this' from SeriesContext. It is now just a normal method you call on Kenku.
     internal async Task<(Series manga, SourceId<Series> id)?> AddMangaToContext(SeriesContext context, (Series, SourceId<Series>) addManga, CancellationToken token) =>
         await AddMangaToContext(context, addManga.Item1, addManga.Item2, token);
 

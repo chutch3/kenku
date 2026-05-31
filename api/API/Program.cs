@@ -26,7 +26,7 @@ using Microsoft.OpenApi;
 using Newtonsoft.Json.Converters;
 using Npgsql;
 
-string trangaBanner =
+string kenkuBanner =
     "\n\n" +
     " _______                                 v2\n" +
     "|_     _|.----..---.-..-----..-----..---.-.\n" +
@@ -38,14 +38,14 @@ string trangaBanner =
 
 XmlConfigurator.ConfigureAndWatch(new FileInfo("Log4Net.config.xml"));
 ILog log = LogManager.GetLogger("Startup");
-log.Info(trangaBanner);
+log.Info(kenkuBanner);
 log.Info("Logger Configured.");
 
 log.Info("Starting up");
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 log.Debug("Loading Settings...");
-var settings = TrangaSettings.Load();
+var settings = KenkuSettings.Load();
 builder.Services.AddSingleton(settings);
 
 builder.Services.AddCors(options =>
@@ -105,7 +105,7 @@ NpgsqlConnectionStringBuilder connectionStringBuilder = new()
     ReadBufferSize = 65536,
     WriteBufferSize = 65536,
     CommandTimeout = Constants.PostgresCommandTimeout,
-    ApplicationName = "Tranga"
+    ApplicationName = "Kenku"
 };
 
 // Settings already loaded and registered above (before CORS configuration).
@@ -167,7 +167,7 @@ builder.Services.AddSingleton<IChapterThumbnailService, ChapterThumbnailService>
 
 builder.Services.AddSingleton<RateLimitHandler>();
 builder.Services.AddSingleton<IWorkerQueue, WorkerQueue>();
-builder.Services.AddSingleton<Tranga>();
+builder.Services.AddSingleton<Kenku>();
 
 builder.Services.AddTorrentAcquisitionPath(settings, log);
 
@@ -266,7 +266,7 @@ try //Connect to DB and apply migrations
             "(\u02c3ᆺ\u02c2)", "(=\ud83d\udf66 \u0f1d \ud83d\udf66=)"
         ];
         await context.Notifications.AddAsync(
-            new("Tranga Started", emojis.RandomElement(), NotificationUrgency.High),
+            new("Kenku Started", emojis.RandomElement(), NotificationUrgency.High),
             CancellationToken.None);
 
         if(await context.Sync(CancellationToken.None, reason: "Startup notification") is { success: false } contextException)
@@ -297,16 +297,16 @@ catch (Exception e)
     return;
 }
 
-log.Info("Starting Tranga.");
-var trangaManager = app.Services.GetRequiredService<Tranga>();
+log.Info("Starting Kenku.");
+var kenkuManager = app.Services.GetRequiredService<Kenku>();
 
 // Apply persisted connector enable/disable state from settings
-var trangaSettings = app.Services.GetRequiredService<TrangaSettings>();
+var kenkuSettings = app.Services.GetRequiredService<KenkuSettings>();
 var mangaConnectors = app.Services.GetRequiredService<IEnumerable<SeriesSource>>();
-trangaSettings.ApplyDisabledConnectors(mangaConnectors);
+kenkuSettings.ApplyDisabledConnectors(mangaConnectors);
 
-await trangaManager.StartupTasks();
-trangaManager.AddDefaultWorkers();
+await kenkuManager.StartupTasks();
+kenkuManager.AddDefaultWorkers();
 
 log.Info("Running app.");
 await app.RunAsync();

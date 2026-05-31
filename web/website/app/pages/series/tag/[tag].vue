@@ -1,5 +1,5 @@
 <template>
-    <TrangaPage>
+    <KenkuPage>
         <template #title>
             <h1 class="text-2xl">
                 Series with Tag <UBadge variant="outline" color="primary" class="font-semibold text-xl ml-1">{{ tag }}</UBadge>
@@ -11,7 +11,7 @@
                 class="overflow-y-scroll h-full"
                 @click="(m) => navigateTo(`/series/${m.key}?return=${$route.fullPath}`)" />
         </LoadingPage>
-    </TrangaPage>
+    </KenkuPage>
 </template>
 
 <script setup lang="ts">

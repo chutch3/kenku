@@ -13,7 +13,7 @@ namespace API.MangaConnectors;
 
 [PrimaryKey("Name")]
 [Table("MangaConnector")] // Existing DB table; a follow-up hand-crafted migration is needed to rename to "SeriesSource" (see TECHNICAL_DEBT.md).
-public abstract class SeriesSource(string name, string[] supportedLanguages, string[] baseUris, string iconUrl, TrangaSettings settings)
+public abstract class SeriesSource(string name, string[] supportedLanguages, string[] baseUris, string iconUrl, KenkuSettings settings)
 {
     [NotMapped] internal IDownloadClient downloadClient { get; init; } = null!;
     [NotMapped] protected ILog Log { get; init; } = LogManager.GetLogger(name);
@@ -22,7 +22,7 @@ public abstract class SeriesSource(string name, string[] supportedLanguages, str
     [StringLength(2048)] public string IconUrl { get; init; } = iconUrl;
     [StringLength(256)] public string[] BaseUris { get; init; } = baseUris;
     public bool Enabled { get; internal set; } = true;
-    protected TrangaSettings Settings => settings;
+    protected KenkuSettings Settings => settings;
 
     /// <summary>How this source delivers chapters. Drives dispatch to the matching IChapterAcquirer.</summary>
     [NotMapped] public abstract AcquisitionKind Kind { get; }

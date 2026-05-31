@@ -11,21 +11,21 @@ namespace API.Controllers;
 [ApiVersion(2)]
 [ApiController]
 [Route("v{v:apiVersion}/[controller]")]
-public class SettingsController(TrangaSettings settings) : ControllerBase
+public class SettingsController(KenkuSettings settings) : ControllerBase
 {
     /// <summary>
-    /// Get all <see cref="Tranga.Settings"/>
+    /// Get all <see cref="Kenku.Settings"/>
     /// </summary>
     /// <response code="200"></response>
     [HttpGet]
-    [ProducesResponseType<TrangaSettings>(Status200OK, "application/json")]
-    public Ok<TrangaSettings> GetSettings()
+    [ProducesResponseType<KenkuSettings>(Status200OK, "application/json")]
+    public Ok<KenkuSettings> GetSettings()
     {
         return TypedResults.Ok(settings);
     }
     
     /// <summary>
-    /// Get the current UserAgent used by Tranga
+    /// Get the current UserAgent used by Kenku
     /// </summary>
     /// <response code="200"></response>
     [HttpGet("UserAgent")]
@@ -56,7 +56,7 @@ public class SettingsController(TrangaSettings settings) : ControllerBase
     [ProducesResponseType(Status200OK)]
     public Ok ResetUserAgent()
     {
-        settings.SetUserAgent(TrangaSettings.DefaultUserAgent);
+        settings.SetUserAgent(KenkuSettings.DefaultUserAgent);
         return TypedResults.Ok();
     }
     

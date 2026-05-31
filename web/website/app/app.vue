@@ -13,7 +13,7 @@
                                 -webkit-text-fill-color: transparent;
                             "
                             class="font-bold cursor-pointer text-3xl">
-                            Tranga
+                            Kenku
                         </p>
                     </div>
                 </NuxtLink>

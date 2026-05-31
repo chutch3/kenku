@@ -1,9 +1,9 @@
 namespace API.TorrentClients;
 
 /// <summary>
-/// Owned abstraction over an external BitTorrent client (qBittorrent, Deluge, etc.). Tranga uses
+/// Owned abstraction over an external BitTorrent client (qBittorrent, Deluge, etc.). Kenku uses
 /// a caller-supplied <c>tag</c> as the torrent's identifier — this sidesteps the cost of extracting
-/// the BitTorrent info-hash from a magnet/.torrent on the Tranga side. Implementations tag the
+/// the BitTorrent info-hash from a magnet/.torrent on the Kenku side. Implementations tag the
 /// torrent so it can be looked up again by the same tag.
 /// </summary>
 public interface ITorrentClient

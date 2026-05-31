@@ -15,7 +15,7 @@ namespace API.Tests.Controllers;
 
 public class MangaConnectorControllerTests
 {
-    private readonly TrangaSettings _settings = new() { AppData = Path.GetTempPath() };
+    private readonly KenkuSettings _settings = new() { AppData = Path.GetTempPath() };
 
     private SeriesContext CreateContext()
     {
@@ -32,7 +32,7 @@ public class MangaConnectorControllerTests
         return mock;
     }
 
-    private SeriesSourceController CreateController(SeriesContext ctx, IEnumerable<MangaConnectorImpl> connectors, TrangaSettings settings)
+    private SeriesSourceController CreateController(SeriesContext ctx, IEnumerable<MangaConnectorImpl> connectors, KenkuSettings settings)
     {
         var controller = new SeriesSourceController(ctx, connectors, settings);
         controller.ControllerContext = new ControllerContext
@@ -142,13 +142,13 @@ public class MangaConnectorControllerTests
         Assert.Contains("en", ok.Value![0].SupportedLanguages);
     }
 
-    // --- Persistence tests (RED: these fail until TrangaSettings.DisabledConnectors is implemented) ---
+    // --- Persistence tests (RED: these fail until KenkuSettings.DisabledConnectors is implemented) ---
 
     [Fact]
     public void SetEnabled_DisableConnector_PersistsToSettings()
     {
         using var ctx = CreateContext();
-        var settings = new TrangaSettings { AppData = Path.GetTempPath() };
+        var settings = new KenkuSettings { AppData = Path.GetTempPath() };
         var connector = MakeConnector("MangaDex", enabled: true);
 
         CreateController(ctx, [connector.Object], settings).SetEnabled("MangaDex", false);
@@ -160,7 +160,7 @@ public class MangaConnectorControllerTests
     public void SetEnabled_EnablePreviouslyDisabledConnector_RemovesFromSettings()
     {
         using var ctx = CreateContext();
-        var settings = new TrangaSettings { AppData = Path.GetTempPath() };
+        var settings = new KenkuSettings { AppData = Path.GetTempPath() };
         settings.DisabledConnectors.Add("MangaDex");
         var connector = MakeConnector("MangaDex", enabled: false);
 
@@ -173,7 +173,7 @@ public class MangaConnectorControllerTests
     public void SetEnabled_UnknownConnector_ReturnsNotFound()
     {
         using var ctx = CreateContext();
-        var settings = new TrangaSettings { AppData = Path.GetTempPath() };
+        var settings = new KenkuSettings { AppData = Path.GetTempPath() };
 
         var result = CreateController(ctx, [], settings).SetEnabled("Unknown", false);
 
@@ -184,7 +184,7 @@ public class MangaConnectorControllerTests
     [Fact]
     public void ApplyDisabledConnectors_SetsEnabledFalseForDisabledNames()
     {
-        var settings = new TrangaSettings { AppData = Path.GetTempPath() };
+        var settings = new KenkuSettings { AppData = Path.GetTempPath() };
         settings.DisabledConnectors.Add("MangaDex");
         var connector = MakeConnector("MangaDex", enabled: true);
 
@@ -196,7 +196,7 @@ public class MangaConnectorControllerTests
     [Fact]
     public void ApplyDisabledConnectors_LeavesUnlistedConnectorsEnabled()
     {
-        var settings = new TrangaSettings { AppData = Path.GetTempPath() };
+        var settings = new KenkuSettings { AppData = Path.GetTempPath() };
         settings.DisabledConnectors.Add("Mangaworld");
         var connector = MakeConnector("MangaDex", enabled: true);
 

@@ -16,10 +16,10 @@ namespace API.MangaConnectors;
 
 public class AsuraComic : SeriesSource
 {
-    private readonly TrangaSettings _settings;
+    private readonly KenkuSettings _settings;
     private readonly RateLimitHandler _rateLimitHandler;
 
-    public AsuraComic(TrangaSettings settings, RateLimitHandler rateLimitHandler) : base("AsuraComic", ["en"], ["asuracomic.net"], "https://asuracomic.net/images/logo.webp", settings)
+    public AsuraComic(KenkuSettings settings, RateLimitHandler rateLimitHandler) : base("AsuraComic", ["en"], ["asuracomic.net"], "https://asuracomic.net/images/logo.webp", settings)
     {
         _settings = settings;
         _rateLimitHandler = rateLimitHandler;

@@ -8,7 +8,7 @@ using Newtonsoft.Json.Linq;
 
 namespace API.MangaDownloadClients;
 
-public class FlareSolverrDownloadClient(HttpClient client, TrangaSettings settings) : IDownloadClient
+public class FlareSolverrDownloadClient(HttpClient client, KenkuSettings settings) : IDownloadClient
 {
     private ILog Log { get; } = LogManager.GetLogger(typeof(FlareSolverrDownloadClient));
 

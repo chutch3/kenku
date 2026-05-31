@@ -69,5 +69,5 @@ public class TorrentAcquirer(
     }
 }
 
-/// <summary>Settings the TorrentAcquirer needs at construction time. Populated from TrangaSettings via DI.</summary>
+/// <summary>Settings the TorrentAcquirer needs at construction time. Populated from KenkuSettings via DI.</summary>
 public record TorrentAcquirerSettings(string StagingDirectory, int[] IndexerCategories);

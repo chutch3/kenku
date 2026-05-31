@@ -17,7 +17,7 @@ namespace API.Workers.PeriodicWorkers;
 public class TorrentCompletionWorker(
     ITorrentClient torrentClient,
     IEnumerable<SeriesSource> connectors,
-    TrangaSettings settings,
+    KenkuSettings settings,
     TimeSpan? interval = null,
     IEnumerable<BaseWorker>? dependsOn = null)
     : BaseWorkerWithContexts(dependsOn), IPeriodic

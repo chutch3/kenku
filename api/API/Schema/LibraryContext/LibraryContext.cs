@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace API.Schema.LibraryContext;
 
-public class LibraryContext(DbContextOptions<LibraryContext> options) : TrangaBaseContext<LibraryContext>(options)
+public class LibraryContext(DbContextOptions<LibraryContext> options) : KenkuBaseContext<LibraryContext>(options)
 {
     public DbSet<LibraryConnector> LibraryConnectors { get; set; }
     

@@ -12,7 +12,7 @@ public class SeriesContextDesignTimeFactory : IDesignTimeDbContextFactory<Series
     {
         var optionsBuilder = new DbContextOptionsBuilder<SeriesContext>();
         // Placeholder connection string — only used by EF design-time tooling
-        optionsBuilder.UseNpgsql("Host=localhost;Database=tranga;Username=tranga;Password=tranga");
+        optionsBuilder.UseNpgsql("Host=localhost;Database=kenku;Username=kenku;Password=kenku");
         return new SeriesContext(optionsBuilder.Options);
     }
 }

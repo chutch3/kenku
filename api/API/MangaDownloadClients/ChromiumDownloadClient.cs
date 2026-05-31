@@ -11,13 +11,13 @@ internal class ChromiumDownloadClient : IDownloadClient, IAsyncDisposable
     private static readonly ILog Log = LogManager.GetLogger(typeof(ChromiumDownloadClient));
     private IBrowser? _browser;
     private readonly HttpDownloadClient _httpFallback;
-    private readonly TrangaSettings _settings;
+    private readonly KenkuSettings _settings;
     private readonly object _lock = new();
     private static readonly Regex _imageUrlRex = new(@"https?:\/\/.*\.(?:p?jpe?g|gif|a?png|bmp|avif|webp)(\?.*)?");
     private long _activePages = 0;
     private readonly int _maxPages = 2;
 
-    public ChromiumDownloadClient(TrangaSettings settings, RateLimitHandler rateLimitHandler)
+    public ChromiumDownloadClient(KenkuSettings settings, RateLimitHandler rateLimitHandler)
     {
         _settings = settings;
         _httpFallback = new HttpDownloadClient(rateLimitHandler, settings);

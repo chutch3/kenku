@@ -16,10 +16,10 @@ public static class ServiceCollectionExtensions
 {
     /// <summary>
     /// Registers the torrent-based chapter acquisition path (indexer, torrent client, acquirer,
-    /// completion worker) when both <see cref="TrangaSettings.IndexerConfigured"/> and
-    /// <see cref="TrangaSettings.TorrentClientConfigured"/> are true. Otherwise no-ops.
+    /// completion worker) when both <see cref="KenkuSettings.IndexerConfigured"/> and
+    /// <see cref="KenkuSettings.TorrentClientConfigured"/> are true. Otherwise no-ops.
     /// </summary>
-    public static IServiceCollection AddTorrentAcquisitionPath(this IServiceCollection services, TrangaSettings settings, ILog log)
+    public static IServiceCollection AddTorrentAcquisitionPath(this IServiceCollection services, KenkuSettings settings, ILog log)
     {
         if (!settings.IndexerConfigured || !settings.TorrentClientConfigured)
         {

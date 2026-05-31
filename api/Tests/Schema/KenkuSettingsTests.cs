@@ -4,12 +4,12 @@ using Xunit;
 
 namespace API.Tests.Schema;
 
-public class TrangaSettingsTests
+public class KenkuSettingsTests
 {
     [Fact]
     public void NewSettings_ShouldInitializeWithSmartDefaults()
     {
-        var settings = new TrangaSettings();
+        var settings = new KenkuSettings();
 
         // If running locally on Linux, it should be /usr/share or ./debug
         Assert.NotNull(settings.AppData);
@@ -20,7 +20,7 @@ public class TrangaSettingsTests
     [Fact]
     public void Cors_DefaultsToAllowAnyOrigin()
     {
-        var settings = new TrangaSettings();
+        var settings = new KenkuSettings();
 
         Assert.Empty(settings.CorsAllowedOrigins);
         Assert.True(settings.CorsAllowAnyOrigin);
@@ -29,7 +29,7 @@ public class TrangaSettingsTests
     [Fact]
     public void Cors_WhenOriginsConfigured_DoesNotAllowAnyOrigin()
     {
-        var settings = new TrangaSettings { CorsAllowedOrigins = ["https://my-frontend.test"] };
+        var settings = new KenkuSettings { CorsAllowedOrigins = ["https://my-frontend.test"] };
 
         Assert.False(settings.CorsAllowAnyOrigin);
         Assert.Contains("https://my-frontend.test", settings.CorsAllowedOrigins);
@@ -38,7 +38,7 @@ public class TrangaSettingsTests
     [Fact]
     public void TorrentPath_DefaultsToDisabled()
     {
-        var settings = new TrangaSettings();
+        var settings = new KenkuSettings();
 
         Assert.False(settings.IndexerConfigured);
         Assert.False(settings.TorrentClientConfigured);
@@ -47,7 +47,7 @@ public class TrangaSettingsTests
     [Fact]
     public void TorrentPath_BecomesEnabled_WhenProwlarrSyncAndClientConfigured()
     {
-        var settings = new TrangaSettings
+        var settings = new KenkuSettings
         {
             ProwlarrBaseUrl = "http://prowlarr:9696",
             ProwlarrApiKey = "secret",
@@ -64,7 +64,7 @@ public class TrangaSettingsTests
     [Fact]
     public void Indexer_BecomesConfigured_WithManualIndexersAlone_NoProwlarr()
     {
-        var settings = new TrangaSettings
+        var settings = new KenkuSettings
         {
             ManualIndexers = [new API.Indexers.ManualIndexerConfig("Tracker", "http://t.test/api", "k", [8000])]
         };
@@ -76,31 +76,31 @@ public class TrangaSettingsTests
     [Fact]
     public void TorrentStagingDirectory_LivesUnderWorkingDirectory()
     {
-        var settings = new TrangaSettings { AppData = "/tmp/x" };
+        var settings = new KenkuSettings { AppData = "/tmp/x" };
 
-        Assert.Equal("/tmp/x/tranga-api/torrent-staging", settings.TorrentStagingDirectory);
+        Assert.Equal("/tmp/x/kenku-api/torrent-staging", settings.TorrentStagingDirectory);
     }
 
     [Fact]
     public void WorkingDirectory_ShouldReflectCustomAppData()
     {
-        var settings = new TrangaSettings { AppData = "/tmp/custom_manga" };
+        var settings = new KenkuSettings { AppData = "/tmp/custom_manga" };
 
         // This confirms that changing AppData correctly flows down to the sub-paths
-        Assert.Equal("/tmp/custom_manga/tranga-api", settings.WorkingDirectory);
-        Assert.Equal("/tmp/custom_manga/tranga-api/settings.json", settings.SettingsFilePath);
+        Assert.Equal("/tmp/custom_manga/kenku-api", settings.WorkingDirectory);
+        Assert.Equal("/tmp/custom_manga/kenku-api/settings.json", settings.SettingsFilePath);
     }
 
     [Fact]
     public void Serialization_ShouldRespectCustomPaths()
     {
-        var original = new TrangaSettings { AppData = "/mnt/nas/tranga" };
+        var original = new KenkuSettings { AppData = "/mnt/nas/kenku" };
 
         var json = JsonConvert.SerializeObject(original);
-        var deserialized = JsonConvert.DeserializeObject<TrangaSettings>(json);
+        var deserialized = JsonConvert.DeserializeObject<KenkuSettings>(json);
 
         Assert.NotNull(deserialized);
-        Assert.Equal("/mnt/nas/tranga", deserialized.AppData);
+        Assert.Equal("/mnt/nas/kenku", deserialized.AppData);
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public class TrangaSettingsTests
         // Since we are using DI, we usually prefer setting properties directly
         // and calling .Save() once, but testing the methods is good too.
 
-        var settings = new TrangaSettings { AppData = "./test_save" };
+        var settings = new KenkuSettings { AppData = "./test_save" };
         Directory.CreateDirectory(settings.WorkingDirectory);
 
         settings.SetDownloadLanguage("jp");
@@ -128,7 +128,7 @@ public class TrangaSettingsTests
     {
         if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Linux))
         {
-            var settings = new TrangaSettings();
+            var settings = new KenkuSettings();
             // This ensures your "Safety Net" is exactly what you expect for Swarm
             bool isExpectedPath = settings.AppData == "/usr/share" || settings.AppData == "./debug";
             Assert.True(isExpectedPath);

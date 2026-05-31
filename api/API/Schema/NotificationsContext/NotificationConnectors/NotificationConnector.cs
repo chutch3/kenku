@@ -30,7 +30,7 @@ public class NotificationConnector(string name, string url, Dictionary<string, s
 
     [NotMapped] private readonly HttpClient Client = new()
     {
-        DefaultRequestHeaders = { { "User-Agent", TrangaSettings.DefaultUserAgent } }
+        DefaultRequestHeaders = { { "User-Agent", KenkuSettings.DefaultUserAgent } }
     };
     
     [JsonIgnore] protected ILog Log = LogManager.GetLogger(name);

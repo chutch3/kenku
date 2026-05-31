@@ -52,7 +52,7 @@ public class WorkerQueueTests
     [Fact]
     public async Task AddWorker_WithUnstartedDependency_RunsDependencyThenCompletesDependent()
     {
-        var settings = new TrangaSettings { AppData = Path.GetTempPath(), MaxConcurrentWorkers = 5 };
+        var settings = new KenkuSettings { AppData = Path.GetTempPath(), MaxConcurrentWorkers = 5 };
         var queue = CreateQueue(settings);
 
         var dependency = new RecordingWorker("dep");
@@ -74,7 +74,7 @@ public class WorkerQueueTests
     {
         // With MaxConcurrentWorkers = 1, a dependent worker must not permanently hold the only
         // concurrency slot while resolving its dependency, or the queue deadlocks.
-        var settings = new TrangaSettings { AppData = Path.GetTempPath(), MaxConcurrentWorkers = 2 };
+        var settings = new KenkuSettings { AppData = Path.GetTempPath(), MaxConcurrentWorkers = 2 };
         var queue = CreateQueue(settings);
 
         var dependency = new RecordingWorker("dep2");
@@ -90,9 +90,9 @@ public class WorkerQueueTests
             "A worker added after dependency resolution should still acquire a concurrency slot.");
     }
 
-    private static WorkerQueue CreateQueue(TrangaSettings? settings = null)
+    private static WorkerQueue CreateQueue(KenkuSettings? settings = null)
     {
-        settings ??= new TrangaSettings { AppData = Path.GetTempPath() };
+        settings ??= new KenkuSettings { AppData = Path.GetTempPath() };
         var services = new ServiceCollection();
         services.AddSingleton(settings);
         var provider = services.BuildServiceProvider();
@@ -175,7 +175,7 @@ public class WorkerQueueTests
     [Fact]
     public void AddWorker_MaxConcurrencyRespected_WorkerEventuallyStarts()
     {
-        var settings = new TrangaSettings { AppData = Path.GetTempPath(), MaxConcurrentWorkers = 2 };
+        var settings = new KenkuSettings { AppData = Path.GetTempPath(), MaxConcurrentWorkers = 2 };
         var queue = CreateQueue(settings);
         var w1 = new FakeWorker("w1");
         var w2 = new FakeWorker("w2");

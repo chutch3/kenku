@@ -9,7 +9,7 @@ public class RateLimitHandler : DelegatingHandler
     private ILog Log { get; } = LogManager.GetLogger(typeof(RateLimitHandler));
     private readonly PartitionedRateLimiter<HttpRequestMessage> _limiter;
 
-    public RateLimitHandler(TrangaSettings settings) : this(settings, new HttpClientHandler())
+    public RateLimitHandler(KenkuSettings settings) : this(settings, new HttpClientHandler())
     {
     }
 
@@ -17,11 +17,11 @@ public class RateLimitHandler : DelegatingHandler
     /// Testable constructor: allows injecting the inner handler (the external HTTP boundary) and
     /// overriding the rate so behaviour can be verified without real network calls.
     /// </summary>
-    internal RateLimitHandler(TrangaSettings settings, HttpMessageHandler innerHandler,
+    internal RateLimitHandler(KenkuSettings settings, HttpMessageHandler innerHandler,
         int? requestsPerMinute = null, int queueLimit = 2000) : base(innerHandler)
     {
         // Calculate tokens per minute. Default is 90.
-        int rpm = requestsPerMinute ?? (settings.UserAgent.Equals(TrangaSettings.DefaultUserAgent)
+        int rpm = requestsPerMinute ?? (settings.UserAgent.Equals(KenkuSettings.DefaultUserAgent)
             ? int.Min(Constants.RequestsPerMinute, 90)
             : Constants.RequestsPerMinute);
 

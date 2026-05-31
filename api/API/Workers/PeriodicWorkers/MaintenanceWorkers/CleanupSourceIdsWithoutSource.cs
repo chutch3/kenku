@@ -8,9 +8,9 @@ namespace API.Workers.PeriodicWorkers.MaintenanceWorkers;
 public class CleanupSourceIdsWithoutSource : BaseWorkerWithContexts
 {
     private readonly IEnumerable<SeriesSource> _connectors;
-    private readonly TrangaSettings _settings;
+    private readonly KenkuSettings _settings;
 
-    public CleanupSourceIdsWithoutSource(IEnumerable<SeriesSource> connectors, TrangaSettings settings)
+    public CleanupSourceIdsWithoutSource(IEnumerable<SeriesSource> connectors, KenkuSettings settings)
     {
         _connectors = connectors;
         _settings = settings;

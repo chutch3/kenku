@@ -11,7 +11,7 @@ public class GlobalTests
     [Fact]
     public async Task SearchManga_SortsByDownloadLanguage()
     {
-        var settings = new TrangaSettings { DownloadLanguage = "en" };
+        var settings = new KenkuSettings { DownloadLanguage = "en" };
         var services = new ServiceCollection();
 
         var mockItConnector = new Mock<SeriesSource>("Mangaworld", new[] { "it" }, new[] { "mangaworld.mx" }, "icon", settings);

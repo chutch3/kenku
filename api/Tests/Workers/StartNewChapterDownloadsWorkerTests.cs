@@ -13,7 +13,7 @@ namespace API.Tests.Workers;
 
 public class StartNewChapterDownloadsWorkerTests
 {
-    private static (SeriesContext context, SourceId<Chapter> chapterId, SeriesSource connector, TrangaSettings settings)
+    private static (SeriesContext context, SourceId<Chapter> chapterId, SeriesSource connector, KenkuSettings settings)
         SetupMissingChapter(string dbName)
     {
         var options = new DbContextOptionsBuilder<SeriesContext>()
@@ -36,7 +36,7 @@ public class StartNewChapterDownloadsWorkerTests
         context.MangaConnectorToChapter.Add(chapterId);
         context.SaveChanges();
 
-        var settings = new TrangaSettings { AppData = "/tmp", MaxConcurrentDownloads = 5 };
+        var settings = new KenkuSettings { AppData = "/tmp", MaxConcurrentDownloads = 5 };
         var connector = new Mock<SeriesSource>("MockConnector", new[] { "en" }, new[] { "mock.com" }, "icon", settings).Object;
 
         return (context, chapterId, connector, settings);

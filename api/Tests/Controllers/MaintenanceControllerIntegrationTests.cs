@@ -19,7 +19,7 @@ namespace API.Tests.Controllers;
 public class MaintenanceControllerIntegrationTests : IAsyncLifetime
 {
     private readonly string _tempDir =
-        Path.Combine(Path.GetTempPath(), $"TrangaMaintenanceIntegration_{Guid.NewGuid()}");
+        Path.Combine(Path.GetTempPath(), $"KenkuMaintenanceIntegration_{Guid.NewGuid()}");
 
     private const string NamingScheme = "?V(%M Vol %V/)%M - Ch.%C";
 
@@ -94,7 +94,7 @@ public class MaintenanceControllerIntegrationTests : IAsyncLifetime
             .Setup(r => r.GetChapterToVolumeMapAsync(It.IsAny<Series>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, int> { ["1"] = 1 });
 
-        var settings = new TrangaSettings
+        var settings = new KenkuSettings
         {
             VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly,
             VolumeResolutionParallelism = 2,
@@ -162,7 +162,7 @@ public class MaintenanceControllerIntegrationTests : IAsyncLifetime
             .Setup(r => r.GetChapterToVolumeMapAsync(It.IsAny<Series>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, int> { ["1"] = 1, ["2"] = 1 });
 
-        var settings = new TrangaSettings
+        var settings = new KenkuSettings
         {
             VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly,
             ChapterNamingScheme = NamingScheme,

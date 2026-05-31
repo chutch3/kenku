@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.4",
   "info": {
-    "title": "Tranga v2",
+    "title": "Kenku v2",
     "version": "2.0"
   },
   "paths": {
@@ -3606,14 +3606,14 @@
         "tags": [
           "Settings"
         ],
-        "summary": "Get all !:Tranga.Settings",
+        "summary": "Get all !:Kenku.Settings",
         "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json; x-version=2.0": {
                 "schema": {
-                  "$ref": "#/components/schemas/TrangaSettings"
+                  "$ref": "#/components/schemas/KenkuSettings"
                 }
               }
             }
@@ -3626,7 +3626,7 @@
         "tags": [
           "Settings"
         ],
-        "summary": "Get the current UserAgent used by Tranga",
+        "summary": "Get the current UserAgent used by Kenku",
         "responses": {
           "200": {
             "description": "",
@@ -6174,7 +6174,7 @@
         },
         "additionalProperties": false
       },
-      "TrangaSettings": {
+      "KenkuSettings": {
         "type": "object",
         "properties": {
           "appData": {

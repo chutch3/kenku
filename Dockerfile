@@ -24,7 +24,7 @@ RUN apk add --no-cache chromium krb5-libs
 # ---- Stage 3: build the API ----
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:$DOTNET-alpine AS build-env
 WORKDIR /src
-COPY api/Tranga.sln /src
+COPY api/Kenku.sln /src
 COPY api/API/API.csproj /src/API/API.csproj
 RUN dotnet restore /src/API/API.csproj
 COPY api/ /src/
@@ -39,14 +39,14 @@ WORKDIR /publish
 
 EXPOSE 6531
 
-ARG UNAME=tranga
+ARG UNAME=kenku
 ARG UID=1000
 ARG GID=1000
 RUN addgroup -g $GID $UNAME \
   && adduser -D -u $UID -G $UNAME -s /bin/sh $UNAME \
-  && mkdir /usr/share/tranga-api \
+  && mkdir /usr/share/kenku-api \
   && mkdir /Manga \
-  && chown 1000:1000 /usr/share/tranga-api \
+  && chown 1000:1000 /usr/share/kenku-api \
   && chown 1000:1000 /Manga
 
 # PuppeteerSharp (Chromium path + no-sandbox args)

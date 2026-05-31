@@ -1,5 +1,5 @@
 <template>
-    <TrangaPage>
+    <KenkuPage>
         <UPageSection title="Settings" :ui="{ container: 'py-2 sm:py-2 lg:py-2 gap-2' }">
             <template #description>
                 <div v-if="settingsStatus === 'error'">
@@ -54,7 +54,7 @@
                 </template>
                 <p class="text-dimmed text-sm">
                     Configure an indexer source (Prowlarr) and a torrent client to download comics, plus Metron for
-                    comic metadata. Leave these empty to keep Tranga manga-only.
+                    comic metadata. Leave these empty to keep Kenku manga-only.
                 </p>
                 <template #footer>
                     <div class="flex flex-row gap-2 flex-wrap">
@@ -102,7 +102,7 @@
                 </div>
             </UCard>
         </UPageSection>
-    </TrangaPage>
+    </KenkuPage>
 </template>
 
 <script setup lang="ts">

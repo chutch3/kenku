@@ -18,7 +18,7 @@ namespace API.Workers.MangaDownloadWorkers;
 public class DownloadChapterFromSourceWorker(
     SourceId<Chapter> chId,
     IEnumerable<SeriesSource> connectors,
-    TrangaSettings settings,
+    KenkuSettings settings,
     IChapterAcquirer? acquirer = null,
     IEnumerable<BaseWorker>? dependsOn = null)
     : BaseWorkerWithContexts(dependsOn)

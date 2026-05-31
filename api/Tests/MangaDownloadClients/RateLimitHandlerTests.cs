@@ -10,7 +10,7 @@ public class RateLimitHandlerTests
     [Fact]
     public async Task SendAsync_RateLimitsPerHost_BucketsAreIndependent()
     {
-        var settings = new TrangaSettings { AppData = Path.GetTempPath() };
+        var settings = new KenkuSettings { AppData = Path.GetTempPath() };
         var inner = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));
 
         // One token per host, no queue: the second request to a host is immediately throttled.

@@ -20,11 +20,11 @@ public class ResolveMissingVolumesWorkerIntegrationTests : IAsyncLifetime
 {
     private readonly HttpClient _httpClient = new();
     private readonly string _tempDir =
-        Path.Combine(Path.GetTempPath(), $"TrangaIntegration_{Guid.NewGuid()}");
+        Path.Combine(Path.GetTempPath(), $"KenkuIntegration_{Guid.NewGuid()}");
 
     public Task InitializeAsync()
     {
-        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Tranga-Integration-Tests/1.0");
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Kenku-Integration-Tests/1.0");
         Directory.CreateDirectory(_tempDir);
         return Task.CompletedTask;
     }
@@ -66,7 +66,7 @@ public class ResolveMissingVolumesWorkerIntegrationTests : IAsyncLifetime
             .ReturnsAsync(new Dictionary<string, int>());
     }
 
-    private ResolveMissingVolumesForMangaWorker MakePoolWorker(string mangaKey, TrangaSettings settings, IMangaDexVolumeResolver resolver) =>
+    private ResolveMissingVolumesForMangaWorker MakePoolWorker(string mangaKey, KenkuSettings settings, IMangaDexVolumeResolver resolver) =>
         new(new ConcurrentQueue<string>([mangaKey]), settings, resolver, MockSearchService.Object);
 
     // Downloads the first two pages of a MangaDex chapter into a cbz at destPath.
@@ -116,7 +116,7 @@ public class ResolveMissingVolumesWorkerIntegrationTests : IAsyncLifetime
         }
 
         using var workerDb = CreateMangaContext(dbOptions);
-        var settings = new TrangaSettings
+        var settings = new KenkuSettings
             { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly, AppData = _tempDir };
         await MakePoolWorker(mangaKey, settings, new MangaDexVolumeResolver(_httpClient))
             .DoWork(CreateScope(workerDb));
@@ -154,7 +154,7 @@ public class ResolveMissingVolumesWorkerIntegrationTests : IAsyncLifetime
         }
 
         using var workerDb = CreateMangaContext(dbOptions);
-        var settings = new TrangaSettings
+        var settings = new KenkuSettings
             { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly, AppData = _tempDir };
         await MakePoolWorker(mangaKey, settings, new MangaDexVolumeResolver(_httpClient))
             .DoWork(CreateScope(workerDb));
@@ -217,7 +217,7 @@ public class ResolveMissingVolumesWorkerIntegrationTests : IAsyncLifetime
         await DownloadMangaDexChapterAsCbz(chainmanChapter1Uuid, Path.Combine(mangaDir, "chap1.cbz"));
 
         using var workerDb = CreateMangaContext(dbOptions);
-        var settings = new TrangaSettings
+        var settings = new KenkuSettings
             { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess, AppData = _tempDir };
         await MakePoolWorker(manga.Key, settings, new MangaDexVolumeResolver(_httpClient))
             .DoWork(CreateScope(workerDb));

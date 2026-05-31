@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace API.Workers.MaintenanceWorkers;
 
-public class SyncChapterFileNamesWorker(TrangaSettings settings, IEnumerable<BaseWorker>? dependsOn = null)
+public class SyncChapterFileNamesWorker(KenkuSettings settings, IEnumerable<BaseWorker>? dependsOn = null)
     : BaseWorkerWithContexts(dependsOn), IPeriodic
 {
     private SeriesContext _mangaContext = null!;

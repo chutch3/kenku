@@ -195,9 +195,9 @@ public class MetadataSourceControllerTests
     public async Task RefreshMetadataSource_ConfirmedSource_ReturnsAccepted()
     {
         // NOTE: This test verifies the happy-path routing logic (manga found, source confirmed).
-        // The static Tranga.AddWorker call requires the TrangaSettings file to be accessible,
+        // The static Kenku.AddWorker call requires the KenkuSettings file to be accessible,
         // which is not guaranteed in CI. We verify that the result shape is Accepted when all
-        // preconditions are met, using an environment variable to skip the Tranga init issue.
+        // preconditions are met, using an environment variable to skip the Kenku init issue.
         // The actual worker behaviour is tested separately in RefreshMetadataSourceWorkerTests.
         using var ctx = CreateContext();
         var manga = MakeTestManga("Naruto");
@@ -211,6 +211,6 @@ public class MetadataSourceControllerTests
         Assert.Equal(MetadataSourceStatus.Confirmed, loaded.MetadataSource!.Status);
         Assert.Equal("naruto-ext-id", loaded.MetadataSource!.ExternalId);
         // The actual endpoint returns Accepted (202) when these conditions hold.
-        // Verified by integration-level inspection; skipping direct call to avoid Tranga static init.
+        // Verified by integration-level inspection; skipping direct call to avoid Kenku static init.
     }
 }

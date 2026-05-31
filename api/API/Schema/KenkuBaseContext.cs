@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace API.Schema;
 
-public abstract class TrangaBaseContext<T> : DbContext where T : DbContext
+public abstract class KenkuBaseContext<T> : DbContext where T : DbContext
 {
     private ILog Log { get; init; }
 
-    protected TrangaBaseContext(DbContextOptions<T> options) : base(options)
+    protected KenkuBaseContext(DbContextOptions<T> options) : base(options)
     {
         this.Log =  LogManager.GetLogger(GetType());
     }

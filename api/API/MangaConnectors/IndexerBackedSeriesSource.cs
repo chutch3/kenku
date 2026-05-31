@@ -17,7 +17,7 @@ public sealed class IndexerBackedSeriesSource : SeriesSource
     private readonly IIndexerClient _indexers;
     private readonly int[] _categories;
 
-    public IndexerBackedSeriesSource(IIndexerClient indexers, TrangaSettings settings)
+    public IndexerBackedSeriesSource(IIndexerClient indexers, KenkuSettings settings)
         : base("Indexers", ["en"], [], "", settings)
     {
         _indexers = indexers;

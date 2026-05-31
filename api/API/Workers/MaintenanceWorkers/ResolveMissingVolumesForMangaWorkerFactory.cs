@@ -4,7 +4,7 @@ using API.Services;
 namespace API.Workers.MaintenanceWorkers;
 
 public class ResolveMissingVolumesForMangaWorkerFactory(
-    TrangaSettings settings,
+    KenkuSettings settings,
     IMangaDexVolumeResolver resolver,
     IMangaDexSearchService searchService)
     : IBatchWorkerFactory<string>

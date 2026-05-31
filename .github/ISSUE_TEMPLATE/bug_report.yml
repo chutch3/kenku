@@ -1,6 +1,6 @@
 name: Bug Report
 description: File a bug report
-title: "[Tranga broke]: <title>"
+title: "[Kenku broke]: <title>"
 labels: ["bug"]
 body:
 - type: textarea
@@ -13,12 +13,12 @@ body:
 - type: textarea
   attributes: 
     label: Log-output
-    description: The output of `docker logs tranga-api`
+    description: The output of `docker logs kenku-api`
     render: console
 - type: textarea
   attributes:
-    label: Tranga version
-    description: The output of `docker logs tranga-api` should start with `INFO  Startup - LOGO` and `--10/06/2025 13:59:16 for AnyCpu`, paste the output here to check what build you are running
+    label: Kenku version
+    description: The output of `docker logs kenku-api` should start with `INFO  Startup - LOGO` and `--10/06/2025 13:59:16 for AnyCpu`, paste the output here to check what build you are running
     render: console
 - type: textarea
   attributes: 

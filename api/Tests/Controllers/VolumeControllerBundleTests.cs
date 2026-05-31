@@ -40,7 +40,7 @@ public class VolumeControllerBundleTests : IDisposable
 
     private (VolumeController controller, Mock<IWorkerQueue> workerQueueMock) CreateController(SeriesContext ctx)
     {
-        var settings = new TrangaSettings { AppData = _tempDir };
+        var settings = new KenkuSettings { AppData = _tempDir };
         var workerQueueMock = new Mock<IWorkerQueue>();
         var controller = new VolumeController(ctx, settings, workerQueueMock.Object);
         controller.ControllerContext = new ControllerContext

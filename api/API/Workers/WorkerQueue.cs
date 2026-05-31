@@ -12,7 +12,7 @@ public class WorkerQueue : IWorkerQueue
     private static readonly ILog Log = LogManager.GetLogger(typeof(WorkerQueue));
 
     private readonly IServiceProvider _serviceProvider;
-    private readonly TrangaSettings _settings;
+    private readonly KenkuSettings _settings;
 
     internal readonly ConcurrentDictionary<IPeriodic, Task> PeriodicWorkers = new();
     // Thread-safe set: known workers are mutated from background start/cleanup tasks while being read
@@ -21,7 +21,7 @@ public class WorkerQueue : IWorkerQueue
     private readonly ConcurrentDictionary<BaseWorker, Task<BaseWorker[]>> _runningWorkers = new();
     private readonly SemaphoreSlim _concurrencySemaphore;
 
-    public WorkerQueue(IServiceProvider serviceProvider, TrangaSettings settings)
+    public WorkerQueue(IServiceProvider serviceProvider, KenkuSettings settings)
     {
         _serviceProvider = serviceProvider;
         _settings = settings;

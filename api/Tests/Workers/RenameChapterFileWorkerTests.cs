@@ -72,7 +72,7 @@ public class RenameChapterFileWorkerTests : IDisposable
         File.WriteAllText(Path.Combine(mangaDir, "One-Punch Man - Ch.1.cbz"), "fake content");
 
         const string newFileName = "One-Punch Man Vol 5/One-Punch Man - Ch.1.cbz";
-        var settings = new TrangaSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
+        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
         var worker = new RenameChapterFileWorker(chapter.Key, newFileName, settings);
         await worker.DoWork(_mockScope.Object);
 
@@ -89,7 +89,7 @@ public class RenameChapterFileWorkerTests : IDisposable
         var (_, chapter) = await SetupAsync();
 
         const string newFileName = "One-Punch Man Vol 5/One-Punch Man - Ch.1.cbz";
-        var settings = new TrangaSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
+        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
         var worker = new RenameChapterFileWorker(chapter.Key, newFileName, settings);
         await worker.DoWork(_mockScope.Object);
 
@@ -113,7 +113,7 @@ public class RenameChapterFileWorkerTests : IDisposable
         File.WriteAllText(Path.Combine(destDir, "One-Punch Man - Ch.1.cbz"), "existing content");
 
         const string newFileName = "One-Punch Man Vol 5/One-Punch Man - Ch.1.cbz";
-        var settings = new TrangaSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
+        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
         var worker = new RenameChapterFileWorker(chapter.Key, newFileName, settings);
 
         var ex = await Record.ExceptionAsync(() => worker.DoWork(_mockScope.Object));
@@ -128,7 +128,7 @@ public class RenameChapterFileWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenChapterKeyNotFound_CompletesWithoutError()
     {
-        var settings = new TrangaSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
+        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
         var worker = new RenameChapterFileWorker("nonexistent-key", "anything.cbz", settings);
         var ex = await Record.ExceptionAsync(() => worker.DoWork(_mockScope.Object));
         Assert.Null(ex);

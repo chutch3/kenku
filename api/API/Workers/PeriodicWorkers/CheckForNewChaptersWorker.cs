@@ -9,7 +9,7 @@ namespace API.Workers.PeriodicWorkers;
 /// <summary>
 /// Creates Jobs to update available Chapters for all Series that are marked for Download
 /// </summary>
-public class CheckForNewChaptersWorker(TrangaSettings settings, IEnumerable<SeriesSource> connectors, TimeSpan? interval = null, IEnumerable<BaseWorker>? dependsOn = null)
+public class CheckForNewChaptersWorker(KenkuSettings settings, IEnumerable<SeriesSource> connectors, TimeSpan? interval = null, IEnumerable<BaseWorker>? dependsOn = null)
     : BaseWorkerWithContexts(dependsOn), IPeriodic
 {
     public DateTime LastExecution { get; set; } = DateTime.UnixEpoch;

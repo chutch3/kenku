@@ -1,4 +1,4 @@
-# Tranga technical debt
+# Kenku technical debt
 
 Known items deliberately deferred. Each has been investigated and a concrete recipe is recorded
 below so the next person picking it up doesn't repeat the discovery.
@@ -83,8 +83,8 @@ Estimated effort: 1-2 hours including parser tests.
 
 **Future: Prowlarr push-sync + per-indexer enable/disable.** Today `ProwlarrIndexerProvider` *pulls*
 Prowlarr's indexer list live at search time. A fuller *arr-style integration would let Prowlarr
-*push* indexer definitions into Tranga (implementing Prowlarr's "application" sync contract) and
-persist them so individual indexers can be enabled/disabled in Tranga's own UI. Not needed for v1.
+*push* indexer definitions into Kenku (implementing Prowlarr's "application" sync contract) and
+persist them so individual indexers can be enabled/disabled in Kenku's own UI. Not needed for v1.
 
 ---
 

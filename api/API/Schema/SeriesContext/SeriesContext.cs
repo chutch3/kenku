@@ -9,7 +9,7 @@ using SeriesEntity = API.Schema.SeriesContext.Series;
 
 namespace API.Schema.SeriesContext;
 
-public class SeriesContext(DbContextOptions<SeriesContext> options) : TrangaBaseContext<SeriesContext>(options)
+public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseContext<SeriesContext>(options)
 {
     private static readonly ILog Log = LogManager.GetLogger(typeof(SeriesContext));
     public DbSet<Series> Series { get; set; }

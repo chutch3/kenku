@@ -78,7 +78,7 @@ public class MaintenanceController(SeriesContext mangaContext, ActionsContext ac
     /// <response code="202">Resolve worker queued</response>
     [HttpPost("ResolveMissingVolumes")]
     [ProducesResponseType(Status202Accepted)]
-    public Ok ResolveMissingVolumes([FromServices] IWorkerQueue workerQueue, [FromServices] TrangaSettings settings, [FromServices] IBatchWorkerFactory<string> factory)
+    public Ok ResolveMissingVolumes([FromServices] IWorkerQueue workerQueue, [FromServices] KenkuSettings settings, [FromServices] IBatchWorkerFactory<string> factory)
     {
         workerQueue.AddWorker(new ResolveMissingVolumesWorker(settings, factory));
         return TypedResults.Ok();
@@ -92,7 +92,7 @@ public class MaintenanceController(SeriesContext mangaContext, ActionsContext ac
     /// <response code="200">Sync worker queued</response>
     [HttpPost("SyncChapterFileNames")]
     [ProducesResponseType(Status200OK)]
-    public Ok SyncChapterFileNames([FromServices] IWorkerQueue workerQueue, [FromServices] TrangaSettings settings)
+    public Ok SyncChapterFileNames([FromServices] IWorkerQueue workerQueue, [FromServices] KenkuSettings settings)
     {
         workerQueue.AddWorker(new SyncChapterFileNamesWorker(settings));
         return TypedResults.Ok();
@@ -111,7 +111,7 @@ public class MaintenanceController(SeriesContext mangaContext, ActionsContext ac
     [ProducesResponseType<string>(Status500InternalServerError, "text/plain")]
     public async Task<Results<Ok, InternalServerError<string>>> ResetAndResolveVolumes(
         [FromServices] IWorkerQueue workerQueue,
-        [FromServices] TrangaSettings settings,
+        [FromServices] KenkuSettings settings,
         [FromServices] IBatchWorkerFactory<string> factory)
     {
         var chapters = await mangaContext.Chapters.ToListAsync(HttpContext.RequestAborted);

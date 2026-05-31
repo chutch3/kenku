@@ -12,7 +12,7 @@ namespace API.MangaConnectors;
 
 public sealed class Mangaworld : SeriesSource
 {
-    public Mangaworld(TrangaSettings settings, RateLimitHandler rateLimitHandler) : base(
+    public Mangaworld(KenkuSettings settings, RateLimitHandler rateLimitHandler) : base(
         "Mangaworld",
         ["it"],
         [

@@ -8,7 +8,7 @@ riderModule.iml
 /workspace.xml
 # Rider ignored files
 /projectSettingsUpdater.xml
-/.idea.Tranga.iml
+/.idea.Kenku.iml
 /contentModel.xml
 /modules.xml
 # Editor-based HTTP Client requests
@@ -19,7 +19,7 @@ riderModule.iml
 /.idea
 /.vscode
 /.vs/
-Tranga/Properties/launchSettings.json
+Kenku/Properties/launchSettings.json
 *.DotSettings.user
 
 /Manga/

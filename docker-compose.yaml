@@ -8,7 +8,7 @@ services:
     user: "${UID}:${GID}"
     volumes:
       - ./Manga:/Manga
-      - ./settings:/usr/share/tranga-api
+      - ./settings:/usr/share/kenku-api
     ports:
       # Serves the web UI, the REST API and /swagger on one port.
       - "6531:6531"

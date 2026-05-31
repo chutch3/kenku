@@ -67,19 +67,19 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         _actionsContext.Dispose();
     }
 
-    private ResolveMissingVolumesForMangaWorker MakeWorker(TrangaSettings settings, string mangaKey) =>
+    private ResolveMissingVolumesForMangaWorker MakeWorker(KenkuSettings settings, string mangaKey) =>
         new(new ConcurrentQueue<string>([mangaKey]), settings, _mockMangaDexResolver.Object, _mockSearchService.Object);
 
-    private ResolveMissingVolumesForMangaWorker MakeWorker(TrangaSettings settings, string mangaKey, IMangaDexVolumeResolver resolver) =>
+    private ResolveMissingVolumesForMangaWorker MakeWorker(KenkuSettings settings, string mangaKey, IMangaDexVolumeResolver resolver) =>
         new(new ConcurrentQueue<string>([mangaKey]), settings, resolver, _mockSearchService.Object);
 
-    private ResolveMissingVolumesForMangaWorker MakeWorker(TrangaSettings settings, IEnumerable<string> mangaKeys) =>
+    private ResolveMissingVolumesForMangaWorker MakeWorker(KenkuSettings settings, IEnumerable<string> mangaKeys) =>
         new(new ConcurrentQueue<string>(mangaKeys), settings, _mockMangaDexResolver.Object, _mockSearchService.Object);
 
     [Fact]
     public async Task DoWork_WhenExactLookupFails_FallsBackToColorHeuristic()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("Test Series", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -102,7 +102,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenFirstChapterNotColor_AbortsHeuristic()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("Test No Cover", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -125,7 +125,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenStrategyExactOnly_DoesNotRunHeuristic()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("Test Exact Only", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -145,7 +145,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenFileMissing_SkipsGracefullyAndEvaluatesNext()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("Test Missing File", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -168,7 +168,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenMangaHasExistingVolumes_HeuristicStartsFromMaxVolume()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
         string dbName = Guid.NewGuid().ToString();
         var options = new DbContextOptionsBuilder<SeriesContext>().UseInMemoryDatabase(dbName).Options;
 
@@ -206,7 +206,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenMangaDexReturnsFullMap_AllChaptersGetVolumes()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("Test MangaDex Full", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -228,7 +228,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenMangaDexReturnsPartialMap_UnmappedChaptersRemainNull()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("Test MangaDex Partial", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -252,7 +252,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenMangaDexReturnsEmptyMap_FallsBackToHeuristic()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("Test Fallback", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -275,7 +275,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenConsecutiveColorChapters_AbortsHeuristic()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("Test Consecutive", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -298,7 +298,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenGrayscaleContinuationAfterExistingVolume_AssignedToCurrentVolume()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
         string dbName = Guid.NewGuid().ToString();
         var options = new DbContextOptionsBuilder<SeriesContext>().UseInMemoryDatabase(dbName).Options;
 
@@ -336,7 +336,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenVolumesUpdated_ReturnsRenameWorkers()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("Test Moves", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -359,7 +359,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_NeverQueuesRenameWorker_WhenVolumeAssigned()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("Test No Rename", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -382,7 +382,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenNamingSchemeHasNoVolume_NoRenameWorkerGenerated()
     {
-        var settings = new TrangaSettings
+        var settings = new KenkuSettings
         {
             VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess,
             ChapterNamingScheme = "%M - Ch.%C"
@@ -408,7 +408,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenZipHasNoImages_SkipsChapterAndTreatsNextAsFirst()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("Test Empty Zip", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -432,7 +432,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenExactOnlyAndMangaDexReturnsEmpty_ChaptersRemainNull()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("Test Exact Empty", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -452,7 +452,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenCorruptZipAfterVolumeEstablished_AssignsCurrentVolume()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("Test Corrupt Zip", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -475,7 +475,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenChapterNotDownloaded_IsExcluded()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("Test Not Downloaded", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -491,7 +491,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WithMultipleMangaInQueue_EachProcessedIndependently()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga1 = new Series("Test Multi One", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -517,7 +517,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenCoverNamedCoverJpg_ColorCoverDetected()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("Test Cover Name", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -541,7 +541,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenMangaDexThrowsException_FallsBackToColorHeuristic()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("Test Exception Fallback", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -566,7 +566,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenMangaDexMapHasNoMatchingChapters_FallsBackToHeuristic()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("Test No Match Fallback", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -598,7 +598,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenStatusConfirmed_AssignsExactConfidenceToChapters()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("Test Exact Confidence", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -626,7 +626,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenHeuristicUsed_AssignsHeuristicConfidenceToChapters()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("Test Heuristic Confidence", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -657,7 +657,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenStatusUnlinked_AttemptsAutoMatch_AndSetsAutoMatchedOnStrongCandidate()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         // Series with 2 chapters — chapter count matches the search result
@@ -694,7 +694,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenAutoMatchScoreBelowThreshold_SetsNoMatch()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("XYZ Series", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -724,7 +724,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenAutoMatchAmbiguous_SetsAmbiguous()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         // Use a title that produces similar scores for two candidates
@@ -754,7 +754,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     [Fact]
     public async Task DoWork_WhenAutoMatchSucceedsButVolumeFetchFails_RollsBackToUnlinked()
     {
-        var settings = new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
         var manga = new Series("Berserk", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);

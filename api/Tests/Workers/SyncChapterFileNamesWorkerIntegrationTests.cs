@@ -14,7 +14,7 @@ namespace API.Tests.Workers;
 public class SyncChapterFileNamesWorkerIntegrationTests : IAsyncLifetime
 {
     private readonly string _tempDir =
-        Path.Combine(Path.GetTempPath(), $"TrangaSyncIntegration_{Guid.NewGuid()}");
+        Path.Combine(Path.GetTempPath(), $"KenkuSyncIntegration_{Guid.NewGuid()}");
 
     private const string NamingScheme = "?V(%M Vol %V/)%M - Ch.%C";
 
@@ -77,7 +77,7 @@ public class SyncChapterFileNamesWorkerIntegrationTests : IAsyncLifetime
         File.WriteAllText(Path.Combine(mangaDir, "One-Punch Man - Ch.1.cbz"), "fake cbz content");
 
         using var workerDb = CreateMangaContext(dbOptions);
-        var settings = new TrangaSettings { ChapterNamingScheme = NamingScheme, AppData = _tempDir };
+        var settings = new KenkuSettings { ChapterNamingScheme = NamingScheme, AppData = _tempDir };
         var syncWorker = new SyncChapterFileNamesWorker(settings);
         var moveWorkers = await syncWorker.DoWork(CreateScope(workerDb));
 

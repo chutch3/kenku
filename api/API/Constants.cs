@@ -8,7 +8,7 @@ public struct Constants
     public static readonly Size ImageMdSize = new (450, 640);
     public static readonly Size ImageLgSize = new (900, 1280);
     
-    public static readonly string PostgresHost = Environment.GetEnvironmentVariable("POSTGRES_HOST") ?? "tranga-pg:5432";
+    public static readonly string PostgresHost = Environment.GetEnvironmentVariable("POSTGRES_HOST") ?? "kenku-pg:5432";
     public static readonly string PostgresDb = Environment.GetEnvironmentVariable("POSTGRES_DB") ?? "postgres";
     public static readonly string PostgresUser = Environment.GetEnvironmentVariable("POSTGRES_USER") ?? "postgres";
     public static readonly string PostgresPassword = Environment.GetEnvironmentVariable("POSTGRES_PASSWORD") ?? "postgres";

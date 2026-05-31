@@ -8,5 +8,5 @@
 const { data: series, refresh, status } = await useApi('/v2/Series', { key: FetchKeys.Series.All, lazy: true, server: false });
 onMounted(() => refresh());
 
-useHead({ title: 'Tranga' });
+useHead({ title: 'Kenku' });
 </script>

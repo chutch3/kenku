@@ -92,7 +92,7 @@ public class MaintenanceControllerTests
         var controller = CreateController(mangaCtx, actionsCtx);
         var result = await controller.ResetAndResolveVolumes(
             new Mock<IWorkerQueue>().Object,
-            new TrangaSettings(),
+            new KenkuSettings(),
             new Mock<IBatchWorkerFactory<string>>().Object);
 
         Assert.IsType<Ok>(result.Result);
@@ -118,7 +118,7 @@ public class MaintenanceControllerTests
         var controller = CreateController(mangaCtx, actionsCtx);
         var result = await controller.ResetAndResolveVolumes(
             mockQueue.Object,
-            new TrangaSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.Disabled },
+            new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.Disabled },
             new Mock<IBatchWorkerFactory<string>>().Object);
 
         Assert.IsType<Ok>(result.Result);
@@ -144,7 +144,7 @@ public class MaintenanceControllerTests
         var controller = CreateController(mangaCtx, actionsCtx);
         await controller.ResetAndResolveVolumes(
             new Mock<IWorkerQueue>().Object,
-            new TrangaSettings(),
+            new KenkuSettings(),
             new Mock<IBatchWorkerFactory<string>>().Object);
 
         var chapters = await mangaCtx.Chapters.ToListAsync();
@@ -160,7 +160,7 @@ public class MaintenanceControllerTests
 
         var result = await controller.ResetAndResolveVolumes(
             mockQueue.Object,
-            new TrangaSettings(),
+            new KenkuSettings(),
             new Mock<IBatchWorkerFactory<string>>().Object);
 
         Assert.IsType<Ok>(result.Result);

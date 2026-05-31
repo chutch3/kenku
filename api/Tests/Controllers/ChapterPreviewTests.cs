@@ -21,14 +21,14 @@ public class ChapterPreviewTests : IDisposable
 {
     private readonly string _tempDir;
     private readonly string _previewsDir;
-    private readonly TrangaSettings _settings;
+    private readonly KenkuSettings _settings;
 
     public ChapterPreviewTests()
     {
-        _tempDir = Path.Combine(Path.GetTempPath(), "tranga-preview-tests-" + Guid.NewGuid());
+        _tempDir = Path.Combine(Path.GetTempPath(), "kenku-preview-tests-" + Guid.NewGuid());
         Directory.CreateDirectory(_tempDir);
         _previewsDir = Path.Combine(_tempDir, "previews");
-        _settings = new TrangaSettings { AppData = _tempDir };
+        _settings = new KenkuSettings { AppData = _tempDir };
     }
 
     public void Dispose()

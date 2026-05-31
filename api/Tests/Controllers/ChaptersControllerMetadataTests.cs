@@ -27,7 +27,7 @@ public class ChaptersControllerMetadataTests
 
     private static ChaptersController CreateController(SeriesContext ctx)
     {
-        var testSettings = new API.TrangaSettings { AppData = Path.GetTempPath() };
+        var testSettings = new API.KenkuSettings { AppData = Path.GetTempPath() };
         var mockWorkerQueue = new Mock<IWorkerQueue>();
         var connectors = Enumerable.Empty<API.MangaConnectors.SeriesSource>();
         var mockThumbnailService = new Mock<API.Services.IChapterThumbnailService>();

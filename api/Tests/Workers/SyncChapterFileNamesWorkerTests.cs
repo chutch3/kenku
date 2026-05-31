@@ -66,7 +66,7 @@ public class SyncChapterFileNamesWorkerTests : IDisposable
         _mangaContext.Chapters.Add(chapter);
         await _mangaContext.SaveChangesAsync();
 
-        var settings = new TrangaSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
+        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
         var worker = new SyncChapterFileNamesWorker(settings);
         var newWorkers = await worker.DoWork(_mockScope.Object);
 
@@ -83,7 +83,7 @@ public class SyncChapterFileNamesWorkerTests : IDisposable
         _mangaContext.Chapters.Add(chapter);
         await _mangaContext.SaveChangesAsync();
 
-        var settings = new TrangaSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
+        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
         var worker = new SyncChapterFileNamesWorker(settings);
         var newWorkers = await worker.DoWork(_mockScope.Object);
 
@@ -98,7 +98,7 @@ public class SyncChapterFileNamesWorkerTests : IDisposable
         _mangaContext.Chapters.Add(chapter);
         await _mangaContext.SaveChangesAsync();
 
-        var settings = new TrangaSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
+        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
         var worker = new SyncChapterFileNamesWorker(settings);
         var newWorkers = await worker.DoWork(_mockScope.Object);
 
@@ -115,7 +115,7 @@ public class SyncChapterFileNamesWorkerTests : IDisposable
         _mangaContext.Chapters.Add(new Chapter(manga, "2", 5, null) { Downloaded = true, FileName = "One-Punch Man - Ch.2.cbz" });
         await _mangaContext.SaveChangesAsync();
 
-        var settings = new TrangaSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
+        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
         var worker = new SyncChapterFileNamesWorker(settings);
         var newWorkers = await worker.DoWork(_mockScope.Object);
 
@@ -131,7 +131,7 @@ public class SyncChapterFileNamesWorkerTests : IDisposable
         _mangaContext.Chapters.Add(chapter);
         await _mangaContext.SaveChangesAsync();
 
-        var settings = new TrangaSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
+        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
         var worker = new SyncChapterFileNamesWorker(settings);
         var newWorkers = await worker.DoWork(_mockScope.Object);
 

@@ -20,7 +20,7 @@ public class ConfiguredIndexerProvider(HttpClient http, IReadOnlyList<ManualInde
 /// <summary>
 /// The "Prowlarr can sync them" half of the *arr model. Enumerates the indexers Prowlarr manages
 /// (via its <c>/api/v1/indexer</c> endpoint) and exposes each as a <see cref="TorznabIndexer"/>
-/// pointing at Prowlarr's per-indexer Torznab endpoint (<c>{prowlarr}/{id}/api</c>). Tranga treats
+/// pointing at Prowlarr's per-indexer Torznab endpoint (<c>{prowlarr}/{id}/api</c>). Kenku treats
 /// these exactly like manually-added indexers — Prowlarr is just the source of the list.
 /// </summary>
 public class ProwlarrIndexerProvider(HttpClient http, string baseUrl, string apiKey, int[] comicCategories) : IIndexerProvider

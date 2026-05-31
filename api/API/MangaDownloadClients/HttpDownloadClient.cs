@@ -9,7 +9,7 @@ internal class HttpDownloadClient : IDownloadClient
     private readonly FlareSolverrDownloadClient _flareSolverrClient;
     private ILog Log { get; } = LogManager.GetLogger(typeof(HttpDownloadClient));
 
-    public HttpDownloadClient(RateLimitHandler rateLimitHandler, TrangaSettings settings)
+    public HttpDownloadClient(RateLimitHandler rateLimitHandler, KenkuSettings settings)
     {
         _client = new HttpClient(handler: rateLimitHandler)
         {

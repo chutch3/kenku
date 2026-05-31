@@ -17,7 +17,7 @@ public class IndexerBackedSeriesSourceTests
         var indexers = new Mock<IIndexerClient>();
         indexers.Setup(i => i.Search(It.IsAny<IndexerQuery>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(results);
-        return new IndexerBackedSeriesSource(indexers.Object, new TrangaSettings { AppData = "/tmp" });
+        return new IndexerBackedSeriesSource(indexers.Object, new KenkuSettings { AppData = "/tmp" });
     }
 
     [Fact]
