@@ -200,6 +200,11 @@ WebApplication app = builder.Build();
 
 app.UseCors("AllowAll");
 
+// Serve the bundled frontend (prerendered Nuxt SPA copied into wwwroot at image-build time).
+// Static assets and the API share this origin; client-side deep links fall back to the SPA entry below.
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 ApiVersionSet apiVersionSet = app.NewApiVersionSet()
     .HasApiVersion(new ApiVersion(2))
     .ReportApiVersions()
@@ -209,6 +214,11 @@ log.Debug("Mapping Controllers...");
 app.MapControllers()
     .WithApiVersionSet(apiVersionSet)
     .MapToApiVersion(2);
+
+// SPA fallback: any unmatched, non-file, non-API route returns the Nuxt SPA entry document so
+// client-side routes (e.g. /series/{id}) resolve on hard refresh / deep link. Lowest route priority,
+// so it never shadows controller endpoints or existing static files.
+app.MapFallbackToFile("200.html");
 
 log.Debug("Adding Swagger...");
 app.UseSwagger(opts =>

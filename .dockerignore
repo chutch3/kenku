@@ -1,0 +1,17 @@
+# Build outputs / deps — never send to the build context
+**/bin
+**/obj
+**/node_modules
+**/.nuxt
+**/.output
+**/.nitro
+**/dist
+.git
+.github
+# Runtime data
+Manga/
+settings/
+# Editors
+**/.idea
+**/.vs
+**/.vscode
