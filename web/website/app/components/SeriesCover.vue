@@ -1,0 +1,36 @@
+<template>
+    <div
+        class="relative object-contain max-sm:w-[var(--mangacover-width-sm)] max-sm:h-[var(--mangacover-height-sm)] w-(--mangacover-width) h-(--mangacover-height) rounded-lg overflow-clip">
+        <div
+            v-if="blur"
+            class="absolute l-0 t-0 w-full h-full rounded-lg overflow-clip"
+            style="
+                background: linear-gradient(150deg, rgba(245, 169, 184, 0.3) 50%, rgba(91, 206, 250, 0.2));
+                box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+                backdrop-filter: blur(2px) brightness(70%);
+                -webkit-backdrop-filter: blur(2px) brightness(70%);
+            ">
+            <p class="p-3 max-sm:text-sm text-xl font-semibold max-h-full overflow-clip text-shadow-lg text-white">
+                {{ series?.name }}
+            </p>
+        </div>
+        <FallbackImage
+            :src="coverUrl"
+            :alt="`${series.name} cover`"
+            class="w-full h-full object-cover" />
+    </div>
+</template>
+
+<script setup lang="ts">
+import type { components } from '#open-fetch-schemas/api';
+type Series = components['schemas']['Series'];
+type MinimalSeries = components['schemas']['MinimalSeries'];
+
+const props = defineProps<{ series: Series | MinimalSeries; blur?: boolean }>();
+const config = useRuntimeConfig();
+const coverUrl = computed(() => {
+    const m = props.series as Series;
+    if (m.coverUrl && m.coverUrl.length > 0) return m.coverUrl;
+    return `${config.public.openFetch.api.baseURL}v2/Series/${props.series.key}/Cover/Medium`;
+});
+</script>

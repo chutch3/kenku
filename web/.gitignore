@@ -1,0 +1,28 @@
+bin/
+obj/
+/packages/
+riderModule.iml
+/_ReSharper.Caches/
+# Default ignored files
+/shelf/
+/workspace.xml
+# Rider ignored files
+/projectSettingsUpdater.xml
+/.idea.Tranga.iml
+/contentModel.xml
+/modules.xml
+# Editor-based HTTP Client requests
+/httpRequests/
+# Datasource local storage ignored files
+/dataSources/
+/dataSources.local.xml
+/.idea
+cover.jpg
+cover.png
+.vs/slnx.sqlite
+.vs/tranga-website/config/applicationhost.config
+.vs/tranga-website/FileContentIndex/91a465d3-1190-42e0-95eb-fa3694744e58.vsidx
+.vs/tranga-website/v17/.wsuo
+.vs/VSWorkspaceState.json
+/node_modules/
+/.vite/
