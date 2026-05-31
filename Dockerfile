@@ -8,12 +8,12 @@ ARG DOTNET=10.0
 # natively rather than once per target arch (node:alpine lacks some target variants anyway).
 FROM --platform=$BUILDPLATFORM node:24-alpine AS web
 WORKDIR /src/web/website
-# Install deps first for layer caching.
-COPY web/website/package.json web/website/package-lock.json ./
-RUN npm ci
-# App sources + the API's OpenAPI spec (read locally by nuxt-open-fetch via ../../api/...).
+# The OpenAPI spec and app sources must exist BEFORE `npm ci`: the postinstall hook
+# (nuxt prepare) generates the typed API client from the spec via ../../api/..., and the
+# components extend those generated types. Copy spec + sources first, then install.
 COPY web/website/ ./
 COPY api/API/openapi/API_v2.json /src/api/API/openapi/API_v2.json
+RUN npm ci
 RUN npm run generate   # -> /src/web/website/.output/public
 
 # ---- Stage 2: runtime base (aspnet + chromium for PuppeteerSharp) ----
