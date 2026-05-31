@@ -1,0 +1,6552 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Tranga v2",
+    "version": "2.0"
+  },
+  "paths": {
+    "/v2/Actions/Types": {
+      "get": {
+        "tags": [
+          "Actions"
+        ],
+        "summary": "Returns the available Action Types (API.Schema.ActionsContext.Actions.Actions)",
+        "responses": {
+          "200": {
+            "description": "List of action-types",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Actions"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Actions/Filter": {
+      "post": {
+        "tags": [
+          "Actions"
+        ],
+        "summary": "Returns API.Schema.ActionsContext.ActionRecord performed in !:Interval",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page to request (default 1)",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Size of Page (default 10)",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/ActionsFilterRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/ActionsFilterRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/ActionsFilterRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/ActionsFilterRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "List of performed actions",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionRecordPagedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Page data wrong",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Database error"
+          }
+        }
+      }
+    },
+    "/v2/Chapters/Series/{MangaId}": {
+      "post": {
+        "tags": [
+          "Chapters"
+        ],
+        "summary": "Returns all API.Schema.SeriesContext.Chapter of API.Schema.SeriesContext.Series with MangaId",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page to request (default 1)",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Size of Page (default 10)",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/ChapterFilterRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/ChapterFilterRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/ChapterFilterRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/ChapterFilterRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChapterPagedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Page data wrong",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database request"
+          }
+        }
+      }
+    },
+    "/v2/Chapters/LatestAvailable/{MangaId}": {
+      "get": {
+        "tags": [
+          "Chapters"
+        ],
+        "summary": "Returns the latest API.Controllers.DTOs.Chapter of requested API.Schema.SeriesContext.Series",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No available chapters"
+          },
+          "404": {
+            "description": "API.Schema.SeriesContext.Series with MangaId not found.",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Chapters/LatestDownloaded/{MangaId}": {
+      "get": {
+        "tags": [
+          "Chapters"
+        ],
+        "summary": "Returns the latest API.Controllers.DTOs.Chapter of requested API.Schema.SeriesContext.Series that is downloaded",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Chapter"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No available chapters"
+          },
+          "404": {
+            "description": "API.Schema.SeriesContext.Series with MangaId not found.",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Could not retrieve the maximum chapter-number",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Retry after timeout, updating value"
+          }
+        }
+      }
+    },
+    "/v2/Chapters/IgnoreBefore/{MangaId}": {
+      "patch": {
+        "tags": [
+          "Chapters"
+        ],
+        "summary": "Configure the API.Controllers.DTOs.Chapter cut-off for API.Schema.SeriesContext.Series",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Threshold (API.Controllers.DTOs.Chapter ChapterNumber)",
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "type": "number",
+                "format": "float"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "type": "number",
+                "format": "float"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "type": "number",
+                "format": "float"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "type": "number",
+                "format": "float"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "API.Schema.SeriesContext.Series with MangaId not found.",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/v2/Chapters/{ChapterId}": {
+      "get": {
+        "tags": [
+          "Chapters"
+        ],
+        "summary": "Returns API.Controllers.DTOs.Chapter with ChapterId",
+        "parameters": [
+          {
+            "name": "ChapterId",
+            "in": "path",
+            "description": "API.Controllers.DTOs.Chapter.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Chapter"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API.Controllers.DTOs.Chapter with ChapterId not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Chapters"
+        ],
+        "summary": "Updates mutable metadata (API.Schema.SeriesContext.Chapter.FileName and API.Schema.SeriesContext.Chapter.VolumeNumber) on a API.Controllers.DTOs.Chapter",
+        "parameters": [
+          {
+            "name": "ChapterId",
+            "in": "path",
+            "description": "API.Controllers.DTOs.Chapter.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Fields to update",
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchChapterRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchChapterRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchChapterRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchChapterRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "API.Controllers.DTOs.Chapter with ChapterId not found",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Chapters"
+        ],
+        "summary": "Deletes API.Controllers.DTOs.Chapter with ChapterId",
+        "parameters": [
+          {
+            "name": "ChapterId",
+            "in": "path",
+            "description": "API.Controllers.DTOs.Chapter.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "API.Controllers.DTOs.Chapter with ChapterId not found",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Chapters/ConnectorId/{MangaConnectorIdId}": {
+      "get": {
+        "tags": [
+          "Chapters"
+        ],
+        "summary": "Returns the API.Controllers.DTOs.SourceId`1 with API.Controllers.DTOs.SourceId`1.Key",
+        "parameters": [
+          {
+            "name": "MangaConnectorIdId",
+            "in": "path",
+            "description": "Key of API.Controllers.DTOs.SourceId`1",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChapterSourceId"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API.Controllers.DTOs.SourceId`1 with MangaConnectorIdId not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Chapters"
+        ],
+        "summary": "Deletes the API.Controllers.DTOs.SourceId`1 with API.Controllers.DTOs.SourceId`1.Key",
+        "parameters": [
+          {
+            "name": "MangaConnectorIdId",
+            "in": "path",
+            "description": "Key of API.Controllers.DTOs.SourceId`1",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "API.Controllers.DTOs.SourceId`1 with MangaConnectorIdId not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Chapters/{ChapterId}/DownloadFrom/{MangaConnectorName}/{IsRequested}": {
+      "patch": {
+        "tags": [
+          "Chapters"
+        ],
+        "summary": "(Un-)Marks API.Controllers.DTOs.Chapter as requested for Download from API.MangaConnectors.SeriesSource",
+        "parameters": [
+          {
+            "name": "ChapterId",
+            "in": "path",
+            "description": "API.Controllers.DTOs.Chapter with ChapterId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MangaConnectorName",
+            "in": "path",
+            "description": "API.MangaConnectors.SeriesSource with MangaConnectorName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "IsRequested",
+            "in": "path",
+            "description": "true to mark as requested, false to mark as not-requested",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "ChapterId or MangaConnectorName not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "API.Controllers.DTOs.Chapter is not linked to API.MangaConnectors.SeriesSource yet. Search for API.Controllers.DTOs.Chapter on API.MangaConnectors.SeriesSource first (to create a API.Controllers.DTOs.SourceId`1).",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Chapters/{ChapterId}/volume": {
+      "put": {
+        "tags": [
+          "Chapters"
+        ],
+        "summary": "Manually assigns a volume number to a API.Schema.SeriesContext.Chapter.\nPassing null clears the volume assignment and confidence.",
+        "parameters": [
+          {
+            "name": "ChapterId",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.Chapter.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Volume number to assign (null to clear)",
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchChapterVolumeRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchChapterVolumeRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchChapterVolumeRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchChapterVolumeRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Volume number updated",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChapterVolumeAssignmentResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API.Schema.SeriesContext.Chapter with ChapterId not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Chapters/{ChapterId}/preview": {
+      "get": {
+        "tags": [
+          "Chapters"
+        ],
+        "summary": "Returns a 200×300 JPEG preview thumbnail of the first page of the chapter archive.\nThe thumbnail is generated lazily and cached at `{AppData}/previews/{chapter.Key}.jpg`.",
+        "parameters": [
+          {
+            "name": "ChapterId",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.Chapter.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Chapter not found, archive unreadable, no images in archive, or chapter is bundled",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "JPEG thumbnail, 200×300 pixels"
+          }
+        }
+      }
+    },
+    "/v2/FileLibrary": {
+      "get": {
+        "tags": [
+          "FileLibrary"
+        ],
+        "summary": "Returns all API.Controllers.DTOs.FileLibrary",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FileLibrary"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "FileLibrary"
+        ],
+        "summary": "Creates new API.Controllers.DTOs.FileLibrary",
+        "requestBody": {
+          "description": "New API.Controllers.DTOs.FileLibrary to add",
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLibraryRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLibraryRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLibraryRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLibraryRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Key of new Library"
+          }
+        }
+      }
+    },
+    "/v2/FileLibrary/{FileLibraryId}": {
+      "get": {
+        "tags": [
+          "FileLibrary"
+        ],
+        "summary": "Returns API.Controllers.DTOs.FileLibrary with FileLibraryId",
+        "parameters": [
+          {
+            "name": "FileLibraryId",
+            "in": "path",
+            "description": "API.Controllers.DTOs.FileLibrary.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileLibrary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API.Controllers.DTOs.FileLibrary with FileLibraryId not found.",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "FileLibrary"
+        ],
+        "summary": "Changes the !:FileLibraryId.BasePath with FileLibraryId",
+        "parameters": [
+          {
+            "name": "FileLibraryId",
+            "in": "path",
+            "description": "API.Controllers.DTOs.FileLibrary.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchFileLibraryRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchFileLibraryRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchFileLibraryRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchFileLibraryRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "API.Controllers.DTOs.FileLibrary with FileLibraryId not found.",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "FileLibrary"
+        ],
+        "summary": "Deletes the !:FileLibraryId.LibraryName with FileLibraryId",
+        "parameters": [
+          {
+            "name": "FileLibraryId",
+            "in": "path",
+            "description": "API.Controllers.DTOs.FileLibrary.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "API.Controllers.DTOs.FileLibrary with FileLibraryId not found.",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Library/unresolved": {
+      "get": {
+        "tags": [
+          "Library"
+        ],
+        "summary": "Returns a dashboard of manga with unresolved chapters or missing files.\nUnresolved: Downloaded == true && VolumeNumber == null.\nMissing: Downloaded == true && FileName == null.\nOnly manga with FileLibraryId != null are included.",
+        "responses": {
+          "200": {
+            "description": "Dashboard result; manga list may be empty",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnresolvedDashboardResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/LibraryConnector": {
+      "get": {
+        "tags": [
+          "LibraryConnector"
+        ],
+        "summary": "Gets all configured API.Controllers.DTOs.LibraryConnector",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LibraryConnector"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation"
+          }
+        }
+      }
+    },
+    "/v2/LibraryConnector/{LibraryConnectorId}": {
+      "get": {
+        "tags": [
+          "LibraryConnector"
+        ],
+        "summary": "Returns API.Controllers.DTOs.LibraryConnector with LibraryConnectorId",
+        "parameters": [
+          {
+            "name": "LibraryConnectorId",
+            "in": "path",
+            "description": "API.Controllers.DTOs.LibraryConnector.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryConnector"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API.Controllers.DTOs.LibraryConnector with LibraryConnectorId not found.",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "LibraryConnector"
+        ],
+        "summary": "Deletes API.Controllers.DTOs.LibraryConnector with LibraryConnectorId",
+        "parameters": [
+          {
+            "name": "LibraryConnectorId",
+            "in": "path",
+            "description": "ToFileLibrary-Connector-ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "API.Controllers.DTOs.LibraryConnector with LibraryConnectorId not found.",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/LibraryConnector/Kavita": {
+      "put": {
+        "tags": [
+          "LibraryConnector"
+        ],
+        "summary": "Creates a new API.Schema.LibraryContext.LibraryConnectors.KavitaAPI.Controllers.DTOs.LibraryConnector (<seealso cref=\"T:API.Schema.LibraryContext.LibraryConnectors.LibraryConnector\" />)",
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateKavitaRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateKavitaRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateKavitaRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateKavitaRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unable to log into account",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/LibraryConnector/Komga": {
+      "put": {
+        "tags": [
+          "LibraryConnector"
+        ],
+        "summary": "Creates a new API.Schema.LibraryContext.LibraryConnectors.KomgaAPI.Controllers.DTOs.LibraryConnector (<seealso cref=\"T:API.Schema.LibraryContext.LibraryConnectors.LibraryConnector\" />)",
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateKomgaRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateKomgaRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateKomgaRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateKomgaRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unable to log into account",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Maintenance/CleanupNoDownloadManga": {
+      "post": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "Removes all API.Schema.SeriesContext.Series not marked for Download on any !:SeriesSource",
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Maintenance/CleanupActions": {
+      "post": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "Removes all API.Schema.ActionsContext.ActionRecord",
+        "responses": {
+          "200": {
+            "description": "Number of deleted records",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Maintenance/CleanupOrphanedFiles": {
+      "post": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "Queues a API.Workers.MaintenanceWorkers.CleanupOrphanedFilesWorker to remove files from the library that are not tracked in the database.",
+        "parameters": [
+          {
+            "name": "dryRun",
+            "in": "query",
+            "description": "If true, only log what would be deleted without actually deleting it.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "202": {
+            "description": "Cleanup worker queued"
+          }
+        }
+      }
+    },
+    "/v2/Maintenance/ResolveMissingVolumes": {
+      "post": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "Queues a API.Workers.MaintenanceWorkers.ResolveMissingVolumesWorker to guess or resolve volume numbers for downloaded chapters.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "202": {
+            "description": "Resolve worker queued"
+          }
+        }
+      }
+    },
+    "/v2/Maintenance/SyncChapterFileNames": {
+      "post": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "Queues a API.Workers.MaintenanceWorkers.SyncChapterFileNamesWorker to rename chapter files where the stored filename no longer matches the current naming scheme.",
+        "responses": {
+          "200": {
+            "description": "Sync worker queued"
+          }
+        }
+      }
+    },
+    "/v2/Maintenance/ResetAndResolveVolumes": {
+      "post": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "Clears all chapter volume numbers and queues a API.Workers.MaintenanceWorkers.ResolveMissingVolumesWorker to re-resolve them from scratch.",
+        "responses": {
+          "200": {
+            "description": "Volumes cleared and resolve worker queued"
+          },
+          "500": {
+            "description": "Error during database operation",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/MetadataFetcher": {
+      "get": {
+        "tags": [
+          "MetadataFetcher"
+        ],
+        "summary": "Get all API.Schema.SeriesContext.MetadataFetchers.MetadataFetcher (Metadata-Sites)",
+        "responses": {
+          "200": {
+            "description": "Names of API.Schema.SeriesContext.MetadataFetchers.MetadataFetcher (Metadata-Sites)",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/MetadataFetcher/Links": {
+      "get": {
+        "tags": [
+          "MetadataFetcher"
+        ],
+        "summary": "Returns all API.Schema.SeriesContext.MetadataFetchers.MetadataEntry",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MetadataEntry"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation"
+          }
+        }
+      }
+    },
+    "/v2/MetadataFetcher/Links/{MangaId}": {
+      "get": {
+        "tags": [
+          "MetadataFetcher"
+        ],
+        "summary": "Returns all API.Schema.SeriesContext.MetadataFetchers.MetadataEntry for API.Schema.SeriesContext.Series with MangaId",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MetadataEntry"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API.Schema.SeriesContext.Series with MangaId not found",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/v2/MetadataFetcher/{MetadataFetcherName}/SearchManga/{MangaId}": {
+      "post": {
+        "tags": [
+          "MetadataFetcher"
+        ],
+        "summary": "Searches API.Schema.SeriesContext.MetadataFetchers.MetadataFetcher (Metadata-Sites) for Series-Metadata",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MetadataFetcherName",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.MetadataFetchers.MetadataFetcher.Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Instead of using the MangaId for search on Website, use a specific term",
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MetadataSearchResult"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "API.Schema.SeriesContext.MetadataFetchers.MetadataFetcher (Metadata-Sites) with MetadataFetcherName does not exist",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API.Schema.SeriesContext.Series with MangaId not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/MetadataFetcher/{MetadataFetcherName}/Link/{MangaId}": {
+      "post": {
+        "tags": [
+          "MetadataFetcher"
+        ],
+        "summary": "Links API.Schema.SeriesContext.MetadataFetchers.MetadataFetcher (Metadata-Sites) using Provider-Specific Identifier to API.Schema.SeriesContext.Series",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MetadataFetcherName",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.MetadataFetchers.MetadataFetcher.Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "!:MetadataFetcherName-Specific ID",
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetadataEntry"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "API.Schema.SeriesContext.MetadataFetchers.MetadataFetcher (Metadata-Sites) with MetadataFetcherName does not exist",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API.Schema.SeriesContext.Series with MangaId not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/MetadataFetcher/{MetadataFetcherName}/Unlink/{MangaId}": {
+      "post": {
+        "tags": [
+          "MetadataFetcher"
+        ],
+        "summary": "Un-Links API.Schema.SeriesContext.MetadataFetchers.MetadataFetcher (Metadata-Sites) from API.Schema.SeriesContext.Series",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MetadataFetcherName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "400": {
+            "description": "API.Schema.SeriesContext.MetadataFetchers.MetadataFetcher (Metadata-Sites) with MetadataFetcherName does not exist",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API.Schema.SeriesContext.Series with MangaId not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "No API.Schema.SeriesContext.MetadataFetchers.MetadataEntry linking API.Schema.SeriesContext.Series and API.Schema.SeriesContext.MetadataFetchers.MetadataFetcher found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/MetadataFetcher/{MetadataFetcherName}/Update/{MangaId}": {
+      "post": {
+        "tags": [
+          "MetadataFetcher"
+        ],
+        "summary": "Updates the Metadata of API.Schema.SeriesContext.Series with MangaId",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MetadataFetcherName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Metadata updated"
+          },
+          "400": {
+            "description": "API.Schema.SeriesContext.MetadataFetchers.MetadataFetcher not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "No API.Schema.SeriesContext.MetadataFetchers.MetadataEntry linking API.Schema.SeriesContext.Series and API.Schema.SeriesContext.MetadataFetchers.MetadataFetcher found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Series/{MangaId}/metadataSource": {
+      "get": {
+        "tags": [
+          "MetadataSource"
+        ],
+        "summary": "Returns the API.Schema.SeriesContext.MetadataSource for a given API.Schema.SeriesContext.Series.",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "MetadataSource data",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetadataSourceResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Series not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "MetadataSource"
+        ],
+        "summary": "Sets the API.Schema.SeriesContext.MetadataSource for a API.Schema.SeriesContext.Series, marking it as Confirmed.",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Source type and external ID",
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchMetadataSourceRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchMetadataSourceRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchMetadataSourceRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchMetadataSourceRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Updated successfully"
+          },
+          "400": {
+            "description": "ExternalId is null or empty",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Series not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Series/{MangaId}/metadataSource/candidates": {
+      "get": {
+        "tags": [
+          "MetadataSource"
+        ],
+        "summary": "Searches for candidates matching a Series's title, scored by similarity.",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Title to search for",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "description": "Metadata source to search: \"mangadex\" (default) or \"anilist\"",
+            "schema": {
+              "type": "string",
+              "default": "mangadex"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Top 10 scored candidates",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MetadataSourceCandidate"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Series not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Series/{MangaId}/metadataSource/refresh": {
+      "post": {
+        "tags": [
+          "MetadataSource"
+        ],
+        "summary": "Queues a background worker to refresh chapter volumes for a Series from its confirmed MangaDex ExternalId.",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Job queued. Returns jobId.",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": { }
+              }
+            }
+          },
+          "400": {
+            "description": "MetadataSource is Unlinked (no ExternalId set)",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Series not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/NotificationConnector": {
+      "get": {
+        "tags": [
+          "NotificationConnector"
+        ],
+        "summary": "Gets all configured API.Controllers.DTOs.NotificationConnector",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NotificationConnector"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "NotificationConnector"
+        ],
+        "summary": "Creates a new API.Controllers.DTOs.NotificationConnector",
+        "description": "Formatting placeholders: \"%title\" and \"%text\" can be placed in url, header-values and body and will be replaced when notifications are sent",
+        "requestBody": {
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNotificationConnectorRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNotificationConnectorRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNotificationConnectorRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNotificationConnectorRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "ID of the new API.Controllers.DTOs.NotificationConnector"
+          }
+        }
+      }
+    },
+    "/v2/NotificationConnector/{Name}": {
+      "get": {
+        "tags": [
+          "NotificationConnector"
+        ],
+        "summary": "Returns API.Controllers.DTOs.NotificationConnector with requested Name",
+        "parameters": [
+          {
+            "name": "Name",
+            "in": "path",
+            "description": "API.Controllers.DTOs.NotificationConnector.Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationConnector"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API.Controllers.DTOs.NotificationConnector with Name not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "NotificationConnector"
+        ],
+        "summary": "Deletes the API.Controllers.DTOs.NotificationConnector with the requested Name",
+        "parameters": [
+          {
+            "name": "Name",
+            "in": "path",
+            "description": "API.Controllers.DTOs.NotificationConnector.Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "API.Controllers.DTOs.NotificationConnector with Name not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/NotificationConnector/Gotify": {
+      "put": {
+        "tags": [
+          "NotificationConnector"
+        ],
+        "summary": "Creates a new Gotify-API.Controllers.DTOs.NotificationConnector",
+        "description": "Priority needs to be between 0 and 10",
+        "requestBody": {
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGotifyConnectorRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGotifyConnectorRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGotifyConnectorRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGotifyConnectorRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "ID of the new API.Controllers.DTOs.NotificationConnector"
+          }
+        }
+      }
+    },
+    "/v2/NotificationConnector/Ntfy": {
+      "put": {
+        "tags": [
+          "NotificationConnector"
+        ],
+        "summary": "Creates a new Ntfy-API.Controllers.DTOs.NotificationConnector",
+        "description": "Priority needs to be between 1 and 5",
+        "requestBody": {
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNtfyConnectorRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNtfyConnectorRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNtfyConnectorRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNtfyConnectorRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "ID of the new API.Controllers.DTOs.NotificationConnector"
+          }
+        }
+      }
+    },
+    "/v2/NotificationConnector/Pushover": {
+      "put": {
+        "tags": [
+          "NotificationConnector"
+        ],
+        "summary": "Creates a new Pushover-API.Controllers.DTOs.NotificationConnector",
+        "description": "https://pushover.net/api",
+        "requestBody": {
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePushoverConnectorRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePushoverConnectorRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePushoverConnectorRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePushoverConnectorRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "ID of the new API.Controllers.DTOs.NotificationConnector"
+          }
+        }
+      }
+    },
+    "/v2/Author/{AuthorId}": {
+      "get": {
+        "tags": [
+          "Query"
+        ],
+        "summary": "Returns the API.Controllers.DTOs.Author with AuthorId",
+        "parameters": [
+          {
+            "name": "AuthorId",
+            "in": "path",
+            "description": "API.Controllers.DTOs.Author.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Author"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API.Controllers.DTOs.Author with AuthorId not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Stats": {
+      "get": {
+        "tags": [
+          "Query"
+        ],
+        "summary": "Returns the Server-Stats",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stats"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Search/{MangaConnectorName}/{Query}": {
+      "get": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Initiate a search for a API.Schema.SeriesContext.Series on API.Controllers.DTOs.SeriesSource with searchTerm",
+        "parameters": [
+          {
+            "name": "MangaConnectorName",
+            "in": "path",
+            "description": "API.Controllers.DTOs.SeriesSource.Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Query",
+            "in": "path",
+            "description": "searchTerm",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API.Controllers.DTOs.MinimalSeries exert of API.Schema.SeriesContext.Series",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MinimalSeries"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API.Controllers.DTOs.SeriesSource with Name not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "Not Acceptable",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "API.Controllers.DTOs.SeriesSource with Name is disabled"
+          }
+        }
+      }
+    },
+    "/v2/Search/{MangaConnectorName}/Series": {
+      "get": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Returns full API.Schema.SeriesContext.Series detail from a API.Controllers.DTOs.SeriesSource by its site ID, without saving to the database",
+        "parameters": [
+          {
+            "name": "MangaConnectorName",
+            "in": "path",
+            "description": "API.Controllers.DTOs.SeriesSource.Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ConnectorSeriesId",
+            "in": "query",
+            "description": "The manga's ID on the connector site",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Full API.Controllers.DTOs.Series detail",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Series"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Series not found on connector",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Search": {
+      "get": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Returns API.Schema.SeriesContext.Series from the API.Controllers.DTOs.SeriesSource associated with url",
+        "parameters": [
+          {
+            "name": "url",
+            "in": "query",
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API.Controllers.DTOs.MinimalSeries exert of API.Schema.SeriesContext.Series.",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/MinimalSeries"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API.Schema.SeriesContext.Series not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Series": {
+      "get": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Returns all cached API.Controllers.DTOs.Series",
+        "responses": {
+          "200": {
+            "description": "API.Controllers.DTOs.MinimalSeries exert of API.Schema.SeriesContext.Series. Use M:API.Controllers.SeriesController.GetManga(System.String) for more information",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MinimalSeries"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation"
+          }
+        }
+      }
+    },
+    "/v2/Series/Downloading": {
+      "get": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Returns all API.Schema.SeriesContext.Series that are being downloaded from at least one API.MangaConnectors.SeriesSource",
+        "responses": {
+          "200": {
+            "description": "API.Controllers.DTOs.MinimalSeries exert of API.Schema.SeriesContext.Series. Use M:API.Controllers.SeriesController.GetManga(System.String) for more information",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MinimalSeries"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation"
+          }
+        }
+      }
+    },
+    "/v2/Series/{MangaId}": {
+      "get": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Return API.Schema.SeriesContext.Series with MangaId",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Series"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API.Controllers.DTOs.Series with MangaId not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Delete API.Controllers.DTOs.Series with MangaId",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Controllers.DTOs.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "API.Controllers.DTOs.Series with MangaId not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Series/{MangaIdFrom}/MergeInto/{MangaIdInto}": {
+      "post": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Merge two API.Controllers.DTOs.Series into one. THIS IS NOT REVERSIBLE!",
+        "parameters": [
+          {
+            "name": "MangaIdFrom",
+            "in": "path",
+            "description": "API.Controllers.DTOs.Series.Key of API.Controllers.DTOs.Series merging data from (getting deleted)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MangaIdInto",
+            "in": "path",
+            "description": "API.Controllers.DTOs.Series.Key of API.Controllers.DTOs.Series merging data into",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "API.Controllers.DTOs.Series with MangaIdFrom or MangaIdInto not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Series/{MangaId}/Cover/{CoverSize}": {
+      "get": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Returns Cover of API.Controllers.DTOs.Series with MangaId",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Controllers.DTOs.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "CoverSize",
+            "in": "path",
+            "description": "Size of the cover returned\n            \n - API.Controllers.SeriesController.CoverSize.SmallAPI.Constants.ImageSmSize\n - API.Controllers.SeriesController.CoverSize.MediumAPI.Constants.ImageMdSize\n - API.Controllers.SeriesController.CoverSize.LargeAPI.Constants.ImageLgSize",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CoverSize"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Cover not loaded"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API.Controllers.DTOs.Series with MangaId not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "JPEG Image",
+            "content": {
+              "image/jpeg; x-version=2.0": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Retry later, downloading cover"
+          }
+        }
+      }
+    },
+    "/v2/Series/{MangaId}/ChangeLibrary/{LibraryId}": {
+      "post": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Move API.Controllers.DTOs.Series to different API.Controllers.DTOs.FileLibrary",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Controllers.DTOs.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "LibraryId",
+            "in": "path",
+            "description": "API.Controllers.DTOs.FileLibrary.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "connectorName",
+            "in": "query",
+            "description": "(Optional) Name of the connector to fetch manga from if not in DB",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "connectorSeriesId",
+            "in": "query",
+            "description": "(Optional) ID of the manga on the connector site",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "MangaId or LibraryId not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Folder is going to be moved"
+          }
+        }
+      }
+    },
+    "/v2/Series/{MangaId}/DownloadFrom/{MangaConnectorName}/{IsRequested}": {
+      "patch": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "(Un-)Marks API.Controllers.DTOs.Series as requested for Download from API.MangaConnectors.SeriesSource",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Controllers.DTOs.Series with MangaId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MangaConnectorName",
+            "in": "path",
+            "description": "API.MangaConnectors.SeriesSource with MangaConnectorName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "IsRequested",
+            "in": "path",
+            "description": "true to mark as requested, false to mark as not-requested",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "MangaId or MangaConnectorName not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "API.Controllers.DTOs.Series was not linked to API.MangaConnectors.SeriesSource, so nothing changed",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "API.Controllers.DTOs.Series is not linked to API.MangaConnectors.SeriesSource yet. Search for API.Controllers.DTOs.Series on API.MangaConnectors.SeriesSource first (to create a API.Controllers.DTOs.SourceId`1).",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Series/{MangaId}/OnMangaConnector/{MangaConnectorName}": {
+      "get": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Initiate a search for API.Schema.SeriesContext.Series on a different API.MangaConnectors.SeriesSource",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.Series with MangaId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MangaConnectorName",
+            "in": "path",
+            "description": "API.MangaConnectors.SeriesSource.Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API.Controllers.DTOs.MinimalSeries exert of API.Schema.SeriesContext.Series",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MinimalSeries"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API.MangaConnectors.SeriesSource with Name not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "Not Acceptable",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "API.MangaConnectors.SeriesSource with Name is disabled"
+          }
+        }
+      }
+    },
+    "/v2/Series/WithAuthorId/{AuthorId}": {
+      "get": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Returns all API.Controllers.DTOs.Series which where Authored by API.Controllers.DTOs.Author with AuthorId",
+        "parameters": [
+          {
+            "name": "AuthorId",
+            "in": "path",
+            "description": "API.Controllers.DTOs.Author.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Series"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API.Controllers.DTOs.Author with AuthorId",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation"
+          }
+        }
+      }
+    },
+    "/v2/Series/WithTag/{Tag}": {
+      "get": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Returns all API.Controllers.DTOs.Series with !:Tag",
+        "parameters": [
+          {
+            "name": "Tag",
+            "in": "path",
+            "description": "!:Tag.Tag",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Series"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "!:Tag not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation"
+          }
+        }
+      }
+    },
+    "/v2/Series/WithSimilarName/{MangaId}": {
+      "get": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Returns API.Schema.SeriesContext.Series with names similar to API.Schema.SeriesContext.Series (identified by MangaId)",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "Key of API.Schema.SeriesContext.Series",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API.Schema.SeriesContext.Series with MangaId not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation"
+          }
+        }
+      }
+    },
+    "/v2/Series/ConnectorId/{MangaConnectorIdId}": {
+      "get": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Returns the API.Controllers.DTOs.SourceId`1 with API.Controllers.DTOs.SourceId`1.Key",
+        "parameters": [
+          {
+            "name": "MangaConnectorIdId",
+            "in": "path",
+            "description": "Key of API.Controllers.DTOs.SourceId`1",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeriesSourceId"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API.Controllers.DTOs.SourceId`1 with MangaConnectorIdId not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Series/ForceRecheck": {
+      "post": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Force re-check failed/undownloaded API.Schema.SeriesContext.Chapter for API.Controllers.DTOs.Series",
+        "responses": {
+          "200": {
+            "description": "Affected Records",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Series/ForceRecheck/{mangaId}": {
+      "post": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Force re-check failed/undownloaded API.Schema.SeriesContext.Chapter for API.Controllers.DTOs.Series",
+        "parameters": [
+          {
+            "name": "mangaId",
+            "in": "path",
+            "description": "(optional)API.Controllers.DTOs.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Affected Records",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Series/ForceRecheck/Chapter/{chapterId}": {
+      "post": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Force re-check a specific API.Schema.SeriesContext.Chapter by deleting its record.",
+        "parameters": [
+          {
+            "name": "chapterId",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.Chapter.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Affected records",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/SeriesSource": {
+      "get": {
+        "tags": [
+          "SeriesSource"
+        ],
+        "summary": "Get all API.MangaConnectors.SeriesSource (Scanlation-Sites)",
+        "responses": {
+          "200": {
+            "description": "Names of API.MangaConnectors.SeriesSource (Scanlation-Sites)",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SeriesSource"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/SeriesSource/{MangaConnectorName}": {
+      "get": {
+        "tags": [
+          "SeriesSource"
+        ],
+        "summary": "Returns the API.MangaConnectors.SeriesSource (Scanlation-Sites) with the requested Name",
+        "parameters": [
+          {
+            "name": "MangaConnectorName",
+            "in": "path",
+            "description": "API.MangaConnectors.SeriesSource.Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeriesSource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API.Controllers.DTOs.SeriesSource (Scanlation-Sites) with Name not found.",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/SeriesSource/Enabled/{Enabled}": {
+      "get": {
+        "tags": [
+          "SeriesSource"
+        ],
+        "summary": "Get all API.MangaConnectors.SeriesSource (Scanlation-Sites) with Enabled-Status",
+        "parameters": [
+          {
+            "name": "Enabled",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SeriesSource"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/SeriesSource/{MangaConnectorName}/SetEnabled/{Enabled}": {
+      "patch": {
+        "tags": [
+          "SeriesSource"
+        ],
+        "summary": "Enabled or disables API.MangaConnectors.SeriesSource (Scanlation-Sites) with Name",
+        "parameters": [
+          {
+            "name": "MangaConnectorName",
+            "in": "path",
+            "description": "API.MangaConnectors.SeriesSource.Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Enabled",
+            "in": "path",
+            "description": "Set true to enable, false to disable",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "API.MangaConnectors.SeriesSource (Scanlation-Sites) with Name not found.",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation"
+          }
+        }
+      }
+    },
+    "/v2/Settings": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Get all !:Tranga.Settings",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrangaSettings"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Settings/UserAgent": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Get the current UserAgent used by Tranga",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Set a new UserAgent",
+        "requestBody": {
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Reset the UserAgent to default",
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/v2/Settings/ImageCompressionLevel": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Returns Level of Image-Compression for Images",
+        "responses": {
+          "200": {
+            "description": "JPEG ImageCompression-level as Integer",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Settings/ImageCompressionLevel/{level}": {
+      "patch": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Set the Image-Compression-Level for Images",
+        "parameters": [
+          {
+            "name": "level",
+            "in": "path",
+            "description": "100 to disable, 0-99 for JPEG ImageCompression-Level",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "400": {
+            "description": "Level outside permitted range",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Settings/BWImages": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Get state of Black/White-Image setting",
+        "responses": {
+          "200": {
+            "description": "True if enabled",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Settings/BWImages/{enabled}": {
+      "patch": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Enable/Disable conversion of Images to Black and White",
+        "parameters": [
+          {
+            "name": "enabled",
+            "in": "path",
+            "description": "true to enable",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/v2/Settings/ChapterNamingScheme": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Gets the Chapter Naming Scheme",
+        "description": "Placeholders:\n%M Obj Name\n%V Volume\n%C Chapter\n%T Title\n%A Author (first in list)\n%I Chapter Internal ID\n%i Obj Internal ID\n%Y Year (Obj)\n            \n?_(...) replace _ with a value from above:\nEverything inside the braces will only be added if the value of %_ is not null",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Sets the Chapter Naming Scheme",
+        "description": "Placeholders:\n%M Obj Name\n%V Volume\n%C Chapter\n%T Title\n%A Author (first in list)\n%Y Year (Obj)\n            \n?_(...) replace _ with a value from above:\nEverything inside the braces will only be added if the value of %_ is not null",
+        "requestBody": {
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/v2/Settings/FlareSolverr/Url": {
+      "patch": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Sets the FlareSolverr-URL",
+        "requestBody": {
+          "description": "URL of FlareSolverr-Instance",
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Resets the FlareSolverr-URL (HttpClient does not use FlareSolverr anymore)",
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/v2/Settings/FlareSolverr/Test": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Test FlareSolverr",
+        "responses": {
+          "200": {
+            "description": "FlareSolverr is working!"
+          },
+          "500": {
+            "description": "FlareSolverr is not working"
+          }
+        }
+      }
+    },
+    "/v2/Settings/DownloadLanguage": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Returns the language in which Series are downloaded",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Settings/DownloadLanguage/{Language}": {
+      "patch": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Sets the language in which Series are downloaded",
+        "parameters": [
+          {
+            "name": "Language",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/v2/Settings/LibraryRefresh": {
+      "patch": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Sets the time when Libraries are refreshed",
+        "requestBody": {
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchLibraryRefreshRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchLibraryRefreshRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchLibraryRefreshRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchLibraryRefreshRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/v2/Settings/Metron": {
+      "patch": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Sets Metron (metron.cloud) metadata credentials",
+        "requestBody": {
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/SetMetronRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/SetMetronRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/SetMetronRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/SetMetronRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Clears Metron credentials (disables Metron lookups)",
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/v2/Settings/Prowlarr": {
+      "patch": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Sets the Prowlarr instance to sync indexers from",
+        "requestBody": {
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProwlarrRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProwlarrRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProwlarrRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProwlarrRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Clears the Prowlarr indexer-sync configuration",
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/v2/Settings/TorrentClient": {
+      "patch": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Sets the torrent client (qBittorrent) connection details",
+        "requestBody": {
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/SetTorrentClientRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/SetTorrentClientRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/SetTorrentClientRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/SetTorrentClientRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Clears the torrent client configuration",
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/v2/Series/{MangaId}/volumes": {
+      "get": {
+        "tags": [
+          "Volume"
+        ],
+        "summary": "Returns volumes and chapters for a manga, grouped by volume number.",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Controllers.DTOs.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Volume listing with chapter file status",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/VolumeListResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Series not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Series/{MangaId}/reorganize/preview": {
+      "get": {
+        "tags": [
+          "Volume"
+        ],
+        "summary": "Returns a dry-run preview of all file moves needed to bring files in line with current metadata.",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Controllers.DTOs.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preview with moves, directories to create, and empty directories to delete",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReorganizePreviewResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Series not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Series/{MangaId}/reorganize": {
+      "post": {
+        "tags": [
+          "Volume"
+        ],
+        "summary": "Queues RenameChapterFileWorker instances for each file that needs moving.",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Controllers.DTOs.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Workers queued; returns first worker key as jobId",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReorganizeJobResult"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Nothing to reorganize",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReorganizeJobResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Series not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Series/{MangaId}/libraryLayout": {
+      "put": {
+        "tags": [
+          "Volume"
+        ],
+        "summary": "Stores the layout preference and returns a reorganize preview using the new layout.\nDoes NOT execute any file moves.",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "New layout preference",
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PutLibraryLayoutRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PutLibraryLayoutRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PutLibraryLayoutRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PutLibraryLayoutRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Layout stored; response includes reorganize preview with new layout paths",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryLayoutResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Series not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Series/{MangaId}/volumes/assignments": {
+      "post": {
+        "tags": [
+          "Volume"
+        ],
+        "summary": "Bulk-assigns chapter numbers to volume numbers for a manga.\nChapters not found are listed in the response; the request is not failed.\nAlso marks MetadataSource as Manual/Confirmed on the manga.",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Map of ChapterNumber to VolumeNumber",
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkAssignmentRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkAssignmentRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkAssignmentRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkAssignmentRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Assignment applied; returns count of applied and list of not-found chapter numbers",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkAssignmentResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Series not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Series/{MangaId}/volumes/{VolumeNumber}/bundle": {
+      "post": {
+        "tags": [
+          "Volume"
+        ],
+        "summary": "Queues a BundleVolumeWorker to merge all unbundled chapters into a single CBZ.",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "VolumeNumber",
+            "in": "path",
+            "description": "Volume number to bundle",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Worker queued; returns job ID",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/BundleJobResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Series or VolumeMetadata not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "No unbundled chapters with files to bundle",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Volume"
+        ],
+        "summary": "Queues an UnbundleVolumeWorker to split the bundle CBZ back into individual chapter CBZs.",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.Series.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "VolumeNumber",
+            "in": "path",
+            "description": "Volume number to unbundle",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Worker queued; returns job ID (may include warning if no map exists)",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnbundleJobResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Series or VolumeMetadata not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Volume is not bundled",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Worker": {
+      "get": {
+        "tags": [
+          "Worker"
+        ],
+        "summary": "Returns all API.Workers.BaseWorker",
+        "responses": {
+          "200": {
+            "description": "API.Controllers.DTOs.Worker",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Worker"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Worker/State/{State}": {
+      "get": {
+        "tags": [
+          "Worker"
+        ],
+        "summary": "Get all API.Workers.BaseWorker in requested API.Workers.WorkerExecutionState",
+        "parameters": [
+          {
+            "name": "State",
+            "in": "path",
+            "description": "Requested API.Workers.WorkerExecutionState",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/WorkerExecutionState"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Worker"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Worker/{WorkerId}": {
+      "get": {
+        "tags": [
+          "Worker"
+        ],
+        "summary": "Return API.Workers.BaseWorker with WorkerId",
+        "parameters": [
+          {
+            "name": "WorkerId",
+            "in": "path",
+            "description": "API.Workers.BaseWorker.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Worker"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API.Workers.BaseWorker with WorkerId could not be found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Worker/{WorkerId}/Stop": {
+      "post": {
+        "tags": [
+          "Worker"
+        ],
+        "summary": "Stops API.Workers.BaseWorker with WorkerId",
+        "parameters": [
+          {
+            "name": "WorkerId",
+            "in": "path",
+            "description": "API.Workers.BaseWorker.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "API.Workers.BaseWorker with WorkerId could not be found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted"
+          },
+          "412": {
+            "description": "API.Workers.BaseWorker was already not running",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ActionRecord": {
+        "required": [
+          "action",
+          "key",
+          "performedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/Actions"
+          },
+          "performedAt": {
+            "type": "string",
+            "description": "<inheritdoc cref=\"P:API.Schema.ActionsContext.ActionRecord.PerformedAt\" />",
+            "format": "date-time"
+          },
+          "mangaId": {
+            "type": "string",
+            "description": "MangaId if Record is API.Schema.ActionsContext.Actions.Generic.IActionWithMangaRecord",
+            "nullable": true
+          },
+          "chapterId": {
+            "type": "string",
+            "description": "ChapterId if Record is API.Schema.ActionsContext.Actions.Generic.IActionWithMangaRecord",
+            "nullable": true
+          },
+          "from": {
+            "type": "string",
+            "description": "FromPath if Record is API.Schema.ActionsContext.Actions.DataMovedActionRecord",
+            "nullable": true
+          },
+          "to": {
+            "type": "string",
+            "description": "ToPath if Record is API.Schema.ActionsContext.Actions.DataMovedActionRecord",
+            "nullable": true
+          },
+          "filename": {
+            "type": "string",
+            "description": "Filename if Record is API.Schema.ActionsContext.Actions.CoverDownloadedActionRecord",
+            "nullable": true
+          },
+          "metadataFetcher": {
+            "type": "string",
+            "description": "API.Schema.SeriesContext.MetadataFetchers.MetadataFetcher if Record is API.Schema.ActionsContext.Actions.MetadataUpdatedActionRecord",
+            "nullable": true
+          },
+          "key": {
+            "maxLength": 64,
+            "minLength": 16,
+            "type": "string",
+            "description": "Unique Identifier of the DTO"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ActionRecordPagedResponse": {
+        "required": [
+          "data",
+          "page",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActionRecord"
+            },
+            "description": "The data"
+          },
+          "page": {
+            "type": "integer",
+            "description": "The page-number",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "The total number of pages (max page)",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "description": "The total number of entries for this request",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Actions": {
+        "enum": [
+          "Startup",
+          "ChapterDownloaded",
+          "ChaptersRetrieved",
+          "CoverDownloaded",
+          "DataMoved",
+          "LibraryMoved",
+          "MetadataUpdated"
+        ],
+        "type": "string"
+      },
+      "ActionsFilterRecord": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "mangaId": {
+            "type": "string",
+            "nullable": true
+          },
+          "chapterId": {
+            "type": "string",
+            "nullable": true
+          },
+          "action": {
+            "$ref": "#/components/schemas/Actions"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AltTitle": {
+        "required": [
+          "language",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "language": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Language of the Title"
+          },
+          "title": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Title"
+          }
+        },
+        "additionalProperties": false,
+        "description": "API.Schema.SeriesContext.AltTitle DTO"
+      },
+      "Author": {
+        "required": [
+          "key",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Name of the Author."
+          },
+          "key": {
+            "maxLength": 64,
+            "minLength": 16,
+            "type": "string",
+            "description": "Unique Identifier of the DTO"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The API.Schema.SeriesContext.Author DTO"
+      },
+      "BulkAssignmentRecord": {
+        "type": "object",
+        "properties": {
+          "assignments": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for POST /Series/{MangaId}/volumes/assignments"
+      },
+      "BulkAssignmentResult": {
+        "type": "object",
+        "properties": {
+          "applied": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "notFound": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Result of POST /Series/{MangaId}/volumes/assignments"
+      },
+      "BundleJobResult": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Result returned when a bundle/unbundle job is queued."
+      },
+      "Chapter": {
+        "required": [
+          "chapterNumber",
+          "downloaded",
+          "key",
+          "mangaId",
+          "sourceIds",
+          "title",
+          "volume"
+        ],
+        "type": "object",
+        "properties": {
+          "mangaId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Identifier of the Series this Chapter belongs to"
+          },
+          "volume": {
+            "type": "integer",
+            "description": "Volume number",
+            "format": "int32"
+          },
+          "chapterNumber": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Chapter number"
+          },
+          "title": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Title of the Chapter"
+          },
+          "downloaded": {
+            "type": "boolean",
+            "description": "Whether Chapter is Downloaded (on disk)"
+          },
+          "sourceIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChapterSourceId"
+            },
+            "description": "Ids of the Series on MangaConnectors"
+          },
+          "fileName": {
+            "type": "string",
+            "description": "Filename of the archive",
+            "nullable": true
+          },
+          "key": {
+            "maxLength": 64,
+            "minLength": 16,
+            "type": "string",
+            "description": "Unique Identifier of the DTO"
+          }
+        },
+        "additionalProperties": false,
+        "description": "API.Schema.SeriesContext.Chapter DTO"
+      },
+      "ChapterFileEntry": {
+        "type": "object",
+        "properties": {
+          "chapterId": {
+            "type": "string",
+            "nullable": true
+          },
+          "chapterNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "fileExistsOnDisk": {
+            "type": "boolean"
+          },
+          "isBundled": {
+            "type": "boolean"
+          },
+          "metadataConfidence": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Per-chapter entry in a volume listing."
+      },
+      "ChapterFilterRecord": {
+        "type": "object",
+        "properties": {
+          "downloaded": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "volumeNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "chapterNumber": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ChapterPagedResponse": {
+        "required": [
+          "data",
+          "page",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Chapter"
+            },
+            "description": "The data"
+          },
+          "page": {
+            "type": "integer",
+            "description": "The page-number",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "The total number of pages (max page)",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "description": "The total number of entries for this request",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ChapterSourceId": {
+        "required": [
+          "foreignKey",
+          "key",
+          "mangaConnectorName",
+          "objId",
+          "useForDownload"
+        ],
+        "type": "object",
+        "properties": {
+          "mangaConnectorName": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Name of the Connector"
+          },
+          "foreignKey": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Key of the referenced DTO"
+          },
+          "objId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "ID of the Object on the connector site"
+          },
+          "websiteUrl": {
+            "type": "string",
+            "description": "Website Link for reference, if any",
+            "nullable": true
+          },
+          "useForDownload": {
+            "type": "boolean",
+            "description": "Whether this Link is used for downloads"
+          },
+          "key": {
+            "maxLength": 64,
+            "minLength": 16,
+            "type": "string",
+            "description": "Unique Identifier of the DTO"
+          }
+        },
+        "additionalProperties": false,
+        "description": "API.Controllers.DTOs.SourceId`1 DTO"
+      },
+      "ChapterVolumeAssignmentResult": {
+        "type": "object",
+        "properties": {
+          "chapterId": {
+            "type": "string",
+            "nullable": true
+          },
+          "chapterNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "volumeNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "metadataConfidence": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Result of a PUT /Chapter/{id}/volume operation."
+      },
+      "CoverSize": {
+        "enum": [
+          "Original",
+          "Large",
+          "Medium",
+          "Small"
+        ],
+        "type": "string"
+      },
+      "CreateGotifyConnectorRecord": {
+        "required": [
+          "appToken",
+          "name",
+          "priority",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Name of the Notification Connector"
+          },
+          "url": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Url of the Instance",
+            "format": "uri"
+          },
+          "appToken": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Apptoken used for authentication"
+          },
+          "priority": {
+            "type": "integer",
+            "description": "The Priority of Notifications",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateKavitaRecord": {
+        "required": [
+          "apiKey",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Url of the Library instance",
+            "format": "uri"
+          },
+          "apiKey": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The ApiKey to authenticate to the Library instance"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateKomgaRecord": {
+        "required": [
+          "apiKey",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Url of the Library instance",
+            "format": "uri"
+          },
+          "apiKey": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The ApiKey to authenticate to the Library instance"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateLibraryRecord": {
+        "required": [
+          "basePath",
+          "libraryName"
+        ],
+        "type": "object",
+        "properties": {
+          "basePath": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The directory Path of the library"
+          },
+          "libraryName": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Name of the library"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateNotificationConnectorRecord": {
+        "required": [
+          "body",
+          "headers",
+          "httpMethod",
+          "name",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Name of the Notification Connector"
+          },
+          "url": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Url of the Instance",
+            "format": "uri"
+          },
+          "httpMethod": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The HTTP Request Method to use for notifications"
+          },
+          "body": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Request Body to use to send notifications"
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The Request Headers to use to send notifications"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateNtfyConnectorRecord": {
+        "required": [
+          "name",
+          "password",
+          "priority",
+          "topic",
+          "url",
+          "username"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Name of the Notification Connector"
+          },
+          "url": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Url of the Instance",
+            "format": "uri"
+          },
+          "priority": {
+            "type": "integer",
+            "description": "The Priority of Notifications",
+            "format": "int32"
+          },
+          "username": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Username used for authentication"
+          },
+          "password": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Password used for authentication"
+          },
+          "topic": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Topic of Notifications"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreatePushoverConnectorRecord": {
+        "required": [
+          "appToken",
+          "name",
+          "username"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Name of the Notification Connector"
+          },
+          "appToken": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Apptoken used for authentication"
+          },
+          "username": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Username used for authentication"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FileLibrary": {
+        "required": [
+          "basePath",
+          "key",
+          "libraryName"
+        ],
+        "type": "object",
+        "properties": {
+          "basePath": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The directory Path of the library"
+          },
+          "libraryName": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Name of the library"
+          },
+          "key": {
+            "maxLength": 64,
+            "minLength": 16,
+            "type": "string",
+            "description": "Unique Identifier of the DTO"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FileMove": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "nullable": true
+          },
+          "to": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a single file move operation in a reorganize preview."
+      },
+      "LibraryConnector": {
+        "required": [
+          "baseUrl",
+          "key",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "baseUrl": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Url of the Library instance",
+            "format": "uri"
+          },
+          "type": {
+            "$ref": "#/components/schemas/LibraryType"
+          },
+          "key": {
+            "maxLength": 64,
+            "minLength": 16,
+            "type": "string",
+            "description": "Unique Identifier of the DTO"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LibraryLayout": {
+        "enum": [
+          "Flat",
+          "VolumeFolder",
+          "VolumeCBZ"
+        ],
+        "type": "string"
+      },
+      "LibraryLayoutResult": {
+        "type": "object",
+        "properties": {
+          "layout": {
+            "type": "string",
+            "nullable": true
+          },
+          "reorganizePreview": {
+            "$ref": "#/components/schemas/ReorganizePreviewResult"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Response body for PUT /api/v2/Series/{mangaId}/libraryLayout."
+      },
+      "LibraryRefreshSetting": {
+        "enum": [
+          "AfterAllFinished",
+          "AfterMangaFinished",
+          "AfterEveryChapter",
+          "WhileDownloading"
+        ],
+        "type": "string"
+      },
+      "LibraryType": {
+        "enum": [
+          "Komga",
+          "Kavita"
+        ],
+        "type": "string"
+      },
+      "Link": {
+        "required": [
+          "key",
+          "provider",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "provider": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Name of the Provider"
+          },
+          "url": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Url"
+          },
+          "key": {
+            "maxLength": 64,
+            "minLength": 16,
+            "type": "string",
+            "description": "Unique Identifier of the DTO"
+          }
+        },
+        "additionalProperties": false,
+        "description": "API.Schema.SeriesContext.Link DTO"
+      },
+      "ManualIndexerConfig": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "apiKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A manually-configured Torznab/Newznab indexer (name + endpoint + key + categories)."
+      },
+      "MetadataEntry": {
+        "type": "object",
+        "properties": {
+          "mangaId": {
+            "type": "string",
+            "nullable": true
+          },
+          "metadataFetcherName": {
+            "type": "string",
+            "nullable": true
+          },
+          "identifier": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MetadataSearchResult": {
+        "required": [
+          "coverUrl",
+          "description",
+          "identifier",
+          "name",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Identifier specific to the MetadataFetcher"
+          },
+          "name": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Name of the Series"
+          },
+          "url": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Url to the result"
+          },
+          "description": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Description of the Series"
+          },
+          "coverUrl": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Url to the cover if available"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MetadataSourceCandidate": {
+        "type": "object",
+        "properties": {
+          "mangaDexId": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "author": {
+            "type": "string",
+            "nullable": true
+          },
+          "chapterCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "score": {
+            "type": "number",
+            "format": "float"
+          },
+          "matchReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "externalId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A scored metadata candidate for linking to a local Series."
+      },
+      "MetadataSourceResult": {
+        "type": "object",
+        "properties": {
+          "sourceType": {
+            "type": "string",
+            "nullable": true
+          },
+          "externalId": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastSyncedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "matchScore": {
+            "type": "number",
+            "format": "float",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO for a Series's MetadataSource."
+      },
+      "MinimalSeries": {
+        "required": [
+          "description",
+          "key",
+          "name",
+          "releaseStatus",
+          "sourceIds"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Name of the Series"
+          },
+          "description": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Description of the Series"
+          },
+          "releaseStatus": {
+            "$ref": "#/components/schemas/SeriesReleaseStatus"
+          },
+          "sourceIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeriesSourceId"
+            },
+            "description": "Ids of the Series on MangaConnectors"
+          },
+          "coverUrl": {
+            "type": "string",
+            "description": "External cover image URL from the connector",
+            "nullable": true
+          },
+          "fileLibraryId": {
+            "type": "string",
+            "description": "Id of the Library the Series gets downloaded to",
+            "nullable": true
+          },
+          "language": {
+            "type": "string",
+            "description": "Content Language (e.g. translation language)",
+            "nullable": true
+          },
+          "key": {
+            "maxLength": 64,
+            "minLength": 16,
+            "type": "string",
+            "description": "Unique Identifier of the DTO"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Shortened Version of API.Controllers.DTOs.Series"
+      },
+      "NotificationConnector": {
+        "required": [
+          "body",
+          "headers",
+          "httpMethod",
+          "key",
+          "name",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Name of the Notification Connector"
+          },
+          "url": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Url of the Instance",
+            "format": "uri"
+          },
+          "httpMethod": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The HTTP Request Method to use for notifications"
+          },
+          "body": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The Request Body to use to send notifications"
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The Request Headers to use to send notifications"
+          },
+          "key": {
+            "maxLength": 64,
+            "minLength": 16,
+            "type": "string",
+            "description": "Unique Identifier of the DTO"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PatchChapterRecord": {
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "volumeNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for updating mutable metadata on a Chapter"
+      },
+      "PatchChapterVolumeRecord": {
+        "type": "object",
+        "properties": {
+          "volumeNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for PUT /Chapter/{id}/volume"
+      },
+      "PatchFileLibraryRecord": {
+        "required": [
+          "name",
+          "path"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Directory Path",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Library Name",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PatchLibraryRefreshRecord": {
+        "required": [
+          "setting"
+        ],
+        "type": "object",
+        "properties": {
+          "setting": {
+            "$ref": "#/components/schemas/LibraryRefreshSetting"
+          },
+          "refreshLibraryWhileDownloadingEveryMinutes": {
+            "type": "integer",
+            "description": "When API.Workers.LibraryRefreshSetting.WhileDownloading is selected, update the time between refreshes",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PatchMetadataSourceRecord": {
+        "type": "object",
+        "properties": {
+          "sourceType": {
+            "type": "string",
+            "nullable": true
+          },
+          "externalId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for PUT /Series/{id}/metadataSource"
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { }
+      },
+      "PutLibraryLayoutRecord": {
+        "type": "object",
+        "properties": {
+          "layout": {
+            "$ref": "#/components/schemas/LibraryLayout"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for PUT /api/v2/Series/{mangaId}/libraryLayout."
+      },
+      "ReorganizeJobResult": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Result returned after queuing a reorganize job."
+      },
+      "ReorganizePreviewResult": {
+        "type": "object",
+        "properties": {
+          "moves": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileMove"
+            },
+            "nullable": true
+          },
+          "creates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "deletes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Dry-run diff for a reorganize operation."
+      },
+      "Series": {
+        "required": [
+          "altTitles",
+          "authors",
+          "description",
+          "ignoreChaptersBefore",
+          "key",
+          "links",
+          "name",
+          "releaseStatus",
+          "sourceIds",
+          "tags"
+        ],
+        "type": "object",
+        "properties": {
+          "ignoreChaptersBefore": {
+            "type": "number",
+            "description": "Chapter cutoff for Downloads (Chapters before this will not be downloaded)",
+            "format": "float"
+          },
+          "year": {
+            "type": "integer",
+            "description": "Release Year",
+            "format": "int32",
+            "nullable": true
+          },
+          "originalLanguage": {
+            "type": "string",
+            "description": "Release Language",
+            "nullable": true
+          },
+          "authors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Author"
+            },
+            "description": "Author-names"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Series Tags"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Link"
+            },
+            "description": "Links for more Metadata"
+          },
+          "altTitles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AltTitle"
+            },
+            "description": "Alt Titles of Series"
+          },
+          "name": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Name of the Series"
+          },
+          "description": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Description of the Series"
+          },
+          "releaseStatus": {
+            "$ref": "#/components/schemas/SeriesReleaseStatus"
+          },
+          "sourceIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeriesSourceId"
+            },
+            "description": "Ids of the Series on MangaConnectors"
+          },
+          "coverUrl": {
+            "type": "string",
+            "description": "External cover image URL from the connector",
+            "nullable": true
+          },
+          "fileLibraryId": {
+            "type": "string",
+            "description": "Id of the Library the Series gets downloaded to",
+            "nullable": true
+          },
+          "language": {
+            "type": "string",
+            "description": "Content Language (e.g. translation language)",
+            "nullable": true
+          },
+          "key": {
+            "maxLength": 64,
+            "minLength": 16,
+            "type": "string",
+            "description": "Unique Identifier of the DTO"
+          }
+        },
+        "additionalProperties": false,
+        "description": "API.Schema.SeriesContext.Series DTO"
+      },
+      "SeriesReleaseStatus": {
+        "enum": [
+          "Continuing",
+          "Completed",
+          "OnHiatus",
+          "Cancelled",
+          "Unreleased"
+        ],
+        "type": "string"
+      },
+      "SeriesSource": {
+        "required": [
+          "enabled",
+          "iconUrl",
+          "key",
+          "supportedLanguages"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether Connector is used for Searches and Downloads"
+          },
+          "supportedLanguages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Languages supported by the Connector"
+          },
+          "iconUrl": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Url of the Website Icon"
+          },
+          "key": {
+            "maxLength": 64,
+            "minLength": 16,
+            "type": "string",
+            "description": "Unique Identifier of the DTO"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SeriesSourceId": {
+        "required": [
+          "foreignKey",
+          "key",
+          "mangaConnectorName",
+          "objId",
+          "useForDownload"
+        ],
+        "type": "object",
+        "properties": {
+          "mangaConnectorName": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Name of the Connector"
+          },
+          "foreignKey": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Key of the referenced DTO"
+          },
+          "objId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "ID of the Object on the connector site"
+          },
+          "websiteUrl": {
+            "type": "string",
+            "description": "Website Link for reference, if any",
+            "nullable": true
+          },
+          "useForDownload": {
+            "type": "boolean",
+            "description": "Whether this Link is used for downloads"
+          },
+          "key": {
+            "maxLength": 64,
+            "minLength": 16,
+            "type": "string",
+            "description": "Unique Identifier of the DTO"
+          }
+        },
+        "additionalProperties": false,
+        "description": "API.Controllers.DTOs.SourceId`1 DTO"
+      },
+      "SetMetronRecord": {
+        "required": [
+          "password",
+          "username"
+        ],
+        "type": "object",
+        "properties": {
+          "username": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Metron account username"
+          },
+          "password": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Metron account password"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Metron (metron.cloud) account credentials for metadata lookups."
+      },
+      "SetProwlarrRecord": {
+        "required": [
+          "apiKey",
+          "baseUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "baseUrl": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Base URL of the Prowlarr instance, e.g. http://prowlarr:9696"
+          },
+          "apiKey": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Prowlarr API key"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Prowlarr instance to sync indexers from."
+      },
+      "SetTorrentClientRecord": {
+        "required": [
+          "baseUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "baseUrl": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Base URL of the torrent client Web API, e.g. http://qbittorrent:8080"
+          },
+          "username": {
+            "type": "string",
+            "description": "Torrent client username",
+            "nullable": true
+          },
+          "password": {
+            "type": "string",
+            "description": "Torrent client password",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Torrent client (qBittorrent) Web API connection details."
+      },
+      "Stats": {
+        "type": "object",
+        "properties": {
+          "numberManga": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "numberChapters": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "missingChapters": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "downloadedChapters": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sentNotifications": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "actionsTaken": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "numberAuthors": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "numberTags": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TrangaSettings": {
+        "type": "object",
+        "properties": {
+          "appData": {
+            "type": "string",
+            "nullable": true
+          },
+          "defaultDownloadLocation": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "userAgent": {
+            "type": "string",
+            "nullable": true
+          },
+          "imageCompression": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "blackWhiteImages": {
+            "type": "boolean"
+          },
+          "flareSolverrUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "chapterNamingScheme": {
+            "type": "string",
+            "description": "Placeholders:\n%M Obj Name\n%V Volume\n%C Chapter\n%T Title\n%A Author (first in list)\n%I Chapter Internal ID\n%i Obj Internal ID\n%Y Year (Obj)\n            \n?_(...) replace _ with a value from above:\nEverything inside the braces will only be added if the value of %_ is not null",
+            "nullable": true
+          },
+          "workCycleTimeoutMs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "downloadLanguage": {
+            "type": "string",
+            "nullable": true
+          },
+          "maxConcurrentDownloads": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxConcurrentWorkers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "volumeResolutionStrategy": {
+            "$ref": "#/components/schemas/VolumeResolutionStrategy"
+          },
+          "volumeResolutionParallelism": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "libraryRefreshSetting": {
+            "$ref": "#/components/schemas/LibraryRefreshSetting"
+          },
+          "refreshLibraryWhileDownloadingEveryMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "disabledConnectors": {
+            "uniqueItems": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Names of API.MangaConnectors.SeriesSource instances that have been explicitly disabled.\nConnectors absent from this set are considered enabled (opt-out model).",
+            "nullable": true
+          },
+          "corsAllowedOrigins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Origins permitted for browser CORS requests. Empty (the default) preserves the historical\n\"allow any origin\" behaviour; populate it to restrict the API to specific frontends.",
+            "nullable": true
+          },
+          "manualIndexers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManualIndexerConfig"
+            },
+            "description": "Manually-configured Torznab/Newznab indexers.",
+            "nullable": true
+          },
+          "prowlarrBaseUrl": {
+            "type": "string",
+            "description": "Base URL of a Prowlarr instance to sync indexers from (e.g. http://prowlarr:9696). Empty disables Prowlarr sync.",
+            "nullable": true
+          },
+          "prowlarrApiKey": {
+            "type": "string",
+            "description": "Prowlarr API key (X-Api-Key header).",
+            "nullable": true
+          },
+          "indexerComicCategories": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Comic category IDs applied to indexer searches. Default 8000 = Comics (Newznab convention).",
+            "nullable": true
+          },
+          "torrentClientBaseUrl": {
+            "type": "string",
+            "description": "Base URL of the torrent client's Web API (e.g. http://qbittorrent:8080). Empty disables torrents.",
+            "nullable": true
+          },
+          "torrentClientUsername": {
+            "type": "string",
+            "nullable": true
+          },
+          "torrentClientPassword": {
+            "type": "string",
+            "nullable": true
+          },
+          "metronUsername": {
+            "type": "string",
+            "description": "Metron account username (HTTP Basic auth). Empty disables Metron lookups.",
+            "nullable": true
+          },
+          "metronPassword": {
+            "type": "string",
+            "description": "Metron account password (HTTP Basic auth).",
+            "nullable": true
+          },
+          "releaseMinSeeders": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "releasePreferredTokens": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "releaseBlockedTokens": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UnbundleJobResult": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "nullable": true
+          },
+          "warning": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Result returned when an unbundle job is queued."
+      },
+      "UnresolvedDashboardResult": {
+        "type": "object",
+        "properties": {
+          "series": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UnresolvedMangaEntry"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Result of GET /v2/Library/unresolved"
+      },
+      "UnresolvedMangaEntry": {
+        "type": "object",
+        "properties": {
+          "mangaId": {
+            "type": "string",
+            "nullable": true
+          },
+          "mangaName": {
+            "type": "string",
+            "nullable": true
+          },
+          "unresolvedChapterCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "missingFileCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Entry for a manga with unresolved chapters or missing files."
+      },
+      "VolumeEntry": {
+        "type": "object",
+        "properties": {
+          "volumeNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "isBundled": {
+            "type": "boolean"
+          },
+          "archiveFileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "chapterCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "chapters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChapterFileEntry"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "One volume with its chapter list."
+      },
+      "VolumeListResult": {
+        "type": "object",
+        "properties": {
+          "filesNeedReorganizing": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/LibraryLayout"
+          },
+          "volumes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VolumeEntry"
+            },
+            "nullable": true
+          },
+          "unassigned": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChapterFileEntry"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Top-level response for GET /api/v2/Series/{mangaId}/volumes."
+      },
+      "VolumeResolutionStrategy": {
+        "enum": [
+          "Disabled",
+          "ExactOnly",
+          "ExactThenGuess"
+        ],
+        "type": "string"
+      },
+      "Worker": {
+        "required": [
+          "dependencies",
+          "dependenciesFulfilled",
+          "key",
+          "missingDependencies",
+          "state"
+        ],
+        "type": "object",
+        "properties": {
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Workers this worker depends on having ran."
+          },
+          "missingDependencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Workers that have not yet ran, that need to run for this Worker to run."
+          },
+          "dependenciesFulfilled": {
+            "type": "boolean",
+            "description": "Worker can run."
+          },
+          "state": {
+            "$ref": "#/components/schemas/WorkerExecutionState"
+          },
+          "key": {
+            "maxLength": 64,
+            "minLength": 16,
+            "type": "string",
+            "description": "Unique Identifier of the DTO"
+          }
+        },
+        "additionalProperties": false,
+        "description": "API.Workers.BaseWorker DTO"
+      },
+      "WorkerExecutionState": {
+        "enum": [
+          "Failed",
+          "Cancelled",
+          "Created",
+          "Waiting",
+          "Running",
+          "Completed"
+        ],
+        "type": "string"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Actions"
+    },
+    {
+      "name": "Chapters"
+    },
+    {
+      "name": "FileLibrary"
+    },
+    {
+      "name": "Library"
+    },
+    {
+      "name": "LibraryConnector"
+    },
+    {
+      "name": "Maintenance"
+    },
+    {
+      "name": "MetadataFetcher"
+    },
+    {
+      "name": "MetadataSource"
+    },
+    {
+      "name": "NotificationConnector"
+    },
+    {
+      "name": "Query"
+    },
+    {
+      "name": "Search"
+    },
+    {
+      "name": "Series"
+    },
+    {
+      "name": "SeriesSource"
+    },
+    {
+      "name": "Settings"
+    },
+    {
+      "name": "Volume"
+    },
+    {
+      "name": "Worker"
+    }
+  ]
+}

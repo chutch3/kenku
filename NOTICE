@@ -1,0 +1,28 @@
+Kenku
+Copyright (C) 2025 Cody Hutchens and the Kenku contributors
+
+This program is free software licensed under the GNU General Public License
+version 3 (GPLv3). See the LICENSE file for the full license text.
+
+---------------------------------------------------------------------------
+Attribution
+---------------------------------------------------------------------------
+
+Kenku is derived from the following projects, which are also licensed under
+the GNU General Public License version 3:
+
+  * Tranga
+    Copyright (C) C9Glax and contributors
+    https://github.com/C9Glax/tranga
+
+  * tranga-website
+    Copyright (C) C9Glax and contributors
+    https://github.com/C9Glax/tranga-website
+
+The Tranga and tranga-website source trees were merged into this repository
+(under api/ and web/ respectively) and have since been substantially modified.
+Kenku is maintained as a separate, renamed project and is not affiliated with
+or endorsed by the original authors.
+
+Additional connector and feature contributions to the upstream projects are
+credited in the upstream repositories' commit history and README files.

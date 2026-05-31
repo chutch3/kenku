@@ -1,0 +1,32 @@
+# ---- Runtime / compose ----
+/Manga/
+/settings/
+
+# ---- .NET (api/) ----
+[Bb]in/
+[Oo]bj/
+/packages/
+*.user
+*.DotSettings.user
+debug/
+cover.jpg
+cover.png
+
+# ---- Node / Nuxt (web/) ----
+node_modules/
+.nuxt/
+.output/
+.nitro/
+.cache/
+dist/
+
+# ---- Editors / IDE ----
+.idea/
+.vs/
+.vscode/
+*.iml
+riderModule.iml
+
+# ---- OS ----
+.DS_Store
+Thumbs.db

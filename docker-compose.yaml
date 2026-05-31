@@ -1,0 +1,73 @@
+services:
+  kenku-api:
+    image: ghcr.io/chutch3/kenku-api:cuttingedge
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: kenku-api
+    user: "${UID}:${GID}"
+    volumes:
+      - ./Manga:/Manga
+      - ./settings:/usr/share/tranga-api
+    ports:
+      - "6531:6531"
+    depends_on:
+      kenku-pg:
+        condition: service_healthy
+    environment:
+      - POSTGRES_HOST=kenku-pg
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      #- FLARESOLVERR_URL=
+      #- POSTGRES_COMMAND_TIMEOUT=30
+      #- POSTGRES_CONNECTION_TIMEOUT=30
+      #- CHECK_CHAPTERS_BEFORE_START=true
+      #- CREATE_COMICINFO_XML=true
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  kenku-web:
+    image: ghcr.io/chutch3/kenku-web:cuttingedge
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: kenku-web
+    ports:
+      - "9555:80"
+    environment:
+      # Backend the nginx reverse-proxy forwards /api, /v2 and /swagger to.
+      - API_URL=http://kenku-api:6531
+    depends_on:
+      - kenku-api
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  kenku-pg:
+    image: postgres:17
+    container_name: kenku-pg
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      #- PGPORT=5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-U", "postgres"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
