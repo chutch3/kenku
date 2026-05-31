@@ -1,6 +1,6 @@
 services:
   kenku:
-    image: ghcr.io/chutch3/kenku:cuttingedge
+    image: ghcr.io/chutch3/kenku:latest
     build:
       context: ./
       dockerfile: Dockerfile

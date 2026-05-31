@@ -1,8 +1,8 @@
-name: Build image (cuttingedge)
+name: Build image
 
 on:
   push:
-    branches: [ "cuttingedge", "main" ]
+    branches: [ "main" ]
     paths:
       - "api/**"
       - "web/**"
@@ -44,4 +44,4 @@ jobs:
           pull: true
           push: true
           tags: |
-            ghcr.io/chutch3/kenku:cuttingedge
+            ghcr.io/chutch3/kenku:latest
