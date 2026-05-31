@@ -54,16 +54,7 @@ component-specific details and configuration.
 └── docker-compose.yaml  # app + Postgres
 ```
 
-## Relationship to Tranga (attribution)
+## License & credits
 
-Kenku began as a fork of [**Tranga**](https://github.com/C9Glax/tranga) and its
-companion [**tranga-website**](https://github.com/C9Glax/tranga-website) by
-[C9Glax](https://github.com/C9Glax) and contributors. Since then it has diverged
-substantially — the two projects have been merged into this monorepo and the
-architecture has been reworked (indexer/torrent acquisition, Metron metadata,
-restructured settings, and more). Because of that divergence it is maintained as
-a distinct project under a new name rather than as a drop-in continuation of the
-original.
-
-Huge thanks to the original authors. See [`NOTICE`](NOTICE) for attribution
-details. Kenku remains licensed under the **GNU GPL v3** — see [`LICENSE`](LICENSE).
+Kenku is licensed under the **GNU GPL v3** — see [`LICENSE`](LICENSE). It builds on
+prior GPL-3.0 work; the original authors are credited in [`NOTICE`](NOTICE).

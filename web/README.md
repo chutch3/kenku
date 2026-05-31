@@ -1,74 +1,55 @@
-<br />
 <div align="center">
-<span id="readme-top"></span>
-<h3 align="center">Tranga-Website</h3>
+  <h1>Kenku — Frontend (Web UI)</h1>
+  <p><em>Nuxt 4 / Vue 3 web interface for the Kenku API.</em></p>
 
-  <p align="center">
-    Automatic Manga and Metadata downloader 
-  </p>
-  <p align="center">
-    This is the Website for <a href="https://github.com/C9Glax/tranga">Tranga</a> (API)  
-  </p>
-
-  ![GitHub License](https://img.shields.io/github/license/C9glax/tranga-website)
-
-  <table>
-    
-  </table>
+  ![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
 </div>
 
+This is the frontend half of the [Kenku](../README.md) monorepo: a Nuxt single-page
+app that is **prerendered to static assets** and bundled into the Kenku image, where
+the .NET backend serves it from `wwwroot` on the same origin as the API. There is no
+separate web server.
 
+The UI is a thin, fully-typed client over the backend's REST API. Its API client and
+types are generated at build time from the backend's OpenAPI spec
+([`../api/API/openapi/API_v2.json`](../api/API/openapi/API_v2.json)) via
+`nuxt-open-fetch`. Because the UI and API share an origin, requests go straight to
+`/v2/...` with no proxy or CORS hop.
 
-<!-- ABOUT THE PROJECT -->
 ## Screenshots
 
-| ![Main Page](Screenshots/Overview.png) | ![Search](Screenshots/Search.png) | ![Manga Detail](Screenshots/MangaDetail.png) |
-|----------------------------------------|------------------------------------------|------------------------------------------------|
-| Overview                               | Search Dialog                            | Manga Detail                                   |
+| ![Library](Screenshots/Overview.png) | ![Search](Screenshots/Search.png) | ![Series detail](Screenshots/MangaDetail.png) |
+|--------------------------------------|-----------------------------------|-----------------------------------------------|
+| Library                              | Search                            | Series detail                                 |
 
-## About The Project
+## Screens
 
-Tranga-Website is the Web-frontend to [Tranga](https://github.com/C9Glax/tranga) (the API).
+- **Library** — grid of tracked series.
+- **Search** — find new series across the configured sources.
+- **Series detail** — chapters, metadata linking, downloads, and merge.
+- **Settings** — file libraries, library connectors (Komga/Kavita), notifications
+  (Gotify/Ntfy/Pushover/webhooks), and indexer/torrent/metadata (Prowlarr, torrent
+  client, Metron).
+- **Actions** — the backend's action/audit log.
 
-### What this does do (and nothing else)
+## Built with
 
-This project makes HTTP-requests to the [Tranga-API](https://github.com/C9Glax/tranga) to display and modify the present configuration.
+- [Nuxt](https://nuxt.com/) 4 · [Vue](https://vuejs.org/) 3 · [Vite](https://vitejs.dev/)
+- [Nuxt UI](https://ui.nuxt.com/) + [Tailwind CSS](https://tailwindcss.com/)
+- [nuxt-open-fetch](https://nuxt-open-fetch.vercel.app/) (typed client from OpenAPI)
 
-## Built With
+## Local development
 
-- nginx
-- [nuxt](https://github.com/nuxt/nuxt)
-- [nuxt ui](https://github.com/nuxt/ui)
-- [vue](https://github.com/vuejs/)
-- [vite](https://github.com/vitejs/vite)
-- 💙 Blåhaj 🦈
+The app lives in [`website/`](website/). It needs the OpenAPI spec at
+`../../api/API/openapi/API_v2.json` (present in this monorepo) to generate its client.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+```bash
+cd web/website
+npm install
+npm run dev        # dev server; point it at a running Kenku API (same-origin)
+npm run generate   # prerender to static assets in .output/public
+```
 
-<!-- GETTING STARTED -->
-## Getting Started
-
-Go to [Tranga](https://github.com/C9Glax/tranga?tab=readme-ov-file#getting-started) and read the README there.
-
-<!-- CONTRIBUTING -->
-## Contributing
-
-Go to [Tranga](https://github.com/C9Glax/tranga?tab=readme-ov-file#contributing) and read the README there.
-
-<!-- LICENSE -->
 ## License
 
-See `LICENSE.txt` for more information.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-<!-- ACKNOWLEDGMENTS -->
-## Acknowledgments
-
-* [Choose an Open Source License](https://choosealicense.com)
-* [Font Awesome](https://fontawesome.com)
-* [Best-README-Template](https://github.com/othneildrew/Best-README-Template/tree/master)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+GNU GPL v3 — see [`LICENSE`](../LICENSE). Credits in [`NOTICE`](../NOTICE).
