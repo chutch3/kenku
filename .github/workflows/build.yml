@@ -1,11 +1,14 @@
-name: Build Web image (cuttingedge)
+name: Build image (cuttingedge)
 
 on:
   push:
     branches: [ "cuttingedge", "main" ]
     paths:
+      - "api/**"
       - "web/**"
-      - ".github/workflows/build-web.yml"
+      - "Dockerfile"
+      - ".dockerignore"
+      - ".github/workflows/build.yml"
   workflow_dispatch:
 
 jobs:
@@ -19,26 +22,26 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4.0.0
+        uses: docker/setup-qemu-action@v3.7.0
 
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v4.0.0
+        uses: docker/setup-buildx-action@v3.12.0
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v4
+        uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Web
-        uses: docker/build-push-action@v7.0.0
+      - name: Build and push (UI + API in one image)
+        uses: docker/build-push-action@v6.18.0
         with:
-          context: ./web
-          file: ./web/Dockerfile
-          platforms: linux/amd64,linux/amd64/v2,linux/amd64/v3,linux/arm64
+          context: ./
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/amd64/v2,linux/amd64/v3,linux/arm64,linux/arm/v7
           pull: true
           push: true
           tags: |
-            ghcr.io/chutch3/kenku-web:cuttingedge
+            ghcr.io/chutch3/kenku:cuttingedge

@@ -13,26 +13,30 @@ trigger library scans in [Komga](https://komga.org/) and
 [Kavita](https://www.kavitareader.com/) plus push notifications via Gotify, Ntfy,
 Pushover and generic webhooks.
 
-It is a single repository containing two deployable services:
+It ships as **one Docker image**: the .NET app serves the prerendered Nuxt UI
+(from `wwwroot`) and the REST API on the same origin.
 
-| Path    | Service   | Stack                                   | Image                              |
-|---------|-----------|-----------------------------------------|------------------------------------|
-| `api/`  | Backend   | .NET 10 ASP.NET Core REST API + workers | `ghcr.io/chutch3/kenku-api`        |
-| `web/`  | Frontend  | Nuxt 4 / Vue 3 static SPA behind nginx  | `ghcr.io/chutch3/kenku-web`        |
+| Path   | Part      | Stack                                       |
+|--------|-----------|---------------------------------------------|
+| `api/` | Backend   | .NET 10 ASP.NET Core REST API + workers     |
+| `web/` | Frontend  | Nuxt 4 / Vue 3, prerendered to static assets |
 
-The backend exposes a versioned REST API (`/v2`, OpenAPI at `/swagger`). The
-frontend is a thin, fully-typed client generated from that OpenAPI spec; nginx
-reverse-proxies `/api`, `/v2` and `/swagger` to the backend.
+The frontend is a fully-typed client generated at build time from the backend's
+OpenAPI spec (`api/API/openapi/API_v2.json`) and bundled into the API image. Because
+UI and API share an origin there is no reverse proxy and no CORS hop: the SPA calls
+`/v2/...` directly, and `/swagger` serves the API docs.
+
+Published image: `ghcr.io/chutch3/kenku`.
 
 ## Quick start
 
 ```bash
-# Build and run the full stack (API + web + Postgres)
+# Build and run (app + Postgres)
 UID=$(id -u) GID=$(id -g) docker compose up --build
 ```
 
-- Web UI: http://localhost:9555
-- API + Swagger: http://localhost:6531/swagger
+- Web UI: http://localhost:6531
+- API docs: http://localhost:6531/swagger
 
 See [`api/README.md`](api/README.md) and [`web/README.md`](web/README.md) for
 component-specific details and configuration.
@@ -44,11 +48,10 @@ component-specific details and configuration.
 ├── api/                 # .NET backend (REST API + background workers)
 │   ├── API/             #   application + EF Core contexts + workers
 │   └── Tests/           #   xUnit tests
-├── web/                 # Nuxt frontend
-│   ├── website/         #   Nuxt app
-│   └── nginx/           #   reverse-proxy config
-├── .github/workflows/   # CI: build-api, build-web, run-tests
-└── docker-compose.yaml  # full-stack compose
+├── web/website/         # Nuxt frontend (prerendered into the API image)
+├── Dockerfile           # single image: builds web -> builds api -> bundles both
+├── .github/workflows/   # CI: build (image), run-tests
+└── docker-compose.yaml  # app + Postgres
 ```
 
 ## Relationship to Tranga (attribution)

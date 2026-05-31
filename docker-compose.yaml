@@ -1,15 +1,16 @@
 services:
-  kenku-api:
-    image: ghcr.io/chutch3/kenku-api:cuttingedge
+  kenku:
+    image: ghcr.io/chutch3/kenku:cuttingedge
     build:
-      context: ./api
+      context: ./
       dockerfile: Dockerfile
-    container_name: kenku-api
+    container_name: kenku
     user: "${UID}:${GID}"
     volumes:
       - ./Manga:/Manga
       - ./settings:/usr/share/tranga-api
     ports:
+      # Serves the web UI, the REST API and /swagger on one port.
       - "6531:6531"
     depends_on:
       kenku-pg:
@@ -23,26 +24,6 @@ services:
       #- POSTGRES_CONNECTION_TIMEOUT=30
       #- CHECK_CHAPTERS_BEFORE_START=true
       #- CREATE_COMICINFO_XML=true
-    restart: unless-stopped
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
-
-  kenku-web:
-    image: ghcr.io/chutch3/kenku-web:cuttingedge
-    build:
-      context: ./web
-      dockerfile: Dockerfile
-    container_name: kenku-web
-    ports:
-      - "9555:80"
-    environment:
-      # Backend the nginx reverse-proxy forwards /api, /v2 and /swagger to.
-      - API_URL=http://kenku-api:6531
-    depends_on:
-      - kenku-api
     restart: unless-stopped
     logging:
       driver: json-file

@@ -8,7 +8,9 @@ export default defineNuxtConfig({
     devServer: { host: '127.0.0.1' },
     openFetch: {
         clients: {
-            api: { baseURL: '', schema: 'https://raw.githubusercontent.com/chutch3/kenku/refs/heads/main/api/API/openapi/API_v2.json' },
+            // The .NET app serves this SPA and the API from the same origin, so requests are root-relative.
+            // The OpenAPI schema is read from the sibling api/ project at build time (no network dependency).
+            api: { baseURL: '/', schema: '../../api/API/openapi/API_v2.json' },
         },
     },
     vite: { plugins: [tailwindcss()] },
