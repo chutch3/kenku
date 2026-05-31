@@ -4,7 +4,9 @@
 ARG DOTNET=10.0
 
 # ---- Stage 1: build the frontend (static prerender) ----
-FROM node:24-alpine AS web
+# Pinned to the build platform: the output is static/platform-agnostic, so build it once
+# natively rather than once per target arch (node:alpine lacks some target variants anyway).
+FROM --platform=$BUILDPLATFORM node:24-alpine AS web
 WORKDIR /src/web/website
 # Install deps first for layer caching.
 COPY web/website/package.json web/website/package-lock.json ./
