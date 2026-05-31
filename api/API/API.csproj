@@ -25,7 +25,7 @@
 
         <PackageReference Include="log4net" Version="3.3.0" />
 
-        <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="10.0.2" />
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="10.0.8" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.2" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.2">
