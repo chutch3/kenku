@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text;
 using API;
-using API.TorrentClients;
+using API.DownloadClients;
 using Xunit;
 
 namespace API.Tests.TorrentClients;
@@ -75,7 +75,7 @@ public class QBittorrentClientTests
 
         var status = await client.GetStatus("chap-1", CancellationToken.None);
 
-        var dl = Assert.IsType<TorrentStatus.Downloading>(status);
+        var dl = Assert.IsType<DownloadStatus.Downloading>(status);
         Assert.Equal(0.42, dl.Progress, precision: 2);
     }
 
@@ -90,7 +90,7 @@ public class QBittorrentClientTests
 
         var status = await client.GetStatus("chap-1", CancellationToken.None);
 
-        var done = Assert.IsType<TorrentStatus.Completed>(status);
+        var done = Assert.IsType<DownloadStatus.Completed>(status);
         Assert.Equal("/downloads/saga60", done.SavePath);
     }
 
@@ -105,7 +105,7 @@ public class QBittorrentClientTests
 
         var status = await client.GetStatus("chap-1", CancellationToken.None);
 
-        Assert.IsType<TorrentStatus.Errored>(status);
+        Assert.IsType<DownloadStatus.Errored>(status);
     }
 
     [Fact]

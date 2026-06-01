@@ -3,7 +3,7 @@ using API;
 using API.Acquirers;
 using API.MangaConnectors;
 using API.Schema.SeriesContext;
-using API.TorrentClients;
+using API.DownloadClients;
 using API.Workers.PeriodicWorkers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -56,9 +56,9 @@ public class TorrentCompletionWorkerTests
             await context.SaveChangesAsync();
 
             var settings = new KenkuSettings { AppData = tempRoot, ChapterNamingScheme = "%M - Ch.%C" };
-            var torrent = new Mock<ITorrentClient>();
+            var torrent = new Mock<IReleaseDownloadClient>();
             torrent.Setup(t => t.GetStatus(chId.Key, It.IsAny<CancellationToken>()))
-                   .ReturnsAsync(new TorrentStatus.Completed(savePath));
+                   .ReturnsAsync(new DownloadStatus.Completed(savePath));
 
             bool removeCalled = false;
             torrent.Setup(t => t.Remove(chId.Key, false, It.IsAny<CancellationToken>()))
@@ -87,7 +87,7 @@ public class TorrentCompletionWorkerTests
             Assert.False(File.Exists(sourceCbz), "Source .cbz should have been moved, not copied.");
 
             // Torrent client was told to remove the torrent (keep seeded data)
-            Assert.True(removeCalled, "ITorrentClient.Remove must be called after finalisation.");
+            Assert.True(removeCalled, "IReleaseDownloadClient.Remove must be called after finalisation.");
         }
         finally
         {
@@ -119,9 +119,9 @@ public class TorrentCompletionWorkerTests
             await context.SaveChangesAsync();
 
             var settings = new KenkuSettings { AppData = tempRoot };
-            var torrent = new Mock<ITorrentClient>();
+            var torrent = new Mock<IReleaseDownloadClient>();
             torrent.Setup(t => t.GetStatus(chId.Key, It.IsAny<CancellationToken>()))
-                   .ReturnsAsync(new TorrentStatus.Downloading(0.3));
+                   .ReturnsAsync(new DownloadStatus.Downloading(0.3));
 
             var services = new ServiceCollection();
             services.AddSingleton(context);

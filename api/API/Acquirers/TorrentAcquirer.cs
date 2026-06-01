@@ -1,7 +1,7 @@
 using API.Indexers;
 using API.MangaConnectors;
 using API.Schema.SeriesContext;
-using API.TorrentClients;
+using API.DownloadClients;
 using log4net;
 
 namespace API.Acquirers;
@@ -14,7 +14,7 @@ namespace API.Acquirers;
 /// </summary>
 public class TorrentAcquirer(
     IIndexerClient indexer,
-    ITorrentClient torrentClient,
+    IReleaseDownloadClient downloadClient,
     ReleaseSelector selector,
     TorrentAcquirerSettings settings) : IChapterAcquirer
 {
@@ -55,7 +55,7 @@ public class TorrentAcquirer(
         string stagingDir = Path.Combine(settings.StagingDirectory, chapter.Key);
         Directory.CreateDirectory(stagingDir);
 
-        string? tag = await torrentClient.Add(best.DownloadUrl, stagingDir, chapter.Key, ct);
+        string? tag = await downloadClient.Add(best.DownloadUrl, stagingDir, chapter.Key, ct);
         if (tag is null)
         {
             Log.WarnFormat("Torrent client refused release {0} for {1} ch.{2}", best.Title, series.Name, ch.ChapterNumber);

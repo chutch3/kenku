@@ -52,26 +52,55 @@
                 <template #header>
                     <h1>Comics &amp; Torrents</h1>
                 </template>
-                <p class="text-dimmed text-sm">
-                    Configure an indexer source (Prowlarr) and a torrent client to download comics, plus Metron for
-                    comic metadata. Leave these empty to keep Kenku manga-only.
+                <p class="text-dimmed text-sm mb-2">
+                    Add Kenku to Prowlarr as a <b>Mylar</b> application (Settings &rarr; Apps). Use the URL and API key
+                    below; Prowlarr will sync your comic indexers into Kenku automatically. Configure one or more
+                    download clients to fetch releases. Metron provides comic metadata.
                 </p>
+                <UFormField label="Kenku Base URL (Mylar Server)">
+                    <UInput :model-value="baseUrl" readonly class="w-full" :ui="{ trailing: 'pe-1' }">
+                        <template #trailing>
+                            <UButton color="neutral" variant="link" size="sm" icon="i-lucide-copy" @click="copy(baseUrl)" />
+                        </template>
+                    </UInput>
+                </UFormField>
+                <UFormField label="API Key" class="mt-2">
+                    <UInput :model-value="apiKey" readonly class="w-full" :ui="{ trailing: 'pe-1' }">
+                        <template #trailing>
+                            <UButton color="neutral" variant="link" size="sm" icon="i-lucide-copy" @click="copy(apiKey)" />
+                        </template>
+                    </UInput>
+                </UFormField>
+                <div class="mt-2">
+                    <UButton icon="i-lucide-refresh-cw" class="w-fit" loading-auto @click="regenerateApiKey">Regenerate API Key</UButton>
+                </div>
+
+                <h2 class="mt-4 font-semibold">Synced Indexers</h2>
+                <p v-if="!syncedIndexers.length" class="text-dimmed text-sm">No indexers synced from Prowlarr yet.</p>
+                <ul v-else class="text-sm">
+                    <li v-for="idx in syncedIndexers" :key="`${idx.name}-${idx.protocol}`">
+                        {{ idx.name }} <span class="text-dimmed">({{ idx.protocol }})</span>
+                        <UBadge :color="idx.enabled ? 'success' : 'neutral'" variant="subtle" size="sm">
+                            {{ idx.enabled ? 'enabled' : 'disabled' }}
+                        </UBadge>
+                    </li>
+                </ul>
+
+                <h2 class="mt-4 font-semibold">Download Clients</h2>
+                <p v-if="!downloadClients.length" class="text-dimmed text-sm">No download clients configured.</p>
+                <ul v-else class="text-sm">
+                    <li v-for="client in downloadClients" :key="client.id" class="flex items-center gap-2">
+                        <span>{{ client.name }} <span class="text-dimmed">({{ client.type }} &middot; {{ client.baseUrl }})</span></span>
+                        <UBadge :color="client.enabled ? 'success' : 'neutral'" variant="subtle" size="sm">
+                            {{ client.enabled ? 'enabled' : 'disabled' }}
+                        </UBadge>
+                        <UButton size="xs" variant="ghost" icon="i-lucide-pencil" @click="openDownloadClient(client)" />
+                        <UButton size="xs" variant="ghost" icon="i-lucide-trash" @click="removeDownloadClient(client.id)" />
+                    </li>
+                </ul>
                 <template #footer>
                     <div class="flex flex-row gap-2 flex-wrap">
-                        <UTooltip :text="prowlarrConnected ? 'Disconnect Prowlarr' : 'Connect Prowlarr'">
-                            <UButton
-                                :icon="prowlarrConnected ? 'i-lucide-unlink' : 'i-lucide-link'"
-                                class="w-fit"
-                                label="Prowlarr"
-                                @click="onProwlarrClick" />
-                        </UTooltip>
-                        <UTooltip :text="torrentClientConnected ? 'Disconnect Torrent Client' : 'Connect Torrent Client'">
-                            <UButton
-                                :icon="torrentClientConnected ? 'i-lucide-unlink' : 'i-lucide-link'"
-                                class="w-fit"
-                                label="Torrent Client"
-                                @click="onTorrentClientClick" />
-                        </UTooltip>
+                        <UButton icon="i-lucide-plus" class="w-fit" @click="openDownloadClient(null)">Add Download Client</UButton>
                         <UTooltip :text="metronConnected ? 'Disconnect Metron' : 'Connect Metron'">
                             <UButton
                                 :icon="metronConnected ? 'i-lucide-unlink' : 'i-lucide-link'"
@@ -115,8 +144,7 @@ import {
     LazyNtfyModal,
     LazyPushoverModal,
     LazyMetronModal,
-    LazyProwlarrModal,
-    LazyTorrentClientModal,
+    LazyDownloadClientModal,
 } from '#components';
 import FileLibraries from '~/components/FileLibraries.vue';
 import { refreshNuxtData } from '#app';
@@ -131,8 +159,7 @@ const addGotifyModal = overlay.create(LazyGotifyModal);
 const addNtfyModal = overlay.create(LazyNtfyModal);
 const addPushoverModal = overlay.create(LazyPushoverModal);
 const addGenericConnectorModal = overlay.create(LazyGenericNotificationConnectorModal);
-const prowlarrModal = overlay.create(LazyProwlarrModal);
-const torrentClientModal = overlay.create(LazyTorrentClientModal);
+const downloadClientModal = overlay.create(LazyDownloadClientModal);
 const metronModal = overlay.create(LazyMetronModal);
 
 const cleanUpDatabase = async () => {
@@ -171,22 +198,29 @@ const onKavitaClick = async () => {
 
 const { data: settingsData, status: settingsStatus } = useApi('/v2/Settings', { key: FetchKeys.Settings.All, server: false });
 
-// Configured-ness is derived from the non-secret settings fields (the *Configured booleans are
-// server-side only / not serialised). Connecting opens a modal; disconnecting clears via DELETE.
-const prowlarrConnected = computed(() => !!settingsData.value?.prowlarrBaseUrl);
-const torrentClientConnected = computed(() => !!settingsData.value?.torrentClientBaseUrl);
 const metronConnected = computed(() => !!settingsData.value?.metronUsername);
+const apiKey = computed(() => settingsData.value?.apiKey ?? '');
+const syncedIndexers = computed(() => settingsData.value?.syncedIndexers ?? []);
+const downloadClients = computed(() => settingsData.value?.downloadClients ?? []);
+const baseUrl = computed(() => (import.meta.client ? window.location.origin : ''));
 
-const onProwlarrClick = async () => {
-    if (!prowlarrConnected.value) { prowlarrModal.open(); return; }
-    await $api('/v2/Settings/Prowlarr', { method: 'DELETE' });
+const copy = async (value: string) => {
+    try { await navigator.clipboard.writeText(value); } catch { /* clipboard unavailable */ }
+};
+
+const regenerateApiKey = async () => {
+    await $api('/v2/Settings/ApiKey/Regenerate', { method: 'POST' });
     await refreshNuxtData(FetchKeys.Settings.All);
 };
-const onTorrentClientClick = async () => {
-    if (!torrentClientConnected.value) { torrentClientModal.open(); return; }
-    await $api('/v2/Settings/TorrentClient', { method: 'DELETE' });
+
+const openDownloadClient = (client: unknown) => {
+    downloadClientModal.open({ client });
+};
+const removeDownloadClient = async (id: number) => {
+    await $api('/v2/Settings/DownloadClients/{id}', { method: 'DELETE', path: { id } });
     await refreshNuxtData(FetchKeys.Settings.All);
 };
+
 const onMetronClick = async () => {
     if (!metronConnected.value) { metronModal.open(); return; }
     await $api('/v2/Settings/Metron', { method: 'DELETE' });

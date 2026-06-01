@@ -1,13 +1,13 @@
 using System.Text.Json;
 using log4net;
 
-namespace API.TorrentClients;
+namespace API.DownloadClients;
 
 /// <summary>
 /// Talks to a qBittorrent instance via its Web API (v2). Login is session-cookie based and cached
 /// between calls; on a 401/403 the client re-logs-in lazily on next request.
 /// </summary>
-public class QBittorrentClient(HttpClient http, string baseUrl, string username, string password) : ITorrentClient
+public class QBittorrentClient(HttpClient http, string baseUrl, string username, string password) : IReleaseDownloadClient
 {
     private static readonly ILog Log = LogManager.GetLogger(typeof(QBittorrentClient));
     private readonly string _baseUrl = baseUrl.TrimEnd('/');
@@ -40,7 +40,7 @@ public class QBittorrentClient(HttpClient http, string baseUrl, string username,
         return tag;
     }
 
-    public async Task<TorrentStatus?> GetStatus(string tag, CancellationToken ct)
+    public async Task<DownloadStatus?> GetStatus(string tag, CancellationToken ct)
     {
         if (!await EnsureAuth(ct)) return null;
 
@@ -66,12 +66,12 @@ public class QBittorrentClient(HttpClient http, string baseUrl, string username,
 
             if (state.Equals("error", StringComparison.OrdinalIgnoreCase) ||
                 state.Equals("missingFiles", StringComparison.OrdinalIgnoreCase))
-                return new TorrentStatus.Errored(state);
+                return new DownloadStatus.Errored(state);
 
             if (progress >= 1.0)
-                return new TorrentStatus.Completed(savePath);
+                return new DownloadStatus.Completed(savePath);
 
-            return new TorrentStatus.Downloading(progress);
+            return new DownloadStatus.Downloading(progress);
         }
 
         return null;

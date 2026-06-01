@@ -13,6 +13,8 @@ public class KenkuSettings
             ? (bool.Parse(Environment.GetEnvironmentVariable("DEBUG") ?? "false") ? "./debug" : "/usr/share")
             : Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
 
+    [JsonIgnore] private readonly object _listLock = new();
+
     // This property will be saved to and loaded from settings.json
     public string AppData { get; set; } = ComputeDefaultAppData();
 
@@ -79,37 +81,34 @@ public class KenkuSettings
     /// <summary>True when no explicit origins are configured, i.e. any origin is allowed.</summary>
     [JsonIgnore] public bool CorsAllowAnyOrigin => CorsAllowedOrigins.Length == 0;
 
-    // ---------- Indexer (Prowlarr) ----------
+    // ---------- Indexer (Prowlarr sync target) ----------
     // Indexers follow the *arr model: a list of Torznab/Newznab endpoints. You can ADD them by hand
-    // (ManualIndexers) and/or let Prowlarr SYNC them (Prowlarr* below). Prowlarr is one source of
-    // indexers, not the indexer itself.
+    // (ManualIndexers) and/or let Prowlarr PUSH them in (SyncedIndexers below). Prowlarr is configured
+    // to point at Kenku as a Mylar application and syncs the matching indexers into SyncedIndexers.
 
     /// <summary>Manually-configured Torznab/Newznab indexers.</summary>
     public List<API.Indexers.ManualIndexerConfig> ManualIndexers { get; set; } = [];
 
-    /// <summary>Base URL of a Prowlarr instance to sync indexers from (e.g. http://prowlarr:9696). Empty disables Prowlarr sync.</summary>
-    public string ProwlarrBaseUrl { get; set; } = "";
-    /// <summary>Prowlarr API key (X-Api-Key header).</summary>
-    public string ProwlarrApiKey { get; set; } = "";
+    /// <summary>Indexers Prowlarr has pushed/synced into Kenku (source of truth lives in Prowlarr).</summary>
+    public List<SyncedIndexerConfig> SyncedIndexers { get; set; } = [];
+
     /// <summary>Comic category IDs applied to indexer searches. Default 8000 = Comics (Newznab convention).</summary>
     public int[] IndexerComicCategories { get; set; } = [8000];
 
-    [JsonIgnore] public bool ProwlarrConfigured =>
-        !string.IsNullOrWhiteSpace(ProwlarrBaseUrl) && !string.IsNullOrWhiteSpace(ProwlarrApiKey);
+    /// <summary>API key Prowlarr uses to authenticate against Kenku's Mylar-emulating application endpoint.</summary>
+    public string ApiKey { get; set; } = Guid.NewGuid().ToString("N");
 
-    /// <summary>True when at least one indexer source (manual or Prowlarr sync) is configured.</summary>
-    [JsonIgnore] public bool IndexerConfigured => ManualIndexers.Count > 0 || ProwlarrConfigured;
+    /// <summary>True when at least one indexer source (manual or Prowlarr-synced) is configured.</summary>
+    [JsonIgnore] public bool IndexerConfigured => ManualIndexers.Count > 0 || SyncedIndexers.Count > 0;
 
-    // ---------- Torrent client (qBittorrent) ----------
-    /// <summary>Base URL of the torrent client's Web API (e.g. http://qbittorrent:8080). Empty disables torrents.</summary>
-    public string TorrentClientBaseUrl { get; set; } = "";
-    public string TorrentClientUsername { get; set; } = "";
-    public string TorrentClientPassword { get; set; } = "";
+    // ---------- Download clients (qBittorrent, ...) ----------
+    /// <summary>User-configurable download clients. The lowest-Priority enabled client is used.</summary>
+    public List<DownloadClientConfig> DownloadClients { get; set; } = [];
 
     /// <summary>Directory the torrent client downloads into; the completion worker moves files out of here.</summary>
     [JsonIgnore] public string TorrentStagingDirectory => Path.Join(WorkingDirectory, "torrent-staging");
 
-    [JsonIgnore] public bool TorrentClientConfigured => !string.IsNullOrWhiteSpace(TorrentClientBaseUrl);
+    [JsonIgnore] public bool AnyDownloadClientConfigured => DownloadClients.Any(c => c.Enabled);
 
     // ---------- Metron metadata (metron.cloud) ----------
     /// <summary>Metron account username (HTTP Basic auth). Empty disables Metron lookups.</summary>
@@ -194,19 +193,88 @@ public class KenkuSettings
         Save();
     }
 
-    public void SetProwlarr(string baseUrl, string apiKey)
+
+
+    public void RegenerateApiKey()
     {
-        this.ProwlarrBaseUrl = baseUrl;
-        this.ProwlarrApiKey = apiKey;
+        ApiKey = Guid.NewGuid().ToString("N");
         Save();
     }
 
-    public void SetTorrentClient(string baseUrl, string username, string password)
+    public void AddOrUpdateSyncedIndexer(SyncedIndexerConfig config)
     {
-        this.TorrentClientBaseUrl = baseUrl;
-        this.TorrentClientUsername = username;
-        this.TorrentClientPassword = password;
+        lock (_listLock)
+        {
+            int idx = SyncedIndexers.FindIndex(i =>
+                string.Equals(i.Name, config.Name, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(i.Protocol, config.Protocol, StringComparison.OrdinalIgnoreCase));
+            if (idx >= 0)
+                SyncedIndexers[idx] = config with { Id = SyncedIndexers[idx].Id };
+            else
+                SyncedIndexers.Add(config with { Id = NextId(SyncedIndexers.Select(x => x.Id)) });
+        }
         Save();
+    }
+
+    public void RemoveSyncedIndexer(string name, string protocol)
+    {
+        lock (_listLock)
+            SyncedIndexers.RemoveAll(i =>
+                string.Equals(i.Name, name, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(i.Protocol, protocol, StringComparison.OrdinalIgnoreCase));
+        Save();
+    }
+
+    /// <summary>Thread-safe snapshot of the synced indexers for concurrent reads.</summary>
+    public SyncedIndexerConfig[] SnapshotSyncedIndexers()
+    {
+        lock (_listLock)
+            return SyncedIndexers.ToArray();
+    }
+
+    public int AddDownloadClient(DownloadClientConfig config)
+    {
+        int id;
+        lock (_listLock)
+        {
+            id = NextId(DownloadClients.Select(c => c.Id));
+            DownloadClients.Add(config with { Id = id });
+        }
+        Save();
+        return id;
+    }
+
+    public bool UpdateDownloadClient(DownloadClientConfig config)
+    {
+        bool updated;
+        lock (_listLock)
+        {
+            int idx = DownloadClients.FindIndex(c => c.Id == config.Id);
+            updated = idx >= 0;
+            if (updated)
+                DownloadClients[idx] = config;
+        }
+        if (updated)
+            Save();
+        return updated;
+    }
+
+    public bool RemoveDownloadClient(int id)
+    {
+        int removed;
+        lock (_listLock)
+            removed = DownloadClients.RemoveAll(c => c.Id == id);
+        if (removed > 0)
+            Save();
+        return removed > 0;
+    }
+
+    private static int NextId(IEnumerable<int> ids)
+    {
+        int max = 0;
+        foreach (int id in ids)
+            if (id > max) max = id;
+        return max + 1;
     }
 
     public void SetDownloadLanguage(string language)
@@ -260,4 +328,29 @@ public class KenkuSettings
         foreach (var connector in connectors)
             connector.Enabled = !DisabledConnectors.Contains(connector.Name);
     }
+}
+
+public record SyncedIndexerConfig(
+    int Id,
+    string Name,
+    string Url,
+    string ApiKey,
+    int[] Categories,
+    string Protocol,
+    bool Enabled);
+
+public record DownloadClientConfig(
+    int Id,
+    string Name,
+    DownloadClientType Type,
+    string BaseUrl,
+    string? Username,
+    string? Password,
+    string? Category,
+    bool Enabled,
+    int Priority);
+
+public enum DownloadClientType
+{
+    QBittorrent
 }

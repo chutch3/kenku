@@ -4,7 +4,7 @@ using API.MangaConnectors;
 using API.Schema.ActionsContext;
 using API.Schema.ActionsContext.Actions;
 using API.Schema.SeriesContext;
-using API.TorrentClients;
+using API.DownloadClients;
 using Microsoft.EntityFrameworkCore;
 
 namespace API.Workers.PeriodicWorkers;
@@ -15,7 +15,7 @@ namespace API.Workers.PeriodicWorkers;
 /// publication folder, marks the chapter downloaded, and removes the torrent from the client.
 /// </summary>
 public class TorrentCompletionWorker(
-    ITorrentClient torrentClient,
+    IReleaseDownloadClient downloadClient,
     IEnumerable<SeriesSource> connectors,
     KenkuSettings settings,
     TimeSpan? interval = null,
@@ -56,8 +56,8 @@ public class TorrentCompletionWorker(
         {
             if (!torrentSourceNames.Contains(chId.MangaConnectorName)) continue;
 
-            TorrentStatus? status = await torrentClient.GetStatus(chId.Key, CancellationToken);
-            if (status is not TorrentStatus.Completed completed) continue;
+            DownloadStatus? status = await downloadClient.GetStatus(chId.Key, CancellationToken);
+            if (status is not DownloadStatus.Completed completed) continue;
 
             await FinaliseAsync(chId, completed.SavePath);
         }
@@ -117,7 +117,7 @@ public class TorrentCompletionWorker(
 
         // Hand the torrent back to qBittorrent for removal; keep the seeded data on disk in case
         // the user has ratio targets. The .cbz itself we already moved out.
-        await torrentClient.Remove(chId.Key, deleteData: false, CancellationToken);
+        await downloadClient.Remove(chId.Key, deleteData: false, CancellationToken);
 
         Log.InfoFormat("Finalised torrent for {0} ch.{1} → {2}", chapter.ParentManga.Name, chapter.ChapterNumber, targetPath);
     }

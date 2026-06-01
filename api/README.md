@@ -19,7 +19,9 @@ the backend itself — its capabilities, configuration, and local development.
   `.cbz` archive (optionally with `ComicInfo.xml`, JPEG compression, or grayscale to
   save space).
 - **Sources**: MangaDex, MangaWorld, AsuraComic, WeebCentral, plus indexer-backed
-  torrent acquisition (Torznab / Prowlarr → qBittorrent).
+  torrent acquisition. Prowlarr syncs Torznab/Newznab indexers *into* Kenku (Kenku
+  emulates a Mylar application; see "Prowlarr integration" below), and downloads are
+  handed to one or more configurable download clients (qBittorrent).
 - **Metadata enrichment**: MyAnimeList (via Jikan) and Metron.
 - **Library integration**: triggers scans in [Komga](https://komga.org/) and
   [Kavita](https://www.kavitareader.com/).
@@ -32,7 +34,37 @@ the backend itself — its capabilities, configuration, and local development.
 - Versioned REST API under `/v2`.
 - Interactive docs (Swagger UI) at `/swagger`.
 - The OpenAPI specification is generated to [`API/openapi/API_v2.json`](API/openapi/API_v2.json)
-  on build; the frontend's typed client is generated from it.
+  on build (via the `OpenApiDocumentsDirectory` MSBuild property, which runs
+  `GetDocument.Insider`); the frontend's typed client is generated from it.
+  To regenerate the spec after changing controllers/DTOs, build the API project:
+
+  ```bash
+  dotnet build API                    # writes API/openapi/API_v2.json
+  ```
+
+  Then regenerate the web client from the updated spec (see `../web/README.md`):
+
+  ```bash
+  cd ../web/website && npm run dev     # nuxt-open-fetch regenerates the typed client,
+                                       # or run `npx nuxi prepare` to (re)generate types only
+  ```
+
+  The Mylar-emulating `/api` endpoint is intentionally excluded from the spec
+  (`[ApiExplorerSettings(IgnoreApi = true)]`) so it never reaches the web client.
+
+## Prowlarr integration (push/sync, Mylar emulation)
+
+Kenku does **not** reach into Prowlarr. Instead Kenku exposes a base URL and an API key,
+and you add Kenku to Prowlarr as a **Mylar** application (Prowlarr → Settings → Apps):
+
+- **Mylar Server**: Kenku's base URL.
+- **API Key**: Kenku's API key (shown on the Settings page; can be regenerated there).
+
+Prowlarr then *syncs/pushes* the matching comic indexers into Kenku via Kenku's
+Mylar-emulating `/api` endpoint (`getVersion`/`listProviders`/`addProvider`/
+`changeProvider`/`delProvider`, all `GET` with an `apikey` query parameter). Pushed
+indexers take effect **live, with no restart**. Downloads are sent to one or more
+**download clients** configured *inside Kenku* (Settings → download client list).
 
 ## Configuration
 
@@ -59,9 +91,10 @@ The container is configured through environment variables:
 | `HOURS_BETWEEN_NEW_CHAPTERS_CHECK`| `3`              | Interval at which sources are polled for new chapters.                      |
 | `WORKER_TIMEOUT`                  | `600`            | Seconds a worker may run before it is forcefully cancelled.                 |
 
-Per-user settings (download language, naming scheme, connector/indexer/torrent
-credentials, etc.) are stored in the app's data directory, which `docker-compose.yaml`
-persists via the `settings` volume.
+Per-user settings (download language, naming scheme, connector settings, the Prowlarr
+API key, Prowlarr-synced indexers, download clients, Metron credentials, etc.) are
+stored in the app's data directory, which `docker-compose.yaml` persists via the
+`settings` volume.
 
 ## Local development
 

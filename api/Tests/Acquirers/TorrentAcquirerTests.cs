@@ -3,7 +3,7 @@ using API.Acquirers;
 using API.Indexers;
 using API.MangaConnectors;
 using API.Schema.SeriesContext;
-using API.TorrentClients;
+using API.DownloadClients;
 using Moq;
 using Xunit;
 
@@ -48,7 +48,7 @@ public class TorrentAcquirerTests
                    .ReturnsAsync([release]);
 
             string? capturedUrl = null, capturedTag = null, capturedDir = null;
-            var torrent = new Mock<ITorrentClient>();
+            var torrent = new Mock<IReleaseDownloadClient>();
             torrent.Setup(t => t.Add(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                    .Callback<string, string, string, CancellationToken>((u, d, tag, _) => { capturedUrl = u; capturedDir = d; capturedTag = tag; })
                    .ReturnsAsync("tag-result");
@@ -80,7 +80,7 @@ public class TorrentAcquirerTests
             var indexer = new Mock<IIndexerClient>();
             indexer.Setup(i => i.Search(It.IsAny<IndexerQuery>(), It.IsAny<CancellationToken>()))
                    .ReturnsAsync([]);
-            var torrent = new Mock<ITorrentClient>();
+            var torrent = new Mock<IReleaseDownloadClient>();
             var acquirer = new TorrentAcquirer(indexer.Object, torrent.Object, new ReleaseSelector(),
                 new TorrentAcquirerSettings(Path.Combine(tempRoot, "staging"), [8000]));
 
@@ -102,7 +102,7 @@ public class TorrentAcquirerTests
             var indexer = new Mock<IIndexerClient>();
             indexer.Setup(i => i.Search(It.IsAny<IndexerQuery>(), It.IsAny<CancellationToken>()))
                    .ReturnsAsync([release]);
-            var torrent = new Mock<ITorrentClient>();
+            var torrent = new Mock<IReleaseDownloadClient>();
             var selector = new ReleaseSelector { MinSeeders = 1, PreferredTokens = [], BlockedTokens = ["cbr"] };
             var acquirer = new TorrentAcquirer(indexer.Object, torrent.Object, selector,
                 new TorrentAcquirerSettings(Path.Combine(tempRoot, "staging"), [8000]));

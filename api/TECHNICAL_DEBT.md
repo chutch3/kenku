@@ -60,9 +60,10 @@ the dev-DB verification step.
 **Indexer model (important — not coupled to Prowlarr).** An indexer is a Torznab/Newznab endpoint
 (`IIndexer` / `TorznabIndexer`). Indexers come from `IIndexerProvider`s:
 `ConfiguredIndexerProvider` (manually-added, from `settings.ManualIndexers`) and
-`ProwlarrIndexerProvider` (enumerates the indexers Prowlarr manages and exposes each as a Torznab
-endpoint). `AggregateIndexerSearch : IIndexerClient` fans out across all of them. This mirrors the
-*arr model: you add indexers by hand or let Prowlarr sync them; Prowlarr is one source of indexers,
+`SyncedIndexerProvider` (exposes the indexers Prowlarr has *pushed/synced* into
+`settings.SyncedIndexers`, reading them live on every search so updates need no restart).
+`AggregateIndexerSearch : IIndexerClient` fans out across all of them. This mirrors the
+*arr model: you add indexers by hand or let Prowlarr sync them in; Prowlarr is one source of indexers,
 not the indexer. A concrete torrent `SeriesSource` therefore depends on `IIndexerClient` (the
 aggregate) and never on Prowlarr directly.
 
@@ -81,19 +82,22 @@ aggregate) and never on Prowlarr directly.
 
 Estimated effort: 1-2 hours including parser tests.
 
-**Future: Prowlarr push-sync + per-indexer enable/disable.** Today `ProwlarrIndexerProvider` *pulls*
-Prowlarr's indexer list live at search time. A fuller *arr-style integration would let Prowlarr
-*push* indexer definitions into Kenku (implementing Prowlarr's "application" sync contract) and
-persist them so individual indexers can be enabled/disabled in Kenku's own UI. Not needed for v1.
+**Prowlarr push-sync (DONE).** Kenku now emulates a Mylar application: Prowlarr is configured to point
+at Kenku (base URL + API key) and *pushes* indexer definitions into Kenku via the Mylar-emulating `/api`
+endpoint (`MylarApiController`, `cmd=getVersion|listProviders|addProvider|changeProvider|delProvider`,
+authenticated by the `apikey` query parameter). They persist in `settings.SyncedIndexers` and take effect
+live. Per-indexer enable/disable is honoured by `SyncedIndexerProvider` (only enabled configs are searched).
 
 ---
 
 ## Frontend: settings UI for new integrations
 
-DONE for the credential blocks: a "Comics & Torrents" card on the Settings page with connect/
-disconnect modals for Prowlarr, the torrent client, and Metron (`ProwlarrModal`/`TorrentClientModal`/
-`MetronModal`, backed by `PATCH`/`DELETE /v2/Settings/{Prowlarr|TorrentClient|Metron}`). Metron also
-appears automatically in the existing metadata-fetcher table.
+DONE: the Settings page has a read-only Prowlarr-setup panel (Kenku base URL + API key with copy and a
+regenerate button, plus a hint to add Kenku as a *Mylar* application in Prowlarr), a list of the
+Prowlarr-synced indexers, download-client management (add/edit/remove via `DownloadClientModal`, backed
+by `GET/POST/PUT/DELETE /v2/Settings/DownloadClients` and `GET /v2/Settings/ApiKey` +
+`POST /v2/Settings/ApiKey/Regenerate`), and Metron credentials. Metron also appears automatically in the
+existing metadata-fetcher table.
 
 STILL config-file-only:
 - **Manual (non-Prowlarr) indexers** (`ManualIndexers`) — no add/remove UI yet; only Prowlarr-synced

@@ -28,8 +28,9 @@ types are generated at build time from the backend's OpenAPI spec
 - **Search** — find new series across the configured sources.
 - **Series detail** — chapters, metadata linking, downloads, and merge.
 - **Settings** — file libraries, library connectors (Komga/Kavita), notifications
-  (Gotify/Ntfy/Pushover/webhooks), and indexer/torrent/metadata (Prowlarr, torrent
-  client, Metron).
+  (Gotify/Ntfy/Pushover/webhooks), Prowlarr setup (Kenku's base URL + API key to paste
+  into Prowlarr as a Mylar application, with a regenerate button), the synced-indexer
+  list Prowlarr pushes in, download-client management, and Metron metadata credentials.
 - **Actions** — the backend's action/audit log.
 
 ## Built with

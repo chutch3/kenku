@@ -1,6 +1,3 @@
-using System.Text.Json;
-using log4net;
-
 namespace API.Indexers;
 
 /// <summary>A manually-configured Torznab/Newznab indexer (name + endpoint + key + categories).</summary>
@@ -18,49 +15,22 @@ public class ConfiguredIndexerProvider(HttpClient http, IReadOnlyList<ManualInde
 }
 
 /// <summary>
-/// The "Prowlarr can sync them" half of the *arr model. Enumerates the indexers Prowlarr manages
-/// (via its <c>/api/v1/indexer</c> endpoint) and exposes each as a <see cref="TorznabIndexer"/>
-/// pointing at Prowlarr's per-indexer Torznab endpoint (<c>{prowlarr}/{id}/api</c>). Kenku treats
-/// these exactly like manually-added indexers — Prowlarr is just the source of the list.
+/// Exposes the indexers Prowlarr pushed/synced into Kenku via the Mylar application contract.
+/// Reads <see cref="KenkuSettings.SyncedIndexers"/> live on every call (snapshotting under a lock)
+/// so Prowlarr's pushed updates take effect with no Kenku restart. Each enabled config becomes a
+/// <see cref="TorznabIndexer"/> pointing at Prowlarr's per-indexer Torznab endpoint.
 /// </summary>
-public class ProwlarrIndexerProvider(HttpClient http, string baseUrl, string apiKey, int[] comicCategories) : IIndexerProvider
+public class SyncedIndexerProvider(HttpClient http, KenkuSettings settings) : IIndexerProvider
 {
-    private static readonly ILog Log = LogManager.GetLogger(typeof(ProwlarrIndexerProvider));
-    private readonly string _baseUrl = baseUrl.TrimEnd('/');
-
-    public async Task<IReadOnlyList<IIndexer>> GetIndexersAsync(CancellationToken ct)
+    public Task<IReadOnlyList<IIndexer>> GetIndexersAsync(CancellationToken ct)
     {
-        try
+        var indexers = new List<IIndexer>();
+        foreach (SyncedIndexerConfig config in settings.SnapshotSyncedIndexers())
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, $"{_baseUrl}/api/v1/indexer");
-            request.Headers.Add("X-Api-Key", apiKey);
-            using HttpResponseMessage response = await http.SendAsync(request, ct);
-            if (!response.IsSuccessStatusCode)
-            {
-                Log.WarnFormat("Prowlarr indexer list returned HTTP {0}", (int)response.StatusCode);
-                return [];
-            }
-
-            string body = await response.Content.ReadAsStringAsync(ct);
-            using JsonDocument doc = JsonDocument.Parse(body);
-            if (doc.RootElement.ValueKind != JsonValueKind.Array)
-                return [];
-
-            var list = new List<IIndexer>();
-            foreach (JsonElement el in doc.RootElement.EnumerateArray())
-            {
-                if (!el.TryGetProperty("id", out var idEl) || !idEl.TryGetInt32(out int id)) continue;
-                string name = el.TryGetProperty("name", out var n) ? n.GetString() ?? $"prowlarr-{id}" : $"prowlarr-{id}";
-                // Each Prowlarr-managed indexer is reachable as a Torznab endpoint at {base}/{id}/api.
-                list.Add(new TorznabIndexer(http, name, $"{_baseUrl}/{id}/api", apiKey, comicCategories));
-            }
-            Log.DebugFormat("Prowlarr sync discovered {0} indexers.", list.Count);
-            return list;
+            if (!config.Enabled)
+                continue;
+            indexers.Add(new TorznabIndexer(http, config.Name, config.Url, config.ApiKey, config.Categories));
         }
-        catch (Exception ex)
-        {
-            Log.ErrorFormat("Prowlarr indexer sync threw: {0}", ex);
-            return [];
-        }
+        return Task.FromResult<IReadOnlyList<IIndexer>>(indexers);
     }
 }

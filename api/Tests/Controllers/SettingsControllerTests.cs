@@ -205,37 +205,54 @@ public class SettingsControllerTests : IDisposable
     }
 
     [Fact]
-    public void SetProwlarr_PersistsAndEnablesIndexer()
+    public void GetApiKey_ReturnsConfiguredKey()
     {
-        CreateController().SetProwlarr(new API.Controllers.Requests.SetProwlarrRecord { BaseUrl = "http://prowlarr:9696", ApiKey = "k" });
+        Ok<string> result = CreateController().GetApiKey();
 
-        Assert.Equal("http://prowlarr:9696", _settings.ProwlarrBaseUrl);
-        Assert.Equal("k", _settings.ProwlarrApiKey);
-        Assert.True(_settings.ProwlarrConfigured);
-        Assert.True(_settings.IndexerConfigured);
+        Assert.Equal(_settings.ApiKey, result.Value);
     }
 
     [Fact]
-    public void SetTorrentClient_PersistsAndEnablesClient()
+    public void RegenerateApiKey_ChangesKeyAndReturnsIt()
     {
-        CreateController().SetTorrentClient(new API.Controllers.Requests.SetTorrentClientRecord
-        {
-            BaseUrl = "http://qbittorrent:8080", Username = "admin", Password = "pw"
-        });
+        Directory.CreateDirectory(_settings.WorkingDirectory);
+        var original = _settings.ApiKey;
 
-        Assert.Equal("http://qbittorrent:8080", _settings.TorrentClientBaseUrl);
-        Assert.Equal("admin", _settings.TorrentClientUsername);
-        Assert.True(_settings.TorrentClientConfigured);
+        Ok<string> result = CreateController().RegenerateApiKey();
+
+        Assert.NotEqual(original, _settings.ApiKey);
+        Assert.Equal(_settings.ApiKey, result.Value);
     }
 
     [Fact]
-    public void ClearTorrentClient_DisablesClient()
+    public void AddDownloadClient_WithBlankName_ReturnsBadRequest()
     {
-        _settings.TorrentClientBaseUrl = "http://qbittorrent:8080";
+        var result = CreateController().AddDownloadClient(new API.Controllers.Requests.SetDownloadClientRecord(
+            0, "", DownloadClientType.QBittorrent, "http://qbit", null, null, null, true, 1));
 
-        CreateController().ClearTorrentClient();
+        Assert.IsType<BadRequest>(result.Result);
+    }
 
-        Assert.Equal(string.Empty, _settings.TorrentClientBaseUrl);
-        Assert.False(_settings.TorrentClientConfigured);
+    [Fact]
+    public void AddDownloadClient_WithValidRecord_PersistsAndReturnsCreated()
+    {
+        Directory.CreateDirectory(_settings.WorkingDirectory);
+
+        var result = CreateController().AddDownloadClient(new API.Controllers.Requests.SetDownloadClientRecord(
+            0, "qbit", DownloadClientType.QBittorrent, "http://qbit", "u", "p", "comics", true, 1));
+
+        var ok = Assert.IsType<Ok<DownloadClientConfig>>(result.Result);
+        Assert.NotNull(ok.Value);
+        Assert.True(ok.Value!.Id > 0);
+        Assert.Single(_settings.DownloadClients);
+        Assert.Equal("qbit", _settings.DownloadClients[0].Name);
+    }
+
+    [Fact]
+    public void RemoveDownloadClient_Unknown_ReturnsNotFound()
+    {
+        var result = CreateController().RemoveDownloadClient(999);
+
+        Assert.IsType<NotFound>(result.Result);
     }
 }

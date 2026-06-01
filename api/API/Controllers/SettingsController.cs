@@ -268,50 +268,87 @@ public class SettingsController(KenkuSettings settings) : ControllerBase
     }
 
     /// <summary>
-    /// Sets the Prowlarr instance to sync indexers from
+    /// Returns the API key Prowlarr uses to push indexers into Kenku.
     /// </summary>
     /// <response code="200"></response>
-    [HttpPatch("Prowlarr")]
-    [ProducesResponseType(Status200OK)]
-    public Ok SetProwlarr([FromBody]SetProwlarrRecord requestData)
+    [HttpGet("ApiKey")]
+    [ProducesResponseType<string>(Status200OK, "text/plain")]
+    public Ok<string> GetApiKey()
     {
-        settings.SetProwlarr(requestData.BaseUrl, requestData.ApiKey);
-        return TypedResults.Ok();
+        return TypedResults.Ok(settings.ApiKey);
     }
 
     /// <summary>
-    /// Clears the Prowlarr indexer-sync configuration
+    /// Regenerates the API key Prowlarr uses to push indexers into Kenku.
     /// </summary>
     /// <response code="200"></response>
-    [HttpDelete("Prowlarr")]
-    [ProducesResponseType(Status200OK)]
-    public Ok ClearProwlarr()
+    [HttpPost("ApiKey/Regenerate")]
+    [ProducesResponseType<string>(Status200OK, "text/plain")]
+    public Ok<string> RegenerateApiKey()
     {
-        settings.SetProwlarr(string.Empty, string.Empty);
-        return TypedResults.Ok();
+        settings.RegenerateApiKey();
+        return TypedResults.Ok(settings.ApiKey);
     }
 
     /// <summary>
-    /// Sets the torrent client (qBittorrent) connection details
+    /// Lists the configured download clients.
     /// </summary>
     /// <response code="200"></response>
-    [HttpPatch("TorrentClient")]
-    [ProducesResponseType(Status200OK)]
-    public Ok SetTorrentClient([FromBody]SetTorrentClientRecord requestData)
+    [HttpGet("DownloadClients")]
+    [ProducesResponseType<List<DownloadClientConfig>>(Status200OK, "application/json")]
+    public Ok<List<DownloadClientConfig>> GetDownloadClients()
     {
-        settings.SetTorrentClient(requestData.BaseUrl, requestData.Username, requestData.Password);
-        return TypedResults.Ok();
+        return TypedResults.Ok(settings.DownloadClients);
     }
 
     /// <summary>
-    /// Clears the torrent client configuration
+    /// Adds a download client.
     /// </summary>
     /// <response code="200"></response>
-    [HttpDelete("TorrentClient")]
-    [ProducesResponseType(Status200OK)]
-    public Ok ClearTorrentClient()
+    /// <response code="400">Name and base URL are required</response>
+    [HttpPost("DownloadClients")]
+    [ProducesResponseType<DownloadClientConfig>(Status200OK, "application/json")]
+    [ProducesResponseType(Status400BadRequest)]
+    public Results<Ok<DownloadClientConfig>, BadRequest> AddDownloadClient([FromBody]SetDownloadClientRecord requestData)
     {
-        settings.SetTorrentClient(string.Empty, string.Empty, string.Empty);
-        return TypedResults.Ok();
+        if (string.IsNullOrWhiteSpace(requestData.Name) || string.IsNullOrWhiteSpace(requestData.BaseUrl))
+            return TypedResults.BadRequest();
+        int id = settings.AddDownloadClient(ToConfig(requestData));
+        return TypedResults.Ok(settings.DownloadClients.First(c => c.Id == id));
     }
+
+    /// <summary>
+    /// Updates an existing download client.
+    /// </summary>
+    /// <response code="200"></response>
+    /// <response code="400">Name and base URL are required</response>
+    /// <response code="404">No download client with that id</response>
+    [HttpPut("DownloadClients")]
+    [ProducesResponseType(Status200OK)]
+    [ProducesResponseType(Status400BadRequest)]
+    [ProducesResponseType(Status404NotFound)]
+    public Results<Ok, BadRequest, NotFound> UpdateDownloadClient([FromBody]SetDownloadClientRecord requestData)
+    {
+        if (string.IsNullOrWhiteSpace(requestData.Name) || string.IsNullOrWhiteSpace(requestData.BaseUrl))
+            return TypedResults.BadRequest();
+        return settings.UpdateDownloadClient(ToConfig(requestData))
+            ? TypedResults.Ok()
+            : TypedResults.NotFound();
+    }
+
+    /// <summary>
+    /// Removes a download client.
+    /// </summary>
+    /// <response code="200"></response>
+    /// <response code="404">No download client with that id</response>
+    [HttpDelete("DownloadClients/{id}")]
+    [ProducesResponseType(Status200OK)]
+    [ProducesResponseType(Status404NotFound)]
+    public Results<Ok, NotFound> RemoveDownloadClient(int id)
+    {
+        return settings.RemoveDownloadClient(id) ? TypedResults.Ok() : TypedResults.NotFound();
+    }
+
+    private static DownloadClientConfig ToConfig(SetDownloadClientRecord r) =>
+        new(r.Id, r.Name, r.Type, r.BaseUrl, r.Username, r.Password, r.Category, r.Enabled, r.Priority);
 }

@@ -1,5 +1,5 @@
 using System.Net;
-using System.Text;
+using API;
 using API.Indexers;
 using Xunit;
 
@@ -37,68 +37,48 @@ public class IndexerProvidersTests
         Assert.Empty(await provider.GetIndexersAsync(CancellationToken.None));
     }
 
-    // ---------- ProwlarrIndexerProvider (sync) ----------
-
-    private const string ProwlarrIndexerList = """
-    [
-      { "id": 1, "name": "Nyaa",        "enable": true },
-      { "id": 5, "name": "AnimeBytes",  "enable": true }
-    ]
-    """;
+    // ---------- SyncedIndexerProvider (Prowlarr push) ----------
 
     [Fact]
-    public async Task ProwlarrProvider_EnumeratesManagedIndexers_AsTorznabEndpoints()
+    public async Task SyncedProvider_YieldsOneTorznabPerEnabledIndexer()
     {
-        HttpRequestMessage? captured = null;
-        var http = FakeHttp(req =>
-        {
-            captured = req;
-            return new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(ProwlarrIndexerList, Encoding.UTF8, "application/json")
-            };
-        });
-        var provider = new ProwlarrIndexerProvider(http, "http://prowlarr:9696", "prowlarr-key", [8000]);
+        var http = FakeHttp(_ => new HttpResponseMessage(HttpStatusCode.OK));
+        var settings = new KenkuSettings { AppData = NewTmp() };
+        settings.SyncedIndexers.Add(new SyncedIndexerConfig(1, "Nyaa", "http://p/1/api", "k", [7030], "torrent", true));
+        settings.SyncedIndexers.Add(new SyncedIndexerConfig(2, "Off", "http://p/2/api", "k", [7030], "torrent", false));
 
+        var provider = new SyncedIndexerProvider(http, settings);
         var indexers = await provider.GetIndexersAsync(CancellationToken.None);
 
-        Assert.Equal(2, indexers.Count);
-        Assert.Equal(new[] { "Nyaa", "AnimeBytes" }, indexers.Select(i => i.Name).ToArray());
-        // It discovered indexers via Prowlarr's indexer-list endpoint with the API key.
-        Assert.Contains("/api/v1/indexer", captured!.RequestUri!.ToString());
-        Assert.Equal("prowlarr-key", captured.Headers.GetValues("X-Api-Key").Single());
+        Assert.Single(indexers);
+        Assert.Equal("Nyaa", indexers[0].Name);
     }
 
     [Fact]
-    public async Task ProwlarrProvider_ReturnsEmpty_OnNonSuccess()
+    public async Task SyncedProvider_ReflectsLiveChangesBetweenCalls()
     {
-        var http = FakeHttp(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized));
-        var provider = new ProwlarrIndexerProvider(http, "http://prowlarr:9696", "k", [8000]);
+        var http = FakeHttp(_ => new HttpResponseMessage(HttpStatusCode.OK));
+        var settings = new KenkuSettings { AppData = NewTmp() };
+        var provider = new SyncedIndexerProvider(http, settings);
+
+        Assert.Empty(await provider.GetIndexersAsync(CancellationToken.None));
+
+        settings.AddOrUpdateSyncedIndexer(new SyncedIndexerConfig(0, "Nyaa", "http://p/1/api", "k", [7030], "torrent", true));
+
+        var after = await provider.GetIndexersAsync(CancellationToken.None);
+        Assert.Single(after);
+        Assert.Equal("Nyaa", after[0].Name);
+    }
+
+    [Fact]
+    public async Task SyncedProvider_EmptyWhenNoIndexers()
+    {
+        var http = FakeHttp(_ => new HttpResponseMessage(HttpStatusCode.OK));
+        var settings = new KenkuSettings { AppData = NewTmp() };
+        var provider = new SyncedIndexerProvider(http, settings);
 
         Assert.Empty(await provider.GetIndexersAsync(CancellationToken.None));
     }
 
-    [Fact]
-    public async Task ProwlarrProvider_BuiltIndexersSearchTheirPerIndexerEndpoint()
-    {
-        // First call: indexer list. Subsequent calls: the per-indexer Torznab search endpoint.
-        var requestedUrls = new List<string>();
-        var http = FakeHttp(req =>
-        {
-            requestedUrls.Add(req.RequestUri!.ToString());
-            string path = req.RequestUri!.AbsolutePath;
-            string body = path.EndsWith("/api/v1/indexer")
-                ? ProwlarrIndexerList
-                : "<rss><channel></channel></rss>";
-            string mime = path.EndsWith("/api/v1/indexer") ? "application/json" : "application/xml";
-            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8, mime) };
-        });
-        var provider = new ProwlarrIndexerProvider(http, "http://prowlarr:9696", "k", [8000]);
-
-        var indexers = await provider.GetIndexersAsync(CancellationToken.None);
-        await indexers[0].Search(new IndexerQuery("Saga", "60"), CancellationToken.None);
-
-        // The per-indexer endpoint must route through Prowlarr at /{id}/api (Torznab), id=1 for Nyaa.
-        Assert.Contains(requestedUrls, u => u.Contains("/1/api") && u.Contains("t=search"));
-    }
+    private static string NewTmp() => Path.Combine(Path.GetTempPath(), $"kenku-test-{Guid.NewGuid():N}");
 }

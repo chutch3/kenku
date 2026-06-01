@@ -4,8 +4,18 @@ using Xunit;
 
 namespace API.Tests.Schema;
 
-public class KenkuSettingsTests
+public class KenkuSettingsTests : IDisposable
 {
+    private readonly string _tmpDir = Path.Combine(Path.GetTempPath(), $"KenkuSettingsTest_{Guid.NewGuid():N}");
+
+    public void Dispose()
+    {
+        if (Directory.Exists(_tmpDir))
+            Directory.Delete(_tmpDir, true);
+    }
+
+    private KenkuSettings NewSettings() => new() { AppData = _tmpDir };
+
     [Fact]
     public void NewSettings_ShouldInitializeWithSmartDefaults()
     {
@@ -41,24 +51,20 @@ public class KenkuSettingsTests
         var settings = new KenkuSettings();
 
         Assert.False(settings.IndexerConfigured);
-        Assert.False(settings.TorrentClientConfigured);
+        Assert.False(settings.AnyDownloadClientConfigured);
     }
 
     [Fact]
-    public void TorrentPath_BecomesEnabled_WhenProwlarrSyncAndClientConfigured()
+    public void TorrentPath_BecomesEnabled_WhenSyncedIndexerAndClientConfigured()
     {
         var settings = new KenkuSettings
         {
-            ProwlarrBaseUrl = "http://prowlarr:9696",
-            ProwlarrApiKey = "secret",
-            TorrentClientBaseUrl = "http://qbittorrent:8080",
-            TorrentClientUsername = "admin",
-            TorrentClientPassword = "p"
+            SyncedIndexers = [new SyncedIndexerConfig(1, "Nyaa", "http://p/1/api", "k", [7030], "torrent", true)],
+            DownloadClients = [new DownloadClientConfig(1, "qbit", DownloadClientType.QBittorrent, "http://qbittorrent:8080", "admin", "p", "comics", true, 1)]
         };
 
-        Assert.True(settings.ProwlarrConfigured);
         Assert.True(settings.IndexerConfigured);
-        Assert.True(settings.TorrentClientConfigured);
+        Assert.True(settings.AnyDownloadClientConfigured);
     }
 
     [Fact]
@@ -69,7 +75,6 @@ public class KenkuSettingsTests
             ManualIndexers = [new API.Indexers.ManualIndexerConfig("Tracker", "http://t.test/api", "k", [8000])]
         };
 
-        Assert.False(settings.ProwlarrConfigured);
         Assert.True(settings.IndexerConfigured); // manual indexers are sufficient — not coupled to Prowlarr
     }
 
@@ -133,5 +138,116 @@ public class KenkuSettingsTests
             bool isExpectedPath = settings.AppData == "/usr/share" || settings.AppData == "./debug";
             Assert.True(isExpectedPath);
         }
+    }
+
+    // ---- Prowlarr-sync API key + synced-indexer / download-client list behaviour ----
+
+    [Fact]
+    public void ApiKey_IsNonEmptyByDefault()
+    {
+        Assert.False(string.IsNullOrWhiteSpace(NewSettings().ApiKey));
+    }
+
+    [Fact]
+    public void RegenerateApiKey_ChangesKeyAndPersistsToDisk()
+    {
+        var settings = NewSettings();
+        Directory.CreateDirectory(settings.WorkingDirectory);
+        string original = settings.ApiKey;
+
+        settings.RegenerateApiKey();
+
+        Assert.False(string.IsNullOrWhiteSpace(settings.ApiKey));
+        Assert.NotEqual(original, settings.ApiKey);
+        Assert.True(File.Exists(settings.SettingsFilePath));
+
+        var reloaded = JsonConvert.DeserializeObject<KenkuSettings>(File.ReadAllText(settings.SettingsFilePath))!;
+        Assert.Equal(settings.ApiKey, reloaded.ApiKey);
+    }
+
+    [Fact]
+    public void AddOrUpdateSyncedIndexer_AddsThenUpdatesByNameAndProtocol()
+    {
+        var settings = NewSettings();
+        Directory.CreateDirectory(settings.WorkingDirectory);
+
+        settings.AddOrUpdateSyncedIndexer(new SyncedIndexerConfig(0, "Nyaa", "http://p/1/api", "k", [7030], "torrent", true));
+        Assert.Single(settings.SyncedIndexers);
+        Assert.True(settings.SyncedIndexers[0].Id > 0);
+
+        // same name + protocol => update (and keep the assigned id), not add
+        int existingId = settings.SyncedIndexers[0].Id;
+        settings.AddOrUpdateSyncedIndexer(new SyncedIndexerConfig(0, "Nyaa", "http://p/2/api", "k2", [7030, 7000], "torrent", false));
+        Assert.Single(settings.SyncedIndexers);
+        Assert.Equal("http://p/2/api", settings.SyncedIndexers[0].Url);
+        Assert.Equal("k2", settings.SyncedIndexers[0].ApiKey);
+        Assert.False(settings.SyncedIndexers[0].Enabled);
+        Assert.Equal(existingId, settings.SyncedIndexers[0].Id);
+
+        // different protocol => add
+        settings.AddOrUpdateSyncedIndexer(new SyncedIndexerConfig(0, "Nyaa", "http://p/3/api", "k3", [7030], "usenet", true));
+        Assert.Equal(2, settings.SyncedIndexers.Count);
+    }
+
+    [Fact]
+    public void RemoveSyncedIndexer_RemovesByNameAndProtocol()
+    {
+        var settings = NewSettings();
+        Directory.CreateDirectory(settings.WorkingDirectory);
+        settings.AddOrUpdateSyncedIndexer(new SyncedIndexerConfig(0, "Nyaa", "http://p/1/api", "k", [7030], "torrent", true));
+        settings.AddOrUpdateSyncedIndexer(new SyncedIndexerConfig(0, "Nyaa", "http://p/3/api", "k3", [7030], "usenet", true));
+
+        settings.RemoveSyncedIndexer("Nyaa", "torrent");
+
+        Assert.Single(settings.SyncedIndexers);
+        Assert.Equal("usenet", settings.SyncedIndexers[0].Protocol);
+    }
+
+    [Fact]
+    public void SyncedIndexers_RoundTripThroughSerialization()
+    {
+        var settings = NewSettings();
+        settings.SyncedIndexers.Add(new SyncedIndexerConfig(1, "Nyaa", "http://p/1/api", "k", [7030, 7000], "torrent", true));
+
+        var copy = JsonConvert.DeserializeObject<KenkuSettings>(JsonConvert.SerializeObject(settings))!;
+
+        Assert.Single(copy.SyncedIndexers);
+        Assert.Equal("Nyaa", copy.SyncedIndexers[0].Name);
+        Assert.Equal([7030, 7000], copy.SyncedIndexers[0].Categories);
+        Assert.Equal("torrent", copy.SyncedIndexers[0].Protocol);
+    }
+
+    [Fact]
+    public void DownloadClientCrud_AddUpdateRemove_AssignsIdsAndPersists()
+    {
+        var settings = NewSettings();
+        Directory.CreateDirectory(settings.WorkingDirectory);
+        Assert.False(settings.AnyDownloadClientConfigured);
+
+        int id = settings.AddDownloadClient(new DownloadClientConfig(0, "qbit", DownloadClientType.QBittorrent, "http://qbit", "u", "p", "comics", true, 1));
+        Assert.True(id > 0);
+        Assert.Single(settings.DownloadClients);
+        Assert.True(settings.AnyDownloadClientConfigured);
+
+        Assert.True(settings.UpdateDownloadClient(new DownloadClientConfig(id, "qbit2", DownloadClientType.QBittorrent, "http://qbit2", "u", "p", "comics", true, 2)));
+        Assert.Equal("qbit2", settings.DownloadClients[0].Name);
+        Assert.Equal("http://qbit2", settings.DownloadClients[0].BaseUrl);
+
+        Assert.False(settings.UpdateDownloadClient(new DownloadClientConfig(9999, "x", DownloadClientType.QBittorrent, "http://x", null, null, null, true, 1)));
+
+        Assert.True(settings.RemoveDownloadClient(id));
+        Assert.Empty(settings.DownloadClients);
+        Assert.False(settings.AnyDownloadClientConfigured);
+        Assert.False(settings.RemoveDownloadClient(id));
+    }
+
+    [Fact]
+    public void AnyDownloadClientConfigured_FalseWhenOnlyDisabledClients()
+    {
+        var settings = NewSettings();
+        Directory.CreateDirectory(settings.WorkingDirectory);
+        settings.AddDownloadClient(new DownloadClientConfig(0, "qbit", DownloadClientType.QBittorrent, "http://qbit", null, null, null, false, 1));
+
+        Assert.False(settings.AnyDownloadClientConfigured);
     }
 }
