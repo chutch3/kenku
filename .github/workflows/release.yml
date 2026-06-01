@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Every Monday at 8 AM EST (1 PM UTC). GitHub Actions runs in UTC;
+    # adjust for DST if needed (EDT = UTC-4).
+    - cron: '0 13 * * 1'
+
+jobs:
+  release:
+    name: Semantic Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      released: ${{ steps.release.outputs.released }}
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Semantic Release
+        id: release
+        uses: python-semantic-release/python-semantic-release@v10.5.3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          config_file: releaserc.toml
+          verbosity: 1
+
+  # Build and publish ghcr.io/chutch3/kenku:<version> + :latest, but only when a
+  # new version was actually released.
+  build-image:
+    name: Build & Publish Image
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    uses: ./.github/workflows/build.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      version: ${{ needs.release.outputs.version }}

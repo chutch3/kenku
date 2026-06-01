@@ -1,0 +1,22 @@
+# python-semantic-release configuration (standalone, not pyproject.toml).
+# Pass with `-c releaserc.toml`; PSR defaults to pyproject.toml otherwise.
+# Tag-driven: PSR derives the current version from git tags (tag_format below) and
+# manages the tag, CHANGELOG, and GitHub Release. The .NET build stamps the version
+# from the tag via the Dockerfile VERSION build-arg, so there is no version file to
+# keep in sync here.
+[semantic_release]
+tag_format = "v{version}"
+commit_parser = "conventional"
+commit_message = "chore(release): {version}"
+major_on_zero = false          # stay in 0.x: feat -> minor, fix -> patch
+allow_zero_version = true       # permit 0.y.z versions
+build_command = ""              # nothing to build here; images are built separately
+
+[semantic_release.branches.main]
+match = "main"
+
+[semantic_release.changelog.default_templates]
+changelog_file = "CHANGELOG.md"
+
+[semantic_release.publish]
+upload_to_vcs_release = true     # create a GitHub Release per version

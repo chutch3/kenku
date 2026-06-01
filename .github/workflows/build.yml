@@ -10,6 +10,13 @@ on:
       - ".dockerignore"
       - ".github/workflows/build.yml"
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      version:
+        description: "Release version to tag the image with (e.g. 0.0.1). Empty = :latest only."
+        required: false
+        type: string
+        default: ""
 
 jobs:
   build:
@@ -20,6 +27,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      # :latest on every build; add the exact version tag only for release builds.
+      - name: Compute image tags
+        id: tags
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          tags="ghcr.io/chutch3/kenku:latest"
+          if [ -n "$VERSION" ]; then
+            tags="ghcr.io/chutch3/kenku:${VERSION},${tags}"
+          fi
+          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3.7.0
@@ -43,5 +62,6 @@ jobs:
           platforms: linux/amd64,linux/amd64/v2,linux/amd64/v3,linux/arm64,linux/arm/v7
           pull: true
           push: true
-          tags: |
-            ghcr.io/chutch3/kenku:latest
+          build-args: |
+            VERSION=${{ inputs.version }}
+          tags: ${{ steps.tags.outputs.tags }}

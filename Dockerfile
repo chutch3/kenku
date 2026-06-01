@@ -28,10 +28,15 @@ COPY api/Kenku.sln /src
 COPY api/API/API.csproj /src/API/API.csproj
 RUN dotnet restore /src/API/API.csproj
 COPY api/ /src/
+# Release version stamped into the assembly. Defaults to 0.0.0 for local/main builds;
+# the release pipeline passes the semantic-release version (e.g. 0.0.1).
+ARG VERSION=0.0.0
 # GitVersion=false: no .git in the build context, so let GitInfo skip deriving the
-# package version from git (otherwise it emits an invalid "0.0.0+main." and fails).
+# package version from git (otherwise it emits an invalid "0.0.0+main." and fails);
+# the version comes from the VERSION build-arg instead.
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
-    dotnet publish /src/API/API.csproj -c Release --property:OutputPath=/publish -p:GitVersion=false -maxcpucount:1 --no-cache
+    VERSION="${VERSION:-0.0.0}" && \
+    dotnet publish /src/API/API.csproj -c Release --property:OutputPath=/publish -p:GitVersion=false -p:Version="$VERSION" -maxcpucount:1 --no-cache
 
 # ---- Stage 4: final runtime ----
 FROM base AS runtime
