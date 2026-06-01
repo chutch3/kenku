@@ -36,7 +36,7 @@
         <SeriesCardList
             :series="searchResult"
             class="overflow-y-scroll h-full pb-70"
-            @click="(m) => navigateTo(`/series/${m.key}?return=${$route.fullPath}&connectorName=${m.sourceIds[0]?.mangaConnectorName}&connectorMangaId=${m.sourceIds[0]?.objId}#download`)" />
+            @click="(m) => navigateTo(`/series/${m.key}?return=${$route.fullPath}&connectorName=${m.sourceIds[0]?.mangaConnectorName}&connectorSeriesId=${m.sourceIds[0]?.objId}#download`)" />
     </KenkuPage>
 </template>
 

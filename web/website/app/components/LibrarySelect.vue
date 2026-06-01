@@ -46,12 +46,12 @@ const onLibrarySelectChange = async () => {
     loading.value = true;
 
     const connectorName = route.query.connectorName as string | undefined;
-    const connectorMangaId = route.query.connectorMangaId as string | undefined;
+    const connectorSeriesId = route.query.connectorSeriesId as string | undefined;
 
     await $api('/v2/Series/{MangaId}/ChangeLibrary/{LibraryId}', {
         method: 'POST',
         path: { MangaId: props.mangaId, LibraryId: library.value },
-        query: { connectorName, connectorMangaId },
+        query: { connectorName, connectorSeriesId },
     });
     await refreshNuxtData(FetchKeys.Series.Id(props.mangaId));
     loading.value = false;

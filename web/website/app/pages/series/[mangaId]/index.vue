@@ -62,19 +62,19 @@ const { $api } = useNuxtApp();
 const route = useRoute();
 const mangaId = route.params.mangaId as string;
 const connectorName = route.query.connectorName as string | undefined;
-const connectorMangaId = route.query.connectorMangaId as string | undefined;
+const connectorSeriesId = route.query.connectorSeriesId as string | undefined;
 
 const flashDownloading = route.hash.substring(1) == 'download';
 
-const isSearchResult = !!(connectorName && connectorMangaId);
+const isSearchResult = !!(connectorName && connectorSeriesId);
 
 const series = ref<components['schemas']['Series'] | null>(null);
 
-if (process.client) {
+if (import.meta.client) {
     const fetcher = isSearchResult
         ? useApi('/v2/Search/{MangaConnectorName}/Series', {
               path: { MangaConnectorName: connectorName! },
-              query: { ConnectorSeriesId: connectorMangaId! },
+              query: { ConnectorSeriesId: connectorSeriesId! },
               key: FetchKeys.Series.Id(mangaId),
               onResponseError: (e) => {
                   console.error(e);
