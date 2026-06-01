@@ -148,6 +148,8 @@ import {
 } from '#components';
 import FileLibraries from '~/components/FileLibraries.vue';
 import { refreshNuxtData } from '#app';
+import type { components } from '#open-fetch-schemas/api';
+type DownloadClientResponse = components['schemas']['DownloadClientResponse'];
 const overlay = useOverlay();
 const { $api } = useNuxtApp();
 
@@ -213,10 +215,11 @@ const regenerateApiKey = async () => {
     await refreshNuxtData(FetchKeys.Settings.All);
 };
 
-const openDownloadClient = (client: unknown) => {
+const openDownloadClient = (client?: DownloadClientResponse | null) => {
     downloadClientModal.open({ client });
 };
-const removeDownloadClient = async (id: number) => {
+const removeDownloadClient = async (id?: number) => {
+    if (id === undefined) return;
     await $api('/v2/Settings/DownloadClients/{id}', { method: 'DELETE', path: { id } });
     await refreshNuxtData(FetchKeys.Settings.All);
 };

@@ -1,0 +1,40 @@
+name: Web Checks
+
+# Type-checks the Nuxt frontend and runs the API-contract test. Both guard against
+# frontend/backend drift (wrong API path or param name) that is invisible to `nuxt build`.
+# Triggered by web changes and by changes to the OpenAPI spec the client is generated from.
+on:
+  push:
+    paths:
+      - "web/**"
+      - "api/API/openapi/API_v2.json"
+      - ".github/workflows/web-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./web/website
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: web/website/package-lock.json
+
+      # postinstall runs `nuxt prepare`, generating the typed API client from
+      # ../../api/API/openapi/API_v2.json (present in the checkout).
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: API contract test
+        run: npm test

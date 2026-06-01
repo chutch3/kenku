@@ -38,7 +38,7 @@ import KenkuPage, { type PageProps } from '~/components/KenkuPage.vue';
 type Series = components['schemas']['Series'];
 
 export interface SeriesDetailPageProps extends PageProps {
-    series?: Series;
+    series?: Series | null;
 }
 
 defineProps<SeriesDetailPageProps>();
