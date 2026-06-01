@@ -34,12 +34,19 @@ public class SettingsControllerTests : IDisposable
     }
 
     [Fact]
-    public void GetSettings_ReturnsCurrentSettingsInstance()
+    public void GetSettings_ReturnsApiKeyAndProjectedLists()
     {
+        _settings.SyncedIndexers.Add(new SyncedIndexerConfig(1, "Nyaa", "http://p/1/api", "indexer-key", [7030], "torrent", true));
+        _settings.DownloadClients.Add(new DownloadClientConfig(1, "qbit", DownloadClientType.QBittorrent, "http://qbit", "admin", "s3cret", "comics", true, 1));
+
         var result = CreateController().GetSettings();
 
-        var ok = Assert.IsType<Ok<KenkuSettings>>(result);
-        Assert.Same(_settings, ok.Value);
+        var ok = Assert.IsType<Ok<API.Controllers.Responses.SettingsResponse>>(result);
+        Assert.Equal(_settings.ApiKey, ok.Value!.ApiKey);
+        Assert.Single(ok.Value.SyncedIndexers);
+        Assert.Equal("Nyaa", ok.Value.SyncedIndexers[0].Name);
+        Assert.Single(ok.Value.DownloadClients);
+        Assert.Equal("qbit", ok.Value.DownloadClients[0].Name);
     }
 
     [Fact]
@@ -241,11 +248,12 @@ public class SettingsControllerTests : IDisposable
         var result = CreateController().AddDownloadClient(new API.Controllers.Requests.SetDownloadClientRecord(
             0, "qbit", DownloadClientType.QBittorrent, "http://qbit", "u", "p", "comics", true, 1));
 
-        var ok = Assert.IsType<Ok<DownloadClientConfig>>(result.Result);
+        var ok = Assert.IsType<Ok<API.Controllers.Responses.DownloadClientResponse>>(result.Result);
         Assert.NotNull(ok.Value);
         Assert.True(ok.Value!.Id > 0);
         Assert.Single(_settings.DownloadClients);
         Assert.Equal("qbit", _settings.DownloadClients[0].Name);
+        Assert.Equal("p", _settings.DownloadClients[0].Password); // persisted, even though not returned
     }
 
     [Fact]
@@ -254,5 +262,52 @@ public class SettingsControllerTests : IDisposable
         var result = CreateController().RemoveDownloadClient(999);
 
         Assert.IsType<NotFound>(result.Result);
+    }
+
+    // GetSettings returns a secret-free DTO. Serialized through the API's System.Text.Json pipeline,
+    // no credential must appear on the wire — only the (UI-displayed) Prowlarr push key.
+    [Fact]
+    public void GetSettings_SerializedForApi_OmitsSecrets()
+    {
+        _settings.DownloadClients.Add(new DownloadClientConfig(1, "qbit", DownloadClientType.QBittorrent, "http://qbit", "admin", "s3cret", "comics", true, 1));
+        _settings.SyncedIndexers.Add(new SyncedIndexerConfig(1, "Nyaa", "http://p/1/api", "indexer-key", [7030], "torrent", true));
+        _settings.MetronPassword = "metron-pw";
+
+        var ok = Assert.IsType<Ok<API.Controllers.Responses.SettingsResponse>>(CreateController().GetSettings());
+        string json = System.Text.Json.JsonSerializer.Serialize(ok.Value,
+            new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+
+        Assert.DoesNotContain("s3cret", json);
+        Assert.DoesNotContain("indexer-key", json);
+        Assert.DoesNotContain("metron-pw", json);
+        // Non-secret config the UI relies on must still be present.
+        Assert.Contains("qbit", json);
+        Assert.Contains("Nyaa", json);
+        Assert.Contains(_settings.ApiKey, json); // the Prowlarr push key is shown in the UI by design
+    }
+
+    [Fact]
+    public void GetDownloadClients_OmitsPasswords()
+    {
+        _settings.DownloadClients.Add(new DownloadClientConfig(1, "qbit", DownloadClientType.QBittorrent, "http://qbit", "admin", "s3cret", "comics", true, 1));
+
+        var ok = Assert.IsType<Ok<List<API.Controllers.Responses.DownloadClientResponse>>>(CreateController().GetDownloadClients());
+        string json = System.Text.Json.JsonSerializer.Serialize(ok.Value,
+            new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+
+        Assert.DoesNotContain("s3cret", json);
+        Assert.Contains("qbit", json);
+    }
+
+    [Fact]
+    public void Save_KeepsSecrets_OnDisk()
+    {
+        Directory.CreateDirectory(_settings.WorkingDirectory);
+        _settings.DownloadClients.Add(new DownloadClientConfig(1, "qbit", DownloadClientType.QBittorrent, "http://qbit", "admin", "s3cret", "comics", true, 1));
+        _settings.Save();
+
+        string onDisk = File.ReadAllText(_settings.SettingsFilePath);
+
+        Assert.Contains("s3cret", onDisk); // persistence must retain the secret
     }
 }

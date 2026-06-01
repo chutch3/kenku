@@ -250,4 +250,58 @@ public class KenkuSettingsTests : IDisposable
 
         Assert.False(settings.AnyDownloadClientConfigured);
     }
+
+    [Fact]
+    public void UpdateDownloadClient_BlankPassword_PreservesExistingSecret()
+    {
+        var settings = NewSettings();
+        Directory.CreateDirectory(settings.WorkingDirectory);
+        int id = settings.AddDownloadClient(new DownloadClientConfig(0, "qbit", DownloadClientType.QBittorrent, "http://qbit", "admin", "s3cret", "comics", true, 1));
+
+        // Simulates an edit submitted from a UI that never received the password back (redacted on read).
+        settings.UpdateDownloadClient(new DownloadClientConfig(id, "qbit-renamed", DownloadClientType.QBittorrent, "http://qbit", "admin", "", "comics", true, 1));
+
+        Assert.Equal("qbit-renamed", settings.DownloadClients[0].Name);
+        Assert.Equal("s3cret", settings.DownloadClients[0].Password);
+    }
+
+    [Fact]
+    public void UpdateDownloadClient_NewPassword_Replaces()
+    {
+        var settings = NewSettings();
+        Directory.CreateDirectory(settings.WorkingDirectory);
+        int id = settings.AddDownloadClient(new DownloadClientConfig(0, "qbit", DownloadClientType.QBittorrent, "http://qbit", "admin", "old", "comics", true, 1));
+
+        settings.UpdateDownloadClient(new DownloadClientConfig(id, "qbit", DownloadClientType.QBittorrent, "http://qbit", "admin", "new", "comics", true, 1));
+
+        Assert.Equal("new", settings.DownloadClients[0].Password);
+    }
+
+    [Fact]
+    public void ApiKey_IsHighEntropyHex()
+    {
+        // 32 hex chars = 128 bits of randomness; not a GUID.
+        string key = NewSettings().ApiKey;
+        Assert.Equal(32, key.Length);
+        Assert.Matches("^[0-9a-fA-F]{32}$", key);
+    }
+
+    [Fact]
+    public void Save_IsThreadSafe_UnderConcurrentMutationAndSerialization()
+    {
+        var settings = NewSettings();
+        Directory.CreateDirectory(settings.WorkingDirectory);
+
+        // Reproduces the "serialize while a list is being mutated" race: without locking the lists in
+        // Save(), JsonConvert enumerating a mutating List<T> throws InvalidOperationException.
+        var ex = Record.Exception(() =>
+        {
+            Parallel.Invoke(
+                () => { for (int i = 0; i < 200; i++) settings.AddOrUpdateSyncedIndexer(new SyncedIndexerConfig(0, $"ix{i}", "http://p/api", "k", [7030], "torrent", true)); },
+                () => { for (int i = 0; i < 200; i++) settings.AddDownloadClient(new DownloadClientConfig(0, $"c{i}", DownloadClientType.QBittorrent, "http://q", null, null, null, true, 1)); },
+                () => { for (int i = 0; i < 200; i++) _ = settings.SnapshotSyncedIndexers(); });
+        });
+
+        Assert.Null(ex);
+    }
 }

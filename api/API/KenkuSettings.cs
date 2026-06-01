@@ -96,7 +96,11 @@ public class KenkuSettings
     public int[] IndexerComicCategories { get; set; } = [8000];
 
     /// <summary>API key Prowlarr uses to authenticate against Kenku's Mylar-emulating application endpoint.</summary>
-    public string ApiKey { get; set; } = Guid.NewGuid().ToString("N");
+    public string ApiKey { get; set; } = GenerateApiKey();
+
+    /// <summary>128 bits of cryptographically-strong randomness as lowercase hex (a GUID is not designed as a secret).</summary>
+    private static string GenerateApiKey() =>
+        System.Security.Cryptography.RandomNumberGenerator.GetHexString(32, lowercase: true);
 
     /// <summary>True when at least one indexer source (manual or Prowlarr-synced) is configured.</summary>
     [JsonIgnore] public bool IndexerConfigured => ManualIndexers.Count > 0 || SyncedIndexers.Count > 0;
@@ -113,7 +117,7 @@ public class KenkuSettings
     // ---------- Metron metadata (metron.cloud) ----------
     /// <summary>Metron account username (HTTP Basic auth). Empty disables Metron lookups.</summary>
     public string MetronUsername { get; set; } = "";
-    /// <summary>Metron account password (HTTP Basic auth).</summary>
+    /// <summary>Metron account password (HTTP Basic auth). Persisted, but never returned by the API.</summary>
     public string MetronPassword { get; set; } = "";
 
     // ---------- Release selection (v1: simple scoring) ----------
@@ -150,6 +154,7 @@ public class KenkuSettings
     public void Save()
     {
         lock (this) // Good practice now that it's a shared reference in DI
+        lock (_listLock) // Guard SyncedIndexers/DownloadClients against mutation while serializing
         {
             Directory.CreateDirectory(WorkingDirectory);
             File.WriteAllText(SettingsFilePath, JsonConvert.SerializeObject(this, Formatting.Indented, new StringEnumConverter()));
@@ -197,7 +202,7 @@ public class KenkuSettings
 
     public void RegenerateApiKey()
     {
-        ApiKey = Guid.NewGuid().ToString("N");
+        ApiKey = GenerateApiKey();
         Save();
     }
 
@@ -252,7 +257,15 @@ public class KenkuSettings
             int idx = DownloadClients.FindIndex(c => c.Id == config.Id);
             updated = idx >= 0;
             if (updated)
-                DownloadClients[idx] = config;
+            {
+                // The password is redacted on the API read path, so an edit submitted by the UI may
+                // carry a blank password meaning "unchanged" rather than "clear it". Preserve the
+                // stored secret unless a new non-blank value was supplied.
+                string? password = string.IsNullOrEmpty(config.Password)
+                    ? DownloadClients[idx].Password
+                    : config.Password;
+                DownloadClients[idx] = config with { Password = password };
+            }
         }
         if (updated)
             Save();
@@ -267,6 +280,13 @@ public class KenkuSettings
         if (removed > 0)
             Save();
         return removed > 0;
+    }
+
+    /// <summary>Thread-safe snapshot of the download clients for concurrent reads.</summary>
+    public DownloadClientConfig[] SnapshotDownloadClients()
+    {
+        lock (_listLock)
+            return DownloadClients.ToArray();
     }
 
     private static int NextId(IEnumerable<int> ids)
@@ -330,6 +350,9 @@ public class KenkuSettings
     }
 }
 
+// These are the persistence models (written to settings.json by Newtonsoft). They carry secrets
+// (ApiKey/Password); the API never returns them directly — SettingsController projects a secret-free
+// response DTO instead. Keep secrets OUT of any type returned from a controller.
 public record SyncedIndexerConfig(
     int Id,
     string Name,

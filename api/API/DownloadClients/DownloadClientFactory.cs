@@ -24,7 +24,7 @@ public class DownloadClientFactory(Func<HttpClient> httpClientFactory) : IDownlo
 
     public IDownloadClient? SelectActive(KenkuSettings settings)
     {
-        DownloadClientConfig? config = settings.DownloadClients
+        DownloadClientConfig? config = settings.SnapshotDownloadClients()
             .Where(c => c.Enabled)
             .OrderBy(c => c.Priority)
             .FirstOrDefault();

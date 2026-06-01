@@ -198,7 +198,7 @@ const onKavitaClick = async () => {
 
 const { data: settingsData, status: settingsStatus } = useApi('/v2/Settings', { key: FetchKeys.Settings.All, server: false });
 
-const metronConnected = computed(() => !!settingsData.value?.metronUsername);
+const metronConnected = computed(() => !!settingsData.value?.metronConfigured);
 const apiKey = computed(() => settingsData.value?.apiKey ?? '');
 const syncedIndexers = computed(() => settingsData.value?.syncedIndexers ?? []);
 const downloadClients = computed(() => settingsData.value?.downloadClients ?? []);

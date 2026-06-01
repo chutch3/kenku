@@ -25,6 +25,10 @@ public class MylarApiController : ControllerBase
         _settings = settings;
     }
 
+    // NOTE: addProvider/changeProvider/delProvider mutate state on an HTTP GET. This violates the
+    // "GET is safe" convention but is REQUIRED by Mylar's protocol — Prowlarr really does issue these
+    // as GETs with query params. Do not "fix" this into POST/PUT/DELETE; that would break Prowlarr
+    // sync. The apikey query-param check (RequireApiKey) is the access control for these mutations.
     [HttpGet]
     public IActionResult Dispatch([FromQuery] string? cmd)
     {

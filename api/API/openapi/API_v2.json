@@ -3606,14 +3606,14 @@
         "tags": [
           "Settings"
         ],
-        "summary": "Get all !:Kenku.Settings",
+        "summary": "Get the current settings (secret-free projection — credentials are never returned).",
         "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json; x-version=2.0": {
                 "schema": {
-                  "$ref": "#/components/schemas/KenkuSettings"
+                  "$ref": "#/components/schemas/SettingsResponse"
                 }
               }
             }
@@ -4101,7 +4101,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/DownloadClientConfig"
+                    "$ref": "#/components/schemas/DownloadClientResponse"
                   }
                 }
               }
@@ -4144,7 +4144,7 @@
             "content": {
               "application/json; x-version=2.0": {
                 "schema": {
-                  "$ref": "#/components/schemas/DownloadClientConfig"
+                  "$ref": "#/components/schemas/DownloadClientResponse"
                 }
               }
             }
@@ -5477,7 +5477,7 @@
         },
         "additionalProperties": false
       },
-      "DownloadClientConfig": {
+      "DownloadClientResponse": {
         "type": "object",
         "properties": {
           "id": {
@@ -5499,10 +5499,6 @@
             "type": "string",
             "nullable": true
           },
-          "password": {
-            "type": "string",
-            "nullable": true
-          },
           "category": {
             "type": "string",
             "nullable": true
@@ -5515,7 +5511,8 @@
             "format": "int32"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "A download client without its password."
       },
       "DownloadClientType": {
         "enum": [
@@ -5564,154 +5561,6 @@
         },
         "additionalProperties": false,
         "description": "Represents a single file move operation in a reorganize preview."
-      },
-      "KenkuSettings": {
-        "type": "object",
-        "properties": {
-          "appData": {
-            "type": "string",
-            "nullable": true
-          },
-          "defaultDownloadLocation": {
-            "type": "string",
-            "nullable": true,
-            "readOnly": true
-          },
-          "userAgent": {
-            "type": "string",
-            "nullable": true
-          },
-          "imageCompression": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "blackWhiteImages": {
-            "type": "boolean"
-          },
-          "flareSolverrUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "chapterNamingScheme": {
-            "type": "string",
-            "description": "Placeholders:\n%M Obj Name\n%V Volume\n%C Chapter\n%T Title\n%A Author (first in list)\n%I Chapter Internal ID\n%i Obj Internal ID\n%Y Year (Obj)\n            \n?_(...) replace _ with a value from above:\nEverything inside the braces will only be added if the value of %_ is not null",
-            "nullable": true
-          },
-          "workCycleTimeoutMs": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "downloadLanguage": {
-            "type": "string",
-            "nullable": true
-          },
-          "maxConcurrentDownloads": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "maxConcurrentWorkers": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "volumeResolutionStrategy": {
-            "$ref": "#/components/schemas/VolumeResolutionStrategy"
-          },
-          "volumeResolutionParallelism": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "libraryRefreshSetting": {
-            "$ref": "#/components/schemas/LibraryRefreshSetting"
-          },
-          "refreshLibraryWhileDownloadingEveryMinutes": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "disabledConnectors": {
-            "uniqueItems": true,
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Names of API.MangaConnectors.SeriesSource instances that have been explicitly disabled.\nConnectors absent from this set are considered enabled (opt-out model).",
-            "nullable": true
-          },
-          "corsAllowedOrigins": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Origins permitted for browser CORS requests. Empty (the default) preserves the historical\n\"allow any origin\" behaviour; populate it to restrict the API to specific frontends.",
-            "nullable": true
-          },
-          "manualIndexers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ManualIndexerConfig"
-            },
-            "description": "Manually-configured Torznab/Newznab indexers.",
-            "nullable": true
-          },
-          "syncedIndexers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SyncedIndexerConfig"
-            },
-            "description": "Indexers Prowlarr has pushed/synced into Kenku (source of truth lives in Prowlarr).",
-            "nullable": true
-          },
-          "indexerComicCategories": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "format": "int32"
-            },
-            "description": "Comic category IDs applied to indexer searches. Default 8000 = Comics (Newznab convention).",
-            "nullable": true
-          },
-          "apiKey": {
-            "type": "string",
-            "description": "API key Prowlarr uses to authenticate against Kenku's Mylar-emulating application endpoint.",
-            "nullable": true
-          },
-          "downloadClients": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DownloadClientConfig"
-            },
-            "description": "User-configurable download clients. The lowest-Priority enabled client is used.",
-            "nullable": true
-          },
-          "metronUsername": {
-            "type": "string",
-            "description": "Metron account username (HTTP Basic auth). Empty disables Metron lookups.",
-            "nullable": true
-          },
-          "metronPassword": {
-            "type": "string",
-            "description": "Metron account password (HTTP Basic auth).",
-            "nullable": true
-          },
-          "releaseMinSeeders": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "releasePreferredTokens": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
-          },
-          "releaseBlockedTokens": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
       },
       "LibraryConnector": {
         "required": [
@@ -5804,33 +5653,6 @@
         },
         "additionalProperties": false,
         "description": "API.Schema.SeriesContext.Link DTO"
-      },
-      "ManualIndexerConfig": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "nullable": true
-          },
-          "url": {
-            "type": "string",
-            "nullable": true
-          },
-          "apiKey": {
-            "type": "string",
-            "nullable": true
-          },
-          "categories": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "format": "int32"
-            },
-            "nullable": true
-          }
-        },
-        "additionalProperties": false,
-        "description": "A manually-configured Torznab/Newznab indexer (name + endpoint + key + categories)."
       },
       "MetadataEntry": {
         "type": "object",
@@ -6472,6 +6294,34 @@
         "additionalProperties": false,
         "description": "Metron (metron.cloud) account credentials for metadata lookups."
       },
+      "SettingsResponse": {
+        "type": "object",
+        "properties": {
+          "apiKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "metronConfigured": {
+            "type": "boolean"
+          },
+          "syncedIndexers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SyncedIndexerResponse"
+            },
+            "nullable": true
+          },
+          "downloadClients": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DownloadClientResponse"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Secret-free projection of API.KenkuSettings returned by `GET /v2/Settings`.\nCredentials (download-client passwords, indexer API keys, Metron password) are deliberately\nomitted — the persistence model keeps them, the API contract does not. API.Controllers.Responses.SettingsResponse.ApiKey (the\nProwlarr push key) is intentionally included because the UI displays it for copying."
+      },
       "Stats": {
         "type": "object",
         "properties": {
@@ -6510,7 +6360,7 @@
         },
         "additionalProperties": false
       },
-      "SyncedIndexerConfig": {
+      "SyncedIndexerResponse": {
         "type": "object",
         "properties": {
           "id": {
@@ -6522,10 +6372,6 @@
             "nullable": true
           },
           "url": {
-            "type": "string",
-            "nullable": true
-          },
-          "apiKey": {
             "type": "string",
             "nullable": true
           },
@@ -6545,7 +6391,8 @@
             "type": "boolean"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "A synced indexer without its API key."
       },
       "UnbundleJobResult": {
         "type": "object",
@@ -6659,14 +6506,6 @@
         },
         "additionalProperties": false,
         "description": "Top-level response for GET /api/v2/Series/{mangaId}/volumes."
-      },
-      "VolumeResolutionStrategy": {
-        "enum": [
-          "Disabled",
-          "ExactOnly",
-          "ExactThenGuess"
-        ],
-        "type": "string"
       },
       "Worker": {
         "required": [

@@ -14,7 +14,11 @@
                 <UInput v-model="requestData.username" class="w-full" />
             </UFormField>
             <UFormField label="Password" class="mt-2">
-                <UInput v-model="requestData.password" type="password" class="w-full" />
+                <UInput
+                    v-model="requestData.password"
+                    type="password"
+                    class="w-full"
+                    :placeholder="isEdit ? 'Leave blank to keep current password' : ''" />
             </UFormField>
             <UFormField label="Category" class="mt-2">
                 <UInput v-model="requestData.category" placeholder="kenku" class="w-full" />
@@ -41,21 +45,22 @@
 import type { components } from '#open-fetch-schemas/api';
 
 type SetDownloadClientRecord = components['schemas']['SetDownloadClientRecord'];
-type DownloadClientConfig = components['schemas']['DownloadClientConfig'];
+type DownloadClientResponse = components['schemas']['DownloadClientResponse'];
 
-const props = defineProps<{ client?: DownloadClientConfig | null }>();
+const props = defineProps<{ client?: DownloadClientResponse | null }>();
 const { $api } = useNuxtApp();
 
 const isEdit = computed(() => !!props.client);
 const typeOptions = ['QBittorrent'];
 
+// Password is never returned by the API; on edit it starts blank and a blank submit keeps the stored secret.
 const requestData = ref<SetDownloadClientRecord>({
     id: props.client?.id ?? 0,
     name: props.client?.name ?? '',
     type: props.client?.type ?? 'QBittorrent',
     baseUrl: props.client?.baseUrl ?? '',
     username: props.client?.username ?? '',
-    password: props.client?.password ?? '',
+    password: '',
     category: props.client?.category ?? '',
     enabled: props.client?.enabled ?? true,
     priority: props.client?.priority ?? 1,

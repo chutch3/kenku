@@ -1,4 +1,5 @@
 ﻿using API.Controllers.Requests;
+using API.Controllers.Responses;
 using API.HttpRequesters;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -14,14 +15,14 @@ namespace API.Controllers;
 public class SettingsController(KenkuSettings settings) : ControllerBase
 {
     /// <summary>
-    /// Get all <see cref="Kenku.Settings"/>
+    /// Get the current settings (secret-free projection — credentials are never returned).
     /// </summary>
     /// <response code="200"></response>
     [HttpGet]
-    [ProducesResponseType<KenkuSettings>(Status200OK, "application/json")]
-    public Ok<KenkuSettings> GetSettings()
+    [ProducesResponseType<SettingsResponse>(Status200OK, "application/json")]
+    public Ok<SettingsResponse> GetSettings()
     {
-        return TypedResults.Ok(settings);
+        return TypedResults.Ok(SettingsResponse.From(settings));
     }
     
     /// <summary>
@@ -295,10 +296,10 @@ public class SettingsController(KenkuSettings settings) : ControllerBase
     /// </summary>
     /// <response code="200"></response>
     [HttpGet("DownloadClients")]
-    [ProducesResponseType<List<DownloadClientConfig>>(Status200OK, "application/json")]
-    public Ok<List<DownloadClientConfig>> GetDownloadClients()
+    [ProducesResponseType<List<DownloadClientResponse>>(Status200OK, "application/json")]
+    public Ok<List<DownloadClientResponse>> GetDownloadClients()
     {
-        return TypedResults.Ok(settings.DownloadClients);
+        return TypedResults.Ok(settings.SnapshotDownloadClients().Select(ToResponse).ToList());
     }
 
     /// <summary>
@@ -307,14 +308,14 @@ public class SettingsController(KenkuSettings settings) : ControllerBase
     /// <response code="200"></response>
     /// <response code="400">Name and base URL are required</response>
     [HttpPost("DownloadClients")]
-    [ProducesResponseType<DownloadClientConfig>(Status200OK, "application/json")]
+    [ProducesResponseType<DownloadClientResponse>(Status200OK, "application/json")]
     [ProducesResponseType(Status400BadRequest)]
-    public Results<Ok<DownloadClientConfig>, BadRequest> AddDownloadClient([FromBody]SetDownloadClientRecord requestData)
+    public Results<Ok<DownloadClientResponse>, BadRequest> AddDownloadClient([FromBody]SetDownloadClientRecord requestData)
     {
         if (string.IsNullOrWhiteSpace(requestData.Name) || string.IsNullOrWhiteSpace(requestData.BaseUrl))
             return TypedResults.BadRequest();
         int id = settings.AddDownloadClient(ToConfig(requestData));
-        return TypedResults.Ok(settings.DownloadClients.First(c => c.Id == id));
+        return TypedResults.Ok(ToResponse(settings.SnapshotDownloadClients().First(c => c.Id == id)));
     }
 
     /// <summary>
@@ -351,4 +352,7 @@ public class SettingsController(KenkuSettings settings) : ControllerBase
 
     private static DownloadClientConfig ToConfig(SetDownloadClientRecord r) =>
         new(r.Id, r.Name, r.Type, r.BaseUrl, r.Username, r.Password, r.Category, r.Enabled, r.Priority);
+
+    private static DownloadClientResponse ToResponse(DownloadClientConfig c) =>
+        new(c.Id, c.Name, c.Type, c.BaseUrl, c.Username, c.Category, c.Enabled, c.Priority);
 }
