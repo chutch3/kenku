@@ -2,7 +2,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.RegularExpressions;
 using API.Acquirers;
-using API.MangaDownloadClients;
+using API.HttpRequesters;
 using API.Schema.SeriesContext;
 using log4net;
 using Microsoft.EntityFrameworkCore;
@@ -15,7 +15,7 @@ namespace API.MangaConnectors;
 [Table("MangaConnector")] // Existing DB table; a follow-up hand-crafted migration is needed to rename to "SeriesSource" (see TECHNICAL_DEBT.md).
 public abstract class SeriesSource(string name, string[] supportedLanguages, string[] baseUris, string iconUrl, KenkuSettings settings)
 {
-    [NotMapped] internal IDownloadClient downloadClient { get; init; } = null!;
+    [NotMapped] internal IHttpRequester downloadClient { get; init; } = null!;
     [NotMapped] protected ILog Log { get; init; } = LogManager.GetLogger(name);
     [StringLength(32)] public string Name { get; init; } = name;
     [StringLength(8)] public string[] SupportedLanguages { get; init; } = supportedLanguages;

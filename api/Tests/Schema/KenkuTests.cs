@@ -1,6 +1,6 @@
 using API;
 using API.MangaConnectors;
-using API.MangaDownloadClients;
+using API.HttpRequesters;
 using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;
 using API.Schema.NotificationsContext;

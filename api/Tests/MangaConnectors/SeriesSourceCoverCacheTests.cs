@@ -1,7 +1,7 @@
 using System.Net;
 using API;
 using API.MangaConnectors;
-using API.MangaDownloadClients;
+using API.HttpRequesters;
 using API.Schema.SeriesContext;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -14,7 +14,7 @@ public class SeriesSourceCoverCacheTests
     /// <summary>Minimal connector whose download client is backed by a faked HTTP boundary.</summary>
     private sealed class FakeConnector : SeriesSource
     {
-        public FakeConnector(KenkuSettings settings, IDownloadClient client)
+        public FakeConnector(KenkuSettings settings, IHttpRequester client)
             : base("Fake:Conn", ["en"], ["fake.com"], "icon", settings)
         {
             downloadClient = client;
@@ -52,7 +52,7 @@ public class SeriesSourceCoverCacheTests
                 Content = new ByteArrayContent(jpeg)
             });
             using var rateLimit = new RateLimitHandler(settings, inner);
-            var downloadClient = new HttpDownloadClient(rateLimit, settings);
+            var downloadClient = new HttpRequester(rateLimit, settings);
             var connector = new FakeConnector(settings, downloadClient);
 
             var library = new FileLibrary(Path.Combine(tempRoot, "lib"), "Lib");

@@ -12,7 +12,7 @@ public class DownloadClientFactoryTests
         var factory = new DownloadClientFactory(() => new HttpClient());
         var config = new DownloadClientConfig(1, "qbit", DownloadClientType.QBittorrent, "http://qbit", "u", "p", "comics", true, 1);
 
-        IReleaseDownloadClient client = factory.Create(config);
+        IDownloadClient client = factory.Create(config);
 
         Assert.IsType<QBittorrentClient>(client);
     }
@@ -27,7 +27,7 @@ public class DownloadClientFactoryTests
 
         var factory = new DownloadClientFactory(() => new HttpClient());
 
-        IReleaseDownloadClient? client = factory.SelectActive(settings);
+        IDownloadClient? client = factory.SelectActive(settings);
 
         Assert.NotNull(client);
         Assert.IsType<QBittorrentClient>(client);

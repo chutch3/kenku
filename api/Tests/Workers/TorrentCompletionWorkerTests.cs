@@ -56,7 +56,7 @@ public class TorrentCompletionWorkerTests
             await context.SaveChangesAsync();
 
             var settings = new KenkuSettings { AppData = tempRoot, ChapterNamingScheme = "%M - Ch.%C" };
-            var torrent = new Mock<IReleaseDownloadClient>();
+            var torrent = new Mock<IDownloadClient>();
             torrent.Setup(t => t.GetStatus(chId.Key, It.IsAny<CancellationToken>()))
                    .ReturnsAsync(new DownloadStatus.Completed(savePath));
 
@@ -87,7 +87,7 @@ public class TorrentCompletionWorkerTests
             Assert.False(File.Exists(sourceCbz), "Source .cbz should have been moved, not copied.");
 
             // Torrent client was told to remove the torrent (keep seeded data)
-            Assert.True(removeCalled, "IReleaseDownloadClient.Remove must be called after finalisation.");
+            Assert.True(removeCalled, "IDownloadClient.Remove must be called after finalisation.");
         }
         finally
         {
@@ -119,7 +119,7 @@ public class TorrentCompletionWorkerTests
             await context.SaveChangesAsync();
 
             var settings = new KenkuSettings { AppData = tempRoot };
-            var torrent = new Mock<IReleaseDownloadClient>();
+            var torrent = new Mock<IDownloadClient>();
             torrent.Setup(t => t.GetStatus(chId.Key, It.IsAny<CancellationToken>()))
                    .ReturnsAsync(new DownloadStatus.Downloading(0.3));
 

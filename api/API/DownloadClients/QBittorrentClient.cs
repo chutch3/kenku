@@ -7,7 +7,7 @@ namespace API.DownloadClients;
 /// Talks to a qBittorrent instance via its Web API (v2). Login is session-cookie based and cached
 /// between calls; on a 401/403 the client re-logs-in lazily on next request.
 /// </summary>
-public class QBittorrentClient(HttpClient http, string baseUrl, string username, string password) : IReleaseDownloadClient
+public class QBittorrentClient(HttpClient http, string baseUrl, string username, string password) : IDownloadClient
 {
     private static readonly ILog Log = LogManager.GetLogger(typeof(QBittorrentClient));
     private readonly string _baseUrl = baseUrl.TrimEnd('/');

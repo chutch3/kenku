@@ -71,7 +71,8 @@ Kenku is using a **code-first** EF-Core approach. If you modify the database(con
 - `Program.cs` Configuration for ASP.NET, Swagger (also in `NamedSwaggerGenOptions.cs`)
 - `Kenku.cs` Worker-Logic
 - `Schema/**` Entity-Framework Schema Definitions
-- `MangaDownloadClients/**` Networking-Clients for Scraping
+- `HttpRequesters/**` Networking-Clients for Scraping (HTTP/FlareSolverr/Chromium request strategies)
+- `DownloadClients/**` Download-client integrations for release acquisition (qBittorrent)
 - `Controllers/**` ASP.NET Controllers (Endpoints)
 
 ### How to test locally

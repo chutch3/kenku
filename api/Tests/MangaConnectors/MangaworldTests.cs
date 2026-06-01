@@ -2,7 +2,7 @@ using System.Net;
 using System.Text;
 using API;
 using API.MangaConnectors;
-using API.MangaDownloadClients;
+using API.HttpRequesters;
 using API.Schema.SeriesContext;
 using Moq;
 using Xunit;
@@ -14,9 +14,9 @@ public class MangaworldTests
     private static KenkuSettings CreateSettings() => new KenkuSettings();
     private static RateLimitHandler CreateRateLimitHandler() => new RateLimitHandler(CreateSettings());
 
-    private static Mock<IDownloadClient> CreateMockClient(string responseContent, HttpStatusCode statusCode = HttpStatusCode.OK)
+    private static Mock<IHttpRequester> CreateMockClient(string responseContent, HttpStatusCode statusCode = HttpStatusCode.OK)
     {
-        var mockClient = new Mock<IDownloadClient>();
+        var mockClient = new Mock<IHttpRequester>();
         var response = new HttpResponseMessage(statusCode)
         {
             Content = new StringContent(responseContent, Encoding.UTF8, "text/html")

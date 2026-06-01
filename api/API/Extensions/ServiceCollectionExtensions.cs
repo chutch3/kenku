@@ -1,7 +1,7 @@
 using API.Acquirers;
 using API.Indexers;
 using API.MangaConnectors;
-using API.MangaDownloadClients;
+using API.HttpRequesters;
 using API.DownloadClients;
 using API.Workers.PeriodicWorkers;
 using log4net;
@@ -65,7 +65,7 @@ public static class ServiceCollectionExtensions
             new DownloadClientFactory(() =>
                 new HttpClient(sp.GetRequiredService<RateLimitHandler>(), disposeHandler: false)));
 
-        services.AddSingleton<IReleaseDownloadClient>(sp =>
+        services.AddSingleton<IDownloadClient>(sp =>
             sp.GetRequiredService<IDownloadClientFactory>().SelectActive(settings)
             ?? throw new InvalidOperationException("No enabled download client is configured."));
 
@@ -79,7 +79,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IChapterAcquirer>(sp =>
             new TorrentAcquirer(
                 sp.GetRequiredService<IIndexerClient>(),
-                sp.GetRequiredService<IReleaseDownloadClient>(),
+                sp.GetRequiredService<IDownloadClient>(),
                 sp.GetRequiredService<ReleaseSelector>(),
                 new TorrentAcquirerSettings(settings.TorrentStagingDirectory, settings.IndexerComicCategories)));
 

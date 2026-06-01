@@ -2,7 +2,7 @@ using System.Net;
 using System.Text;
 using API;
 using API.MangaConnectors;
-using API.MangaDownloadClients;
+using API.HttpRequesters;
 using API.Schema.SeriesContext;
 using Moq;
 using Xunit;
@@ -14,9 +14,9 @@ public class MangaDexTests
     private static KenkuSettings CreateSettings() => new KenkuSettings();
     private static RateLimitHandler CreateRateLimitHandler() => new RateLimitHandler(CreateSettings());
 
-    private static Mock<IDownloadClient> CreateMockClient(string responseContent, HttpStatusCode statusCode = HttpStatusCode.OK)
+    private static Mock<IHttpRequester> CreateMockClient(string responseContent, HttpStatusCode statusCode = HttpStatusCode.OK)
     {
-        var mockClient = new Mock<IDownloadClient>();
+        var mockClient = new Mock<IHttpRequester>();
         var response = new HttpResponseMessage(statusCode)
         {
             Content = new StringContent(responseContent, Encoding.UTF8, "application/json")
@@ -111,7 +111,7 @@ public class MangaDexTests
         var settings = CreateSettings();
         settings.DownloadLanguage = "fr";
 
-        var mockClient = new Mock<IDownloadClient>();
+        var mockClient = new Mock<IHttpRequester>();
         var response = new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
@@ -152,9 +152,9 @@ public class MangaDexTests
         }
         """;
 
-    private static Mock<IDownloadClient> SequencedClient(params HttpResponseMessage[] responses)
+    private static Mock<IHttpRequester> SequencedClient(params HttpResponseMessage[] responses)
     {
-        var mock = new Mock<IDownloadClient>();
+        var mock = new Mock<IHttpRequester>();
         var seq = mock.SetupSequence(c => c.MakeRequest(It.IsAny<string>(), It.IsAny<RequestType>(), It.IsAny<string>(), It.IsAny<CancellationToken?>()));
         foreach (var r in responses)
             seq = seq.ReturnsAsync(r);
@@ -193,7 +193,7 @@ public class MangaDexTests
         // (Limit=100 => at most 100 pages) instead of looping into guaranteed errors.
         var settings = CreateSettings();
         int requestCount = 0;
-        var mock = new Mock<IDownloadClient>();
+        var mock = new Mock<IHttpRequester>();
         mock.Setup(c => c.MakeRequest(It.IsAny<string>(), It.IsAny<RequestType>(), It.IsAny<string>(), It.IsAny<CancellationToken?>()))
             .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK)
             {

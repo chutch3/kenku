@@ -1,4 +1,4 @@
-﻿namespace API.MangaDownloadClients;
+﻿namespace API.HttpRequesters;
 
 public enum RequestType
 {

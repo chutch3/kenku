@@ -1,17 +1,17 @@
 using System.Net;
 using API;
-using API.MangaDownloadClients;
+using API.HttpRequesters;
 using Xunit;
 
-namespace API.Tests.MangaDownloadClients;
+namespace API.Tests.HttpRequesters;
 
-public class HttpDownloadClientTests
+public class HttpRequesterTests
 {
-    private static HttpDownloadClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler)
+    private static HttpRequester CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler)
     {
         var settings = new KenkuSettings { AppData = Path.GetTempPath() };
         var rateLimit = new RateLimitHandler(settings, new FakeHttpMessageHandler(handler));
-        return new HttpDownloadClient(rateLimit, settings);
+        return new HttpRequester(rateLimit, settings);
     }
 
     [Fact]

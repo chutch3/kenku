@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using System.Web;
 using HtmlAgilityPack;
-using API.MangaDownloadClients;
+using API.HttpRequesters;
 using API.Schema.SeriesContext;
 using log4net;
 using System.Collections.Generic;
@@ -23,7 +23,7 @@ public class AsuraComic : SeriesSource
     {
         _settings = settings;
         _rateLimitHandler = rateLimitHandler;
-        this.downloadClient = new HttpDownloadClient(rateLimitHandler, settings);
+        this.downloadClient = new HttpRequester(rateLimitHandler, settings);
     }
 
     public override AcquisitionKind Kind => AcquisitionKind.ImageList;
@@ -340,7 +340,7 @@ public class AsuraComic : SeriesSource
         }
 
         // Sync wrapper for async MakeRequest
-        ChromiumDownloadClient chromium = new(_settings, _rateLimitHandler);
+        ChromiumRequester chromium = new(_settings, _rateLimitHandler);
         try
         {
             using HttpResponseMessage response = await chromium.MakeRequest(chapterId.WebsiteUrl!, RequestType.Default, referrer);

@@ -6,7 +6,7 @@ namespace API.DownloadClients;
 /// the BitTorrent info-hash from a magnet/.torrent on the Kenku side. Implementations tag the
 /// download so it can be looked up again by the same tag.
 /// </summary>
-public interface IReleaseDownloadClient
+public interface IDownloadClient
 {
     /// <summary>
     /// Adds <paramref name="downloadUrl"/> (a magnet or .torrent URL) to the client. Returns the

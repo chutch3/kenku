@@ -1,9 +1,9 @@
 using System.Net;
 using API;
-using API.MangaDownloadClients;
+using API.HttpRequesters;
 using Xunit;
 
-namespace API.Tests.MangaDownloadClients;
+namespace API.Tests.HttpRequesters;
 
 public class RateLimitHandlerTests
 {

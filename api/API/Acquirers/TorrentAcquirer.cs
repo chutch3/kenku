@@ -14,7 +14,7 @@ namespace API.Acquirers;
 /// </summary>
 public class TorrentAcquirer(
     IIndexerClient indexer,
-    IReleaseDownloadClient downloadClient,
+    IDownloadClient downloadClient,
     ReleaseSelector selector,
     TorrentAcquirerSettings settings) : IChapterAcquirer
 {

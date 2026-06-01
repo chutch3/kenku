@@ -1,15 +1,15 @@
 using System.Net;
 using log4net;
 
-namespace API.MangaDownloadClients;
+namespace API.HttpRequesters;
 
-internal class HttpDownloadClient : IDownloadClient
+internal class HttpRequester : IHttpRequester
 {
     private readonly HttpClient _client;
-    private readonly FlareSolverrDownloadClient _flareSolverrClient;
-    private ILog Log { get; } = LogManager.GetLogger(typeof(HttpDownloadClient));
+    private readonly FlareSolverrRequester _flareSolverrClient;
+    private ILog Log { get; } = LogManager.GetLogger(typeof(HttpRequester));
 
-    public HttpDownloadClient(RateLimitHandler rateLimitHandler, KenkuSettings settings)
+    public HttpRequester(RateLimitHandler rateLimitHandler, KenkuSettings settings)
     {
         _client = new HttpClient(handler: rateLimitHandler)
         {
@@ -17,12 +17,12 @@ internal class HttpDownloadClient : IDownloadClient
             DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher,
             DefaultRequestHeaders = { { "User-Agent", settings.UserAgent } }
         };
-        _flareSolverrClient = new FlareSolverrDownloadClient(_client, settings);
+        _flareSolverrClient = new FlareSolverrRequester(_client, settings);
     }
 
     public async Task<HttpResponseMessage> MakeRequest(string url, RequestType requestType, string? referrer = null, CancellationToken? cancellationToken = null)
     {
-        Log.DebugFormat("Using {0} for {1}", typeof(HttpDownloadClient).FullName, url);
+        Log.DebugFormat("Using {0} for {1}", typeof(HttpRequester).FullName, url);
         HttpRequestMessage requestMessage = new(HttpMethod.Get, url);
         if (referrer is not null)
             requestMessage.Headers.Referrer = new(referrer);

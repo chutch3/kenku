@@ -4,23 +4,23 @@ using System.Text.RegularExpressions;
 using log4net;
 using PuppeteerSharp;
 
-namespace API.MangaDownloadClients;
+namespace API.HttpRequesters;
 
-internal class ChromiumDownloadClient : IDownloadClient, IAsyncDisposable
+internal class ChromiumRequester : IHttpRequester, IAsyncDisposable
 {
-    private static readonly ILog Log = LogManager.GetLogger(typeof(ChromiumDownloadClient));
+    private static readonly ILog Log = LogManager.GetLogger(typeof(ChromiumRequester));
     private IBrowser? _browser;
-    private readonly HttpDownloadClient _httpFallback;
+    private readonly HttpRequester _httpFallback;
     private readonly KenkuSettings _settings;
     private readonly object _lock = new();
     private static readonly Regex _imageUrlRex = new(@"https?:\/\/.*\.(?:p?jpe?g|gif|a?png|bmp|avif|webp)(\?.*)?");
     private long _activePages = 0;
     private readonly int _maxPages = 2;
 
-    public ChromiumDownloadClient(KenkuSettings settings, RateLimitHandler rateLimitHandler)
+    public ChromiumRequester(KenkuSettings settings, RateLimitHandler rateLimitHandler)
     {
         _settings = settings;
-        _httpFallback = new HttpDownloadClient(rateLimitHandler, settings);
+        _httpFallback = new HttpRequester(rateLimitHandler, settings);
     }
 
     private void EnsureBrowserInitialized()
@@ -85,7 +85,7 @@ internal class ChromiumDownloadClient : IDownloadClient, IAsyncDisposable
 
     public async Task<HttpResponseMessage> MakeRequest(string url, RequestType requestType, string? referrer = null, CancellationToken? cancellationToken = null)
     {
-        Log.DebugFormat("Using {0} for {1}", typeof(ChromiumDownloadClient).FullName, url);
+        Log.DebugFormat("Using {0} for {1}", typeof(ChromiumRequester).FullName, url);
 
         if (_imageUrlRex.IsMatch(url))
         {

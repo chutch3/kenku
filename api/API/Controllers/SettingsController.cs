@@ -1,5 +1,5 @@
 ﻿using API.Controllers.Requests;
-using API.MangaDownloadClients;
+using API.HttpRequesters;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -199,7 +199,7 @@ public class SettingsController(KenkuSettings settings) : ControllerBase
     public async Task<Results<Ok, InternalServerError>> TestFlareSolverrReachable()
     {
         const string knownProtectedUrl = "https://prowlarr.servarr.com/v1/ping";
-        FlareSolverrDownloadClient client = new(new HttpClient(), settings);
+        FlareSolverrRequester client = new(new HttpClient(), settings);
         HttpResponseMessage result = await client.MakeRequest(knownProtectedUrl, RequestType.Default);
         return result.IsSuccessStatusCode ? TypedResults.Ok() : TypedResults.InternalServerError(); 
     }

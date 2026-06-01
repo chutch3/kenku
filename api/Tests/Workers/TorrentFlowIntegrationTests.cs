@@ -3,7 +3,7 @@ using API.Acquirers;
 using API.Extensions;
 using API.Indexers;
 using API.MangaConnectors;
-using API.MangaDownloadClients;
+using API.HttpRequesters;
 using API.DownloadClients;
 using API.Workers.PeriodicWorkers;
 using log4net;
@@ -44,7 +44,7 @@ public class TorrentFlowIntegrationTests
 
         Assert.NotNull(provider.GetService<IIndexerClient>());
         Assert.NotNull(provider.GetService<IDownloadClientFactory>());
-        Assert.NotNull(provider.GetService<IReleaseDownloadClient>());
+        Assert.NotNull(provider.GetService<IDownloadClient>());
         Assert.NotNull(provider.GetService<IChapterAcquirer>());
         Assert.NotNull(provider.GetService<TorrentCompletionWorker>());
     }
@@ -60,7 +60,7 @@ public class TorrentFlowIntegrationTests
         // Search path is always available (indexers can be pushed live by Prowlarr).
         Assert.NotNull(provider.GetService<IIndexerClient>());
         // Acquisition path is gated on an enabled download client.
-        Assert.Null(provider.GetService<IReleaseDownloadClient>());
+        Assert.Null(provider.GetService<IDownloadClient>());
         Assert.Null(provider.GetService<IChapterAcquirer>());
         Assert.Null(provider.GetService<TorrentCompletionWorker>());
     }
@@ -73,7 +73,7 @@ public class TorrentFlowIntegrationTests
         ServiceProvider provider = Build(settings);
 
         Assert.NotNull(provider.GetService<IIndexerClient>());
-        Assert.Null(provider.GetService<IReleaseDownloadClient>());
+        Assert.Null(provider.GetService<IDownloadClient>());
     }
 
     [Fact]
@@ -84,6 +84,6 @@ public class TorrentFlowIntegrationTests
 
         ServiceProvider provider = Build(settings);
 
-        Assert.Null(provider.GetService<IReleaseDownloadClient>());
+        Assert.Null(provider.GetService<IDownloadClient>());
     }
 }

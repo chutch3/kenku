@@ -2,7 +2,7 @@ using System.Reflection;
 using API;
 using API.MangaConnectors;
 using API.Services;
-using API.MangaDownloadClients;
+using API.HttpRequesters;
 using API.Schema.ActionsContext;
 using API.Schema.ActionsContext.Actions;
 using API.Schema.LibraryContext;

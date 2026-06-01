@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 using System.Text;
 using System.Globalization;
 using System.Web;
-using API.MangaDownloadClients;
+using API.HttpRequesters;
 using API.Schema.SeriesContext;
 using HtmlAgilityPack;
 
@@ -26,7 +26,7 @@ public sealed class Mangaworld : SeriesSource
         settings
     )
     {
-        downloadClient = new HttpDownloadClient(rateLimitHandler, settings);
+        downloadClient = new HttpRequester(rateLimitHandler, settings);
     }
 
     public override AcquisitionKind Kind => AcquisitionKind.ImageList;

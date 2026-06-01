@@ -2,7 +2,7 @@ using System.Net;
 using System.Threading.RateLimiting;
 using log4net;
 
-namespace API.MangaDownloadClients;
+namespace API.HttpRequesters;
 
 public class RateLimitHandler : DelegatingHandler
 {

@@ -15,7 +15,7 @@ namespace API.Workers.PeriodicWorkers;
 /// publication folder, marks the chapter downloaded, and removes the torrent from the client.
 /// </summary>
 public class TorrentCompletionWorker(
-    IReleaseDownloadClient downloadClient,
+    IDownloadClient downloadClient,
     IEnumerable<SeriesSource> connectors,
     KenkuSettings settings,
     TimeSpan? interval = null,

@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using System.Web;
 using HtmlAgilityPack;
-using API.MangaDownloadClients;
+using API.HttpRequesters;
 using API.Schema.SeriesContext;
 using log4net;
 using System.Collections.Generic;
@@ -18,7 +18,7 @@ public class WeebCentral : SeriesSource
 {
     public WeebCentral(KenkuSettings settings, RateLimitHandler rateLimitHandler) : base("WeebCentral", new[] { "en" }, new[] { "weebcentral.com" }, "https://weebcentral.com/static/images/brand.png", settings)
     {
-        this.downloadClient = new HttpDownloadClient(rateLimitHandler, settings);
+        this.downloadClient = new HttpRequester(rateLimitHandler, settings);
     }
 
     public override AcquisitionKind Kind => AcquisitionKind.ImageList;

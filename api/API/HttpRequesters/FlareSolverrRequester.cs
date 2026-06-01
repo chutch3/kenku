@@ -6,15 +6,15 @@ using log4net;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace API.MangaDownloadClients;
+namespace API.HttpRequesters;
 
-public class FlareSolverrDownloadClient(HttpClient client, KenkuSettings settings) : IDownloadClient
+public class FlareSolverrRequester(HttpClient client, KenkuSettings settings) : IHttpRequester
 {
-    private ILog Log { get; } = LogManager.GetLogger(typeof(FlareSolverrDownloadClient));
+    private ILog Log { get; } = LogManager.GetLogger(typeof(FlareSolverrRequester));
 
     public async Task<HttpResponseMessage> MakeRequest(string url, RequestType requestType, string? referrer = null, CancellationToken? cancellationToken = null)
     {
-        Log.DebugFormat("Using {0} for {1}", typeof(FlareSolverrDownloadClient).FullName, url);
+        Log.DebugFormat("Using {0} for {1}", typeof(FlareSolverrRequester).FullName, url);
         if(referrer is not null)
             Log.Warn("Client can not set referrer");
         if (settings.FlareSolverrUrl == string.Empty)

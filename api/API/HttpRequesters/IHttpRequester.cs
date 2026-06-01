@@ -1,6 +1,6 @@
-﻿namespace API.MangaDownloadClients;
+﻿namespace API.HttpRequesters;
 
-public interface IDownloadClient
+public interface IHttpRequester
 {
     internal Task<HttpResponseMessage> MakeRequest(string url, RequestType requestType, string? referrer = null,
         CancellationToken? cancellationToken = null);

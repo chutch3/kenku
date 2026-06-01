@@ -1,7 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 using System.Web;
 using API.Exceptions;
-using API.MangaDownloadClients;
+using API.HttpRequesters;
 using API.Schema.SeriesContext;
 using Newtonsoft.Json.Linq;
 
@@ -19,7 +19,7 @@ public class MangaDex : SeriesSource
         ["mangadex.org"],
         "https://mangadex.org/favicon.ico", settings)
     {
-        this.downloadClient = new HttpDownloadClient(rateLimitHandler, settings);
+        this.downloadClient = new HttpRequester(rateLimitHandler, settings);
     }
 
     private const int Limit = 100;
