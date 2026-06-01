@@ -72,8 +72,9 @@ const series = ref<components['schemas']['Series'] | null>(null);
 
 if (process.client) {
     const fetcher = isSearchResult
-        ? useApi('/v2/Search/{MangaConnectorName}/Series/{ConnectorMangaId}', {
-              path: { MangaConnectorName: connectorName!, ConnectorMangaId: connectorMangaId! },
+        ? useApi('/v2/Search/{MangaConnectorName}/Series', {
+              path: { MangaConnectorName: connectorName! },
+              query: { ConnectorSeriesId: connectorMangaId! },
               key: FetchKeys.Series.Id(mangaId),
               onResponseError: (e) => {
                   console.error(e);
