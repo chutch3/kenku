@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using API.Acquirers;
 using API.MangaConnectors;
 using API.Services;
+using API.Workers.MaintenanceWorkers;
 using API.Schema.ActionsContext;
 using API.Schema.ActionsContext.Actions;
 using API.Schema.SeriesContext;
@@ -129,10 +130,29 @@ public class DownloadChapterFromSourceWorker(
             return []; // Fail early!
         }
 
+        BaseWorker[] bundleWorkers = await GetReadyVolumeBundleWorkers(chapter.ParentManga);
+
         bool refreshLibrary = await CheckLibraryRefresh();
         if (refreshLibrary)
             Log.Info($"Condition {settings.LibraryRefreshSetting} met.");
-        return refreshLibrary ? [new RefreshLibrariesWorker()] : [];
+        return refreshLibrary ? [.. bundleWorkers, new RefreshLibrariesWorker()] : bundleWorkers;
+    }
+
+    /// <summary>
+    /// Under VolumeCBZ, queue a bundle for any volume that just became closed-and-complete (see
+    /// <see cref="VolumeBundlePolicy"/>). Volume-less and trailing/in-progress volumes are skipped,
+    /// so this no-ops for other layouts and for series that are still mid-volume.
+    /// </summary>
+    private async Task<BaseWorker[]> GetReadyVolumeBundleWorkers(Series manga)
+    {
+        if (manga.LibraryLayout != LibraryLayout.VolumeCBZ)
+            return [];
+
+        await SeriesContext.Entry(manga).Collection(m => m.Chapters).LoadAsync(CancellationToken);
+
+        return VolumeBundlePolicy.VolumesReadyToBundle(manga)
+            .Select(volume => (BaseWorker)new BundleVolumeWorker(manga.Key, volume, settings))
+            .ToArray();
     }
 
     private async Task EnsureCoverInPublicationFolder(Series manga, SeriesSource seriesSource, SourceId<Series> mangaConnectorId, string publicationFolder)

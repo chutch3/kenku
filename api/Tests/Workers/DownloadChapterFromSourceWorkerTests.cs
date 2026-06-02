@@ -1,7 +1,9 @@
 using API.MangaConnectors;
 using API.HttpRequesters;
 using API.Schema.SeriesContext;
+using API.Workers;
 using API.Workers.MangaDownloadWorkers;
+using API.Workers.MaintenanceWorkers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -211,6 +213,66 @@ public class DownloadChapterFromSourceWorkerTests
             Assert.True(updated.Downloaded, "Chapter should be marked downloaded.");
             Assert.Equal(expectedRelative, updated.FileName);
             Assert.True(File.Exists(expectedFullPath), $"Expected chapter archive at {expectedFullPath}");
+        }
+        finally
+        {
+            try { Directory.Delete(tempRoot, recursive: true); } catch { /* best effort */ }
+        }
+    }
+
+    [Fact]
+    public async Task DoWorkInternal_VolumeCBZ_WhenClosedVolumeCompletes_QueuesBundleWorker()
+    {
+        string tempRoot = Path.Combine(Path.GetTempPath(), "kenku-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempRoot);
+        try
+        {
+            var settings = new KenkuSettings { AppData = tempRoot, ImageCompression = 100 };
+            var libraryPath = Path.Combine(tempRoot, "library");
+            Directory.CreateDirectory(libraryPath);
+
+            var options = new DbContextOptionsBuilder<SeriesContext>()
+                .UseInMemoryDatabase("DownloadWorkerBundle-" + Guid.NewGuid().ToString("N"))
+                .Options;
+            using var context = new SeriesContext(options);
+
+            var library = new FileLibrary(libraryPath, "Test Lib");
+            context.FileLibraries.Add(library);
+            var manga = new Series("Test Series", "Desc", "http://cover.com/c.jpg", SeriesReleaseStatus.Continuing,
+                new List<Author>(), new List<SeriesTag>(), new List<Link>(), new List<AltTitle>(),
+                library, 0f, 2024, "en");
+            manga.LibraryLayout = LibraryLayout.VolumeCBZ;
+            context.Series.Add(manga);
+
+            // Volume 1: one chapter already downloaded, the other is the one we download now.
+            var ch1 = new Chapter(manga, "1", 1, null) { Downloaded = true, FileName = "Vol 1/ch1.cbz" };
+            var ch2 = new Chapter(manga, "2", 1, null);
+            // Volume 2 exists (not downloaded) → volume 1 is "closed".
+            var ch3 = new Chapter(manga, "3", 2, null);
+            context.Chapters.AddRange(ch1, ch2, ch3);
+            var connectorId = new SourceId<Chapter>(ch2, "MockConnector", "site2", "url2", true);
+            context.MangaConnectorToChapter.Add(connectorId);
+            await context.SaveChangesAsync();
+
+            var mockConnector = new Mock<SeriesSource>("MockConnector", new[] { "en" }, new[] { "mock.com" }, "icon", settings);
+            mockConnector.Setup(c => c.GetChapterImageUrls(It.IsAny<SourceId<Chapter>>()))
+                .ReturnsAsync(["http://img/1.jpg"]);
+            mockConnector.Setup(c => c.DownloadImage(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => new MemoryStream(CreateJpegBytes()));
+
+            var services = new ServiceCollection();
+            services.AddSingleton(context);
+            services.AddDbContext<API.Schema.ActionsContext.ActionsContext>(o => o.UseInMemoryDatabase("Actions-" + Guid.NewGuid().ToString("N")));
+            services.AddDbContext<API.Schema.NotificationsContext.NotificationsContext>(o => o.UseInMemoryDatabase("Notifications-" + Guid.NewGuid().ToString("N")));
+            var serviceProvider = services.BuildServiceProvider();
+
+            var worker = new DownloadChapterFromSourceWorker(connectorId, new[] { mockConnector.Object }, settings);
+            BaseWorker[] created = await worker.DoWork(serviceProvider.CreateScope());
+
+            var bundle = created.OfType<BundleVolumeWorker>().FirstOrDefault();
+            Assert.NotNull(bundle);
+            Assert.Equal(manga.Key, bundle!.MangaId);
+            Assert.Equal(1, bundle.VolumeNumber);
         }
         finally
         {

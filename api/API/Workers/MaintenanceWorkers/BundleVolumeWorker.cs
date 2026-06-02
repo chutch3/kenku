@@ -10,6 +10,11 @@ namespace API.Workers.MaintenanceWorkers;
 public class BundleVolumeWorker(string mangaId, int volumeNumber, KenkuSettings settings, IEnumerable<BaseWorker>? dependsOn = null)
     : BaseWorkerWithContexts(dependsOn)
 {
+    /// <summary><see cref="Series"/>.Key of the manga whose volume is being bundled.</summary>
+    public string MangaId => mangaId;
+    /// <summary>The volume number being bundled into a single .cbz.</summary>
+    public int VolumeNumber => volumeNumber;
+
     private SeriesContext _mangaContext = null!;
 
     protected override void SetContexts(IServiceScope serviceScope)
