@@ -63,4 +63,50 @@ public class WeebCentralTests
         Assert.Equal(expectedVolume, chapters[0].Item1.VolumeNumber);
         Assert.Equal(expectedChapter, chapters[0].Item1.ChapterNumber);
     }
+
+    [Fact]
+    public async Task GetChapterImageUrls_RequestsImagesPartial_AndExtractsPageImages()
+    {
+        // WeebCentral defers chapter images to the /chapters/{id}/images HTMX partial; scraping the
+        // bare chapter page yields no <img> tags (the empty-stub bug). This runs the real parser
+        // against fixture HTML and asserts both the URL and the extraction.
+        var imagesPartial = """
+        <section>
+            <img alt="Page 1" src="https://cdn.example/manga/0001.png" />
+            <img alt="Page 2" src="https://cdn.example/manga/0002.png" />
+            <img alt="Cover" src="https://cdn.example/cover.jpg" />
+        </section>
+        """;
+
+        string? requestedUrl = null;
+        var mockClient = new Mock<IHttpRequester>();
+        mockClient
+            .Setup(c => c.MakeRequest(It.IsAny<string>(), It.IsAny<RequestType>(), It.IsAny<string>(), It.IsAny<CancellationToken?>()))
+            .Callback<string, RequestType, string?, CancellationToken?>((url, _, _, _) => requestedUrl = url)
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(imagesPartial, Encoding.UTF8, "text/html")
+            });
+
+        var settings = CreateSettings();
+        var weebCentral = new WeebCentral(settings, CreateRateLimitHandler())
+        {
+            downloadClient = mockClient.Object
+        };
+
+        var manga = new Series("Test Series", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], []);
+        var chapter = new Chapter(manga, "1", null, "Title");
+        var chapterId = new SourceId<Chapter>(chapter, weebCentral, "chap-1", "https://weebcentral.com/chapters/chap-1", true);
+
+        var imageUrls = await weebCentral.GetChapterImageUrls(chapterId);
+
+        // Only the alt="Page N" images are extracted (not the cover).
+        Assert.Equal(2, imageUrls.Length);
+        Assert.Equal("https://cdn.example/manga/0001.png", imageUrls[0]);
+        Assert.Equal("https://cdn.example/manga/0002.png", imageUrls[1]);
+
+        // The request must target the images partial, not the bare chapter page.
+        Assert.NotNull(requestedUrl);
+        Assert.Contains("/chapters/chap-1/images", requestedUrl!);
+    }
 }
