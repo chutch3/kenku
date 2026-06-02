@@ -2,6 +2,7 @@ using API;
 using API.Controllers;
 using API.Controllers.DTOs;
 using API.Schema.SeriesContext;
+using API.Services;
 using API.Workers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -73,6 +74,40 @@ public class VolumeControllerTests : IDisposable
         var result = await controller.GetVolumes("nonexistent-id");
 
         Assert.IsType<NotFound<string>>(result.Result);
+    }
+
+    [Fact]
+    public async Task GetVolumes_SurfacesBundleStateAndDownloadedCountPerVolume()
+    {
+        using var ctx = CreateContext();
+        var library = MakeLibrary();
+        ctx.FileLibraries.Add(library);
+        var manga = MakeTestManga("One Piece", library);
+        manga.LibraryLayout = LibraryLayout.VolumeCBZ;
+        ctx.Series.Add(manga);
+
+        var scheme = new KenkuSettings().ChapterNamingScheme;
+        var c1 = new SchemaChapter(manga, "1", 1) { Downloaded = true };
+        c1.FileName = c1.GetArchiveFileName(scheme);
+        var c2 = new SchemaChapter(manga, "2", 1) { Downloaded = true };
+        c2.FileName = c2.GetArchiveFileName(scheme);
+        // Volume 2 exists but is incomplete → volume 1 is closed (ready), volume 2 is incomplete.
+        var c3 = new SchemaChapter(manga, "3", 2) { Downloaded = false };
+        ctx.Chapters.AddRange(c1, c2, c3);
+        await ctx.SaveChangesAsync();
+
+        var (controller, _) = CreateController(ctx);
+        var result = await controller.GetVolumes(manga.Key);
+
+        var ok = Assert.IsType<Ok<VolumeListResult>>(result.Result);
+        var v1 = ok.Value!.Volumes.Single(v => v.VolumeNumber == 1);
+        Assert.Equal(VolumeBundleState.ReadyToBundle, v1.BundleState);
+        Assert.Equal(2, v1.DownloadedChapterCount);
+        Assert.False(string.IsNullOrWhiteSpace(v1.BundleReason));
+
+        var v2 = ok.Value.Volumes.Single(v => v.VolumeNumber == 2);
+        Assert.Equal(VolumeBundleState.Incomplete, v2.BundleState);
+        Assert.Equal(0, v2.DownloadedChapterCount);
     }
 
     [Fact]

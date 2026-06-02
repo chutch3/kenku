@@ -102,4 +102,58 @@ public class VolumeBundlePolicyTests
 
         Assert.Equal(new[] { 1 }, VolumeBundlePolicy.VolumesReadyToBundle(manga));
     }
+
+    // ── Classify: per-volume state + reason surfaced to the UI ──────────────────
+
+    [Fact]
+    public void Classify_ReportsStateAndCountsPerVolume()
+    {
+        var manga = MakeManga(LibraryLayout.VolumeCBZ);
+        AddChapter(manga, "1", 1, downloaded: true);
+        AddChapter(manga, "2", 1, downloaded: true);   // vol 1 complete + closed → ready
+        AddChapter(manga, "3", 2, downloaded: true);
+        AddChapter(manga, "4", 2, downloaded: false);  // vol 2 incomplete (and trailing)
+
+        var report = VolumeBundlePolicy.Classify(manga);
+
+        var v1 = report.Single(v => v.VolumeNumber == 1);
+        Assert.Equal(VolumeBundleState.ReadyToBundle, v1.State);
+        Assert.Equal(2, v1.TotalChapters);
+        Assert.Equal(2, v1.DownloadedChapters);
+
+        var v2 = report.Single(v => v.VolumeNumber == 2);
+        Assert.Equal(VolumeBundleState.Incomplete, v2.State);
+        Assert.Equal(2, v2.TotalChapters);
+        Assert.Equal(1, v2.DownloadedChapters);
+        Assert.False(string.IsNullOrWhiteSpace(v2.Reason));
+    }
+
+    [Fact]
+    public void Classify_TrailingCompleteVolume_IsPendingNewerVolume()
+    {
+        var manga = MakeManga(LibraryLayout.VolumeCBZ);
+        AddChapter(manga, "1", 1, downloaded: true); // only volume, complete → not yet eligible
+
+        Assert.Equal(VolumeBundleState.PendingNewerVolume, VolumeBundlePolicy.Classify(manga).Single().State);
+    }
+
+    [Fact]
+    public void Classify_NonVolumeCBZ_IsNotApplicable()
+    {
+        var manga = MakeManga(LibraryLayout.Flat);
+        AddChapter(manga, "1", 1, downloaded: true);
+
+        Assert.Equal(VolumeBundleState.NotApplicable, VolumeBundlePolicy.Classify(manga).Single().State);
+    }
+
+    [Fact]
+    public void Classify_BundledVolume_IsBundled()
+    {
+        var manga = MakeManga(LibraryLayout.VolumeCBZ);
+        AddChapter(manga, "1", 1, downloaded: true, bundled: true);
+        AddChapter(manga, "2", 2, downloaded: true);
+
+        var v1 = VolumeBundlePolicy.Classify(manga).Single(v => v.VolumeNumber == 1);
+        Assert.Equal(VolumeBundleState.Bundled, v1.State);
+    }
 }

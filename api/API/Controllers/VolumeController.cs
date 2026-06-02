@@ -1,6 +1,7 @@
 using API.Controllers.DTOs;
 using API.Controllers.Requests;
 using API.Schema.SeriesContext;
+using API.Services;
 using API.Workers;
 using API.Workers.MaintenanceWorkers;
 using Asp.Versioning;
@@ -59,6 +60,9 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IWo
             .Where(c => !c.IsBundled && c.FileName != null)
             .Count(c => c.FileName != c.GetArchiveFileName(namingScheme));
 
+        // Per-volume bundling status (state + reason + downloaded count) so a "mixed" library is explainable.
+        var bundleStatusByVolume = VolumeBundlePolicy.Classify(manga).ToDictionary(s => s.VolumeNumber);
+
         // Group chapters by VolumeNumber
         var assignedChapters = manga.Chapters
             .Where(c => c.VolumeNumber.HasValue)
@@ -70,6 +74,7 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IWo
         {
             int volNum = group.Key;
             volumeMetaByNumber.TryGetValue(volNum, out var meta);
+            bundleStatusByVolume.TryGetValue(volNum, out var bundleStatus);
 
             bool isBundled = meta?.ArchiveFileName != null;
             string? archiveFileName = meta?.ArchiveFileName;
@@ -93,7 +98,10 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IWo
                 IsBundled: isBundled,
                 ArchiveFileName: archiveFileName,
                 ChapterCount: chapters.Count,
-                Chapters: chapters
+                Chapters: chapters,
+                DownloadedChapterCount: bundleStatus?.DownloadedChapters ?? group.Count(c => c.Downloaded),
+                BundleState: bundleStatus?.State ?? VolumeBundleState.NotApplicable,
+                BundleReason: bundleStatus?.Reason ?? string.Empty
             );
         }).ToList();
 
