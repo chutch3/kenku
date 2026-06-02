@@ -2,6 +2,20 @@
 
 <!-- version list -->
 
+## v0.1.3 (2026-06-02)
+
+### Bug Fixes
+
+- Fetch WeebCentral chapter images from the images partial
+  ([`d9cd2e9`](https://github.com/chutch3/kenku/commit/d9cd2e972dd87379b553dac59e09b366bfc6aec6))
+
+- Prevent orphaned-file cleanup from deleting untracked libraries
+  ([`0c79340`](https://github.com/chutch3/kenku/commit/0c79340d20951c43348970f1adf267b52960cd63))
+
+- Skip writing an empty cbz when a chapter has no images
+  ([`e4b7d1e`](https://github.com/chutch3/kenku/commit/e4b7d1e01c7de2241467483c327d1d8fb9315e32))
+
+
 ## v0.1.2 (2026-06-01)
 
 ### Bug Fixes
