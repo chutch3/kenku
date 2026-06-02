@@ -113,6 +113,45 @@ public class CleanupOrphanedFilesWorkerTests : IDisposable
     }
 
     [Fact]
+    public async Task DoWork_WhenLibraryHasFilesButNothingTracked_SkipsDeletion()
+    {
+        // A library full of archives with ZERO tracked chapters is the classic "library path wrong /
+        // series not imported / DB reset" case — the worker must refuse to wipe it without force.
+        var library = new FileLibrary(_testRoot, "Untracked Library");
+        _mangaContext.FileLibraries.Add(library);
+        await _mangaContext.SaveChangesAsync(); // deliberately no chapters tracked
+
+        string a = Path.Combine(_testRoot, "a.cbz");
+        string b = Path.Combine(_testRoot, "b.cbz");
+        string c = Path.Combine(_testRoot, "c.cbz");
+        File.WriteAllText(a, "1");
+        File.WriteAllText(b, "2");
+        File.WriteAllText(c, "3");
+
+        var worker = new CleanupOrphanedFilesWorker(dryRun: false, force: false);
+        await worker.DoWork(_mockScope.Object);
+
+        Assert.True(File.Exists(a) && File.Exists(b) && File.Exists(c),
+            "An untracked library must not be wiped without force.");
+    }
+
+    [Fact]
+    public async Task DoWork_WhenForced_DeletesUntrackedLibraryFiles()
+    {
+        var library = new FileLibrary(_testRoot, "Untracked Library");
+        _mangaContext.FileLibraries.Add(library);
+        await _mangaContext.SaveChangesAsync();
+
+        string orphan = Path.Combine(_testRoot, "a.cbz");
+        File.WriteAllText(orphan, "1");
+
+        var worker = new CleanupOrphanedFilesWorker(dryRun: false, force: true);
+        await worker.DoWork(_mockScope.Object);
+
+        Assert.False(File.Exists(orphan), "force=true should override the guard and delete orphans.");
+    }
+
+    [Fact]
     public void Worker_IsPeriodicWithCorrectInterval()
     {
         var worker = new CleanupOrphanedFilesWorker();
