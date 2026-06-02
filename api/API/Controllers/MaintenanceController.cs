@@ -60,12 +60,14 @@ public class MaintenanceController(SeriesContext mangaContext, ActionsContext ac
     /// </summary>
     /// <param name="workerQueue"></param>
     /// <param name="dryRun">If true, only log what would be deleted without actually deleting it.</param>
+    /// <param name="force">If true, bypass the safety guards that skip wiping an untracked library or
+    /// deleting a majority of a library's archives. Use only for a deliberate bulk cleanup.</param>
     /// <response code="202">Cleanup worker queued</response>
     [HttpPost("CleanupOrphanedFiles")]
     [ProducesResponseType(Status202Accepted)]
-    public Ok CleanupOrphanedFiles([FromServices] IWorkerQueue workerQueue, bool dryRun = false)
+    public Ok CleanupOrphanedFiles([FromServices] IWorkerQueue workerQueue, bool dryRun = false, bool force = false)
     {
-        workerQueue.AddWorker(new CleanupOrphanedFilesWorker(dryRun));
+        workerQueue.AddWorker(new CleanupOrphanedFilesWorker(dryRun, force));
         return TypedResults.Ok();
     }
 

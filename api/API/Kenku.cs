@@ -70,7 +70,9 @@ public class Kenku
         _workerQueue.AddWorker(GetWorker<StartNewChapterDownloadsWorker>());
         _workerQueue.AddWorker(GetWorker<RemoveOldNotificationsWorker>());
         _workerQueue.AddWorker(GetWorker<UpdateCoversWorker>());
-        _workerQueue.AddWorker(GetWorker<CleanupOrphanedFilesWorker>());
+        // Orphaned-file cleanup is destructive, so the scheduled run is report-only (dry-run).
+        // Actual deletion must be requested explicitly via POST /v2/Maintenance/CleanupOrphanedFiles.
+        _workerQueue.AddWorker(new CleanupOrphanedFilesWorker(dryRun: true));
         _workerQueue.AddWorker(GetWorker<ResolveMissingVolumesWorker>());
         _workerQueue.AddWorker(GetWorker<SyncChapterFileNamesWorker>());
 
