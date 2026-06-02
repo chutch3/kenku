@@ -76,19 +76,26 @@ public class VolumeControllerBundleTests : IDisposable
     }
 
     [Fact]
-    public async Task PostBundle_WhenVolumeMetadataNotFound_Returns404()
+    public async Task PostBundle_WhenVolumeMetadataMissingButChaptersExist_Returns202()
     {
+        // VolumeMetadata is derived by the worker, so a missing row is NOT a 404 — bundling proceeds
+        // as long as there are unbundled chapters with files for the volume.
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
         var manga = MakeManga("Test Series", library);
         ctx.Series.Add(manga);
+        // Deliberately no VolumeMetadata row.
+        var ch = new SchemaChapter(manga, "1", 1) { Downloaded = true, FileName = "ch1.cbz" };
+        ctx.Chapters.Add(ch);
         await ctx.SaveChangesAsync();
 
-        var (controller, _) = CreateController(ctx);
-        var result = await controller.PostBundle(manga.Key, 99);
+        var (controller, workerQueueMock) = CreateController(ctx);
+        var result = await controller.PostBundle(manga.Key, 1);
 
-        Assert.IsType<NotFound<string>>(result.Result);
+        var accepted = Assert.IsType<Accepted<BundleJobResult>>(result.Result);
+        Assert.NotEmpty(accepted.Value!.JobId);
+        workerQueueMock.Verify(q => q.AddWorker(It.IsAny<BaseWorker>()), Times.Once);
     }
 
     [Fact]

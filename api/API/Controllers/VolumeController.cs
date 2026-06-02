@@ -318,11 +318,8 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IWo
         if (manga is null)
             return TypedResults.NotFound(nameof(MangaId));
 
-        var volumeMetadata = await context.VolumeMetadata
-            .FirstOrDefaultAsync(v => v.MangaId == MangaId && v.VolumeNumber == VolumeNumber, HttpContext.RequestAborted);
-        if (volumeMetadata is null)
-            return TypedResults.NotFound(nameof(VolumeNumber));
-
+        // VolumeMetadata is derived on demand by BundleVolumeWorker, so its absence is not a 404 —
+        // what matters is whether there are unbundled chapters with files to bundle.
         bool hasUnbundledChapters = await context.Chapters
             .AnyAsync(c => c.ParentMangaId == MangaId
                            && c.VolumeNumber == VolumeNumber
