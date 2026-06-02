@@ -2,6 +2,28 @@
 
 <!-- version list -->
 
+## v0.2.0 (2026-06-02)
+
+### Features
+
+- Add library layout picker to the series download panel
+  ([`bb35bb6`](https://github.com/chutch3/kenku/commit/bb35bb65e2df4dca427e60bbbbcec42223431200))
+
+- Auto-bundle closed volumes under the VolumeCBZ layout
+  ([`8a10214`](https://github.com/chutch3/kenku/commit/8a10214d69de19955dd609661745242bf1d9407b))
+
+- Place downloaded chapters according to the series library layout
+  ([`41e47d8`](https://github.com/chutch3/kenku/commit/41e47d83998e871fcb6b256de93bc02c0a4e1914))
+
+- Surface per-volume bundle state and progress in the volumes API
+  ([`4f909c8`](https://github.com/chutch3/kenku/commit/4f909c8bac8536240419a1efb63195dd3e41ab13))
+
+### Refactoring
+
+- Extract library layout path logic into LibraryLayoutResolver
+  ([`0438043`](https://github.com/chutch3/kenku/commit/0438043b82fb978b2ed1371614395a69f8d4f1f1))
+
+
 ## v0.1.3 (2026-06-02)
 
 ### Bug Fixes
