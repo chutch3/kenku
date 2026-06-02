@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.2.3 (2026-06-02)
+
+### Bug Fixes
+
+- Derive volume metadata on demand in the bundle endpoint
+  ([`4429b9b`](https://github.com/chutch3/kenku/commit/4429b9b2d7ab6d10c2ab3ca0dd76eeb389ee38c9))
+
+
 ## v0.2.2 (2026-06-02)
 
 ### Bug Fixes
