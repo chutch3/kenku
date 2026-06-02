@@ -279,4 +279,75 @@ public class DownloadChapterFromSourceWorkerTests
             try { Directory.Delete(tempRoot, recursive: true); } catch { /* best effort */ }
         }
     }
+
+    // Regression for the production "Failed to finalise … ArgumentNullException (source)" bug: the
+    // worker's query must eager-load Series.SourceIds. Seeding and running in SEPARATE contexts forces
+    // navigations to come from the query's Includes (not in-memory references), so a missing Include
+    // surfaces as a null navigation here exactly as it does under Postgres.
+    [Fact]
+    public async Task DoWorkInternal_LoadsSeriesSourceIds_WritesCoverAndReachesBundleStep()
+    {
+        string tempRoot = Path.Combine(Path.GetTempPath(), "kenku-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempRoot);
+        try
+        {
+            var settings = new KenkuSettings { AppData = tempRoot, ImageCompression = 100 };
+            var libraryPath = Path.Combine(tempRoot, "library");
+            Directory.CreateDirectory(libraryPath);
+            Directory.CreateDirectory(settings.CoverImageCacheOriginal);
+            await File.WriteAllBytesAsync(Path.Combine(settings.CoverImageCacheOriginal, "cover.jpg"), CreateJpegBytes());
+
+            var options = new DbContextOptionsBuilder<SeriesContext>()
+                .UseInMemoryDatabase("DownloadWorkerInclude-" + Guid.NewGuid().ToString("N"))
+                .Options;
+
+            SourceId<Chapter> connectorId;
+            string mangaDir;
+            using (var seedCtx = new SeriesContext(options))
+            {
+                var library = new FileLibrary(libraryPath, "Test Lib");
+                seedCtx.FileLibraries.Add(library);
+                var manga = new Series("Test Series", "Desc", "http://cover.com/c.jpg", SeriesReleaseStatus.Continuing,
+                    new List<Author>(), new List<SeriesTag>(), new List<Link>(), new List<AltTitle>(),
+                    library, 0f, 2024, "en");
+                manga.LibraryLayout = LibraryLayout.VolumeCBZ;
+                manga.CoverFileNameInCache = "cover.jpg";
+                seedCtx.Series.Add(manga);
+                seedCtx.Set<SourceId<Series>>().Add(new SourceId<Series>(manga, "MockConnector", "series1", "https://x/series1", true));
+
+                var ch1 = new Chapter(manga, "1", 1, null) { Downloaded = true, FileName = "Vol 1/ch1.cbz" };
+                var ch2 = new Chapter(manga, "2", 1, null);
+                var ch3 = new Chapter(manga, "3", 2, null); // vol 2 exists → vol 1 is closed
+                seedCtx.Chapters.AddRange(ch1, ch2, ch3);
+                connectorId = new SourceId<Chapter>(ch2, "MockConnector", "site2", "url2", true);
+                seedCtx.MangaConnectorToChapter.Add(connectorId);
+                await seedCtx.SaveChangesAsync();
+                mangaDir = manga.FullDirectoryPath;
+            }
+
+            var mockConnector = new Mock<SeriesSource>("MockConnector", new[] { "en" }, new[] { "mock.com" }, "icon", settings);
+            mockConnector.Setup(c => c.GetChapterImageUrls(It.IsAny<SourceId<Chapter>>()))
+                .ReturnsAsync(["http://img/1.jpg"]);
+            mockConnector.Setup(c => c.DownloadImage(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => new MemoryStream(CreateJpegBytes()));
+
+            using var runCtx = new SeriesContext(options);
+            var services = new ServiceCollection();
+            services.AddSingleton(runCtx);
+            services.AddDbContext<API.Schema.ActionsContext.ActionsContext>(o => o.UseInMemoryDatabase("Actions-" + Guid.NewGuid().ToString("N")));
+            services.AddDbContext<API.Schema.NotificationsContext.NotificationsContext>(o => o.UseInMemoryDatabase("Notifications-" + Guid.NewGuid().ToString("N")));
+            var serviceProvider = services.BuildServiceProvider();
+
+            var worker = new DownloadChapterFromSourceWorker(connectorId, new[] { mockConnector.Object }, settings);
+            BaseWorker[] created = await worker.DoWork(serviceProvider.CreateScope());
+
+            // Both require the SourceIds-dependent cover step to run without throwing.
+            Assert.True(File.Exists(Path.Combine(mangaDir, "Vol 1", "cover.jpg")), "cover.jpg should be written into the volume folder");
+            Assert.Contains(created.OfType<BundleVolumeWorker>(), b => b.VolumeNumber == 1);
+        }
+        finally
+        {
+            try { Directory.Delete(tempRoot, recursive: true); } catch { /* best effort */ }
+        }
+    }
 }

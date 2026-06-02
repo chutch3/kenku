@@ -49,6 +49,9 @@ public class DownloadChapterFromSourceWorker(
                 .Include(id => id.Obj)
                 .ThenInclude(c => c.ParentManga)
                 .ThenInclude(m => m.Library)
+                .Include(id => id.Obj)
+                .ThenInclude(c => c.ParentManga)
+                .ThenInclude(m => m.SourceIds) // cover propagation reads ParentManga.SourceIds — must be loaded
                 .FirstOrDefaultAsync(c => c.Key == ChapterIdId, CancellationToken) is not { } mangaConnectorId)
         {
             Log.Error("Could not get SourceId.");
