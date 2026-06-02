@@ -32,11 +32,25 @@ public class ImageListAcquirer(KenkuSettings settings) : IChapterAcquirer
         try
         {
             string[] imageUrls = await source.GetChapterImageUrls(chapter);
+            if (imageUrls.Length == 0)
+            {
+                // No pages resolved (e.g. connector returned nothing). Fail instead of writing an
+                // empty .cbz that would be marked Downloaded and never retried.
+                Log.Warn($"No image URLs for chapter {chapter.Obj}; not writing an archive.");
+                return null;
+            }
+
             foreach (string imageUrl in imageUrls)
             {
                 Stream? imageStream = await source.DownloadImage(imageUrl, ct);
                 if (imageStream is not null)
                     images.Add(await ProcessImage(imageStream, ct));
+            }
+
+            if (images.Count == 0)
+            {
+                Log.Warn($"None of the {imageUrls.Length} page image(s) for chapter {chapter.Obj} could be downloaded; not writing an archive.");
+                return null;
             }
 
             Log.Debug($"Images downloaded for chapter {chapter.Obj}. Packaging...");
