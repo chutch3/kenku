@@ -29,13 +29,25 @@ public class BundleVolumeWorker(string mangaId, int volumeNumber, KenkuSettings 
             .ThenInclude(m => m.Library)
             .FirstOrDefaultAsync(v => v.MangaId == mangaId && v.VolumeNumber == volumeNumber, CancellationToken);
 
+        Series manga;
         if (volumeMetadata is null)
         {
-            Log.Warn($"VolumeMetadata not found for manga {mangaId} volume {volumeNumber}");
-            return [];
+            // VolumeMetadata is a projection of Chapter.VolumeNumber; nothing creates it up front, so
+            // derive it on demand from the manga. ArchiveFileName is filled in once the bundle is written.
+            if (await _mangaContext.Series.Include(m => m.Library)
+                    .FirstOrDefaultAsync(m => m.Key == mangaId, CancellationToken) is not { } series)
+            {
+                Log.Warn($"Series not found for manga {mangaId}");
+                return [];
+            }
+            manga = series;
+            volumeMetadata = new VolumeMetadata(manga, volumeNumber);
+            _mangaContext.VolumeMetadata.Add(volumeMetadata);
         }
-
-        var manga = volumeMetadata.Series;
+        else
+        {
+            manga = volumeMetadata.Series;
+        }
 
         var chapters = await _mangaContext.Chapters
             .Where(c => c.ParentMangaId == mangaId

@@ -111,6 +111,41 @@ public class BundleVolumeWorkerTests : IDisposable
     }
 
     [Fact]
+    public async Task DoWork_WhenNoVolumeMetadataExists_DerivesItFromChaptersAndBundles()
+    {
+        // VolumeMetadata is a projection of Chapter.VolumeNumber that NOTHING creates up front in
+        // production (it was empty for every real series). Bundling must work from the chapter truth
+        // alone. This test deliberately does NOT seed a VolumeMetadata row — the gap the old tests hid.
+        var library = new FileLibrary(_testRoot, "Test Library");
+        _mangaContext.FileLibraries.Add(library);
+        var manga = new Series("Test Series", "Desc", "http://example.com/cover.jpg",
+            SeriesReleaseStatus.Continuing, [], [], [], [], library);
+        _mangaContext.Series.Add(manga);
+
+        string mangaDir = Path.Combine(_testRoot, manga.DirectoryName);
+        Directory.CreateDirectory(mangaDir);
+        for (int i = 1; i <= 2; i++)
+        {
+            var chapter = new Chapter(manga, i.ToString(), 1) { Downloaded = true, FileName = $"ch{i}.cbz" };
+            _mangaContext.Chapters.Add(chapter);
+            File.WriteAllBytes(Path.Combine(mangaDir, $"ch{i}.cbz"), CreateFakeCbz(3, $"p{i}"));
+        }
+        // No VolumeMetadata row on purpose.
+        await _mangaContext.SaveChangesAsync();
+
+        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
+        var worker = new BundleVolumeWorker(manga.Key, 1, settings);
+        await worker.DoWork(_mockScope.Object);
+
+        string expectedPath = Path.Combine(mangaDir, "Vol 1.cbz");
+        Assert.True(File.Exists(expectedPath), $"Bundle CBZ should exist at {expectedPath}");
+
+        var vol = await _mangaContext.VolumeMetadata.FirstOrDefaultAsync(v => v.MangaId == manga.Key && v.VolumeNumber == 1);
+        Assert.NotNull(vol);
+        Assert.Equal("Vol 1.cbz", vol!.ArchiveFileName);
+    }
+
+    [Fact]
     public async Task DoWork_WhenNoUnbundledChapters_ReturnsEmpty()
     {
         var (manga, vol, _) = await SetupAsync();
