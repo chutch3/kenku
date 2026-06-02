@@ -75,6 +75,9 @@ public class Kenku
         _workerQueue.AddWorker(new CleanupOrphanedFilesWorker(dryRun: true));
         _workerQueue.AddWorker(GetWorker<ResolveMissingVolumesWorker>());
         _workerQueue.AddWorker(GetWorker<SyncChapterFileNamesWorker>());
+        // Level-triggered bundling: bundles ready VolumeCBZ volumes even when no download just
+        // completed (restart, churn settled, re-recognized chapters). See #22.
+        _workerQueue.AddWorker(new EnsureReadyVolumesBundledWorker(_workerQueue, _settings));
 
         // Torrent completion worker is registered only when the torrent path is configured;
         // skip silently if absent so deployments without Prowlarr+qBittorrent are unaffected.
