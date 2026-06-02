@@ -1,7 +1,10 @@
 <template>
     <SeriesDetailPage :series="series">
         <div class="grid gap-3 max-xl:grid-flow-row-dense min-2xl:grid-cols-[70%_auto] min-xl:grid-cols-[60%_auto] relative min-xl:h-full">
-            <ChaptersList v-if="!isSearchResult || (series && series.fileLibraryId)" :manga-id="mangaId" class="min-xl:h-full min-xl:overflow-y-scroll" />
+            <ChaptersList
+                v-if="!isSearchResult || (series && series.fileLibraryId)"
+                :manga-id="mangaId"
+                class="min-xl:h-full min-xl:overflow-y-scroll" />
             <div class="flex flex-col gap-2">
                 <UCard :class="[flashDownloading ? 'animate-[flash_0.75s_ease_0.5s]' : '']">
                     <template #header>
@@ -12,7 +15,14 @@
                         :library-id="series?.fileLibraryId"
                         class="w-full"
                         @library-changed="refreshNuxtData(FetchKeys.Series.Id(mangaId))" />
-                    <div v-if="series && (!isSearchResult || series.fileLibraryId)" class="flex flex-row gap-2 w-full flex-wrap my-2 justify-between">
+                    <LibraryLayoutSelect
+                        v-if="series?.fileLibraryId"
+                        :manga-id="mangaId"
+                        class="w-full mt-2"
+                        @layout-changed="refreshNuxtData(FetchKeys.Series.Id(mangaId))" />
+                    <div
+                        v-if="series && (!isSearchResult || series.fileLibraryId)"
+                        class="flex flex-row gap-2 w-full flex-wrap my-2 justify-between">
                         <div
                             v-for="mangaconnectorId in series.sourceIds.sort((a, b) =>
                                 a.mangaConnectorName < b.mangaConnectorName ? -1 : 1
@@ -94,7 +104,13 @@ if (import.meta.client) {
               server: false,
           });
     const { data } = await fetcher;
-    watch(data, (v) => { series.value = v ?? null; }, { immediate: true });
+    watch(
+        data,
+        (v) => {
+            series.value = v ?? null;
+        },
+        { immediate: true }
+    );
 }
 
 const setRequestedFrom = async (MangaConnectorName: string, IsRequested: boolean) => {
