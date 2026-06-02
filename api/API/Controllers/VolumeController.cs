@@ -370,20 +370,13 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IWo
 
     // ─── Private helpers ──────────────────────────────────────────────────────
 
+    // Layout→path logic lives in LibraryLayoutResolver so the downloader and this preview/reorganize
+    // path can never disagree about where a chapter belongs.
     private static string ComputeTargetPath(SchemaManga manga, Schema.SeriesContext.Chapter chapter, KenkuSettings settings)
-    {
-        string fileName = chapter.GetArchiveFileName(settings.ChapterNamingScheme);
-        return manga.LibraryLayout switch
-        {
-            LibraryLayout.Flat => Path.Join(manga.FullDirectoryPath, fileName),
-            LibraryLayout.VolumeFolder when chapter.VolumeNumber is not null =>
-                Path.Join(manga.FullDirectoryPath, $"Vol {chapter.VolumeNumber}", fileName),
-            LibraryLayout.VolumeFolder => Path.Join(manga.FullDirectoryPath, fileName), // null VolumeNumber stays flat
-            LibraryLayout.VolumeCBZ when chapter.VolumeNumber is not null =>
-                Path.Join(manga.FullDirectoryPath, $"Vol {chapter.VolumeNumber}", fileName), // unbundled chapters use VolumeFolder-like path
-            _ => Path.Join(manga.FullDirectoryPath, fileName)
-        };
-    }
+        => API.Services.LibraryLayoutResolver
+            .ComputePath(manga.LibraryLayout, manga.FullDirectoryPath, chapter.VolumeNumber,
+                chapter.GetArchiveFileName(settings.ChapterNamingScheme))
+            .FullPath;
 
     private ReorganizePreviewResult ComputeReorganizePreview(SchemaManga manga)
     {
