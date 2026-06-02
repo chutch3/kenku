@@ -157,4 +157,64 @@ public class DownloadChapterFromSourceWorkerTests
         var updatedChapter = await context.Chapters.FirstAsync(c => c.Key == chapter.Key);
         Assert.False(updatedChapter.Downloaded, "Chapter should NOT be marked as downloaded after a failure.");
     }
+
+    [Fact]
+    public async Task DoWorkInternal_VolumeFolderLayout_WritesChapterIntoVolumeSubfolder()
+    {
+        string tempRoot = Path.Combine(Path.GetTempPath(), "kenku-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempRoot);
+        try
+        {
+            var settings = new KenkuSettings { AppData = tempRoot, ImageCompression = 100 }; // 100 => no re-encode
+            var libraryPath = Path.Combine(tempRoot, "library");
+            Directory.CreateDirectory(libraryPath);
+
+            var options = new DbContextOptionsBuilder<SeriesContext>()
+                .UseInMemoryDatabase("DownloadWorkerLayout-" + Guid.NewGuid().ToString("N"))
+                .Options;
+            using var context = new SeriesContext(options);
+
+            var library = new FileLibrary(libraryPath, "Test Lib");
+            context.FileLibraries.Add(library);
+            var manga = new Series("Test Series", "Desc", "http://cover.com/c.jpg", SeriesReleaseStatus.Continuing,
+                new List<Author>(), new List<SeriesTag>(), new List<Link>(), new List<AltTitle>(),
+                library, 0f, 2024, "en");
+            manga.LibraryLayout = LibraryLayout.VolumeFolder;
+            context.Series.Add(manga);
+
+            var chapter = new Chapter(manga, "1", 5, "Title");
+            context.Chapters.Add(chapter);
+            var connectorId = new SourceId<Chapter>(chapter, "MockConnector", "site1", "url1", true);
+            context.MangaConnectorToChapter.Add(connectorId);
+            await context.SaveChangesAsync();
+
+            var mockConnector = new Mock<SeriesSource>("MockConnector", new[] { "en" }, new[] { "mock.com" }, "icon", settings);
+            mockConnector.Setup(c => c.GetChapterImageUrls(It.IsAny<SourceId<Chapter>>()))
+                .ReturnsAsync(["http://img/1.jpg"]);
+            mockConnector.Setup(c => c.DownloadImage(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => new MemoryStream(CreateJpegBytes()));
+
+            var services = new ServiceCollection();
+            services.AddSingleton(context);
+            services.AddDbContext<API.Schema.ActionsContext.ActionsContext>(o => o.UseInMemoryDatabase("Actions-" + Guid.NewGuid().ToString("N")));
+            services.AddDbContext<API.Schema.NotificationsContext.NotificationsContext>(o => o.UseInMemoryDatabase("Notifications-" + Guid.NewGuid().ToString("N")));
+            var serviceProvider = services.BuildServiceProvider();
+
+            var worker = new DownloadChapterFromSourceWorker(connectorId, new[] { mockConnector.Object }, settings);
+            await worker.DoWork(serviceProvider.CreateScope());
+
+            string expectedFile = chapter.GetArchiveFileName(settings.ChapterNamingScheme);
+            string expectedRelative = Path.Join("Vol 5", expectedFile);
+            string expectedFullPath = Path.Combine(libraryPath, manga.DirectoryName, "Vol 5", expectedFile);
+
+            var updated = await context.Chapters.FirstAsync(c => c.Key == chapter.Key);
+            Assert.True(updated.Downloaded, "Chapter should be marked downloaded.");
+            Assert.Equal(expectedRelative, updated.FileName);
+            Assert.True(File.Exists(expectedFullPath), $"Expected chapter archive at {expectedFullPath}");
+        }
+        finally
+        {
+            try { Directory.Delete(tempRoot, recursive: true); } catch { /* best effort */ }
+        }
+    }
 }

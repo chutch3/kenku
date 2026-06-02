@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using API.Acquirers;
 using API.MangaConnectors;
+using API.Services;
 using API.Schema.ActionsContext;
 using API.Schema.ActionsContext.Actions;
 using API.Schema.SeriesContext;
@@ -20,11 +21,13 @@ public class DownloadChapterFromSourceWorker(
     IEnumerable<SeriesSource> connectors,
     KenkuSettings settings,
     IChapterAcquirer? acquirer = null,
+    ILibraryLayoutResolver? layoutResolver = null,
     IEnumerable<BaseWorker>? dependsOn = null)
     : BaseWorkerWithContexts(dependsOn)
 {
     public readonly string ChapterIdId = chId.Key;
     private readonly IChapterAcquirer _acquirer = acquirer ?? new ImageListAcquirer(settings);
+    private readonly ILibraryLayoutResolver _layoutResolver = layoutResolver ?? new LibraryLayoutResolver();
 
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     private SeriesContext SeriesContext = null!;
@@ -74,7 +77,11 @@ public class DownloadChapterFromSourceWorker(
             return [];
         }
 
-        string saveArchiveFilePath = chapter.GetFullFilepath(settings.ChapterNamingScheme);
+        // Place the chapter according to the series' LibraryLayout (Flat / Vol N folder) rather than
+        // always at the series root. Volume-less chapters fall back to the root (see resolver).
+        ResolvedChapterPath target = _layoutResolver.Resolve(chapter.ParentManga, chapter, settings.ChapterNamingScheme);
+        string saveArchiveFilePath = target.FullPath;
+        Log.Debug($"Placing {chapter} at {target.Placement} ({target.Reason}).");
         string? directoryPath = Path.GetDirectoryName(saveArchiveFilePath);
         if (directoryPath != null && !Directory.Exists(directoryPath))
             Directory.CreateDirectory(directoryPath);
@@ -87,7 +94,9 @@ public class DownloadChapterFromSourceWorker(
         try
         {
             chapter.Downloaded = true;
-            chapter.FileName = new FileInfo(acquiredPath).Name;
+            // Store the path relative to the series dir so the volume subfolder (if any) is recorded,
+            // keeping GetFullFilepath / CheckDownloaded consistent with where the file actually lives.
+            chapter.FileName = Path.GetRelativePath(chapter.ParentManga.FullDirectoryPath, acquiredPath);
 
             Log.Debug($"Downloaded chapter {chapter}.");
 
