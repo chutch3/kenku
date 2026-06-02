@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v0.2.1 (2026-06-02)
+
+### Bug Fixes
+
+- Load series sourceids in the chapter download worker query
+  ([`227c903`](https://github.com/chutch3/kenku/commit/227c9032f6ebdbb670cf0e986e5a4e5b5c19bcf3))
+
+### Testing
+
+- Cover orphaned-file cleanup guard for untracked libraries
+  ([`2af1693`](https://github.com/chutch3/kenku/commit/2af1693644c7f4eaffedce0e158ee707e20fdf11))
+
+- Verify WeebCentral fetches the chapter images partial
+  ([`6bc96f6`](https://github.com/chutch3/kenku/commit/6bc96f601d5ec544c773839d77110580b7d5d4ce))
+
+
 ## v0.2.0 (2026-06-02)
 
 ### Features
