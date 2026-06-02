@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.2.2 (2026-06-02)
+
+### Bug Fixes
+
+- Derive volume metadata from chapters when bundling instead of bailing
+  ([`0b63598`](https://github.com/chutch3/kenku/commit/0b63598421c4ad65ff08417527784572071372c1))
+
+
 ## v0.2.1 (2026-06-02)
 
 ### Bug Fixes
