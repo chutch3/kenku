@@ -40,66 +40,79 @@ public class ResolveMissingVolumesForMangaWorker(
             return [];
         }
 
+        // Load ALL downloaded chapters, not just unassigned ones, so an exact source can correct a
+        // stale heuristic guess on a later run (resolution is re-runnable). Manual assignments are
+        // protected inside the merger.
         var chapters = await _mangaContext.Chapters
-            .Where(c => c.ParentMangaId == mangaId &&
-                        c.Downloaded &&
-                        c.FileName != null &&
-                        c.VolumeNumber == null)
+            .Where(c => c.ParentMangaId == mangaId && c.Downloaded && c.FileName != null)
             .ToListAsync(CancellationToken);
 
         if (chapters.Count == 0)
             return [];
 
         chapters = chapters.OrderBy(c => c, new Chapter.ChapterComparer()).ToList();
-        Log.Info($"Resolving volumes for {manga.Name} ({chapters.Count} chapters missing volume)...");
+        int unresolved = chapters.Count(c => c.VolumeNumber == null);
+        Log.Info($"Resolving volumes for {manga.Name} ({chapters.Count} chapters, {unresolved} unresolved)...");
 
-        // Step 4: If MetadataSource.Status is Unlinked, attempt auto-match first
+        // Establish a MangaDex link if we don't have one yet.
         if (manga.MetadataSource?.Status == MetadataSourceStatus.Unlinked)
-        {
             await TryAutoMatch(manga, chapters);
-        }
 
-        bool resolvedExact = false;
+        bool exactAllowed = settings.VolumeResolutionStrategy
+            is VolumeResolutionStrategy.ExactOnly or VolumeResolutionStrategy.ExactThenGuess;
 
-        // Step 5: If Confirmed or AutoMatched, use MangaDex
-        if (manga.MetadataSource?.Status is MetadataSourceStatus.Confirmed or MetadataSourceStatus.AutoMatched)
+        // Step 1: exact sources — merged by confidence, re-runnable, never overriding a manual fix.
+        if (exactAllowed)
+            await ApplyExactSources(manga, chapters);
+
+        // Step 2: color heuristic fills whatever the exact sources couldn't; anything still
+        // unresolved is intentionally left loose for the user to assign.
+        if (settings.VolumeResolutionStrategy == VolumeResolutionStrategy.ExactThenGuess)
         {
-            if (settings.VolumeResolutionStrategy == VolumeResolutionStrategy.ExactOnly ||
-                settings.VolumeResolutionStrategy == VolumeResolutionStrategy.ExactThenGuess)
+            var stillUnresolved = chapters.Where(c => c.VolumeNumber == null).ToList();
+            if (stillUnresolved.Count > 0)
             {
-                resolvedExact = await TryResolveWithMangaDex(manga, chapters);
+                int startVolume = chapters.Where(c => c.VolumeNumber != null)
+                    .Select(c => c.VolumeNumber!.Value).DefaultIfEmpty(0).Max();
+                await TryResolveWithColorHeuristic(stillUnresolved, startVolume);
             }
         }
-        else if (settings.VolumeResolutionStrategy == VolumeResolutionStrategy.ExactOnly ||
-                 settings.VolumeResolutionStrategy == VolumeResolutionStrategy.ExactThenGuess)
-        {
-            // Status is Ambiguous/NoMatch or no MetadataSource — still attempt exact if strategy allows
-            // (handles the case where MetadataSource was already confirmed before this run)
-            resolvedExact = await TryResolveWithMangaDex(manga, chapters);
-        }
 
-        // Step 6: Heuristic fallback
-        if (!resolvedExact && settings.VolumeResolutionStrategy == VolumeResolutionStrategy.ExactThenGuess)
-        {
-            Log.Info($"Exact resolution failed for {manga.Name}. Falling back to color heuristic...");
-            int startVolume = (await _mangaContext.Chapters
-                .Where(c => c.ParentMangaId == mangaId && c.VolumeNumber != null)
-                .Select(c => c.VolumeNumber)
-                .DefaultIfEmpty()
-                .MaxAsync(CancellationToken)) ?? 0;
-            await TryResolveWithColorHeuristic(chapters, startVolume);
-        }
-
-        int updatedCount = chapters.Count(c => c.VolumeNumber != null);
-        if (updatedCount > 0)
-        {
-            if (await _mangaContext.Sync(CancellationToken, GetType(), nameof(ProcessItem)) is { success: false } err)
-                Log.Error($"Failed to save volume updates for {manga.Name}: {err.exceptionMessage}");
-            else
-                Log.Info($"Saved {updatedCount} volume updates for {manga.Name}.");
-        }
+        if (await _mangaContext.Sync(CancellationToken, GetType(), nameof(ProcessItem)) is { success: false } err)
+            Log.Error($"Failed to save volume updates for {manga.Name}: {err.exceptionMessage}");
 
         return [];
+    }
+
+    /// <summary>
+    /// Runs the exact metadata sources (currently MangaDex), merges them by confidence, and applies
+    /// the resulting changes. Manual assignments are never touched and a stronger existing assignment
+    /// is never downgraded — see <see cref="VolumeAssignmentMerger"/>.
+    /// </summary>
+    private async Task ApplyExactSources(Series manga, List<Chapter> chapters)
+    {
+        var results = new List<VolumeResolverResult>();
+
+        try
+        {
+            var mangaDexMap = await mangaDexVolumeResolver.GetChapterToVolumeMapAsync(manga, CancellationToken);
+            if (mangaDexMap.Count > 0)
+                results.Add(new VolumeResolverResult(MetadataConfidence.Exact, mangaDexMap));
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"MangaDex volume resolution failed for {manga.Name}: {ex.Message}");
+        }
+
+        if (results.Count == 0)
+            return;
+
+        var changes = VolumeAssignmentMerger.ComputeChanges(chapters, results);
+        foreach (var change in changes)
+            AssignVolume(change.Chapter, change.Volume, change.Confidence);
+
+        if (changes.Count > 0)
+            Log.Info($"Applied {changes.Count} exact volume assignment(s) for {manga.Name}.");
     }
 
     /// <summary>
@@ -218,33 +231,6 @@ public class ResolveMissingVolumesForMangaWorker(
         }
 
         await _mangaContext.Sync(CancellationToken, GetType(), nameof(TryAutoMatch));
-    }
-
-    private async Task<bool> TryResolveWithMangaDex(Series manga, List<Chapter> chapters)
-    {
-        try
-        {
-            var map = await mangaDexVolumeResolver.GetChapterToVolumeMapAsync(manga, CancellationToken);
-            if (map.Count == 0) return false;
-
-            int mapped = 0;
-            foreach (var chapter in chapters)
-            {
-                if (map.TryGetValue(chapter.ChapterNumber, out int vol))
-                {
-                    AssignVolume(chapter, vol, MetadataConfidence.Exact);
-                    mapped++;
-                }
-            }
-
-            Log.Info($"Mapped {mapped}/{chapters.Count} chapters for {manga.Name} via MangaDex.");
-            return mapped > 0;
-        }
-        catch (Exception ex)
-        {
-            Log.Error($"Error resolving volumes via MangaDex for {manga.Name}: {ex.Message}");
-            return false;
-        }
     }
 
     // No real tankōbon volume holds anywhere near this many chapters. If the heuristic groups

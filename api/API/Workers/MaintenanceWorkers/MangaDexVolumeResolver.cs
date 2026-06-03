@@ -46,17 +46,33 @@ public class MangaDexVolumeResolver(HttpClient httpClient) : IMangaDexVolumeReso
         if (string.IsNullOrEmpty(mangadexUuid))
             return [];
 
-        var aggResponse = await _httpClient.GetAsync($"https://api.mangadex.org/manga/{mangadexUuid}/aggregate?translatedLanguage[]=en", cancellationToken);
-        if (!aggResponse.IsSuccessStatusCode)
-            return [];
+        // Prefer English volume tags — they match the chapter numbering an English library actually
+        // has — then fill any gaps from the all-languages aggregate. Many series (e.g. Dandadan) tag
+        // almost nothing in English but are fully tagged in other languages.
+        var map = await FetchVolumeMapAsync(mangadexUuid, "?translatedLanguage[]=en", cancellationToken);
+        var allLanguages = await FetchVolumeMapAsync(mangadexUuid, "", cancellationToken);
+        foreach (var (chapter, volume) in allLanguages)
+            map.TryAdd(chapter, volume);
 
-        var aggJson = JObject.Parse(await aggResponse.Content.ReadAsStringAsync(cancellationToken));
-        var volumesToken = aggJson["volumes"];
+        return map;
+    }
 
-        if (volumesToken == null || volumesToken.Type == JTokenType.Array || volumesToken is not JObject volumesObj)
-            return [];
+    /// <summary>
+    /// Fetches one aggregate (optionally language-filtered) and reduces it to a chapter→volume map.
+    /// Where the same chapter is tagged under multiple volumes, the smallest (earliest) volume wins so
+    /// the result is deterministic regardless of JSON ordering.
+    /// </summary>
+    private async Task<Dictionary<string, int>> FetchVolumeMapAsync(string mangadexUuid, string querySuffix, CancellationToken cancellationToken)
+    {
+        var map = new Dictionary<string, int>();
 
-        Dictionary<string, int> chapterToVolumeMap = new();
+        var response = await _httpClient.GetAsync($"https://api.mangadex.org/manga/{mangadexUuid}/aggregate{querySuffix}", cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            return map;
+
+        var json = JObject.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        if (json["volumes"] is not JObject volumesObj)
+            return map;
 
         foreach (var volProp in volumesObj.Properties())
         {
@@ -71,12 +87,15 @@ public class MangaDexVolumeResolver(HttpClient httpClient) : IMangaDexVolumeReso
             {
                 if (chapProp.Value is not JObject chapEntry) continue;
                 string chapStr = chapEntry["chapter"]?.ToString() ?? "";
-                if (!string.IsNullOrEmpty(chapStr))
-                    chapterToVolumeMap[NormalizeChapterNumber(chapStr)] = volNum;
+                if (string.IsNullOrEmpty(chapStr)) continue;
+
+                string key = NormalizeChapterNumber(chapStr);
+                if (!map.TryGetValue(key, out int existing) || volNum < existing)
+                    map[key] = volNum;
             }
         }
 
-        return chapterToVolumeMap;
+        return map;
     }
 
     private static string NormalizeChapterNumber(string chapter)

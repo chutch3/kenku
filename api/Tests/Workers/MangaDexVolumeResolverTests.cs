@@ -204,6 +204,69 @@ public class MangaDexVolumeResolverTests
     }
 
     [Fact]
+    public async Task GetChapterToVolumeMap_QueriesEnglishAndAllLanguages()
+    {
+        // English first (matches an English library's numbering), then an unfiltered aggregate to
+        // fill holes from other languages.
+        var manga = new Series("Test Series", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], Library);
+        manga.SourceIds.Add(new SourceId<Series>(manga, "MangaDex", "all-lang-uuid", null));
+
+        var requestedUrls = new List<string>();
+        var handler = new FakeHttpMessageHandler(req =>
+        {
+            requestedUrls.Add(req.RequestUri!.ToString());
+            return Json("""{ "volumes": { "1": { "volume": "1", "chapters": { "1": { "chapter": "1" } } } } }""");
+        });
+
+        var resolver = new MangaDexVolumeResolver(new HttpClient(handler));
+        await resolver.GetChapterToVolumeMapAsync(manga);
+
+        Assert.Contains(requestedUrls, url => url.Contains("all-lang-uuid/aggregate") && url.Contains("translatedLanguage"));
+        Assert.Contains(requestedUrls, url => url.Contains("all-lang-uuid/aggregate") && !url.Contains("translatedLanguage"));
+    }
+
+    [Fact]
+    public async Task GetChapterToVolumeMap_PrefersEnglishOverOtherLanguages()
+    {
+        // English tags ch 1 as vol 5; another language tags it vol 1. English must win.
+        var manga = new Series("Test Series", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], Library);
+        manga.SourceIds.Add(new SourceId<Series>(manga, "MangaDex", "lang-pref-uuid", null));
+
+        var handler = new FakeHttpMessageHandler(req =>
+            req.RequestUri!.Query.Contains("translatedLanguage")
+                ? Json("""{ "volumes": { "5": { "volume": "5", "chapters": { "1": { "chapter": "1" } } } } }""")
+                : Json("""{ "volumes": { "1": { "volume": "1", "chapters": { "1": { "chapter": "1" }, "2": { "chapter": "2" } } } } }"""));
+
+        var resolver = new MangaDexVolumeResolver(new HttpClient(handler));
+        var map = await resolver.GetChapterToVolumeMapAsync(manga);
+
+        Assert.Equal(5, map["1"]); // English wins for ch 1
+        Assert.Equal(1, map["2"]); // ch 2 (English silent) filled from all-languages
+    }
+
+    [Fact]
+    public async Task GetChapterToVolumeMap_WhenChapterTaggedInMultipleVolumes_PrefersSmallest()
+    {
+        // Different-language uploads tag chapter 5 under both vol 2 and vol 3 — the smaller wins.
+        var manga = new Series("Test Series", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], Library);
+        manga.SourceIds.Add(new SourceId<Series>(manga, "MangaDex", "conflict-uuid", null));
+
+        var handler = new FakeHttpMessageHandler(_ => Json("""
+            {
+              "volumes": {
+                "3": { "volume": "3", "chapters": { "5": { "chapter": "5" } } },
+                "2": { "volume": "2", "chapters": { "5": { "chapter": "5" } } }
+              }
+            }
+            """));
+
+        var resolver = new MangaDexVolumeResolver(new HttpClient(handler));
+        var map = await resolver.GetChapterToVolumeMapAsync(manga);
+
+        Assert.Equal(2, map["5"]);
+    }
+
+    [Fact]
     public async Task GetChapterToVolumeMap_WhenChapterHasLeadingZeroDecimal_NormalizesKeyToMatchChapterConstructor()
     {
         // Chapter constructor normalizes "0.01" → "0.1" via int.Parse.
