@@ -70,13 +70,30 @@ public class WikipediaVolumeResolverTests
             Assert.Equal(2, map[ch]);
     }
 
+    // One isolated volume (no neighbour to mask a miscount) whose items contain pipes inside a
+    // {{Nihongo}} template and a [[piped|link]]. If those pipes were counted, the volume would have
+    // more than 3 chapters.
+    private const string NestedPipeFixture = """
+        {{Graphic novel list
+        | VolumeNumber = 7
+        | ChapterList =
+        {{Numbered list|start = 1
+        | {{Nihongo|"A [[Some link|alias]]"|あ|A}}
+        | {{Nihongo|"B"|い|B}}
+        | {{Nihongo|"C"|う|C}}
+        }}
+        }}
+        """;
+
     [Fact]
     public void ParseVolumeMap_IgnoresPipesInsideNestedTemplatesAndLinks()
     {
-        // If nested pipes were miscounted, volume 1 would not be exactly 5 chapters.
-        var map = WikipediaVolumeResolver.ParseVolumeMap(Fixture);
-        Assert.Equal(5, map.Values.Count(v => v == 1));
-        Assert.False(map.ContainsKey("6") && map["6"] == 1);
+        var map = WikipediaVolumeResolver.ParseVolumeMap(NestedPipeFixture);
+
+        Assert.Equal(3, map.Count);
+        foreach (var ch in new[] { "1", "2", "3" })
+            Assert.Equal(7, map[ch]);
+        Assert.False(map.ContainsKey("4"), "a miscounted nested pipe would have added a 4th chapter");
     }
 
     [Fact]
