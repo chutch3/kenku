@@ -20,6 +20,7 @@
                         :manga-id="mangaId"
                         class="w-full mt-2"
                         @layout-changed="refreshNuxtData(FetchKeys.Series.Id(mangaId))" />
+                    <LooseChapters v-if="series?.fileLibraryId" :manga-id="mangaId" class="w-full mt-2" />
                     <div
                         v-if="series && (!isSearchResult || series.fileLibraryId)"
                         class="flex flex-row gap-2 w-full flex-wrap my-2 justify-between">
