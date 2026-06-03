@@ -1,91 +1,45 @@
-using API;
-using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;
-using API.Workers;
+using API.Tests.Integration;
 using API.Workers.MaintenanceWorkers;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Moq;
 using Xunit;
 
 namespace API.Tests.Workers;
 
+/// <summary>
+/// A chapter downloaded before its volume was known has a FileName with no volume prefix. Once the
+/// volume is known, the sync worker (and the rename jobs it spawns) must move the file into the volume
+/// subdirectory and update the DB. Runs the real worker chain in fresh scopes via the harness.
+/// </summary>
 [Trait("Category", "Integration")]
-public class SyncChapterFileNamesWorkerIntegrationTests : IAsyncLifetime
+public class SyncChapterFileNamesWorkerIntegrationTests : IDisposable
 {
-    private readonly string _tempDir =
-        Path.Combine(Path.GetTempPath(), $"KenkuSyncIntegration_{Guid.NewGuid()}");
+    private readonly IntegrationHarness _harness = new("?V(%M Vol %V/)%M - Ch.%C");
 
-    private const string NamingScheme = "?V(%M Vol %V/)%M - Ch.%C";
+    public void Dispose() => _harness.Dispose();
 
-    public Task InitializeAsync()
-    {
-        Directory.CreateDirectory(_tempDir);
-        return Task.CompletedTask;
-    }
-
-    public Task DisposeAsync()
-    {
-        if (Directory.Exists(_tempDir))
-            Directory.Delete(_tempDir, true);
-        return Task.CompletedTask;
-    }
-
-    private static SeriesContext CreateMangaContext(DbContextOptions<SeriesContext> options) => new(options);
-
-    private static IServiceScope CreateScope(SeriesContext mangaContext)
-    {
-        var actionsContext = new ActionsContext(
-            new DbContextOptionsBuilder<ActionsContext>()
-                .UseInMemoryDatabase(Guid.NewGuid().ToString())
-                .Options);
-
-        var sp = new Mock<IServiceProvider>();
-        sp.Setup(x => x.GetService(typeof(SeriesContext))).Returns(mangaContext);
-        sp.Setup(x => x.GetService(typeof(ActionsContext))).Returns(actionsContext);
-        var scope = new Mock<IServiceScope>();
-        scope.Setup(x => x.ServiceProvider).Returns(sp.Object);
-        return scope.Object;
-    }
-
-    // Chapter was downloaded before its volume was known — FileName has no volume prefix.
-    // After the worker runs and the queued move executes:
-    //   - DB FileName is updated to include the volume subdirectory
-    //   - File on disk is moved to the new location
     [Fact]
-    public async Task OPM_ChapterWithStaleFileName_MovesFileToVolumeSubdirectory()
+    public async Task ChapterWithStaleFileName_IsMovedToItsVolumeSubdirectory()
     {
-        string dbName = Guid.NewGuid().ToString();
-        var dbOptions = new DbContextOptionsBuilder<SeriesContext>()
-            .UseInMemoryDatabase(dbName).Options;
-
-        Series manga;
-        using (var setupDb = CreateMangaContext(dbOptions))
+        string mangaDir = null!;
+        await _harness.Seed(ctx =>
         {
-            var library = new FileLibrary(_tempDir, "Integration Library");
-            setupDb.FileLibraries.Add(library);
-            manga = new Series("One-Punch Man", "Superhero comedy", "url",
+            var library = new FileLibrary(_harness.TempDir, "Lib");
+            ctx.FileLibraries.Add(library);
+            var manga = new Series("One-Punch Man", "Superhero comedy", "url",
                 SeriesReleaseStatus.Continuing, [], [], [], [], library);
-            setupDb.Series.Add(manga);
-            setupDb.Chapters.Add(new Chapter(manga, "1", 5, null)
+            ctx.Series.Add(manga);
+            mangaDir = manga.FullDirectoryPath;
+            Directory.CreateDirectory(mangaDir);
+            ctx.Chapters.Add(new Chapter(manga, "1", 5, null)
                 { Downloaded = true, FileName = "One-Punch Man - Ch.1.cbz" });
-            await setupDb.SaveChangesAsync();
-        }
+            File.WriteAllText(Path.Combine(mangaDir, "One-Punch Man - Ch.1.cbz"), "fake cbz content");
+            return Task.CompletedTask;
+        });
 
-        string mangaDir = Path.Combine(_tempDir, manga.DirectoryName);
-        Directory.CreateDirectory(mangaDir);
-        File.WriteAllText(Path.Combine(mangaDir, "One-Punch Man - Ch.1.cbz"), "fake cbz content");
+        await _harness.Run(new SyncChapterFileNamesWorker(_harness.Settings));
 
-        using var workerDb = CreateMangaContext(dbOptions);
-        var settings = new KenkuSettings { ChapterNamingScheme = NamingScheme, AppData = _tempDir };
-        var syncWorker = new SyncChapterFileNamesWorker(settings);
-        var moveWorkers = await syncWorker.DoWork(CreateScope(workerDb));
-
-        foreach (var renamer in moveWorkers.OfType<RenameChapterFileWorker>())
-            await renamer.DoWork(CreateScope(workerDb));
-
-        using var queryDb = CreateMangaContext(dbOptions);
-        var result = await queryDb.Chapters.FirstAsync(c => c.ChapterNumber == "1");
+        var result = await _harness.Query(c => c.Chapters.FirstAsync(x => x.ChapterNumber == "1"));
         Assert.Equal("One-Punch Man Vol 5/One-Punch Man - Ch.1.cbz", result.FileName);
         Assert.False(File.Exists(Path.Combine(mangaDir, "One-Punch Man - Ch.1.cbz")));
         Assert.True(File.Exists(Path.Combine(mangaDir, "One-Punch Man Vol 5", "One-Punch Man - Ch.1.cbz")));

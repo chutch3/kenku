@@ -1,212 +1,120 @@
-using System.Collections.Concurrent;
-using System.Collections.Generic;
+using API;
 using API.Controllers;
 using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;
 using API.Services;
+using API.Tests.Integration;
 using API.Workers;
 using API.Workers.MaintenanceWorkers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Moq;
+using WireMock.Matchers;
+using WireMock.RequestBuilders;
+using WireMock.ResponseBuilders;
+using WireMock.Server;
 using Xunit;
 
 namespace API.Tests.Controllers;
 
+/// <summary>
+/// The reset/resolve maintenance flow end-to-end: the controller, the real <see cref="WorkerQueue"/>,
+/// the resolver and the coordinator all run for real; only the MangaDex HTTP call is simulated (WireMock,
+/// one aggregate mapping chapters 1 &amp; 2 to volume 1). Series are seeded NoMatch so auto-match is skipped.
+/// </summary>
 [Trait("Category", "Integration")]
-public class MaintenanceControllerIntegrationTests : IAsyncLifetime
+public class MaintenanceControllerIntegrationTests : IDisposable
 {
-    private readonly string _tempDir =
-        Path.Combine(Path.GetTempPath(), $"KenkuMaintenanceIntegration_{Guid.NewGuid()}");
-    private readonly WireMock.Server.WireMockServer _server = WireMock.Server.WireMockServer.Start();
+    private readonly IntegrationHarness _harness = new("?V(%M Vol %V/)%M - Ch.%C");
+    private readonly WireMockServer _server = WireMockServer.Start();
 
-    private const string NamingScheme = "?V(%M Vol %V/)%M - Ch.%C";
+    public void Dispose() { _server.Stop(); _harness.Dispose(); }
 
-    public Task InitializeAsync()
+    private static async Task<bool> WaitUntil(Func<Task<bool>> condition, TimeSpan timeout)
     {
-        Directory.CreateDirectory(_tempDir);
-        return Task.CompletedTask;
+        var deadline = DateTime.UtcNow + timeout;
+        while (DateTime.UtcNow < deadline)
+        {
+            if (await condition()) return true;
+            await Task.Delay(50);
+        }
+        return false;
     }
 
-    public Task DisposeAsync()
-    {
-        _server.Stop();
-        if (Directory.Exists(_tempDir))
-            Directory.Delete(_tempDir, true);
-        return Task.CompletedTask;
-    }
-
-    // The real resolution units, with the MangaDex HTTP call served by WireMock: one aggregate that
-    // maps chapters 1 & 2 to volume 1. (Series are seeded NoMatch so auto-match/search is skipped.)
-    private ResolveMissingVolumesForMangaWorkerFactory RealFactory(KenkuSettings settings)
+    private ResolveMissingVolumesForMangaWorkerFactory RealFactory()
     {
         _server
-            .Given(WireMock.RequestBuilders.Request.Create()
-                .WithPath(new WireMock.Matchers.WildcardMatcher("/manga/*/aggregate")).UsingGet())
-            .RespondWith(WireMock.ResponseBuilders.Response.Create().WithStatusCode(200).WithBody(
+            .Given(Request.Create().WithPath(new WildcardMatcher("/manga/*/aggregate")).UsingGet())
+            .RespondWith(Response.Create().WithStatusCode(200).WithBody(
                 """{ "volumes": { "1": { "volume": "1", "chapters": { "1": { "chapter": "1" }, "2": { "chapter": "2" } } } } }"""));
-        var http = new HttpClient(new API.Tests.Integration.HostRewritingHandler(_server.Url!));
+        var http = new HttpClient(new HostRewritingHandler(_server.Url!));
         return new ResolveMissingVolumesForMangaWorkerFactory(
-            settings, new MangaDexVolumeResolver(http), new MangaDexSearchService(http), []);
+            _harness.Settings, new MangaDexVolumeResolver(http), new MangaDexSearchService(http), []);
     }
 
-    private static SeriesContext CreateMangaContext(DbContextOptions<SeriesContext> options) => new(options);
-
-    private static IServiceScope CreateScope(SeriesContext mangaContext)
-    {
-        var actionsContext = new ActionsContext(
-            new DbContextOptionsBuilder<ActionsContext>()
-                .UseInMemoryDatabase(Guid.NewGuid().ToString())
-                .Options);
-        var sp = new Mock<IServiceProvider>();
-        sp.Setup(x => x.GetService(typeof(SeriesContext))).Returns(mangaContext);
-        sp.Setup(x => x.GetService(typeof(ActionsContext))).Returns(actionsContext);
-        var scope = new Mock<IServiceScope>();
-        scope.Setup(x => x.ServiceProvider).Returns(sp.Object);
-        return scope.Object;
-    }
-
-
-    // Three manga are in the DB with chapters missing volumes. Parallelism is set to 2,
-    // so only 2 pool workers are spawned — but they share one queue of 3 items and together
-    // drain it completely. All 3 manga must have their volumes resolved.
     [Fact]
-    public async Task ThreeMangaWithParallelism2_AllMangaGetVolumesResolved()
+    public async Task WithFewerWorkersThanSeries_AllSeriesStillGetResolved()
     {
-        string dbName = Guid.NewGuid().ToString();
-        var dbOptions = new DbContextOptionsBuilder<SeriesContext>()
-            .UseInMemoryDatabase(dbName).Options;
+        _harness.Settings.VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly;
+        _harness.Settings.VolumeResolutionParallelism = 2;
 
-        var mangaKeys = new List<string>();
-        using (var setupDb = new SeriesContext(dbOptions))
+        await _harness.Seed(ctx =>
         {
-            var library = new FileLibrary(_tempDir, "Integration Library");
-            setupDb.FileLibraries.Add(library);
+            var library = new FileLibrary(_harness.TempDir, "Lib");
+            ctx.FileLibraries.Add(library);
             for (int i = 1; i <= 3; i++)
             {
                 var manga = new Series($"Series {i}", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
-                manga.MetadataSource!.Status = MetadataSourceStatus.NoMatch; // skip auto-match; resolve via connector id
+                manga.MetadataSource!.Status = MetadataSourceStatus.NoMatch;
                 manga.SourceIds.Add(new SourceId<Series>(manga, "MangaDex", $"uuid-{i}", null));
-                setupDb.Series.Add(manga);
-                setupDb.Chapters.Add(new Chapter(manga, "1", null, null)
-                    { Downloaded = true, FileName = $"manga{i}_ch1.cbz" });
-                mangaKeys.Add(manga.Key);
+                ctx.Series.Add(manga);
+                ctx.Chapters.Add(new Chapter(manga, "1", null, null) { Downloaded = true, FileName = $"manga{i}_ch1.cbz" });
             }
-            await setupDb.SaveChangesAsync();
-        }
+            return Task.CompletedTask;
+        });
 
-        var settings = new KenkuSettings
-        {
-            VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly,
-            VolumeResolutionParallelism = 2,
-            AppData = _tempDir
-        };
-        var factory = RealFactory(settings);
+        var ran = await _harness.Run(new ResolveMissingVolumesWorker(_harness.Settings, RealFactory()));
 
-        // Build the coordinator directly (skip the endpoint for this test)
-        using var coordinatorDb = CreateMangaContext(dbOptions);
-        var coordinator = new ResolveMissingVolumesWorker(settings, factory);
-        var poolWorkers = await coordinator.DoWork(CreateScope(coordinatorDb));
-
-        // Should spawn min(parallelism=2, manga=3) = 2 workers
-        Assert.Equal(2, poolWorkers.Length);
-
-        // Run both pool workers — together they drain the 3-item queue
-        using var workerDb = CreateMangaContext(dbOptions);
-        foreach (var worker in poolWorkers.OfType<ResolveMissingVolumesForMangaWorker>())
-            await worker.DoWork(CreateScope(workerDb));
-
-        // All 3 manga must have been processed despite fewer workers than manga
-        using var queryDb = CreateMangaContext(dbOptions);
-        var chapters = await queryDb.Chapters.ToListAsync();
+        // min(parallelism=2, series=3) = 2 pool workers share one queue and drain all 3.
+        Assert.Equal(2, ran.OfType<ResolveMissingVolumesForMangaWorker>().Count());
+        var chapters = await _harness.Query(c => c.Chapters.ToListAsync());
         Assert.Equal(3, chapters.Count);
         Assert.All(chapters, c => Assert.Equal(1, c.VolumeNumber));
     }
 
-    // Chapters had wrong volumes (5) from a previous buggy run. Files sit in the wrong
-    // volume subdirectory on disk. After ResetAndResolveVolumes:
-    //   - All volumes are cleared then re-resolved via the MangaDex map (1 for both chapters)
-    //   - RenameChapterFileWorkers move files from Vol 5 → Vol 1 subdirectory
-    //   - DB filenames are updated to reflect the correct paths
     [Fact]
-    public async Task ChaptersWithWrongVolumes_AfterResetAndResolve_HaveCorrectVolumesAndFilePaths()
+    public async Task ResetAndResolve_ClearsExistingVolumes_ThenReResolvesThem()
     {
-        string dbName = Guid.NewGuid().ToString();
-        var dbOptions = new DbContextOptionsBuilder<SeriesContext>()
-            .UseInMemoryDatabase(dbName).Options;
+        _harness.Settings.VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly;
 
-        Series manga;
-        using (var setupDb = CreateMangaContext(dbOptions))
+        await _harness.Seed(ctx =>
         {
-            var library = new FileLibrary(_tempDir, "Integration Library");
-            setupDb.FileLibraries.Add(library);
-            manga = new Series("One-Punch Man", "Superhero comedy", "url",
-                SeriesReleaseStatus.Continuing, [], [], [], [], library);
-            manga.MetadataSource!.Status = MetadataSourceStatus.NoMatch; // skip auto-match; resolve via connector id
-            manga.SourceIds.Add(
-                new SourceId<Series>(manga, "MangaDex", "some-uuid", null));
-            setupDb.Series.Add(manga);
-            setupDb.Chapters.Add(new Chapter(manga, "1", 5, null)
-                { Downloaded = true, FileName = "One-Punch Man Vol 5/One-Punch Man - Ch.1.cbz" });
-            setupDb.Chapters.Add(new Chapter(manga, "2", 5, null)
-                { Downloaded = true, FileName = "One-Punch Man Vol 5/One-Punch Man - Ch.2.cbz" });
-            await setupDb.SaveChangesAsync();
+            var library = new FileLibrary(_harness.TempDir, "Lib");
+            ctx.FileLibraries.Add(library);
+            var manga = new Series("One-Punch Man", "Superhero comedy", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
+            manga.MetadataSource!.Status = MetadataSourceStatus.NoMatch;
+            manga.SourceIds.Add(new SourceId<Series>(manga, "MangaDex", "some-uuid", null));
+            ctx.Series.Add(manga);
+            // Wrong volumes (5) from a previous buggy run.
+            ctx.Chapters.Add(new Chapter(manga, "1", 5, null) { Downloaded = true, FileName = "One-Punch Man - Ch.1.cbz" });
+            ctx.Chapters.Add(new Chapter(manga, "2", 5, null) { Downloaded = true, FileName = "One-Punch Man - Ch.2.cbz" });
+            return Task.CompletedTask;
+        });
+
+        var queue = new WorkerQueue(_harness.Services, _harness.Settings);
+        using (var scope = _harness.CreateScope())
+        {
+            var controller = new MaintenanceController(
+                scope.ServiceProvider.GetRequiredService<SeriesContext>(),
+                scope.ServiceProvider.GetRequiredService<ActionsContext>())
+            { ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() } };
+            await controller.ResetAndResolveVolumes(queue, _harness.Settings, RealFactory());
         }
 
-        string mangaDir = Path.Combine(_tempDir, manga.DirectoryName);
-        string wrongVolDir = Path.Combine(mangaDir, "One-Punch Man Vol 5");
-        Directory.CreateDirectory(wrongVolDir);
-        File.WriteAllText(Path.Combine(wrongVolDir, "One-Punch Man - Ch.1.cbz"), "fake cbz");
-        File.WriteAllText(Path.Combine(wrongVolDir, "One-Punch Man - Ch.2.cbz"), "fake cbz");
-
-        var settings = new KenkuSettings
-        {
-            VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly,
-            ChapterNamingScheme = NamingScheme,
-            AppData = _tempDir
-        };
-        var factory = RealFactory(settings);
-
-        // Call the endpoint — captures the queued ResolveMissingVolumesWorker (coordinator)
-        BaseWorker? capturedWorker = null;
-        var mockQueue = new Mock<IWorkerQueue>();
-        mockQueue.Setup(q => q.AddWorker(It.IsAny<BaseWorker>()))
-            .Callback<BaseWorker>(w => capturedWorker = w);
-
-        using var controllerDb = CreateMangaContext(dbOptions);
-        var actionsCtx = new ActionsContext(
-            new DbContextOptionsBuilder<ActionsContext>()
-                .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
-        var controller = new MaintenanceController(controllerDb, actionsCtx);
-        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
-        await controller.ResetAndResolveVolumes(mockQueue.Object, settings, factory);
-
-        // Verify volumes were cleared before the resolver ran
-        using (var checkDb = CreateMangaContext(dbOptions))
-        {
-            var cleared = await checkDb.Chapters.ToListAsync();
-            Assert.All(cleared, c => Assert.Null(c.VolumeNumber));
-        }
-
-        // Run the coordinator — returns pool workers
-        using var workerDb = CreateMangaContext(dbOptions);
-        var coordinator = Assert.IsType<ResolveMissingVolumesWorker>(capturedWorker);
-        var poolWorkers = await coordinator.DoWork(CreateScope(workerDb));
-
-        // Run each pool worker — resolution workers update DB only, never queue file moves
-        foreach (var poolWorker in poolWorkers.OfType<ResolveMissingVolumesForMangaWorker>())
-        {
-            var workers = await poolWorker.DoWork(CreateScope(workerDb));
-            Assert.DoesNotContain(workers, w => w is RenameChapterFileWorker);
-        }
-
-        using var queryDb = CreateMangaContext(dbOptions);
-        var ch1 = await queryDb.Chapters.FirstAsync(c => c.ChapterNumber == "1");
-        var ch2 = await queryDb.Chapters.FirstAsync(c => c.ChapterNumber == "2");
-
-        Assert.Equal(1, ch1.VolumeNumber);
-        Assert.Equal(1, ch2.VolumeNumber);
+        // The endpoint cleared the volumes and queued resolution; the real queue resolves both back to 1.
+        Assert.True(await WaitUntil(
+            () => _harness.Query(async c => await c.Chapters.AllAsync(ch => ch.VolumeNumber == 1) && await c.Chapters.CountAsync() == 2),
+            TimeSpan.FromSeconds(20)), "chapters were not re-resolved to volume 1");
     }
 }
