@@ -2,6 +2,64 @@
 
 <!-- version list -->
 
+## v0.4.0 (2026-06-03)
+
+### Bug Fixes
+
+- Honor manual volume lock during auto-match assignment
+  ([`be0c2a3`](https://github.com/chutch3/kenku/commit/be0c2a3b7baee8892d702863b31199666d957015))
+
+- Stop volume resolution rejecting valid MangaDex matches and fabricating oversized heuristic
+  volumes
+  ([`1a1a322`](https://github.com/chutch3/kenku/commit/1a1a3225ad3810f4407be44cf6ec5862066b2b86))
+
+### Features
+
+- Add Wikipedia chapter-list volume resolver
+  ([`a1cc03e`](https://github.com/chutch3/kenku/commit/a1cc03ed6788e7f9fa695ad8fe1bc10c8d8063a0))
+
+- Re-runnable multi-source volume resolution with manual lock
+  ([`40333ed`](https://github.com/chutch3/kenku/commit/40333ede5a42650438985bb0ba031f47f2e49ae8))
+
+- Rebuild bundled volumes when their chapter set changes
+  ([`8ecf5de`](https://github.com/chutch3/kenku/commit/8ecf5decfbcc59da871c0d43a218427fc0fd04d7))
+
+- Surface loose chapters with manual volume assignment in the UI
+  ([`98def6c`](https://github.com/chutch3/kenku/commit/98def6caa74c2414fdaec67cc944692d56b5329a))
+
+### Testing
+
+- De-mock integration tests onto real units + WireMock, generalize naming
+  ([`def4f7a`](https://github.com/chutch3/kenku/commit/def4f7a07a53ce9d9ccea792f5a7729be9ec2ae2))
+
+- End-to-end pipeline integration test for merge, manual lock, self-heal
+  ([`8166204`](https://github.com/chutch3/kenku/commit/8166204b3a8638b43aded2513fd333fc1398200c))
+
+- End-to-end rebuild integration test with real zip I/O
+  ([`f88c282`](https://github.com/chutch3/kenku/commit/f88c282d508197df6bd3a452a59ea1d0dc117621))
+
+- Integration coverage for exact+heuristic composition and bloat-abort
+  ([`7429b0d`](https://github.com/chutch3/kenku/commit/7429b0dc64f9eb993a60fdca9281c76ad27a2d52))
+
+- Isolate Wikipedia nested-pipe test so an off-by-one count fails it
+  ([`e7dea04`](https://github.com/chutch3/kenku/commit/e7dea0483e4045ddb007fc0360fbc2f7035713e0))
+
+- Move controller and sync integration tests onto the harness and real queue
+  ([`305dfc5`](https://github.com/chutch3/kenku/commit/305dfc54b1cdfda5f028059086755f1ab558601f))
+
+- Pin frontend contract for loose-chapters volumes and assignment shapes
+  ([`4abd35f`](https://github.com/chutch3/kenku/commit/4abd35f2d12ffdae15255ec9cc31a0a7ce774e8c))
+
+- Rebuild ordering under the real WorkerQueue dependency scheduler
+  ([`c6e1e36`](https://github.com/chutch3/kenku/commit/c6e1e36138bc77a46c17ecab082e4604b266eff9))
+
+- VCR-style Dandadan integration test exercising real resolvers over captured HTTP
+  ([`d35d013`](https://github.com/chutch3/kenku/commit/d35d0135a10a2dbdd73a32d0c3e94dfde15a995d))
+
+- WireMock-based resolver integration with fault-injection cases
+  ([`55058ed`](https://github.com/chutch3/kenku/commit/55058ed5ad277898b611a60ed11adb14bd52fb16))
+
+
 ## v0.3.2 (2026-06-03)
 
 ### Bug Fixes
