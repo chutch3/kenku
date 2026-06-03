@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.3.2 (2026-06-03)
+
+### Bug Fixes
+
+- Place VolumeCBZ chapters flat instead of in volume folders
+  ([`19c1968`](https://github.com/chutch3/kenku/commit/19c19683c9593bf4edcb4249754ffefb00b0a845))
+
+
 ## v0.3.1 (2026-06-03)
 
 ### Bug Fixes
