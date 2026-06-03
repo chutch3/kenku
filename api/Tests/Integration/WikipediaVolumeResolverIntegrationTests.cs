@@ -45,4 +45,22 @@ public class WikipediaVolumeResolverIntegrationTests : IDisposable
         Assert.Single(requests);
         Assert.Contains("List of Dandadan chapters", Uri.UnescapeDataString(requests[0].RequestMessage.Url));
     }
+
+    [Fact]
+    public async Task SendsAUserAgent_SoTheRequestIsNotRejected()
+    {
+        // Without a User-Agent, MangaDex returns 400 and the MediaWiki API returns 403 — so every
+        // outbound metadata request must carry one. (Regression: this shipped missing and broke
+        // resolution in production entirely.)
+        _server
+            .Given(Request.Create().WithPath("/w/api.php").UsingGet())
+            .RespondWith(Response.Create().WithStatusCode(200).WithBody(Fixture("wikitext.json")));
+
+        await Resolver().ResolveAsync(Manga(), [], CancellationToken.None);
+
+        var headers = _server.FindLogEntries(Request.Create().WithPath("/w/api.php").UsingGet())
+            .Single().RequestMessage.Headers!;
+        Assert.True(headers.ContainsKey("User-Agent"), "request must include a User-Agent header");
+        Assert.Contains("Kenku", string.Concat(headers["User-Agent"]));
+    }
 }

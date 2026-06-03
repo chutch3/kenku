@@ -8,7 +8,7 @@ namespace API.Services;
 /// </summary>
 public class MangaDexSearchService(HttpClient httpClient) : IMangaDexSearchService
 {
-    private readonly HttpClient _httpClient = httpClient;
+    private readonly HttpClient _httpClient = httpClient.WithKenkuUserAgent();
 
     public async Task<List<MangaDexSearchResult>> SearchAsync(string title, CancellationToken cancellationToken = default)
     {

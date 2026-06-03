@@ -1,3 +1,4 @@
+using API.Services;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -10,7 +11,7 @@ namespace API.Workers.MaintenanceWorkers;
 
 public class MangaDexVolumeResolver(HttpClient httpClient) : IMangaDexVolumeResolver
 {
-    private readonly HttpClient _httpClient = httpClient;
+    private readonly HttpClient _httpClient = httpClient.WithKenkuUserAgent();
 
     public async Task<Dictionary<string, int>> GetChapterToVolumeMapAsync(Series manga, CancellationToken cancellationToken = default)
     {

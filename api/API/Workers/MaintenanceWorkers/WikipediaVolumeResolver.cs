@@ -14,7 +14,7 @@ namespace API.Workers.MaintenanceWorkers;
 /// </summary>
 public class WikipediaVolumeResolver(HttpClient httpClient) : IVolumeResolver
 {
-    private readonly HttpClient _httpClient = httpClient;
+    private readonly HttpClient _httpClient = httpClient.WithKenkuUserAgent();
 
     public string SourceName => "Wikipedia";
     public MetadataConfidence Confidence => MetadataConfidence.Exact;
