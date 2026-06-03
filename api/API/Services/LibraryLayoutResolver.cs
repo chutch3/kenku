@@ -18,16 +18,23 @@ public class LibraryLayoutResolver : ILibraryLayoutResolver
     public static ResolvedChapterPath ComputePath(LibraryLayout layout, string baseDirectory, int? volumeNumber, string archiveFileName)
         => layout switch
         {
-            LibraryLayout.VolumeFolder or LibraryLayout.VolumeCBZ when volumeNumber is { } volume =>
+            LibraryLayout.VolumeFolder when volumeNumber is { } volume =>
                 new ResolvedChapterPath(
                     Path.Join(baseDirectory, $"Vol {volume}", archiveFileName),
                     ChapterPlacement.VolumeFolder,
                     $"volume {volume}"),
-            LibraryLayout.VolumeFolder or LibraryLayout.VolumeCBZ =>
+            LibraryLayout.VolumeFolder =>
                 new ResolvedChapterPath(
                     Path.Join(baseDirectory, archiveFileName),
                     ChapterPlacement.SeriesRoot,
                     "no volume number; placed at series root"),
+            // VolumeCBZ chapters are merged into a single Vol N.cbz, so they stay flat at the series
+            // root pre-bundle — an intermediate "Vol N/" folder would just be a stray series in Komga.
+            LibraryLayout.VolumeCBZ =>
+                new ResolvedChapterPath(
+                    Path.Join(baseDirectory, archiveFileName),
+                    ChapterPlacement.SeriesRoot,
+                    "volume-cbz: flat until bundled into Vol N.cbz"),
             _ =>
                 new ResolvedChapterPath(
                     Path.Join(baseDirectory, archiveFileName),

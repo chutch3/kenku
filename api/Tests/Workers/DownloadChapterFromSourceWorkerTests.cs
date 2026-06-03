@@ -341,8 +341,9 @@ public class DownloadChapterFromSourceWorkerTests
             var worker = new DownloadChapterFromSourceWorker(connectorId, new[] { mockConnector.Object }, settings);
             BaseWorker[] created = await worker.DoWork(serviceProvider.CreateScope());
 
-            // Both require the SourceIds-dependent cover step to run without throwing.
-            Assert.True(File.Exists(Path.Combine(mangaDir, "Vol 1", "cover.jpg")), "cover.jpg should be written into the volume folder");
+            // Both require the SourceIds-dependent cover step to run without throwing. VolumeCBZ places
+            // chapters (and the cover) flat at the series root — they're merged into the bundle.
+            Assert.True(File.Exists(Path.Combine(mangaDir, "cover.jpg")), "cover.jpg should be written into the series folder");
             Assert.Contains(created.OfType<BundleVolumeWorker>(), b => b.VolumeNumber == 1);
         }
         finally

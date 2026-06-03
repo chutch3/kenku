@@ -48,12 +48,14 @@ public class LibraryLayoutResolverTests
     }
 
     [Fact]
-    public void VolumeCBZ_WithVolume_PlacesInVolumeSubfolder()
+    public void VolumeCBZ_PlacesAtSeriesRoot_NotInVolumeFolder()
     {
-        var resolved = LibraryLayoutResolver.ComputePath(LibraryLayout.VolumeCBZ, BaseDir, 3, FileName);
+        // VolumeCBZ chapters are merged into a single Vol N.cbz, so they stay flat at the series root
+        // pre-bundle — no intermediate "Vol N/" folder, which Komga would treat as a stray series. See bug B.
+        var withVolume = LibraryLayoutResolver.ComputePath(LibraryLayout.VolumeCBZ, BaseDir, 3, FileName);
 
-        Assert.Equal(Path.Join(BaseDir, "Vol 3", FileName), resolved.FullPath);
-        Assert.Equal(ChapterPlacement.VolumeFolder, resolved.Placement);
+        Assert.Equal(Path.Join(BaseDir, FileName), withVolume.FullPath);
+        Assert.Equal(ChapterPlacement.SeriesRoot, withVolume.Placement);
     }
 
     [Fact]
