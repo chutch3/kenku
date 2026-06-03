@@ -19,13 +19,13 @@ namespace API.Tests.Integration;
 /// requests, verifies them, and lets us simulate faults (500s, malformed bodies) to prove resilience.
 /// </summary>
 [Trait("Category", "Integration")]
-public class DandadanResolutionWireMockTests : IDisposable
+public class VolumeResolutionIntegrationTests : IDisposable
 {
     private const string DandadanId = "68112dc1-2b80-4f20-beb8-2f2a8716a430";
     private readonly WireMockServer _server = WireMockServer.Start();
     private readonly IntegrationHarness _harness = new();
 
-    public DandadanResolutionWireMockTests() =>
+    public VolumeResolutionIntegrationTests() =>
         _harness.Settings.VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess;
 
     public void Dispose() { _server.Stop(); _harness.Dispose(); }
@@ -86,7 +86,7 @@ public class DandadanResolutionWireMockTests : IDisposable
         _harness.Query(ctx => ctx.Chapters.ToDictionaryAsync(c => c.ChapterNumber, c => c));
 
     [Fact]
-    public async Task HappyPath_ResolvesMangaDexAndWikipediaVolumes()
+    public async Task ResolvesVolumesFromAllSources_HonorsManualAssignments_AndLeavesUncollectedChaptersLoose()
     {
         StubMangaDexOk();
         StubWikipedia(Ok(Fixture("wikitext.json")));
@@ -119,7 +119,7 @@ public class DandadanResolutionWireMockTests : IDisposable
     }
 
     [Fact]
-    public async Task MangaDexAggregateReturns500_StillResolvesEverythingViaWikipedia()
+    public async Task WhenAMetadataSourceIsUnavailable_ResolvesFromTheRemainingSources()
     {
         StubSearch(Ok(Fixture("search.json")));
         StubAggregate(Response.Create().WithStatusCode(500)); // MangaDex aggregate is down
@@ -136,7 +136,7 @@ public class DandadanResolutionWireMockTests : IDisposable
     }
 
     [Fact]
-    public async Task MangaDexReturnsMalformedJson_DoesNotCrash_AndResolvesViaWikipedia()
+    public async Task WhenAMetadataSourceReturnsInvalidData_StaysHealthy_AndResolvesFromTheRemainingSources()
     {
         // MangaDexVolumeResolver has no try/catch around JObject.Parse; the worker must absorb the throw
         // and still resolve via the other source.
@@ -155,7 +155,7 @@ public class DandadanResolutionWireMockTests : IDisposable
     }
 
     [Fact]
-    public async Task WikipediaIsDown_DegradesToMangaDexOnly_RemainderStaysLoose()
+    public async Task WhenADifferentSourceIsUnavailable_ResolvesWhatTheOthersCover_RestStaysLoose()
     {
         StubMangaDexOk();
         StubWikipedia(Response.Create().WithStatusCode(500)); // Wikipedia is down

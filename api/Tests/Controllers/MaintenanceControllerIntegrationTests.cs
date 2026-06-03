@@ -20,6 +20,7 @@ public class MaintenanceControllerIntegrationTests : IAsyncLifetime
 {
     private readonly string _tempDir =
         Path.Combine(Path.GetTempPath(), $"KenkuMaintenanceIntegration_{Guid.NewGuid()}");
+    private readonly WireMock.Server.WireMockServer _server = WireMock.Server.WireMockServer.Start();
 
     private const string NamingScheme = "?V(%M Vol %V/)%M - Ch.%C";
 
@@ -31,9 +32,24 @@ public class MaintenanceControllerIntegrationTests : IAsyncLifetime
 
     public Task DisposeAsync()
     {
+        _server.Stop();
         if (Directory.Exists(_tempDir))
             Directory.Delete(_tempDir, true);
         return Task.CompletedTask;
+    }
+
+    // The real resolution units, with the MangaDex HTTP call served by WireMock: one aggregate that
+    // maps chapters 1 & 2 to volume 1. (Series are seeded NoMatch so auto-match/search is skipped.)
+    private ResolveMissingVolumesForMangaWorkerFactory RealFactory(KenkuSettings settings)
+    {
+        _server
+            .Given(WireMock.RequestBuilders.Request.Create()
+                .WithPath(new WireMock.Matchers.WildcardMatcher("/manga/*/aggregate")).UsingGet())
+            .RespondWith(WireMock.ResponseBuilders.Response.Create().WithStatusCode(200).WithBody(
+                """{ "volumes": { "1": { "volume": "1", "chapters": { "1": { "chapter": "1" }, "2": { "chapter": "2" } } } } }"""));
+        var http = new HttpClient(new API.Tests.Integration.HostRewritingHandler(_server.Url!));
+        return new ResolveMissingVolumesForMangaWorkerFactory(
+            settings, new MangaDexVolumeResolver(http), new MangaDexSearchService(http), []);
     }
 
     private static SeriesContext CreateMangaContext(DbContextOptions<SeriesContext> options) => new(options);
@@ -52,15 +68,6 @@ public class MaintenanceControllerIntegrationTests : IAsyncLifetime
         return scope.Object;
     }
 
-    private static Mock<IMangaDexSearchService> MakeEmptySearchService()
-    {
-        var mock = new Mock<IMangaDexSearchService>();
-        mock.Setup(s => s.SearchAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<MangaDexSearchResult>());
-        mock.Setup(s => s.GetChapterToVolumeMapAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, int>());
-        return mock;
-    }
 
     // Three manga are in the DB with chapters missing volumes. Parallelism is set to 2,
     // so only 2 pool workers are spawned — but they share one queue of 3 items and together
@@ -80,6 +87,7 @@ public class MaintenanceControllerIntegrationTests : IAsyncLifetime
             for (int i = 1; i <= 3; i++)
             {
                 var manga = new Series($"Series {i}", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
+                manga.MetadataSource!.Status = MetadataSourceStatus.NoMatch; // skip auto-match; resolve via connector id
                 manga.SourceIds.Add(new SourceId<Series>(manga, "MangaDex", $"uuid-{i}", null));
                 setupDb.Series.Add(manga);
                 setupDb.Chapters.Add(new Chapter(manga, "1", null, null)
@@ -89,18 +97,13 @@ public class MaintenanceControllerIntegrationTests : IAsyncLifetime
             await setupDb.SaveChangesAsync();
         }
 
-        var mockResolver = new Mock<IMangaDexVolumeResolver>();
-        mockResolver
-            .Setup(r => r.GetChapterToVolumeMapAsync(It.IsAny<Series>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, int> { ["1"] = 1 });
-
         var settings = new KenkuSettings
         {
             VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly,
             VolumeResolutionParallelism = 2,
             AppData = _tempDir
         };
-        var factory = new ResolveMissingVolumesForMangaWorkerFactory(settings, mockResolver.Object, MakeEmptySearchService().Object, []);
+        var factory = RealFactory(settings);
 
         // Build the coordinator directly (skip the endpoint for this test)
         using var coordinatorDb = CreateMangaContext(dbOptions);
@@ -141,6 +144,7 @@ public class MaintenanceControllerIntegrationTests : IAsyncLifetime
             setupDb.FileLibraries.Add(library);
             manga = new Series("One-Punch Man", "Superhero comedy", "url",
                 SeriesReleaseStatus.Continuing, [], [], [], [], library);
+            manga.MetadataSource!.Status = MetadataSourceStatus.NoMatch; // skip auto-match; resolve via connector id
             manga.SourceIds.Add(
                 new SourceId<Series>(manga, "MangaDex", "some-uuid", null));
             setupDb.Series.Add(manga);
@@ -157,18 +161,13 @@ public class MaintenanceControllerIntegrationTests : IAsyncLifetime
         File.WriteAllText(Path.Combine(wrongVolDir, "One-Punch Man - Ch.1.cbz"), "fake cbz");
         File.WriteAllText(Path.Combine(wrongVolDir, "One-Punch Man - Ch.2.cbz"), "fake cbz");
 
-        var mockResolver = new Mock<IMangaDexVolumeResolver>();
-        mockResolver
-            .Setup(r => r.GetChapterToVolumeMapAsync(It.IsAny<Series>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, int> { ["1"] = 1, ["2"] = 1 });
-
         var settings = new KenkuSettings
         {
             VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly,
             ChapterNamingScheme = NamingScheme,
             AppData = _tempDir
         };
-        var factory = new ResolveMissingVolumesForMangaWorkerFactory(settings, mockResolver.Object, MakeEmptySearchService().Object, []);
+        var factory = RealFactory(settings);
 
         // Call the endpoint — captures the queued ResolveMissingVolumesWorker (coordinator)
         BaseWorker? capturedWorker = null;

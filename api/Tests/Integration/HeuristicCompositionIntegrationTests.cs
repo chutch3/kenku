@@ -54,7 +54,7 @@ public class HeuristicCompositionIntegrationTests : IDisposable
     private static void GrayCover(string path) => WriteImage(path, 128, 128, 128);
 
     [Fact]
-    public async Task ExactResolvesEarly_HeuristicResolvesRest_AndLongBwRunStaysLooseNotABogusVolume()
+    public async Task ExactSourcesAndHeuristicResolveTogether_UnresolvableChaptersStayLoose()
     {
         string mangaKey = null!;
         string mangaDir = null!;

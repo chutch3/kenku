@@ -13,7 +13,7 @@ namespace API.Tests.Integration;
 /// the exact request the resolver makes and simulate fault responses.
 /// </summary>
 [Trait("Category", "Integration")]
-public class WikipediaResolverWireMockTests : IDisposable
+public class WikipediaVolumeResolverIntegrationTests : IDisposable
 {
     private readonly WireMockServer _server = WireMockServer.Start();
 

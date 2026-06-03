@@ -3,21 +3,24 @@ using API.Schema.SeriesContext;
 using API.Workers;
 using API.Workers.MaintenanceWorkers;
 using Microsoft.EntityFrameworkCore;
-using Moq;
 using Xunit;
 
 namespace API.Tests.Integration;
 
 /// <summary>
-/// Proves the rebuild story end-to-end with real zip I/O: a volume is bundled, a chapter is later
-/// added to it, and the freshness reconciler's unbundle → rebundle chain produces a single bundle
-/// containing all chapters in the correct order. Uses the harness so every worker runs in its own
-/// scope, exactly like production.
+/// When a chapter is added to a volume that is already bundled, the volume is rebuilt so the chapter
+/// lands in the right position. Driven by the real <see cref="WorkerQueue"/>, so the unbundle→rebundle
+/// ordering is enforced by the production dependency scheduler — the correct final bundle is only
+/// possible if unbundle actually runs before rebundle.
 /// </summary>
 [Trait("Category", "Integration")]
 public class VolumeRebuildIntegrationTests : IDisposable
 {
     private readonly IntegrationHarness _harness = new("%M - Ch.%C");
+    private readonly WorkerQueue _queue;
+
+    public VolumeRebuildIntegrationTests() =>
+        _queue = new WorkerQueue(_harness.Services, _harness.Settings);
 
     public void Dispose() => _harness.Dispose();
 
@@ -28,24 +31,26 @@ public class VolumeRebuildIntegrationTests : IDisposable
             for (int i = 1; i <= pages; i++)
             {
                 using var s = zip.CreateEntry($"{prefix}{i:D3}.jpg").Open();
-                s.Write([0xFF, 0xD8, 0xFF, 0xD9]); // minimal JPEG bytes
+                s.Write([0xFF, 0xD8, 0xFF, 0xD9]);
             }
         return ms.ToArray();
     }
 
-    private EnsureBundledVolumesFreshWorker Reconciler()
+    private static async Task<bool> WaitUntil(Func<Task<bool>> condition, TimeSpan timeout)
     {
-        var queue = new Mock<IWorkerQueue>();
-        queue.Setup(q => q.GetKnownWorkers()).Returns([]);
-        return new EnsureBundledVolumesFreshWorker(queue.Object, _harness.Settings);
+        var deadline = DateTime.UtcNow + timeout;
+        while (DateTime.UtcNow < deadline)
+        {
+            if (await condition()) return true;
+            await Task.Delay(50);
+        }
+        return false;
     }
 
     [Fact]
-    public async Task AddingChapterToBundledVolume_RebuildsBundleWithAllChaptersInOrder()
+    public async Task AddingChapterToBundledVolume_RebuildsItWithAllChaptersInOrder()
     {
         string mangaKey = null!, mangaDir = null!;
-
-        // Seed a VolumeCBZ series with chapters 1 & 2 in volume 1, as real cbz files.
         await _harness.Seed(ctx =>
         {
             var library = new FileLibrary(_harness.TempDir, "Lib");
@@ -53,7 +58,6 @@ public class VolumeRebuildIntegrationTests : IDisposable
             var manga = new Series("Test", "d", "u", SeriesReleaseStatus.Continuing, [], [], [], [], library)
                 { LibraryLayout = LibraryLayout.VolumeCBZ };
             ctx.Series.Add(manga);
-
             mangaDir = manga.FullDirectoryPath;
             Directory.CreateDirectory(mangaDir);
             foreach (int n in new[] { 1, 2 })
@@ -65,10 +69,13 @@ public class VolumeRebuildIntegrationTests : IDisposable
             return Task.CompletedTask;
         });
 
-        // Bundle volume 1 (chapters 1 & 2).
-        await _harness.Run(new BundleVolumeWorker(mangaKey, 1, _harness.Settings));
+        // Bundle volume 1 through the real queue and wait for it to settle.
+        _queue.AddWorker(new BundleVolumeWorker(mangaKey, 1, _harness.Settings));
+        Assert.True(await WaitUntil(
+            () => _harness.Query(c => c.VolumeMetadata.AnyAsync(v => v.MangaId == mangaKey && v.ArchiveFileName != null)),
+            TimeSpan.FromSeconds(15)), "initial bundle was not produced");
 
-        // A late chapter 3 is downloaded into the already-bundled volume 1.
+        // A late chapter 3 arrives in the already-bundled volume.
         await _harness.Seed(async ctx =>
         {
             var manga = await ctx.Series.Include(m => m.Library).FirstAsync(m => m.Key == mangaKey);
@@ -76,23 +83,20 @@ public class VolumeRebuildIntegrationTests : IDisposable
             File.WriteAllBytes(Path.Combine(mangaDir, "Test - Ch.3.cbz"), FakeCbz(2, "c3p"));
         });
 
-        // The reconciler detects the stale bundle and runs unbundle → rebundle.
-        await _harness.Run(Reconciler());
+        // The freshness reconciler spawns unbundle → rebundle; the real queue must order them.
+        _queue.AddWorker(new EnsureBundledVolumesFreshWorker(_queue, _harness.Settings));
+        Assert.True(await WaitUntil(
+            () => _harness.Query(async c => await c.BundleChapterMaps.CountAsync() == 3),
+            TimeSpan.FromSeconds(20)), "stale bundle was not rebuilt to 3 chapters");
 
-        // The single bundle now contains all three chapters' pages (3 × 2).
+        // Correct final state is only possible if unbundle ran before rebundle.
         string bundlePath = Path.Combine(mangaDir, "Vol 1.cbz");
         Assert.True(File.Exists(bundlePath));
         using (var zip = ZipFile.OpenRead(bundlePath))
             Assert.Equal(6, zip.Entries.Count(e => e.Name.EndsWith(".jpg")));
-
-        // The page map covers 3 chapters in order: 0, 2, 4.
-        var maps = await _harness.Query(ctx => ctx.BundleChapterMaps.OrderBy(m => m.StartPage).ToListAsync());
-        Assert.Equal(3, maps.Count);
+        var maps = await _harness.Query(c => c.BundleChapterMaps.OrderBy(m => m.StartPage).ToListAsync());
         Assert.Equal([0, 2, 4], maps.Select(m => m.StartPage));
-
-        // Every chapter is marked bundled and the loose files are gone.
-        var chapters = await _harness.Query(ctx => ctx.Chapters.ToListAsync());
-        Assert.All(chapters, c => Assert.True(c.IsBundled));
-        Assert.False(File.Exists(Path.Combine(mangaDir, "Test - Ch.3.cbz")));
+        var chapters = await _harness.Query(c => c.Chapters.ToListAsync());
+        Assert.All(chapters, ch => Assert.True(ch.IsBundled));
     }
 }

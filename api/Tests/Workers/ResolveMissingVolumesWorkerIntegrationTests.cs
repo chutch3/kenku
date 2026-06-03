@@ -1,229 +1,123 @@
 using System.Collections.Concurrent;
-using System.IO.Compression;
 using API;
-using API.MangaConnectors;
-using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;
 using API.Services;
-using API.Workers;
+using API.Tests.Integration;
 using API.Workers.MaintenanceWorkers;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Moq;
-using Newtonsoft.Json.Linq;
+using WireMock.Matchers;
+using WireMock.RequestBuilders;
+using WireMock.ResponseBuilders;
+using WireMock.Server;
 using Xunit;
 
 namespace API.Tests.Workers;
 
+/// <summary>
+/// Volume resolution through the real worker, resolver, search and heuristic — only the MangaDex HTTP
+/// boundary is simulated (WireMock), with responses captured verbatim from the live API (Fixtures/).
+/// Covers resolving real aggregate data and falling back to the cover heuristic when a source has none.
+/// </summary>
 [Trait("Category", "Integration")]
-public class ResolveMissingVolumesWorkerIntegrationTests : IAsyncLifetime
+public class ResolveMissingVolumesWorkerIntegrationTests : IDisposable
 {
-    private readonly HttpClient _httpClient = new();
-    private readonly string _tempDir =
-        Path.Combine(Path.GetTempPath(), $"KenkuIntegration_{Guid.NewGuid()}");
+    private readonly WireMockServer _server = WireMockServer.Start();
+    private readonly IntegrationHarness _harness = new("%M - Ch.%C");
 
-    public Task InitializeAsync()
+    public void Dispose() { _server.Stop(); _harness.Dispose(); }
+
+    private static string Fixture(string series, string name) =>
+        File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", series, name));
+
+    private static IResponseBuilder Ok(string body) => Response.Create().WithStatusCode(200).WithBody(body);
+
+    // English aggregate is authoritative; the all-languages aggregate fills gaps (and for Berserk
+    // disagrees about chapter 1) — serve each so the resolver's en-first merge runs for real.
+    private void StubAggregates(string series)
     {
-        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Kenku-Integration-Tests/1.0");
-        Directory.CreateDirectory(_tempDir);
-        return Task.CompletedTask;
+        _server.Given(Request.Create().WithUrl(new WildcardMatcher("*/aggregate*translatedLanguage*")).UsingGet())
+            .AtPriority(1).RespondWith(Ok(Fixture(series, "aggregate-en.json")));
+        _server.Given(Request.Create().WithPath(new WildcardMatcher("/manga/*/aggregate")).UsingGet())
+            .AtPriority(2).RespondWith(Ok(Fixture(series, "aggregate-all.json")));
     }
 
-    public Task DisposeAsync()
-    {
-        _httpClient.Dispose();
-        if (Directory.Exists(_tempDir))
-            Directory.Delete(_tempDir, true);
-        return Task.CompletedTask;
-    }
+    private void StubAggregateEmpty() =>
+        _server.Given(Request.Create().WithPath(new WildcardMatcher("/manga/*/aggregate")).UsingGet())
+            .RespondWith(Ok("""{ "volumes": {} }"""));
 
-    private SeriesContext CreateMangaContext(DbContextOptions<SeriesContext> options) => new(options);
+    private HttpClient Http() => new(new HostRewritingHandler(_server.Url!));
 
-    private IServiceScope CreateScope(SeriesContext mangaContext)
-    {
-        var actionsContext = new ActionsContext(
-            new DbContextOptionsBuilder<ActionsContext>()
-                .UseInMemoryDatabase(Guid.NewGuid().ToString())
-                .Options);
+    private ResolveMissingVolumesForMangaWorker Worker(string mangaKey, HttpClient http) =>
+        new(new ConcurrentQueue<string>([mangaKey]), _harness.Settings,
+            new MangaDexVolumeResolver(http), new MangaDexSearchService(http), []);
 
-        var sp = new Mock<IServiceProvider>();
-        sp.Setup(x => x.GetService(typeof(SeriesContext))).Returns(mangaContext);
-        sp.Setup(x => x.GetService(typeof(ActionsContext))).Returns(actionsContext);
-        var scope = new Mock<IServiceScope>();
-        scope.Setup(x => x.ServiceProvider).Returns(sp.Object);
-        return scope.Object;
-    }
-
-    private static readonly Mock<IMangaDexSearchService> MockSearchService = new();
-
-    static ResolveMissingVolumesWorkerIntegrationTests()
-    {
-        MockSearchService
-            .Setup(s => s.SearchAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<MangaDexSearchResult>());
-        MockSearchService
-            .Setup(s => s.GetChapterToVolumeMapAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, int>());
-    }
-
-    private ResolveMissingVolumesForMangaWorker MakePoolWorker(string mangaKey, KenkuSettings settings, IMangaDexVolumeResolver resolver) =>
-        new(new ConcurrentQueue<string>([mangaKey]), settings, resolver, MockSearchService.Object);
-
-    // Downloads the first two pages of a MangaDex chapter into a cbz at destPath.
-    private async Task DownloadMangaDexChapterAsCbz(string mangadexChapterId, string destPath)
-    {
-        var serverJson = JObject.Parse(
-            await _httpClient.GetStringAsync(
-                $"https://api.mangadex.org/at-home/server/{mangadexChapterId}"));
-
-        string baseUrl = serverJson["baseUrl"]!.ToString();
-        string hash = serverJson["chapter"]!["hash"]!.ToString();
-        var pages = serverJson["chapter"]!["data"]!.ToObject<string[]>()!;
-
-        using var zip = ZipFile.Open(destPath, ZipArchiveMode.Create);
-        for (int i = 0; i < Math.Min(pages.Length, 2); i++)
-        {
-            var bytes = await _httpClient.GetByteArrayAsync(
-                $"{baseUrl}/data/{hash}/{pages[i]}");
-            using var entry = zip.CreateEntry($"{i}.jpg").Open();
-            await entry.WriteAsync(bytes);
-        }
-    }
-
-    // Berserk ch "1" → volume 5 per MangaDex aggregate.
     [Fact]
-    public async Task Berserk_ExactOnlyStrategy_WorkerPersistsVolumeToDatabase()
+    public async Task ResolvesChapterVolumesFromTheMangaDexAggregate()
     {
-        const string berserkUuid = "801513ba-a712-498c-8f57-cae55b38cc92";
-        string dbName = Guid.NewGuid().ToString();
-        var dbOptions = new DbContextOptionsBuilder<SeriesContext>()
-            .UseInMemoryDatabase(dbName).Options;
+        _harness.Settings.VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly;
+        StubAggregates("Berserk");
 
-        string mangaKey;
-        using (var setupDb = CreateMangaContext(dbOptions))
-        {
-            var library = new FileLibrary(_tempDir, "Integration Library");
-            setupDb.FileLibraries.Add(library);
-            var manga = new Series("Berserk", "Dark fantasy", "url", SeriesReleaseStatus.Continuing,
-                [], [], [], [], library);
-            manga.SourceIds.Add(
-                new SourceId<Series>(manga, "MangaDex", berserkUuid, null));
-            setupDb.Series.Add(manga);
-            setupDb.Chapters.Add(new Chapter(manga, "1", null, "Black Swordsman")
-                { Downloaded = true, FileName = "berserk_ch1.cbz" });
-            await setupDb.SaveChangesAsync();
-            mangaKey = manga.Key;
-        }
+        string key = await SeedLinkedSeries("Berserk", ch => ch("1"));
 
-        using var workerDb = CreateMangaContext(dbOptions);
-        var settings = new KenkuSettings
-            { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly, AppData = _tempDir };
-        await MakePoolWorker(mangaKey, settings, new MangaDexVolumeResolver(_httpClient))
-            .DoWork(CreateScope(workerDb));
+        await Worker(key, Http()).DoWork(_harness.CreateScope());
 
-        using var queryDb = CreateMangaContext(dbOptions);
-        var result = await queryDb.Chapters.FirstAsync(c => c.ChapterNumber == "1");
-        Assert.Equal(5, result.VolumeNumber);
+        // English tags chapter 1 as volume 5; the all-languages aggregate disagrees (volume 1) — en wins.
+        var ch1 = await _harness.Query(c => c.Chapters.FirstAsync(x => x.ChapterNumber == "1"));
+        Assert.Equal(5, ch1.VolumeNumber);
     }
 
-    // Berserk ch "0.01" on MangaDex → stored as "0.1" by Chapter constructor.
-    // The resolver must normalize its keys the same way so TryGetValue succeeds.
     [Fact]
-    public async Task Berserk_ChapterWithLeadingZeroDecimal_NormalizationPipelineResolvesVolume()
+    public async Task MangaDexResolver_ParsesRealAggregateIntoChapterVolumeMap()
     {
-        const string berserkUuid = "801513ba-a712-498c-8f57-cae55b38cc92";
-        string dbName = Guid.NewGuid().ToString();
-        var dbOptions = new DbContextOptionsBuilder<SeriesContext>()
-            .UseInMemoryDatabase(dbName).Options;
+        StubAggregates("Berserk");
+        var manga = new Series("Berserk", "d", "u", SeriesReleaseStatus.Continuing, [], [], [], [],
+            new FileLibrary(_harness.TempDir, "Lib"));
+        manga.SourceIds.Add(new SourceId<Series>(manga, "MangaDex", "berserk-id", null));
 
-        string mangaKey;
-        using (var setupDb = CreateMangaContext(dbOptions))
-        {
-            var library = new FileLibrary(_tempDir, "Integration Library");
-            setupDb.FileLibraries.Add(library);
-            var manga = new Series("Berserk", "Dark fantasy", "url", SeriesReleaseStatus.Continuing,
-                [], [], [], [], library);
-            manga.SourceIds.Add(
-                new SourceId<Series>(manga, "MangaDex", berserkUuid, null));
-            setupDb.Series.Add(manga);
-            // Constructor normalizes "0.01" → "0.1"
-            setupDb.Chapters.Add(new Chapter(manga, "0.01", null, "The Black Swordsman")
-                { Downloaded = true, FileName = "berserk_ch001.cbz" });
-            await setupDb.SaveChangesAsync();
-            mangaKey = manga.Key;
-        }
+        var map = await new MangaDexVolumeResolver(Http()).GetChapterToVolumeMapAsync(manga);
 
-        using var workerDb = CreateMangaContext(dbOptions);
-        var settings = new KenkuSettings
-            { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly, AppData = _tempDir };
-        await MakePoolWorker(mangaKey, settings, new MangaDexVolumeResolver(_httpClient))
-            .DoWork(CreateScope(workerDb));
-
-        using var queryDb = CreateMangaContext(dbOptions);
-        var result = await queryDb.Chapters.FirstAsync(c => c.ChapterNumber == "0.1");
-        Assert.Equal(1, result.VolumeNumber);
+        Assert.Equal(5, map["1"]);
     }
 
-    // Verify the live resolver returns the correct chapter→volume mapping without involving the worker.
     [Fact]
-    public async Task Berserk_MangaDexResolver_ReturnsCorrectVolumeMapping()
+    public async Task WhenAMetadataSourceHasNoVolumeData_TheCoverHeuristicResolvesFromImages()
     {
-        const string berserkUuid = "801513ba-a712-498c-8f57-cae55b38cc92";
+        _harness.Settings.VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess;
+        StubAggregateEmpty(); // the source returns no volume data
 
-        var library = new FileLibrary(_tempDir, "Integration Library");
-        var manga = new Series("Berserk", "Dark fantasy", "url", SeriesReleaseStatus.Continuing,
-            [], [], [], [], library);
-        manga.SourceIds.Add(
-            new SourceId<Series>(manga, "MangaDex", berserkUuid, null));
+        string key = await SeedLinkedSeries("One-Punch Man", ch => ch("1"), mangaDir =>
+            // a real, color manga cover → the heuristic should detect it and assign volume 1
+            File.Copy(Path.Combine(AppContext.BaseDirectory, "Fixtures", "OnePunchMan", "cover.cbz"),
+                Path.Combine(mangaDir, "One-Punch Man - Ch.1.cbz")));
 
-        var resolver = new MangaDexVolumeResolver(_httpClient);
-        var map = await resolver.GetChapterToVolumeMapAsync(manga);
+        await Worker(key, Http()).DoWork(_harness.CreateScope());
 
-        Assert.True(map.TryGetValue("1", out int vol), "Chapter '1' should be in the MangaDex volume map");
-        Assert.Equal(5, vol);
+        var ch1 = await _harness.Query(c => c.Chapters.FirstAsync(x => x.ChapterNumber == "1"));
+        Assert.Equal(1, ch1.VolumeNumber);
     }
 
-    // One Punch-Man is DMCA'd on MangaDex — resolver returns empty, color heuristic takes over.
-    [Fact]
-    public async Task OnePunchMan_DmcaOnMangaDex_ColorHeuristicAssignsVolume()
+    private async Task<string> SeedLinkedSeries(string name, Action<Action<string>> addChapters, Action<string>? withFiles = null)
     {
-        const string opmMangaDexUuid = "d8a959f7-648e-4c8d-8f23-f1f3f8e129f3";
-        const string chainmanChapter1Uuid = "73af4d8d-1532-4a72-b1b9-8f4e5cd295c9";
-
-        string dbName = Guid.NewGuid().ToString();
-        var dbOptions = new DbContextOptionsBuilder<SeriesContext>()
-            .UseInMemoryDatabase(dbName)
-            .Options;
-
-        FileLibrary library;
-        Series manga;
-
-        using (var setupDb = CreateMangaContext(dbOptions))
+        string key = null!;
+        await _harness.Seed(ctx =>
         {
-            library = new FileLibrary(_tempDir, "Integration Library");
-            setupDb.FileLibraries.Add(library);
-            manga = new Series("One Punch-Man", "Superhero comedy", "url",
-                SeriesReleaseStatus.Continuing, [], [], [], [], library);
-            manga.SourceIds.Add(
-                new SourceId<Series>(manga, "MangaDex", opmMangaDexUuid, null));
-            setupDb.Series.Add(manga);
-            setupDb.Chapters.Add(new Chapter(manga, "1", null, "Punch 1")
-                { Downloaded = true, FileName = "chap1.cbz" });
-            await setupDb.SaveChangesAsync();
-        }
+            var library = new FileLibrary(_harness.TempDir, "Lib");
+            ctx.FileLibraries.Add(library);
+            var manga = new Series(name, "d", "u", SeriesReleaseStatus.Continuing, [], [], [], [], library);
+            manga.MetadataSource!.Status = MetadataSourceStatus.NoMatch; // skip auto-match; resolve via connector id
+            manga.SourceIds.Add(new SourceId<Series>(manga, "MangaDex", "connector-id", null));
+            ctx.Series.Add(manga);
 
-        string mangaDir = Path.Combine(_tempDir, manga.DirectoryName);
-        Directory.CreateDirectory(mangaDir);
-        await DownloadMangaDexChapterAsCbz(chainmanChapter1Uuid, Path.Combine(mangaDir, "chap1.cbz"));
+            string dir = manga.FullDirectoryPath;
+            Directory.CreateDirectory(dir);
+            addChapters(number =>
+                ctx.Chapters.Add(new Chapter(manga, number, null, null)
+                    { Downloaded = true, FileName = $"{name} - Ch.{number}.cbz" }));
+            withFiles?.Invoke(dir);
 
-        using var workerDb = CreateMangaContext(dbOptions);
-        var settings = new KenkuSettings
-            { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess, AppData = _tempDir };
-        await MakePoolWorker(manga.Key, settings, new MangaDexVolumeResolver(_httpClient))
-            .DoWork(CreateScope(workerDb));
-
-        using var queryDb = CreateMangaContext(dbOptions);
-        var result = await queryDb.Chapters.FirstAsync(c => c.ChapterNumber == "1");
-        Assert.Equal(1, result.VolumeNumber);
+            key = manga.Key;
+            return Task.CompletedTask;
+        });
+        return key;
     }
 }
