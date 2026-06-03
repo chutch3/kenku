@@ -42,6 +42,9 @@ public sealed class IntegrationHarness : IDisposable
     /// <summary>A fresh DI scope with its own context instances (sharing the same in-memory store).</summary>
     public IServiceScope CreateScope() => _root.CreateScope();
 
+    /// <summary>The root provider, for components (e.g. the real WorkerQueue) that create their own scopes.</summary>
+    public IServiceProvider Services => _root;
+
     /// <summary>Run an action against a fresh SeriesContext and persist it (seeding user input).</summary>
     public async Task Seed(Func<SeriesContext, Task> seed)
     {
