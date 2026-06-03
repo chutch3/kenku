@@ -45,7 +45,11 @@ log.Info("Starting up");
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 log.Debug("Loading Settings...");
-var settings = KenkuSettings.Load();
+// Production loads settings from disk. Integration tests pass Kenku:AppData to use an isolated,
+// writable settings location without reading/writing the real file or the process-wide APP_DATA env.
+var settings = builder.Configuration["Kenku:AppData"] is { } appDataOverride
+    ? new KenkuSettings { AppData = appDataOverride }
+    : KenkuSettings.Load();
 builder.Services.AddSingleton(settings);
 
 builder.Services.AddCors(options =>
@@ -235,6 +239,11 @@ app.UseSwaggerUI(opts =>
 
 app.UseHttpsRedirection();
 
+// Production startup: migrate the DB, seed defaults, and start the workers. Integration tests host the
+// app with Kenku:RunStartup=false so they can use an in-memory DB and drive workers explicitly, instead
+// of auto-running every worker (and hitting the real network) on boot.
+if (builder.Configuration.GetValue("Kenku:RunStartup", true))
+{
 try //Connect to DB and apply migrations
 {
     log.Debug("Applying Migrations...");
@@ -309,6 +318,10 @@ kenkuSettings.ApplyDisabledConnectors(mangaConnectors);
 
 await kenkuManager.StartupTasks();
 kenkuManager.AddDefaultWorkers();
+}
 
 log.Info("Running app.");
 await app.RunAsync();
+
+// Exposed so WebApplicationFactory<Program> can host the real app in integration tests.
+public partial class Program;
