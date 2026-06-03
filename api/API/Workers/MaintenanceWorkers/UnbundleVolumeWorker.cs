@@ -9,6 +9,11 @@ namespace API.Workers.MaintenanceWorkers;
 public class UnbundleVolumeWorker(string mangaId, int volumeNumber, KenkuSettings settings, IEnumerable<BaseWorker>? dependsOn = null)
     : BaseWorkerWithContexts(dependsOn)
 {
+    /// <summary><see cref="Series"/>.Key of the manga whose volume is being unbundled.</summary>
+    public string MangaId => mangaId;
+    /// <summary>The volume number being unbundled back into individual chapters.</summary>
+    public int VolumeNumber => volumeNumber;
+
     private SeriesContext _mangaContext = null!;
 
     protected override void SetContexts(IServiceScope serviceScope)

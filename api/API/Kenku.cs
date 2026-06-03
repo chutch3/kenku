@@ -78,6 +78,9 @@ public class Kenku
         // Level-triggered bundling: bundles ready VolumeCBZ volumes even when no download just
         // completed (restart, churn settled, re-recognized chapters). See #22.
         _workerQueue.AddWorker(new EnsureReadyVolumesBundledWorker(_workerQueue, _settings));
+        // Level-triggered rebuild: re-bundles a volume whose chapter set changed after it was bundled
+        // (late download, re-assignment, manual fix) so the chapter lands in the right position.
+        _workerQueue.AddWorker(new EnsureBundledVolumesFreshWorker(_workerQueue, _settings));
 
         // Torrent completion worker is registered only when the torrent path is configured;
         // skip silently if absent so deployments without Prowlarr+qBittorrent are unaffected.
