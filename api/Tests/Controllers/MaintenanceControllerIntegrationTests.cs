@@ -100,7 +100,7 @@ public class MaintenanceControllerIntegrationTests : IAsyncLifetime
             VolumeResolutionParallelism = 2,
             AppData = _tempDir
         };
-        var factory = new ResolveMissingVolumesForMangaWorkerFactory(settings, mockResolver.Object, MakeEmptySearchService().Object);
+        var factory = new ResolveMissingVolumesForMangaWorkerFactory(settings, mockResolver.Object, MakeEmptySearchService().Object, []);
 
         // Build the coordinator directly (skip the endpoint for this test)
         using var coordinatorDb = CreateMangaContext(dbOptions);
@@ -168,7 +168,7 @@ public class MaintenanceControllerIntegrationTests : IAsyncLifetime
             ChapterNamingScheme = NamingScheme,
             AppData = _tempDir
         };
-        var factory = new ResolveMissingVolumesForMangaWorkerFactory(settings, mockResolver.Object, MakeEmptySearchService().Object);
+        var factory = new ResolveMissingVolumesForMangaWorkerFactory(settings, mockResolver.Object, MakeEmptySearchService().Object, []);
 
         // Call the endpoint — captures the queued ResolveMissingVolumesWorker (coordinator)
         BaseWorker? capturedWorker = null;

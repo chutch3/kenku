@@ -16,6 +16,7 @@ public class ResolveMissingVolumesForMangaWorker(
     KenkuSettings settings,
     IMangaDexVolumeResolver mangaDexVolumeResolver,
     IMangaDexSearchService mangaDexSearchService,
+    IEnumerable<IVolumeResolver>? volumeResolvers = null,
     IEnumerable<BaseWorker>? dependsOn = null)
     : PoolWorker<string>(queue, dependsOn)
 {
@@ -102,6 +103,22 @@ public class ResolveMissingVolumesForMangaWorker(
         catch (Exception ex)
         {
             Log.Error($"MangaDex volume resolution failed for {manga.Name}: {ex.Message}");
+        }
+
+        // Additional sources (e.g. Wikipedia) fill chapters MangaDex doesn't cover. MangaDex is listed
+        // first, so it wins ties within the same confidence; the others contribute the holes.
+        foreach (var resolver in volumeResolvers ?? [])
+        {
+            try
+            {
+                var map = await resolver.ResolveAsync(manga, chapters, CancellationToken);
+                if (map.Count > 0)
+                    results.Add(new VolumeResolverResult(resolver.Confidence, map));
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"{resolver.SourceName} volume resolution failed for {manga.Name}: {ex.Message}");
+            }
         }
 
         if (results.Count == 0)

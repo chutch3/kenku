@@ -6,9 +6,10 @@ namespace API.Workers.MaintenanceWorkers;
 public class ResolveMissingVolumesForMangaWorkerFactory(
     KenkuSettings settings,
     IMangaDexVolumeResolver resolver,
-    IMangaDexSearchService searchService)
+    IMangaDexSearchService searchService,
+    IEnumerable<IVolumeResolver> volumeResolvers)
     : IBatchWorkerFactory<string>
 {
     public BaseWorker Create(ConcurrentQueue<string> queue) =>
-        new ResolveMissingVolumesForMangaWorker(queue, settings, resolver, searchService);
+        new ResolveMissingVolumesForMangaWorker(queue, settings, resolver, searchService, volumeResolvers);
 }

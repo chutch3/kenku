@@ -156,6 +156,8 @@ builder.Services.AddSingleton<CleanupSourceIdsWithoutSource>();
 builder.Services.AddSingleton<CleanupOrphanedFilesWorker>();
 builder.Services.AddHttpClient<MangaDexVolumeResolver>();
 builder.Services.AddSingleton<IMangaDexVolumeResolver>(sp => sp.GetRequiredService<MangaDexVolumeResolver>());
+builder.Services.AddHttpClient<WikipediaVolumeResolver>();
+builder.Services.AddSingleton<IVolumeResolver>(sp => sp.GetRequiredService<WikipediaVolumeResolver>());
 builder.Services.AddHttpClient<MangaDexSearchService>();
 builder.Services.AddSingleton<IMangaDexSearchService>(sp => sp.GetRequiredService<MangaDexSearchService>());
 builder.Services.AddHttpClient<AniListSearchService>();
