@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.3.1 (2026-06-03)
+
+### Bug Fixes
+
+- Treat bundled chapters as present so they are not re-downloaded
+  ([`87d91c0`](https://github.com/chutch3/kenku/commit/87d91c02f78a527ed8b5b4e4921e4769d30e7f7b))
+
+
 ## v0.3.0 (2026-06-03)
 
 ### Bug Fixes
