@@ -783,6 +783,69 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         Assert.Null((await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
     }
 
+    [Fact]
+    public async Task DoWork_WhenSoleCandidateHasNoChapterCount_AutoMatchesOnTitle()
+    {
+        // MangaDex leaves lastChapter empty for ongoing series (e.g. Dandadan), so the candidate's
+        // ChapterCount is 0. A perfect, sole title match must still auto-match — not fall to NoMatch.
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
+        var library = new FileLibrary(_testRoot, "Test Library");
+        _mangaContext.FileLibraries.Add(library);
+        var manga = new Series("Dandadan", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
+        manga.MetadataSource!.Status = MetadataSourceStatus.Unlinked;
+        _mangaContext.Series.Add(manga);
+        _mangaContext.Chapters.Add(new Chapter(manga, "1", null, "Title 1") { Downloaded = true, FileName = "chap1.cbz" });
+        await _mangaContext.SaveChangesAsync();
+
+        _mockSearchService
+            .Setup(s => s.SearchAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MangaDexSearchResult>
+            {
+                new() { MangaDexId = "dandadan-uuid", Title = "Dandadan", Author = null, ChapterCount = 0 }
+            });
+        _mockSearchService
+            .Setup(s => s.GetChapterToVolumeMapAsync("dandadan-uuid", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int> { { "1", 1 } });
+
+        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+
+        var updatedSource = await _mangaContext.Set<MetadataSource>().FirstAsync(s => s.MangaId == manga.Key);
+        Assert.Equal(MetadataSourceStatus.AutoMatched, updatedSource.Status);
+        Assert.Equal("dandadan-uuid", updatedSource.ExternalId);
+        Assert.Equal(1, (await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
+    }
+
+    [Fact]
+    public async Task DoWork_WhenHeuristicVolumeExceedsPlausibleSize_LeavesChaptersUnassigned()
+    {
+        // A single color cover followed by a long run of black-and-white covers (the Dandadan vol-17
+        // failure) must NOT dump every chapter into one giant volume. The heuristic should abort and
+        // leave them unassigned rather than fabricate a bogus volume.
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
+        var library = new FileLibrary(_testRoot, "Test Library");
+        _mangaContext.FileLibraries.Add(library);
+        var manga = new Series("Test Bloat", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
+        _mangaContext.Series.Add(manga);
+
+        const int chapterCount = 45; // > MaxPlausibleVolumeChapters (40)
+        for (int i = 1; i <= chapterCount; i++)
+            _mangaContext.Chapters.Add(new Chapter(manga, i.ToString(), null, $"Title {i}")
+                { Downloaded = true, FileName = $"chap{i}.cbz" });
+        await _mangaContext.SaveChangesAsync();
+
+        string mangaDir = Path.Combine(_testRoot, manga.DirectoryName);
+        Directory.CreateDirectory(mangaDir);
+        CreateColorCbz(Path.Combine(mangaDir, "chap1.cbz")); // the one color cover
+        for (int i = 2; i <= chapterCount; i++)
+            CreateGrayscaleCbz(Path.Combine(mangaDir, $"chap{i}.cbz"));
+
+        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+
+        // None of the bloated run should be assigned a volume.
+        foreach (var num in new[] { "1", "20", "45" })
+            Assert.Null((await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == num)).VolumeNumber);
+    }
+
     private static void CreateColorCbz(string path)
     {
         using var zip = ZipFile.Open(path, ZipArchiveMode.Create);

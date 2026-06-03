@@ -247,11 +247,29 @@ public class ResolveMissingVolumesForMangaWorker(
         }
     }
 
+    // No real tankōbon volume holds anywhere near this many chapters. If the heuristic groups
+    // more than this without finding a new color cover, it has lost the volume boundary (e.g. a
+    // long run of black-and-white covers) and must not fabricate a giant trailing volume.
+    private const int MaxPlausibleVolumeChapters = 40;
+
     private async Task TryResolveWithColorHeuristic(List<Chapter> chapters, int startVolume)
     {
         int currentVolume = startVolume;
         bool isFirstChapter = true;
         bool prevWasColor = false;
+
+        // Chapters are buffered into the current volume and only committed once that volume is
+        // closed by the next color cover (or, for the trailing volume, at the end of the list).
+        // This lets us discard an implausibly large group instead of dumping every unresolved
+        // chapter into one bogus volume.
+        var pendingVolumeChapters = new List<Chapter>();
+
+        void CommitPending()
+        {
+            foreach (var c in pendingVolumeChapters)
+                AssignVolume(c, currentVolume, MetadataConfidence.Heuristic);
+            pendingVolumeChapters.Clear();
+        }
 
         foreach (var chapter in chapters)
         {
@@ -319,20 +337,33 @@ public class ResolveMissingVolumesForMangaWorker(
 
                 if (isColor)
                 {
+                    // A new color cover closes the previous volume — commit it, then open the next.
+                    CommitPending();
                     currentVolume++;
                     Log.Debug($"Color cover on chapter {chapter.ChapterNumber} (avgDiff={avgDiff:F2}). Starting volume {currentVolume}.");
                 }
 
                 if (currentVolume > 0)
-                    AssignVolume(chapter, currentVolume, MetadataConfidence.Heuristic);
+                {
+                    pendingVolumeChapters.Add(chapter);
+                    if (pendingVolumeChapters.Count > MaxPlausibleVolumeChapters)
+                    {
+                        Log.Info($"Heuristic volume {currentVolume} exceeded {MaxPlausibleVolumeChapters} chapters without a new color cover; aborting to avoid a bogus volume.");
+                        pendingVolumeChapters.Clear();
+                        break;
+                    }
+                }
             }
             catch (Exception ex)
             {
                 Log.Error($"Error in color heuristic for chapter {chapter.ChapterNumber}: {ex.Message}");
                 if (currentVolume > 0)
-                    AssignVolume(chapter, currentVolume, MetadataConfidence.Heuristic);
+                    pendingVolumeChapters.Add(chapter);
             }
         }
+
+        // Commit the trailing volume. The size guard above guarantees it is plausibly sized.
+        CommitPending();
     }
 
     private static void AssignVolume(Chapter chapter, int volume, MetadataConfidence confidence)
@@ -403,27 +434,16 @@ public class ResolveMissingVolumesForMangaWorker(
         string candidateTitle = NormalizeTitle(candidate.Title);
         float titleSim = JaroWinkler(normalizedMangaTitle, candidateTitle);
 
-        float countProximity = 0f;
-        if (ourChapterCount > 0 && candidate.ChapterCount > 0)
-        {
-            int maxCount = Math.Max(ourChapterCount, candidate.ChapterCount);
-            countProximity = 1.0f - (float)Math.Abs(ourChapterCount - candidate.ChapterCount) / maxCount;
-        }
+        // MangaDex's lastChapter is frequently empty for ongoing series (e.g. Dandadan), which
+        // leaves us with no chapter-count signal. When the count is unavailable, score on title
+        // alone — otherwise a zero count-proximity drags a perfect title match (1.0) down to 0.65
+        // and a correct, sole candidate gets rejected as NoMatch.
+        if (ourChapterCount <= 0 || candidate.ChapterCount <= 0)
+            return titleSim;
 
-        // Author data is unavailable in MangaDexSearchResult when Author is null
-        if (candidate.Author is null)
-        {
-            // Redistribute: title 0.65 / count 0.35
-            return titleSim * 0.65f + countProximity * 0.35f;
-        }
-        else
-        {
-            // Author match is binary 0/1 — we don't have our manga's author here,
-            // so treat it as unavailable (Author field from search is the candidate's author,
-            // not something we can compare against without manga author data in scope).
-            // Use the no-author weights.
-            return titleSim * 0.65f + countProximity * 0.35f;
-        }
+        int maxCount = Math.Max(ourChapterCount, candidate.ChapterCount);
+        float countProximity = 1.0f - (float)Math.Abs(ourChapterCount - candidate.ChapterCount) / maxCount;
+        return titleSim * 0.65f + countProximity * 0.35f;
     }
 
     private static readonly Regex PunctuationRegex = new(@"[^\w\s]", RegexOptions.Compiled);
