@@ -224,3 +224,42 @@ test('every frontend API call matches the OpenAPI contract', () => {
     assert.ok(checked > 0, 'expected to find API calls to validate');
     assert.deepEqual(problems, [], `\n${problems.join('\n')}\n`);
 });
+
+// --- response/request body shape contract --------------------------------
+// The call-path scan above can't see the response/request BODY fields a component reads or sends.
+// LooseChapters.vue reads `unassigned[].chapterId/chapterNumber` from GET /volumes and posts
+// `{ assignments }` to POST /volumes/assignments — pin those so a backend rename can't silently break it.
+
+function resolveRef(ref) {
+    let node = schema;
+    for (const part of ref.replace(/^#\//, '').split('/')) node = node?.[part];
+    return node;
+}
+
+/** The schema under the first `application/json...` content type of a content map. */
+function jsonSchema(content) {
+    const key = Object.keys(content ?? {}).find((k) => k.startsWith('application/json'));
+    return key ? content[key].schema : null;
+}
+
+/** Property names of a schema node, resolving a top-level $ref. */
+function propsOf(node) {
+    if (!node) return null;
+    if (node.$ref) node = resolveRef(node.$ref);
+    return node?.properties ? Object.keys(node.properties) : null;
+}
+
+test('LooseChapters contract: /volumes exposes loose chapters and assignments accepts a chapter→volume map', () => {
+    const volContent = schema.paths['/v2/Series/{MangaId}/volumes']?.get?.responses?.['200']?.content;
+    const volSchema = jsonSchema(volContent);
+    assert.ok(propsOf(volSchema)?.includes('unassigned'), 'VolumeListResult must expose `unassigned`');
+
+    const volNode = volSchema.$ref ? resolveRef(volSchema.$ref) : volSchema;
+    const entryProps = propsOf(volNode.properties.unassigned.items);
+    for (const field of ['chapterId', 'chapterNumber']) {
+        assert.ok(entryProps?.includes(field), `loose chapter entries must expose \`${field}\``);
+    }
+
+    const asnContent = schema.paths['/v2/Series/{MangaId}/volumes/assignments']?.post?.requestBody?.content;
+    assert.ok(propsOf(jsonSchema(asnContent))?.includes('assignments'), 'assignment request must accept `assignments`');
+});
