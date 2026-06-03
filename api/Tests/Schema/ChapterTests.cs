@@ -141,6 +141,28 @@ public class ChapterTests : IDisposable
     }
 
     [Fact]
+    public async Task CheckDownloaded_BundledChapter_ReturnsTrue_WithoutLooseFile()
+    {
+        using var context = CreateContext();
+
+        var library = new FileLibrary(_tmpDir, "Test");
+        var manga = new Series("Dandadan", "", "http://example.com/img.jpg",
+            SeriesReleaseStatus.Continuing, [], [], [], [], library);
+        // Bundled: its content lives in the volume's .cbz, so there is intentionally no loose file.
+        var chapter = new Chapter(manga, "1", 1) { Downloaded = true, IsBundled = true };
+
+        context.FileLibraries.Add(library);
+        context.Series.Add(manga);
+        context.Chapters.Add(chapter);
+        await context.SaveChangesAsync();
+
+        bool result = await chapter.CheckDownloaded(context, "%M - ?V(Vol.%V )Ch.%C");
+
+        Assert.True(result);
+        Assert.True(chapter.Downloaded);
+    }
+
+    [Fact]
     public async Task CheckDownloaded_FileInSubdirectory_FuzzyMatchFindsFileRecursivelyAndStoresRelativePath()
     {
         using var context = CreateContext();

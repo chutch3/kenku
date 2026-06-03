@@ -70,6 +70,8 @@ public class StartNewChapterDownloadsWorker(KenkuSettings settings, IWorkerQueue
     
     internal static async Task<List<SourceId<Chapter>>> GetMissingChapters(SeriesContext ctx, CancellationToken cancellationToken) => await ctx.MangaConnectorToChapter
         .Include(id => id.Obj)
-        .Where(id => !id.Obj.Downloaded && id.UseForDownload)
+        // Bundled chapters live inside a Vol N.cbz; their individual file is intentionally gone, so they
+        // are NOT missing — re-downloading them recreates a duplicate beside the bundle.
+        .Where(id => !id.Obj.Downloaded && id.UseForDownload && !id.Obj.IsBundled)
         .ToListAsync(cancellationToken);
 }

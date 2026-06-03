@@ -88,6 +88,29 @@ public class StartNewChapterDownloadsWorkerTests
     }
 
     [Fact]
+    public async Task DoWork_DoesNotScheduleDownload_ForBundledChapter()
+    {
+        var (context, chapterId, connector, settings) = SetupMissingChapter(nameof(DoWork_DoesNotScheduleDownload_ForBundledChapter));
+        // The chapter's content lives inside a Vol N.cbz bundle (the individual file was deleted on
+        // bundling). Even if CheckDownloaded flipped Downloaded=false because the loose file is gone,
+        // it must NOT be re-downloaded — that recreates a duplicate beside the bundle. See bug A.
+        var chapter = await context.Chapters.FirstAsync();
+        chapter.IsBundled = true;
+        chapter.Downloaded = false;
+        await context.SaveChangesAsync();
+
+        var queue = new Mock<IWorkerQueue>();
+        queue.Setup(q => q.GetKnownWorkers()).Returns([]);
+        queue.Setup(q => q.GetRunningWorkers()).Returns([]);
+
+        var worker = new StartNewChapterDownloadsWorker(settings, queue.Object, new[] { connector });
+        BaseWorker[] created = await worker.DoWork(ScopeFor(context));
+
+        Assert.DoesNotContain(created.OfType<DownloadChapterFromSourceWorker>(),
+            w => w.ChapterIdId == chapterId.Key);
+    }
+
+    [Fact]
     public async Task DoWork_DoesNotScheduleNegativeOrExcessWorkers_WhenInFlightExceedsLimit()
     {
         var (context, chapterId, connector, settings) = SetupMissingChapter(nameof(DoWork_DoesNotScheduleNegativeOrExcessWorkers_WhenInFlightExceedsLimit));

@@ -96,6 +96,14 @@ public class Chapter : Identifiable, IComparable<Chapter>
                .FirstOrDefaultAsync(c => c.Key == this.Key, token??CancellationToken.None) is not { } chapter)
             throw new KeyNotFoundException("Unable to find chapter");
 
+        // A bundled chapter's content is inside its Vol N.cbz; the individual file was deleted on
+        // bundling, so don't look for it (that would flip Downloaded=false and trigger a re-download).
+        if (chapter.IsBundled)
+        {
+            this.Downloaded = true;
+            return true;
+        }
+
         bool useExactMatch = exactMatch ?? Constants.DownloadedChaptersCheckMatchExactName;
         if (chapter.ParentManga.Library is null)
         {
