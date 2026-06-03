@@ -6,7 +6,7 @@ using API.Workers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace API.Tests.Flow;
+namespace API.Tests.Integration;
 
 /// <summary>
 /// Runs real worker chains end-to-end against shared in-memory databases, seeding only what a user
@@ -14,7 +14,7 @@ namespace API.Tests.Flow;
 /// DI scope/context — so navigations come from the worker's own query (its Includes), not in-memory
 /// references — which is what isolated unit tests miss. See issue #19.
 /// </summary>
-public sealed class FlowTestHarness : IDisposable
+public sealed class IntegrationHarness : IDisposable
 {
     public string TempDir { get; }
     public KenkuSettings Settings { get; }
@@ -24,9 +24,9 @@ public sealed class FlowTestHarness : IDisposable
     private readonly string _actionsDb = "actions-" + Guid.NewGuid();
     private readonly string _notifDb = "notif-" + Guid.NewGuid();
 
-    public FlowTestHarness(string? chapterNamingScheme = null)
+    public IntegrationHarness(string? chapterNamingScheme = null)
     {
-        TempDir = Path.Combine(Path.GetTempPath(), "flow-" + Guid.NewGuid().ToString("N"));
+        TempDir = Path.Combine(Path.GetTempPath(), "integration-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(TempDir);
         Settings = new KenkuSettings { AppData = TempDir };
         if (chapterNamingScheme is not null)

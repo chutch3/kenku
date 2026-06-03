@@ -2,21 +2,22 @@ using API.Schema.SeriesContext;
 using API.Workers.MaintenanceWorkers;
 using Microsoft.EntityFrameworkCore;
 
-namespace API.Tests.Flow;
+namespace API.Tests.Integration;
 
 /// <summary>
-/// Flow test for #23: when a chapter's volume is assigned AFTER it was downloaded (WeebCentral hands
-/// chapters over with no volume; it's guessed later), its on-disk file keeps the old volume-less name
-/// while the expected name now has a "Vol.N" prefix and (under VolumeFolder/VolumeCBZ) a "Vol N/"
-/// folder. Nothing reconciles this, so CheckDownloaded flips the chapter not-downloaded and the
-/// workers thrash. The reconciler must move the file to the layout-aware path and update FileName.
+/// Integration test for #23: when a chapter's volume is assigned AFTER it was downloaded (WeebCentral
+/// hands chapters over with no volume; it's guessed later), its on-disk file keeps the old volume-less
+/// name while the expected name now has a "Vol.N" prefix and (under VolumeFolder/VolumeCBZ) a "Vol N/"
+/// folder. Nothing reconciles this, so CheckDownloaded flips the chapter not-downloaded and the workers
+/// thrash. The reconciler must move the file to the layout-aware path and update FileName.
 /// </summary>
-public class VolumeReconciliationFlowTests
+[Trait("Category", "Integration")]
+public class VolumeReconciliationIntegrationTests
 {
     [Fact]
     public async Task ChapterWithVolumeButStaleFlatName_IsMovedToVolumeFolder()
     {
-        using var harness = new FlowTestHarness(); // default "%M - ?V(Vol.%V )Ch.%C?T( - %T)" scheme
+        using var harness = new IntegrationHarness(); // default "%M - ?V(Vol.%V )Ch.%C?T( - %T)" scheme
         string chapterKey = null!;
         string mangaDir = null!;
 
@@ -56,7 +57,7 @@ public class VolumeReconciliationFlowTests
     [Fact]
     public async Task AlreadyReconciledChapter_IsLeftAlone()
     {
-        using var harness = new FlowTestHarness();
+        using var harness = new IntegrationHarness();
         await harness.Seed(async ctx =>
         {
             var library = new FileLibrary(harness.TempDir, "Lib");

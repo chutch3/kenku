@@ -5,14 +5,15 @@ using API.Workers.MaintenanceWorkers;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 
-namespace API.Tests.Flow;
+namespace API.Tests.Integration;
 
 /// <summary>
-/// Flow test for #22: a volume that is complete and closed must bundle even when no new download is
-/// happening (on restart, after churn settles, or for chapters re-recognized via CheckDownloaded).
-/// The old edge-triggered path only fired from a fresh download completion, so this never happened.
+/// Integration test for #22: a volume that is complete and closed must bundle even when no new
+/// download is happening (on restart, after churn settles, or for chapters re-recognized via
+/// CheckDownloaded). The old edge-triggered path only fired from a fresh download completion.
 /// </summary>
-public class LevelTriggeredBundlingFlowTests
+[Trait("Category", "Integration")]
+public class LevelTriggeredBundlingIntegrationTests
 {
     private static byte[] FakeCbz(int pages)
     {
@@ -26,7 +27,7 @@ public class LevelTriggeredBundlingFlowTests
     [Fact]
     public async Task ReadyVolume_IsBundled_WithoutANewDownload()
     {
-        using var harness = new FlowTestHarness("%M - Ch.%C");
+        using var harness = new IntegrationHarness("%M - Ch.%C");
 
         await harness.Seed(async ctx =>
         {
@@ -61,7 +62,7 @@ public class LevelTriggeredBundlingFlowTests
     [Fact]
     public async Task DoesNotQueue_AVolumeAlreadyInFlight()
     {
-        using var harness = new FlowTestHarness("%M - Ch.%C");
+        using var harness = new IntegrationHarness("%M - Ch.%C");
         string mangaKey = null!;
         await harness.Seed(async ctx =>
         {
