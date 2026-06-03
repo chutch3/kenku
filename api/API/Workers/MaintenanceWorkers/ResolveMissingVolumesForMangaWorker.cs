@@ -229,10 +229,13 @@ public class ResolveMissingVolumesForMangaWorker(
             manga.MetadataSource.Status = MetadataSourceStatus.AutoMatched;
             manga.MetadataSource.MatchScore = topScore;
 
-            // Apply volume assignments with Exact confidence
+            // Apply volume assignments with Exact confidence, but never over a manual assignment —
+            // the manual floor applies here too, not just in the merger.
             int mapped = 0;
             foreach (var chapter in allChapters)
             {
+                if (chapter.MetadataConfidence == MetadataConfidence.Manual)
+                    continue;
                 if (map.TryGetValue(chapter.ChapterNumber, out int vol))
                 {
                     AssignVolume(chapter, vol, MetadataConfidence.Exact);

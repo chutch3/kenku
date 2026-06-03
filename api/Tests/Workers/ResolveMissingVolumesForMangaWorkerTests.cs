@@ -722,6 +722,41 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     }
 
     [Fact]
+    public async Task DoWork_AutoMatch_DoesNotOverwriteManualAssignment()
+    {
+        // Regression: the auto-match volume application must respect the manual floor. If the matched
+        // aggregate happens to cover a manually-pinned chapter, the manual assignment must survive.
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
+        var library = new FileLibrary(_testRoot, "Test Library");
+        _mangaContext.FileLibraries.Add(library);
+        var manga = new Series("Berserk", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
+        manga.MetadataSource!.Status = MetadataSourceStatus.Unlinked;
+        _mangaContext.Series.Add(manga);
+        _mangaContext.Chapters.Add(new Chapter(manga, "1", null, "Title 1") { Downloaded = true, FileName = "chap1.cbz" });
+        _mangaContext.Chapters.Add(new Chapter(manga, "2", 99, "Title 2")
+            { Downloaded = true, FileName = "chap2.cbz", MetadataConfidence = MetadataConfidence.Manual });
+        await _mangaContext.SaveChangesAsync();
+
+        _mockSearchService
+            .Setup(s => s.SearchAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MangaDexSearchResult>
+            {
+                new() { MangaDexId = "berserk-uuid", Title = "Berserk", Author = null, ChapterCount = 2 }
+            });
+        // The aggregate covers BOTH chapters, including the manually-pinned one.
+        _mockSearchService
+            .Setup(s => s.GetChapterToVolumeMapAsync("berserk-uuid", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int> { { "1", 1 }, { "2", 1 } });
+
+        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+
+        Assert.Equal(1, (await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
+        var ch2 = await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "2");
+        Assert.Equal(99, ch2.VolumeNumber);                              // manual value, not the aggregate's 1
+        Assert.Equal(MetadataConfidence.Manual, ch2.MetadataConfidence);
+    }
+
+    [Fact]
     public async Task DoWork_WhenAutoMatchAmbiguous_SetsAmbiguous()
     {
         var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
