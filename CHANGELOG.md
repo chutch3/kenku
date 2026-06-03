@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v0.3.0 (2026-06-03)
+
+### Bug Fixes
+
+- Reconcile chapter files to the layout path after volume assignment
+  ([`419255f`](https://github.com/chutch3/kenku/commit/419255f716deca868b0b72f898d5a5ccf57ebda2))
+
+### Features
+
+- Bundle ready volumes on a schedule, not only after a download
+  ([`041dfa4`](https://github.com/chutch3/kenku/commit/041dfa41a5b9403830c0987fcb8c8a31700bb7d0))
+
+### Refactoring
+
+- Rename flow tests to integration tests
+  ([`965309a`](https://github.com/chutch3/kenku/commit/965309a77b2234d5f6e8b48b033b6927cd917c40))
+
+
 ## v0.2.3 (2026-06-02)
 
 ### Bug Fixes
