@@ -29,6 +29,11 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- Captured real API responses used as VCR-style fixtures by integration tests. -->
+        <None Include="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\API\API.csproj">
         <AdditionalProperties>DisableOpenApiGeneration=true</AdditionalProperties>
       </ProjectReference>
