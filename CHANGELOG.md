@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.4.1 (2026-06-03)
+
+### Bug Fixes
+
+- Send a User-Agent on MangaDex and Wikipedia requests
+  ([`a26c116`](https://github.com/chutch3/kenku/commit/a26c116bd8e72059fa95d145b9770f89d146fc32))
+
+### Testing
+
+- Host the real app via WebApplicationFactory for true integration coverage
+  ([`4448c03`](https://github.com/chutch3/kenku/commit/4448c031fdf21baec9a81ac2e56719c66e2cbde2))
+
+
 ## v0.4.0 (2026-06-03)
 
 ### Bug Fixes
