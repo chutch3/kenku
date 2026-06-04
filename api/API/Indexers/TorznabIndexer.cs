@@ -49,8 +49,12 @@ public class TorznabIndexer(HttpClient http, string name, string baseUrl, string
             ? query.SeriesTitle
             : $"{query.SeriesTitle} {query.IssueNumber}";
 
-        // Query categories override the indexer's configured defaults when provided.
-        int[] cats = query.Categories is { Length: > 0 } ? query.Categories : categories;
+        // The indexer's own categories win: when Prowlarr syncs an indexer (or a user adds one by
+        // hand) it carries the comic-category mapping for *that specific* endpoint, which is the
+        // authoritative filter. The query categories are only a fallback for indexers configured
+        // without any categories of their own — forcing a global guess (e.g. 8000) over a real
+        // per-indexer mapping silently filters every comic out on trackers that tag them elsewhere.
+        int[] cats = categories is { Length: > 0 } ? categories : query.Categories ?? [];
 
         var parts = new List<string>
         {

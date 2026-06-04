@@ -92,7 +92,13 @@ public class KenkuSettings
     /// <summary>Indexers Prowlarr has pushed/synced into Kenku (source of truth lives in Prowlarr).</summary>
     public List<SyncedIndexerConfig> SyncedIndexers { get; set; } = [];
 
-    /// <summary>Comic category IDs applied to indexer searches. Default 8000 = Comics (Newznab convention).</summary>
+    /// <summary>
+    /// Fallback comic category IDs for indexer searches, used ONLY for indexers that carry no
+    /// categories of their own — an indexer's Prowlarr-synced / manually-configured categories take
+    /// precedence (see <see cref="API.Indexers.TorznabIndexer"/>). Default 8000 is the Newznab
+    /// "Books" parent (the comics subcategory is 8030, and many trackers use their own IDs), so this
+    /// is only a coarse last resort.
+    /// </summary>
     public int[] IndexerComicCategories { get; set; } = [8000];
 
     /// <summary>API key Prowlarr uses to authenticate against Kenku's Mylar-emulating application endpoint.</summary>

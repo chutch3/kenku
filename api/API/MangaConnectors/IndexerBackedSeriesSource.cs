@@ -21,6 +21,9 @@ public sealed class IndexerBackedSeriesSource : SeriesSource
         : base("Indexers", ["en"], [], "", settings)
     {
         _indexers = indexers;
+        // Passed as a *fallback* category filter: each indexer prefers its own Prowlarr-synced /
+        // manually-configured categories (see TorznabIndexer), falling back to this global default
+        // only when the indexer carries no categories of its own.
         _categories = settings.IndexerComicCategories;
         // No downloadClient: this source never scrapes images.
     }

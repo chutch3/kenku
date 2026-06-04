@@ -81,6 +81,69 @@ public class TorznabIndexerTests
     }
 
     [Fact]
+    public async Task Search_PrefersIndexerCategoriesOverQueryCategories()
+    {
+        // Prowlarr syncs each indexer with the comic-category mapping for that specific tracker.
+        // Those must win over the caller's global fallback categories — otherwise a global guess
+        // (e.g. 8000) filters out comics on trackers that tag them under a different ID.
+        HttpRequestMessage? captured = null;
+        var http = FakeHttp(req =>
+        {
+            captured = req;
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("<rss><channel></channel></rss>", Encoding.UTF8, "application/xml")
+            };
+        });
+        var indexer = new TorznabIndexer(http, "MyTracker", "http://prowlarr:9696/3/api", "secret", [7030]);
+
+        await indexer.Search(new IndexerQuery("The Boys", Categories: [8000]), CancellationToken.None);
+
+        string url = captured!.RequestUri!.ToString();
+        Assert.Contains("cat=7030", url);
+        Assert.DoesNotContain("8000", url);
+    }
+
+    [Fact]
+    public async Task Search_FallsBackToQueryCategories_WhenIndexerHasNone()
+    {
+        // An indexer configured without categories defers to the caller's fallback filter.
+        HttpRequestMessage? captured = null;
+        var http = FakeHttp(req =>
+        {
+            captured = req;
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("<rss><channel></channel></rss>", Encoding.UTF8, "application/xml")
+            };
+        });
+        var indexer = new TorznabIndexer(http, "MyTracker", "http://prowlarr:9696/3/api", "secret", []);
+
+        await indexer.Search(new IndexerQuery("The Boys", Categories: [8000]), CancellationToken.None);
+
+        Assert.Contains("cat=8000", captured!.RequestUri!.ToString());
+    }
+
+    [Fact]
+    public async Task Search_OmitsCategoryParam_WhenNeitherIndexerNorQueryHasCategories()
+    {
+        HttpRequestMessage? captured = null;
+        var http = FakeHttp(req =>
+        {
+            captured = req;
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("<rss><channel></channel></rss>", Encoding.UTF8, "application/xml")
+            };
+        });
+        var indexer = new TorznabIndexer(http, "MyTracker", "http://prowlarr:9696/3/api", "secret", []);
+
+        await indexer.Search(new IndexerQuery("The Boys"), CancellationToken.None);
+
+        Assert.DoesNotContain("cat=", captured!.RequestUri!.ToString());
+    }
+
+    [Fact]
     public async Task Search_ReturnsEmpty_OnNonSuccess()
     {
         var http = FakeHttp(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized));
