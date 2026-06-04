@@ -69,4 +69,31 @@ public class ConnectorLinkCaptureEndToEndTests : IDisposable
 
         Assert.Contains("https://anilist.co/manga/87170", links);
     }
+
+    [Fact]
+    public async Task ReimportingExistingSeries_BackfillsItsExternalLinks_WithoutDuplicating()
+    {
+        // A series imported before link-capture existed has no links. Re-importing it must backfill the
+        // links onto the SAME series (UpsertManga merge path), not drop them or create a duplicate.
+        string libraryKey = await _app.WithSeriesContext(async ctx =>
+        {
+            var library = new FileLibrary(Path.Combine(Path.GetTempPath(), "kenku-conn-" + Guid.NewGuid().ToString("N")), "Lib");
+            ctx.FileLibraries.Add(library);
+            var manga = new Series("Fire Punch", "d", "u", SeriesReleaseStatus.Continuing, [], [], [], [], library);
+            manga.SourceIds.Add(new SourceId<Series>(manga, "WeebCentral", "wc-1", "https://weebcentral.com/series/wc-1", true));
+            ctx.Series.Add(manga);
+            await ctx.SaveChangesAsync();
+            return library.Key;
+        });
+
+        var response = await _app.CreateClient().PostAsync(
+            $"/v2/Series/unknown-id/ChangeLibrary/{libraryKey}?connectorName=WeebCentral&connectorSeriesId=wc-1", null);
+        response.EnsureSuccessStatusCode();
+
+        var series = await _app.WithSeriesContext(c =>
+            c.Series.Include(m => m.Links).Where(m => m.Name == "Fire Punch").ToListAsync());
+
+        Assert.Single(series);
+        Assert.Contains(series[0].Links, l => l.LinkUrl == "https://anilist.co/manga/87170");
+    }
 }
