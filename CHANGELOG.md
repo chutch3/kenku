@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.4.2 (2026-06-04)
+
+### Bug Fixes
+
+- Prefer an indexer's own categories over the global comic filter
+  ([`6964951`](https://github.com/chutch3/kenku/commit/69649511311c0bfa3a2604891e5a0b1d11ec86db))
+
+### Testing
+
+- Cover indexer search end-to-end across categories and failures
+  ([`c681cd4`](https://github.com/chutch3/kenku/commit/c681cd43665bed1806c78ac0700074c4d72a914a))
+
+
 ## v0.4.1 (2026-06-03)
 
 ### Bug Fixes
