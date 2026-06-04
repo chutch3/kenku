@@ -19,11 +19,11 @@ public class AsuraComic : SeriesSource
     private readonly KenkuSettings _settings;
     private readonly RateLimitHandler _rateLimitHandler;
 
-    public AsuraComic(KenkuSettings settings, RateLimitHandler rateLimitHandler) : base("AsuraComic", ["en"], ["asuracomic.net"], "https://asuracomic.net/images/logo.webp", settings)
+    public AsuraComic(KenkuSettings settings, RateLimitHandler rateLimitHandler, IHttpRequester downloadClient) : base("AsuraComic", ["en"], ["asuracomic.net"], "https://asuracomic.net/images/logo.webp", settings)
     {
         _settings = settings;
         _rateLimitHandler = rateLimitHandler;
-        this.downloadClient = new HttpRequester(rateLimitHandler, settings);
+        this.downloadClient = downloadClient;
     }
 
     public override AcquisitionKind Kind => AcquisitionKind.ImageList;

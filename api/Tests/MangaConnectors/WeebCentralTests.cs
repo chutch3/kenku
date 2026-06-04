@@ -51,10 +51,7 @@ public class WeebCentralTests
         """;
 
         var settings = CreateSettings();
-        var weebCentral = new WeebCentral(settings, CreateRateLimitHandler())
-        {
-            downloadClient = CreateMockClient(html).Object
-        };
+        var weebCentral = new WeebCentral(settings, CreateMockClient(html).Object);
 
         var mangaId = CreateDummyManga(weebCentral);
         var chapters = await weebCentral.GetChapters(mangaId);
@@ -83,10 +80,7 @@ public class WeebCentralTests
         """;
 
         var settings = CreateSettings();
-        var weebCentral = new WeebCentral(settings, CreateRateLimitHandler())
-        {
-            downloadClient = CreateMockClient(html).Object
-        };
+        var weebCentral = new WeebCentral(settings, CreateMockClient(html).Object);
 
         var result = await weebCentral.GetMangaFromId("01J76XYBR7JHFW7Q80MHJP5VYW");
 
@@ -123,10 +117,7 @@ public class WeebCentralTests
             });
 
         var settings = CreateSettings();
-        var weebCentral = new WeebCentral(settings, CreateRateLimitHandler())
-        {
-            downloadClient = mockClient.Object
-        };
+        var weebCentral = new WeebCentral(settings, mockClient.Object);
 
         var manga = new Series("Test Series", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], []);
         var chapter = new Chapter(manga, "1", null, "Title");

@@ -48,10 +48,7 @@ public class AsuraComicTests
         """;
 
         var settings = CreateSettings();
-        var asuracomic = new AsuraComic(settings, CreateRateLimitHandler())
-        {
-            downloadClient = CreateMockClient(html).Object
-        };
+        var asuracomic = new AsuraComic(settings, CreateRateLimitHandler(), CreateMockClient(html).Object);
 
         var result = await asuracomic.GetMangaFromId("some-series-id");
 
@@ -78,10 +75,7 @@ public class AsuraComicTests
         """;
 
         var settings = CreateSettings();
-        var asuracomic = new AsuraComic(settings, CreateRateLimitHandler())
-        {
-            downloadClient = CreateMockClient(html).Object
-        };
+        var asuracomic = new AsuraComic(settings, CreateRateLimitHandler(), CreateMockClient(html).Object);
 
         var mangaId = CreateDummyManga(asuracomic);
         var chapters = asuracomic.GetChapters(mangaId);

@@ -172,6 +172,7 @@ builder.Services.AddSingleton<SyncChapterFileNamesWorker>();
 builder.Services.AddSingleton<IChapterThumbnailService, ChapterThumbnailService>();
 
 builder.Services.AddSingleton<RateLimitHandler>();
+builder.Services.AddSingleton<IHttpRequester, HttpRequester>();
 builder.Services.AddSingleton<IWorkerQueue, WorkerQueue>();
 builder.Services.AddSingleton<Kenku>();
 

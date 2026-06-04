@@ -58,10 +58,7 @@ public class MangaworldTests
         """;
 
         var settings = CreateSettings();
-        var mangaworld = new Mangaworld(settings, CreateRateLimitHandler())
-        {
-            downloadClient = CreateMockClient(html).Object
-        };
+        var mangaworld = new Mangaworld(settings, CreateMockClient(html).Object);
 
         var mangaId = CreateDummyManga(mangaworld);
         var chapters = await mangaworld.GetChapters(mangaId);

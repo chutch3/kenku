@@ -56,10 +56,7 @@ public class MangaDexTests
         """;
 
         var settings = CreateSettings();
-        var mangaDex = new MangaDex(settings, CreateRateLimitHandler())
-        {
-            downloadClient = CreateMockClient(json).Object
-        };
+        var mangaDex = new MangaDex(settings, CreateMockClient(json).Object);
 
         var mangaId = CreateDummyManga(mangaDex);
         var chapters = await mangaDex.GetChapters(mangaId);
@@ -91,10 +88,7 @@ public class MangaDexTests
         """;
 
         var settings = CreateSettings();
-        var mangaDex = new MangaDex(settings, CreateRateLimitHandler())
-        {
-            downloadClient = CreateMockClient(json).Object
-        };
+        var mangaDex = new MangaDex(settings, CreateMockClient(json).Object);
 
         var mangaId = CreateDummyManga(mangaDex);
         
@@ -122,10 +116,7 @@ public class MangaDexTests
             .ReturnsAsync(response)
             .Callback<string, RequestType, string, CancellationToken?>((url, _, _, _) => capturedUrl = url);
 
-        var mangaDex = new MangaDex(settings, CreateRateLimitHandler())
-        {
-            downloadClient = mockClient.Object
-        };
+        var mangaDex = new MangaDex(settings, mockClient.Object);
 
         await mangaDex.SearchManga("Test");
 
@@ -175,10 +166,7 @@ public class MangaDexTests
         };
 
         var settings = CreateSettings();
-        var mangaDex = new MangaDex(settings, CreateRateLimitHandler())
-        {
-            downloadClient = SequencedClient(page1, page2Fail).Object
-        };
+        var mangaDex = new MangaDex(settings, SequencedClient(page1, page2Fail).Object);
 
         var results = await mangaDex.SearchManga("Test");
 
@@ -201,10 +189,7 @@ public class MangaDexTests
             })
             .Callback(() => requestCount++);
 
-        var mangaDex = new MangaDex(settings, CreateRateLimitHandler())
-        {
-            downloadClient = mock.Object
-        };
+        var mangaDex = new MangaDex(settings, mock.Object);
 
         await mangaDex.SearchManga("Test");
 
@@ -219,10 +204,7 @@ public class MangaDexTests
         var json = "{\"result\":\"ok\",\"data\":[],\"total\":0}";
         var settings = CreateSettings();
         var mockClient = CreateMockClient(json);
-        var mangaDex = new MangaDex(settings, CreateRateLimitHandler())
-        {
-            downloadClient = mockClient.Object
-        };
+        var mangaDex = new MangaDex(settings, mockClient.Object);
 
         // We EXPECT to await this now
         var results = await mangaDex.SearchManga("One Piece");

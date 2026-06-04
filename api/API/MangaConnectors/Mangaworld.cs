@@ -12,7 +12,7 @@ namespace API.MangaConnectors;
 
 public sealed class Mangaworld : SeriesSource
 {
-    public Mangaworld(KenkuSettings settings, RateLimitHandler rateLimitHandler) : base(
+    public Mangaworld(KenkuSettings settings, IHttpRequester downloadClient) : base(
         "Mangaworld",
         ["it"],
         [
@@ -26,7 +26,7 @@ public sealed class Mangaworld : SeriesSource
         settings
     )
     {
-        downloadClient = new HttpRequester(rateLimitHandler, settings);
+        this.downloadClient = downloadClient;
     }
 
     public override AcquisitionKind Kind => AcquisitionKind.ImageList;

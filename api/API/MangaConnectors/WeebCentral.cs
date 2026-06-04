@@ -16,9 +16,9 @@ namespace API.MangaConnectors;
 
 public class WeebCentral : SeriesSource
 {
-    public WeebCentral(KenkuSettings settings, RateLimitHandler rateLimitHandler) : base("WeebCentral", new[] { "en" }, new[] { "weebcentral.com" }, "https://weebcentral.com/static/images/brand.png", settings)
+    public WeebCentral(KenkuSettings settings, IHttpRequester downloadClient) : base("WeebCentral", new[] { "en" }, new[] { "weebcentral.com" }, "https://weebcentral.com/static/images/brand.png", settings)
     {
-        this.downloadClient = new HttpRequester(rateLimitHandler, settings);
+        this.downloadClient = downloadClient;
     }
 
     public override AcquisitionKind Kind => AcquisitionKind.ImageList;
