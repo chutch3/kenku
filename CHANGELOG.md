@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.4.3 (2026-06-04)
+
+### Bug Fixes
+
+- Resolve volumes for chapters before they download
+  ([`2355500`](https://github.com/chutch3/kenku/commit/235550023460077842fae418acbc81af9ff1cdca))
+
+
 ## v0.4.2 (2026-06-04)
 
 ### Bug Fixes
