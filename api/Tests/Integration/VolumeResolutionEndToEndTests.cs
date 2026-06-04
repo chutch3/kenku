@@ -65,6 +65,8 @@ public class VolumeResolutionEndToEndTests : IDisposable
             ctx.Series.Add(manga);
             foreach (var n in new[] { "1", "86", "201" })
                 ctx.Chapters.Add(new Chapter(manga, n, null, null) { Downloaded = true, FileName = $"Ch.{n}.cbz" });
+            // An undownloaded chapter (no .cbz): exact sources map it by number, so it must still resolve.
+            ctx.Chapters.Add(new Chapter(manga, "2", null, null) { Downloaded = false });
             await ctx.SaveChangesAsync();
             return 0;
         });
@@ -81,6 +83,7 @@ public class VolumeResolutionEndToEndTests : IDisposable
 
         var byNumber = await _app.WithSeriesContext(c => c.Chapters.ToDictionaryAsync(x => x.ChapterNumber, x => x.VolumeNumber));
         Assert.Equal(1, byNumber["1"]);     // MangaDex
+        Assert.Equal(1, byNumber["2"]);     // MangaDex — undownloaded, still resolved
         Assert.Equal(11, byNumber["86"]);   // beyond MangaDex → Wikipedia
         Assert.Equal(23, byNumber["201"]);  // Wikipedia
     }

@@ -41,11 +41,13 @@ public class ResolveMissingVolumesForMangaWorker(
             return [];
         }
 
-        // Load ALL downloaded chapters, not just unassigned ones, so an exact source can correct a
-        // stale heuristic guess on a later run (resolution is re-runnable). Manual assignments are
-        // protected inside the merger.
+        // Load ALL chapters, downloaded or not. Exact sources (MangaDex/Wikipedia) map chapter
+        // number -> volume and need no files, so they can place a chapter long before it downloads —
+        // the full volume layout should be visible up front. Only the color heuristic below is gated
+        // on the downloaded .cbz. We also load already-assigned chapters so an exact source can correct
+        // a stale heuristic guess on a later run; manual assignments are protected inside the merger.
         var chapters = await _mangaContext.Chapters
-            .Where(c => c.ParentMangaId == mangaId && c.Downloaded && c.FileName != null)
+            .Where(c => c.ParentMangaId == mangaId)
             .ToListAsync(CancellationToken);
 
         if (chapters.Count == 0)
@@ -70,7 +72,10 @@ public class ResolveMissingVolumesForMangaWorker(
         // unresolved is intentionally left loose for the user to assign.
         if (settings.VolumeResolutionStrategy == VolumeResolutionStrategy.ExactThenGuess)
         {
-            var stillUnresolved = chapters.Where(c => c.VolumeNumber == null).ToList();
+            // The heuristic inspects the downloaded .cbz, so it can only consider chapters with a file.
+            var stillUnresolved = chapters
+                .Where(c => c.VolumeNumber == null && c.Downloaded && c.FileName != null)
+                .ToList();
             if (stillUnresolved.Count > 0)
             {
                 int startVolume = chapters.Where(c => c.VolumeNumber != null)

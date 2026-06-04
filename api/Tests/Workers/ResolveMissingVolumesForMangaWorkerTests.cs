@@ -473,8 +473,10 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     }
 
     [Fact]
-    public async Task DoWork_WhenChapterNotDownloaded_IsExcluded()
+    public async Task DoWork_WhenChapterNotDownloaded_ColorHeuristicSkipsIt()
     {
+        // The color heuristic reads the downloaded .cbz, so it can't place a chapter that isn't
+        // downloaded. With no exact source to cover it, the chapter stays unresolved.
         var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
         var library = new FileLibrary(_testRoot, "Test Library");
         _mangaContext.FileLibraries.Add(library);
@@ -486,6 +488,29 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
 
         Assert.Null((await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
+    }
+
+    [Fact]
+    public async Task DoWork_AssignsExactVolume_ToChapterNotYetDownloaded()
+    {
+        // Exact sources map chapter number -> volume and need no files, so resolution must assign
+        // volumes even to chapters that aren't downloaded yet — the full volume layout should be
+        // visible before the series finishes downloading.
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
+        var library = new FileLibrary(_testRoot, "Test Library");
+        _mangaContext.FileLibraries.Add(library);
+        var manga = new Series("Test Undownloaded Exact", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
+        _mangaContext.Series.Add(manga);
+        _mangaContext.Chapters.Add(new Chapter(manga, "1", null, "Title 1") { Downloaded = false });
+        await _mangaContext.SaveChangesAsync();
+
+        var resolver = new Mock<IMangaDexVolumeResolver>();
+        resolver.Setup(r => r.GetChapterToVolumeMapAsync(It.IsAny<Series>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int> { { "1", 3 } });
+
+        await MakeWorker(settings, manga.Key, resolver.Object).DoWork(_mockScope.Object);
+
+        Assert.Equal(3, (await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
     }
 
     [Fact]

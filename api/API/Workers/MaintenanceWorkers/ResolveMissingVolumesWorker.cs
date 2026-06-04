@@ -26,15 +26,17 @@ public class ResolveMissingVolumesWorker(KenkuSettings settings, IBatchWorkerFac
             return [];
         }
 
+        // Any chapter missing a volume is a candidate — exact sources can place undownloaded chapters,
+        // so we don't gate on the .cbz being present (that gate is only for the color heuristic itself).
         var mangaIds = await _mangaContext.Chapters
-            .Where(c => c.Downloaded && c.FileName != null && c.VolumeNumber == null)
+            .Where(c => c.VolumeNumber == null)
             .Select(c => c.ParentMangaId)
             .Distinct()
             .ToListAsync(CancellationToken);
 
         if (mangaIds.Count == 0)
         {
-            Log.Info("No downloaded chapters are missing volume numbers.");
+            Log.Info("No chapters are missing volume numbers.");
             LastExecution = DateTime.UtcNow;
             return [];
         }

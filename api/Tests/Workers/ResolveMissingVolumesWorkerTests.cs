@@ -102,6 +102,29 @@ public class ResolveMissingVolumesWorkerTests : IDisposable
     }
 
     [Fact]
+    public async Task DoWork_WhenOnlyUndownloadedChapterMissingVolume_StillEnqueuesManga()
+    {
+        // Exact sources can place chapters that aren't downloaded yet, so a series whose only
+        // unassigned chapters are undownloaded must still be picked up for resolution.
+        var settings = new KenkuSettings
+        {
+            VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly,
+            VolumeResolutionParallelism = 3
+        };
+        var library = new FileLibrary("/tmp/test", "Test Library");
+        _mangaContext.FileLibraries.Add(library);
+        var manga = new Series("Test", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
+        _mangaContext.Series.Add(manga);
+        _mangaContext.Chapters.Add(new Chapter(manga, "1", null, "Title") { Downloaded = false });
+        await _mangaContext.SaveChangesAsync();
+
+        var result = await MakeCoordinator(settings).DoWork(_mockScope.Object);
+
+        Assert.Single(result);
+        _mockFactory.Verify(f => f.Create(It.IsAny<ConcurrentQueue<string>>()), Times.Once);
+    }
+
+    [Fact]
     public async Task DoWork_WhenThreeMangaWithParallelism2_ReturnsTwoWorkers()
     {
         var settings = new KenkuSettings
