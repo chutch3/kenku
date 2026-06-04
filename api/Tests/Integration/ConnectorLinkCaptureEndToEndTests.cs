@@ -1,73 +1,33 @@
-using System.Net;
-using System.Text;
-using API.HttpRequesters;
 using API.Schema.SeriesContext;
 using Microsoft.EntityFrameworkCore;
-using Moq;
 using Xunit;
 
 namespace API.Tests.Integration;
 
 /// <summary>
-/// Outside-in: the real application is hosted in-process and a series is imported through the actual
-/// add-to-library HTTP endpoint, so the request flows controller -> WeebCentral connector -> UpsertManga
-/// -> EF. The only thing stubbed is the connector's HTTP edge (<see cref="IHttpRequester"/>), which is
-/// now injected rather than constructed in the connector. The test asserts the external links the
+/// Outside-in: a series is imported through the actual add-to-library HTTP endpoint, so the request flows
+/// controller -> WeebCentral connector -> UpsertManga -> EF. The only thing stubbed is the connector's HTTP
+/// edge (the injected <see cref="API.HttpRequesters.IHttpRequester"/>). Asserts the external links the
 /// connector surfaced actually round-tripped to the database.
 /// </summary>
 [Trait("Category", "Integration")]
-public class ConnectorLinkCaptureEndToEndTests : IDisposable
+public class ConnectorLinkCaptureEndToEndTests() : OutboundHttpIntegrationTest(ConnectorReturning(IntegrationFixtures.WeebCentralFirePunchHtml))
 {
-    private readonly KenkuApplicationFactory _app;
-
-    public ConnectorLinkCaptureEndToEndTests()
-    {
-        const string seriesPageHtml = """
-            <html><head><title>Fire Punch | Weeb Central</title></head>
-            <body><a href="https://anilist.co/manga/87170">AniList</a></body></html>
-            """;
-
-        var requester = new Mock<IHttpRequester>();
-        requester
-            .Setup(c => c.MakeRequest(It.IsAny<string>(), It.IsAny<RequestType>(), It.IsAny<string>(), It.IsAny<CancellationToken?>()))
-            .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(seriesPageHtml, Encoding.UTF8, "text/html")
-            });
-
-        _app = new KenkuApplicationFactory
-        {
-            OutboundHttpTarget = "http://localhost:9",
-            ConnectorHttpRequester = requester.Object
-        };
-    }
-
-    public void Dispose() => _app.Dispose();
+    private Task<List<Series>> FirePunchSeries() => App.WithSeriesContext(c =>
+        c.Series.Include(m => m.Links).Where(m => m.Name == "Fire Punch").ToListAsync());
 
     [Fact]
     public async Task ImportingWeebCentralSeries_PersistsItsExternalLinks_OverTheRealStack()
     {
-        string libraryKey = await _app.WithSeriesContext(async ctx =>
-        {
-            var library = new FileLibrary(Path.Combine(Path.GetTempPath(), "kenku-conn-" + Guid.NewGuid().ToString("N")), "Lib");
-            ctx.FileLibraries.Add(library);
-            await ctx.SaveChangesAsync();
-            return library.Key;
-        });
+        string libraryKey = await SeedLibrary();
 
-        // Import the series the way a client does — the controller fetches it from the connector and persists it.
-        var response = await _app.CreateClient().PostAsync(
+        var response = await App.CreateClient().PostAsync(
             $"/v2/Series/unknown-id/ChangeLibrary/{libraryKey}?connectorName=WeebCentral&connectorSeriesId=wc-1", null);
         response.EnsureSuccessStatusCode();
 
-        var links = await _app.WithSeriesContext(c =>
-            c.Series.Include(m => m.Links)
-                .Where(m => m.Name == "Fire Punch")
-                .SelectMany(m => m.Links)
-                .Select(l => l.LinkUrl)
-                .ToListAsync());
-
-        Assert.Contains("https://anilist.co/manga/87170", links);
+        var series = await FirePunchSeries();
+        Assert.Single(series);
+        Assert.Contains(series[0].Links, l => l.LinkUrl == IntegrationFixtures.FirePunchAniListUrl);
     }
 
     [Fact]
@@ -75,25 +35,23 @@ public class ConnectorLinkCaptureEndToEndTests : IDisposable
     {
         // A series imported before link-capture existed has no links. Re-importing it must backfill the
         // links onto the SAME series (UpsertManga merge path), not drop them or create a duplicate.
-        string libraryKey = await _app.WithSeriesContext(async ctx =>
+        string libraryKey = await SeedLibrary();
+        await App.WithSeriesContext(async ctx =>
         {
-            var library = new FileLibrary(Path.Combine(Path.GetTempPath(), "kenku-conn-" + Guid.NewGuid().ToString("N")), "Lib");
-            ctx.FileLibraries.Add(library);
+            var library = await ctx.FileLibraries.FindAsync(libraryKey);
             var manga = new Series("Fire Punch", "d", "u", SeriesReleaseStatus.Continuing, [], [], [], [], library);
             manga.SourceIds.Add(new SourceId<Series>(manga, "WeebCentral", "wc-1", "https://weebcentral.com/series/wc-1", true));
             ctx.Series.Add(manga);
             await ctx.SaveChangesAsync();
-            return library.Key;
+            return 0;
         });
 
-        var response = await _app.CreateClient().PostAsync(
+        var response = await App.CreateClient().PostAsync(
             $"/v2/Series/unknown-id/ChangeLibrary/{libraryKey}?connectorName=WeebCentral&connectorSeriesId=wc-1", null);
         response.EnsureSuccessStatusCode();
 
-        var series = await _app.WithSeriesContext(c =>
-            c.Series.Include(m => m.Links).Where(m => m.Name == "Fire Punch").ToListAsync());
-
+        var series = await FirePunchSeries();
         Assert.Single(series);
-        Assert.Contains(series[0].Links, l => l.LinkUrl == "https://anilist.co/manga/87170");
+        Assert.Contains(series[0].Links, l => l.LinkUrl == IntegrationFixtures.FirePunchAniListUrl);
     }
 }
