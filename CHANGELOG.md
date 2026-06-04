@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.5.0 (2026-06-04)
+
+### Features
+
+- Manual MangaDex link UI for series metadata
+  ([`3fab14d`](https://github.com/chutch3/kenku/commit/3fab14d6130ce32efa308b3bb1f0a44c5ed952de))
+
+
 ## v0.4.3 (2026-06-04)
 
 ### Bug Fixes
