@@ -65,6 +65,40 @@ public class WeebCentralTests
     }
 
     [Fact]
+    public async Task GetMangaFromId_CapturesExternalTrackerLinks()
+    {
+        // WeebCentral series pages link out to AniList / MangaUpdates. Those external ids are the key
+        // to matching the series to a MangaDex entry by identifier instead of a fuzzy title guess, so
+        // the connector must keep them instead of discarding the link list.
+        var html = """
+        <html><head><title>Fire Punch | Weeb Central</title></head>
+        <body>
+            <section>
+                <strong>Associated Names</strong>
+                <a href="https://anilist.co/manga/87170">AniList</a>
+                <a href="https://www.mangaupdates.com/series/eur1ktv">MangaUpdates</a>
+                <a href="https://weebcentral.com/series/abc/Other">internal nav</a>
+            </section>
+        </body></html>
+        """;
+
+        var settings = CreateSettings();
+        var weebCentral = new WeebCentral(settings, CreateRateLimitHandler())
+        {
+            downloadClient = CreateMockClient(html).Object
+        };
+
+        var result = await weebCentral.GetMangaFromId("01J76XYBR7JHFW7Q80MHJP5VYW");
+
+        Assert.NotNull(result);
+        var links = result.Value.Item1.Links;
+        Assert.Contains(links, l => l.LinkProvider == "AniList" && l.LinkUrl == "https://anilist.co/manga/87170");
+        Assert.Contains(links, l => l.LinkProvider == "MangaUpdates" && l.LinkUrl.Contains("eur1ktv"));
+        // Internal navigation links are not external trackers and must not be captured.
+        Assert.DoesNotContain(links, l => l.LinkUrl.Contains("weebcentral.com"));
+    }
+
+    [Fact]
     public async Task GetChapterImageUrls_RequestsImagesPartial_AndExtractsPageImages()
     {
         // WeebCentral defers chapter images to the /chapters/{id}/images HTMX partial; scraping the

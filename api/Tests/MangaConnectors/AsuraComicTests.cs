@@ -33,6 +33,34 @@ public class AsuraComicTests
         return new SourceId<Series>(manga, connector, "test-id", "https://example.com/test");
     }
 
+    [Fact]
+    public async Task GetMangaFromId_CapturesExternalTrackerLinks()
+    {
+        // When a series page links out to AniList/MangaUpdates, the connector keeps those ids so the
+        // series can be matched to a metadata source by identifier rather than a fuzzy title guess.
+        var html = """
+        <html><head><title>Fire Punch - Asura Scans</title></head>
+        <body>
+            <a href="https://anilist.co/manga/87170">AniList</a>
+            <a href="https://www.mangaupdates.com/series/eur1ktv">MangaUpdates</a>
+            <a href="https://asuracomic.net/series/abc">internal nav</a>
+        </body></html>
+        """;
+
+        var settings = CreateSettings();
+        var asuracomic = new AsuraComic(settings, CreateRateLimitHandler())
+        {
+            downloadClient = CreateMockClient(html).Object
+        };
+
+        var result = await asuracomic.GetMangaFromId("some-series-id");
+
+        Assert.NotNull(result);
+        var links = result.Value.Item1.Links;
+        Assert.Contains(links, l => l.LinkProvider == "AniList" && l.LinkUrl == "https://anilist.co/manga/87170");
+        Assert.DoesNotContain(links, l => l.LinkUrl.Contains("asuracomic.net"));
+    }
+
     [Theory]
     [InlineData("Chapter 1", null, "1")]
     [InlineData("Vol. 2 Chapter 3", 2, "3")]

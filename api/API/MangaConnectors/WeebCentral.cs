@@ -173,7 +173,7 @@ public class WeebCentral : SeriesSource
         }
 
         List<AltTitle> altTitles = new();
-        List<Link> links = new();
+        List<Link> links = ParseExternalLinks(doc);
         // Match original constructor (null language for consistent Key)
         Series manga = new(cleanTitle, description, coverUrl, releaseStatus, authors, tags, links, altTitles, null, 0f, year, null);
 

@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using API.Acquirers;
 using API.HttpRequesters;
 using API.Schema.SeriesContext;
+using HtmlAgilityPack;
 using log4net;
 using Microsoft.EntityFrameworkCore;
 using SixLabors.ImageSharp;
@@ -23,6 +24,46 @@ public abstract class SeriesSource(string name, string[] supportedLanguages, str
     [StringLength(256)] public string[] BaseUris { get; init; } = baseUris;
     public bool Enabled { get; internal set; } = true;
     protected KenkuSettings Settings => settings;
+
+    // Known external metadata trackers a series page may link out to. Their stable ids cross-reference
+    // to MangaDex's own `links` (e.g. AniList), enabling identifier matching instead of a fuzzy title guess.
+    private static readonly (string Domain, string Provider)[] TrackerProviders =
+    {
+        ("anilist.co", "AniList"),
+        ("myanimelist.net", "MyAnimeList"),
+        ("mangaupdates.com", "MangaUpdates"),
+        ("anime-planet.com", "Anime Planet"),
+    };
+
+    /// <summary>
+    /// Collects external metadata-tracker links (AniList, MangaUpdates, ...) from a parsed series page.
+    /// Connectors that surface these should keep them so the series can be matched to a metadata source
+    /// by identifier rather than by title.
+    /// </summary>
+    protected static List<Link> ParseExternalLinks(HtmlDocument doc)
+    {
+        HtmlNodeCollection? anchors = doc.DocumentNode.SelectNodes("//a[@href]");
+        if (anchors is null)
+            return [];
+
+        var links = new List<Link>();
+        var seen = new HashSet<string>();
+        foreach (HtmlNode anchor in anchors)
+        {
+            string href = anchor.GetAttributeValue("href", "");
+            if (string.IsNullOrEmpty(href))
+                continue;
+            foreach ((string domain, string provider) in TrackerProviders)
+            {
+                if (href.Contains(domain, StringComparison.OrdinalIgnoreCase) && seen.Add(href))
+                {
+                    links.Add(new Link(provider, href));
+                    break;
+                }
+            }
+        }
+        return links;
+    }
 
     /// <summary>How this source delivers chapters. Drives dispatch to the matching IChapterAcquirer.</summary>
     [NotMapped] public abstract AcquisitionKind Kind { get; }
