@@ -2,6 +2,47 @@
 
 <!-- version list -->
 
+## v0.6.0 (2026-06-04)
+
+### Bug Fixes
+
+- Only capture entry-shaped tracker links, not generic site links
+  ([`8e78043`](https://github.com/chutch3/kenku/commit/8e78043711268a2d409b0ece7e6cab2ee28677c1))
+
+- Persist authoritative AniList id matches even without a volume aggregate
+  ([`c5e9507`](https://github.com/chutch3/kenku/commit/c5e950703b4d0a8eb200d1c25f32d35d8ac84282))
+
+- Tighten MangaUpdates link matching to entry urls
+  ([`aed20ad`](https://github.com/chutch3/kenku/commit/aed20ad930b85fa197faa2992d7b8cae530028da))
+
+### Features
+
+- Backfill external tracker links onto existing series on re-import
+  ([`8a6df18`](https://github.com/chutch3/kenku/commit/8a6df18d28243437061061789f2bd4d2550b195d))
+
+- Capture external tracker links when parsing series pages
+  ([`f2c1931`](https://github.com/chutch3/kenku/commit/f2c19311d4cde55c5f88054806841d153afd9b7f))
+
+- Match volume source by AniList id and retire the blind title search
+  ([`4dc1c49`](https://github.com/chutch3/kenku/commit/4dc1c49774a96f1c74c67ccbcd8339c549cf12ed))
+
+### Refactoring
+
+- Inject IHttpRequester into connectors instead of constructing it
+  ([`8971fc7`](https://github.com/chutch3/kenku/commit/8971fc76015012678acf79bb37f7f96f98be3d31))
+
+- Share an outside-in integration test base and fixtures
+  ([`d0ec369`](https://github.com/chutch3/kenku/commit/d0ec3696fc35e88f5b6e0e39740f2c3a32710da5))
+
+### Testing
+
+- Add outside-in coverage for capture-to-match chain and link backfill
+  ([`596b1c2`](https://github.com/chutch3/kenku/commit/596b1c226f0045471f9f914fe5e41fc31b90ae50))
+
+- Cover connector link capture end-to-end through the add-series endpoint
+  ([`bca9d5d`](https://github.com/chutch3/kenku/commit/bca9d5dfe13c7674c4d8dbdd38910980db695ff9))
+
+
 ## v0.5.0 (2026-06-04)
 
 ### Features
