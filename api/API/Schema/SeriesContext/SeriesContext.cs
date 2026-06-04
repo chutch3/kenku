@@ -209,6 +209,12 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
                 }
             }
 
+            // Backfill any external tracker links the re-fetch surfaced that we don't have yet, so a
+            // series imported before link capture existed can still be matched by identifier.
+            foreach (Link link in addManga.Links)
+                if (manga.Links.All(existing => existing.LinkUrl != link.LinkUrl))
+                    manga.Links.Add(new Link(link.LinkProvider, link.LinkUrl));
+
             result = (manga, mcIdToUse);
         }
         else

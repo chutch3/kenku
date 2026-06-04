@@ -43,6 +43,41 @@ public class MangaContextUpsertTests
     }
 
     [Fact]
+    public async Task UpsertManga_NewManga_PersistsExternalLinks()
+    {
+        // The whole point of capturing connector links is that they survive to the DB so a later step
+        // can match the series to a metadata source by identifier.
+        using var ctx = CreateContext();
+        var manga = new Series("Fire Punch", "d", "u", SeriesReleaseStatus.Completed, [], [],
+            [new Link("AniList", "https://anilist.co/manga/87170")], []);
+        var mcId = new SourceId<Series>(manga, "WeebCentral", "wc-1", "https://weebcentral.com/series/wc-1", true);
+
+        await ctx.UpsertManga(manga, mcId, CancellationToken.None);
+
+        var saved = await ctx.Series.Include(m => m.Links).FirstAsync(m => m.Key == manga.Key);
+        Assert.Contains(saved.Links, l => l.LinkProvider == "AniList" && l.LinkUrl == "https://anilist.co/manga/87170");
+    }
+
+    [Fact]
+    public async Task UpsertManga_ExistingManga_BackfillsNewExternalLinks()
+    {
+        // A series imported before link capture existed has no links. Re-importing it (now that the
+        // connector surfaces them) must backfill the links onto the existing row, not drop them.
+        using var ctx = CreateContext();
+        var first = new Series("Fire Punch", "d", "u", SeriesReleaseStatus.Completed, [], [], [], []);
+        var firstId = new SourceId<Series>(first, "WeebCentral", "wc-1", "https://weebcentral.com/series/wc-1", true);
+        await ctx.UpsertManga(first, firstId, CancellationToken.None);
+
+        var second = new Series("Fire Punch", "d", "u", SeriesReleaseStatus.Completed, [], [],
+            [new Link("AniList", "https://anilist.co/manga/87170")], []);
+        var secondId = new SourceId<Series>(second, "WeebCentral", "wc-1", "https://weebcentral.com/series/wc-1", true);
+        await ctx.UpsertManga(second, secondId, CancellationToken.None);
+
+        var saved = await ctx.Series.Include(m => m.Links).FirstAsync(m => m.Name == "Fire Punch");
+        Assert.Contains(saved.Links, l => l.LinkUrl == "https://anilist.co/manga/87170");
+    }
+
+    [Fact]
     public async Task UpsertManga_ExistingManga_DoesNotInsertDuplicate()
     {
         using var ctx = CreateContext();
