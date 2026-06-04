@@ -44,6 +44,10 @@
                         </div>
                     </div>
                 </UCard>
+                <MetadataSourceLink
+                    v-if="!isSearchResult || (series && series.fileLibraryId)"
+                    :manga-id="mangaId"
+                    :series-name="series?.name" />
                 <SeriesMetadataFetcherTable v-if="!isSearchResult || (series && series.fileLibraryId)" :manga-id="mangaId" />
             </div>
         </div>
