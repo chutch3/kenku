@@ -225,7 +225,9 @@ public class ResolveMissingVolumesForMangaWorker(
 
         if (newStatus == MetadataSourceStatus.AutoMatched)
         {
-            // Attempt to fetch volumes with the matched ExternalId
+            // An id match is authoritative — persist the link even if no volumes come back yet (they can
+            // arrive from the all-languages aggregate, Wikipedia, or a later run). A scored match is only
+            // trusted enough to commit when it actually yields volumes; otherwise it's rolled back.
             Dictionary<string, int> map;
             try
             {
@@ -234,14 +236,14 @@ public class ResolveMissingVolumesForMangaWorker(
             catch (Exception ex)
             {
                 Log.Error($"Auto-match volume fetch failed for {manga.Name} (externalId={topId}): {ex.Message}");
-                // Roll back: leave status as Unlinked
-                return;
+                if (idMatch is null)
+                    return; // scored match: roll back on fetch failure
+                map = [];
             }
 
-            if (map.Count == 0)
+            if (map.Count == 0 && idMatch is null)
             {
                 Log.Info($"Auto-match succeeded for {manga.Name} but volume fetch returned 0 mappings. Rolling back to Unlinked.");
-                // Leave MetadataSource as Unlinked (no mutation needed)
                 await _mangaContext.Sync(CancellationToken, GetType(), nameof(TryAutoMatch));
                 return;
             }

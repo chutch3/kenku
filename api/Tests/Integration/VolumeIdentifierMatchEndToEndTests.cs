@@ -81,4 +81,43 @@ public class VolumeIdentifierMatchEndToEndTests : IDisposable
         var source = await _app.WithSeriesContext(c => c.Set<MetadataSource>().FirstAsync(s => s.MangaId == mangaKey));
         Assert.Equal("true-uuid", source.ExternalId);
     }
+
+    [Fact]
+    public async Task Resolve_PersistsAnIdMatch_EvenWhenTheMatchedEntryHasNoVolumeAggregate()
+    {
+        // An AniList id match is authoritative. Even if MangaDex has no volume tags for that entry yet,
+        // the link must be persisted (volumes can arrive later / from other sources) — not rolled back.
+        const string searchJson = """
+        {"result":"ok","response":"collection","data":[
+          {"id":"fp-uuid","type":"manga","attributes":{"title":{"en":"Something Else"},"lastChapter":"83","links":{"al":"87170"}},"relationships":[]}
+        ]}
+        """;
+        _server.Given(Request.Create().WithPath("/manga").WithParam("title").UsingGet())
+            .RespondWith(Response.Create().WithStatusCode(200).WithBody(searchJson));
+        _server.Given(Request.Create().WithPath(new WildcardMatcher("/manga/*/aggregate")).UsingGet())
+            .RespondWith(Response.Create().WithStatusCode(200).WithBody("""{"result":"ok","volumes":{}}"""));
+        _server.Given(Request.Create().WithPath("/w/api.php").UsingGet())
+            .RespondWith(Response.Create().WithStatusCode(200).WithBody("""{"parse":{"wikitext":{"*":""}}}"""));
+
+        string mangaKey = await _app.WithSeriesContext(async ctx =>
+        {
+            var library = new FileLibrary(Path.Combine(Path.GetTempPath(), "kenku-id-" + Guid.NewGuid().ToString("N")), "Lib");
+            ctx.FileLibraries.Add(library);
+            var manga = new Series("Fire Punch", "d", "u", SeriesReleaseStatus.Continuing, [], [],
+                [new Link("AniList", "https://anilist.co/manga/87170")], [], library);
+            manga.MetadataSource!.Status = MetadataSourceStatus.Unlinked;
+            ctx.Series.Add(manga);
+            ctx.Chapters.Add(new Chapter(manga, "1", null, null) { Downloaded = true, FileName = "Ch.1.cbz" });
+            await ctx.SaveChangesAsync();
+            return manga.Key;
+        });
+
+        var response = await _app.CreateClient().PostAsync("/v2/Maintenance/ResolveMissingVolumes", null);
+        response.EnsureSuccessStatusCode();
+
+        bool linked = await WaitUntil(async () =>
+            (await _app.WithSeriesContext(c => c.Set<MetadataSource>().FirstAsync(s => s.MangaId == mangaKey))).ExternalId == "fp-uuid",
+            TimeSpan.FromSeconds(30));
+        Assert.True(linked, "an authoritative id match was not persisted when the entry had no volume aggregate");
+    }
 }
