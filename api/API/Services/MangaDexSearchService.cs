@@ -50,12 +50,15 @@ public class MangaDexSearchService(HttpClient httpClient) : IMangaDexSearchServi
             if (attrs["lastChapter"]?.ToString() is { } lastCh && int.TryParse(lastCh, out int lc))
                 chapterCount = lc;
 
+            string? aniListId = attrs["links"]?["al"]?.ToString();
+
             results.Add(new MangaDexSearchResult
             {
                 MangaDexId = id,
                 Title = resolvedTitle,
                 Author = author,
-                ChapterCount = chapterCount
+                ChapterCount = chapterCount,
+                AniListId = aniListId
             });
         }
 

@@ -680,6 +680,39 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
     // ─── Auto-match tests ────────────────────────────────────────────────────
 
     [Fact]
+    public async Task DoWork_WhenNoMatchButHasAniListLink_ReMatchesByIdOverHigherScoringDecoy()
+    {
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };
+        var library = new FileLibrary(_testRoot, "Test Library");
+        _mangaContext.FileLibraries.Add(library);
+        // Previously NoMatch, but now carries an AniList link (e.g. backfilled from the connector page).
+        var manga = new Series("Berserk", "Desc", "url", SeriesReleaseStatus.Continuing, [], [],
+            [new Link("AniList", "https://anilist.co/manga/87170")], [], library);
+        manga.MetadataSource!.Status = MetadataSourceStatus.NoMatch;
+        _mangaContext.Series.Add(manga);
+        _mangaContext.Chapters.Add(new Chapter(manga, "1", null, "Title 1") { Downloaded = true, FileName = "chap1.cbz" });
+        await _mangaContext.SaveChangesAsync();
+
+        // Decoy wins title (exact) + chapter count; the true entry only matches by AniList id.
+        _mockSearchService
+            .Setup(s => s.SearchAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MangaDexSearchResult>
+            {
+                new() { MangaDexId = "decoy-uuid", Title = "Berserk", ChapterCount = 1, AniListId = "999" },
+                new() { MangaDexId = "true-uuid", Title = "Berserk Deluxe", ChapterCount = 999, AniListId = "87170" }
+            });
+        _mockSearchService
+            .Setup(s => s.GetChapterToVolumeMapAsync("true-uuid", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int> { { "1", 1 } });
+
+        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+
+        var updatedSource = await _mangaContext.Set<MetadataSource>().FirstAsync(s => s.MangaId == manga.Key);
+        Assert.Equal(MetadataSourceStatus.AutoMatched, updatedSource.Status);
+        Assert.Equal("true-uuid", updatedSource.ExternalId);
+    }
+
+    [Fact]
     public async Task DoWork_WhenStatusUnlinked_AttemptsAutoMatch_AndSetsAutoMatchedOnStrongCandidate()
     {
         var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactOnly };

@@ -25,4 +25,8 @@ public class MangaDexSearchResult
     public string Title { get; init; } = null!;
     public string? Author { get; init; }
     public int ChapterCount { get; init; }
+
+    /// <summary>AniList id from the entry's external links (<c>links.al</c>), if present. Lets us match a
+    /// series to the correct MangaDex entry by identifier instead of by a fuzzy title score.</summary>
+    public string? AniListId { get; init; }
 }

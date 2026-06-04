@@ -25,23 +25,13 @@ public class MangaDexVolumeResolver(HttpClient httpClient) : IMangaDexVolumeReso
         }
         else
         {
-            // 2. Fall back to connector-ID walk
+            // 2. Fall back to a MangaDex connector id, if the series was sourced from MangaDex directly.
+            // We intentionally do NOT fall back to a blind title search: an unverified top-hit can link the
+            // wrong series. Matching now happens up front in auto-match (by AniList id, then scored title),
+            // which sets a trusted ExternalId; series it can't confidently link are left for manual linking.
             var mdConnector = manga.SourceIds.FirstOrDefault(c => c.MangaConnectorName.Equals("MangaDex", StringComparison.OrdinalIgnoreCase));
             if (mdConnector != null)
-            {
                 mangadexUuid = mdConnector.IdOnConnectorSite;
-            }
-            else
-            {
-                // 3. Last resort: title search
-                var searchResponse = await _httpClient.GetAsync($"https://api.mangadex.org/manga?title={Uri.EscapeDataString(manga.Name)}&limit=1", cancellationToken);
-                if (searchResponse.IsSuccessStatusCode)
-                {
-                    var searchJson = JObject.Parse(await searchResponse.Content.ReadAsStringAsync(cancellationToken));
-                    if (searchJson["data"] is JArray dataArray && dataArray.Count > 0)
-                        mangadexUuid = dataArray[0]["id"]?.ToString();
-                }
-            }
         }
 
         if (string.IsNullOrEmpty(mangadexUuid))

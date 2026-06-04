@@ -47,41 +47,24 @@ public class MangaDexVolumeResolverTests
     }
 
     [Fact]
-    public async Task GetChapterToVolumeMap_WhenNoConnector_SearchesByNameAndUsesResultUUID()
+    public async Task GetChapterToVolumeMap_WhenNoConnectorAndNoTrustedLink_ReturnsEmptyWithoutSearching()
     {
+        // The blind title search was retired: an unmatched series must not be linked by an unverified
+        // top-hit. Matching now happens up front in auto-match (by AniList id, then scored title).
         var manga = new Series("My Series", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], Library);
 
+        var requested = new List<string>();
         var handler = new FakeHttpMessageHandler(req =>
         {
-            if (req.RequestUri!.PathAndQuery.Contains("/aggregate"))
-                return Json("""
-                    {
-                      "volumes": {
-                        "1": { "volume": "1", "chapters": { "5": { "chapter": "5" } } }
-                      }
-                    }
-                    """);
-
+            requested.Add(req.RequestUri!.PathAndQuery);
             return Json("""{ "data": [{ "id": "search-uuid" }] }""");
         });
 
         var resolver = new MangaDexVolumeResolver(new HttpClient(handler));
         var map = await resolver.GetChapterToVolumeMapAsync(manga);
 
-        Assert.Equal(1, map["5"]);
-    }
-
-    [Fact]
-    public async Task GetChapterToVolumeMap_WhenSearchReturnsNoResults_ReturnsEmpty()
-    {
-        var manga = new Series("Unknown Series", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], Library);
-
-        var handler = new FakeHttpMessageHandler(_ => Json("""{ "data": [] }"""));
-
-        var resolver = new MangaDexVolumeResolver(new HttpClient(handler));
-        var map = await resolver.GetChapterToVolumeMapAsync(manga);
-
         Assert.Empty(map);
+        Assert.DoesNotContain(requested, p => p.Contains("?title="));
     }
 
     [Fact]

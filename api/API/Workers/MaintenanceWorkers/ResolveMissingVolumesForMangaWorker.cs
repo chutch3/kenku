@@ -57,8 +57,13 @@ public class ResolveMissingVolumesForMangaWorker(
         int unresolved = chapters.Count(c => c.VolumeNumber == null);
         Log.Info($"Resolving volumes for {manga.Name} ({chapters.Count} chapters, {unresolved} unresolved)...");
 
-        // Establish a MangaDex link if we don't have one yet.
-        if (manga.MetadataSource?.Status == MetadataSourceStatus.Unlinked)
+        // Establish/refresh a MangaDex link. Always attempt for an Unlinked series; also re-attempt for a
+        // NoMatch/Ambiguous series that now carries an AniList link we can match on. Never re-touch a
+        // series that is already confidently linked (AutoMatched/Confirmed).
+        bool confidentlyLinked = manga.MetadataSource?.Status
+            is MetadataSourceStatus.AutoMatched or MetadataSourceStatus.Confirmed;
+        if (!confidentlyLinked &&
+            (manga.MetadataSource?.Status == MetadataSourceStatus.Unlinked || GetAniListId(manga) is not null))
             await TryAutoMatch(manga, chapters);
 
         bool exactAllowed = settings.VolumeResolutionStrategy
@@ -166,42 +171,54 @@ public class ResolveMissingVolumesForMangaWorker(
             return;
         }
 
-        int ourChapterCount = allChapters.Count;
-
-        // Score each candidate
-        var scored = candidates
-            .Select(c => (candidate: c, score: ScoreCandidate(normalizedTitle, ourChapterCount, c)))
-            .OrderByDescending(x => x.score)
-            .ToList();
-
-        float topScore = scored[0].score;
-        float secondScore = scored.Count > 1 ? scored[1].score : 0f;
-        string topId = scored[0].candidate.MangaDexId;
+        string topId;
         string decision;
-
+        float topScore;
+        float secondScore = 0f;
         MetadataSourceStatus newStatus;
 
-        if (topScore >= 0.90f && (scored.Count == 1 || topScore - secondScore >= 0.10f))
+        // An exact AniList-id match is authoritative — take it over any fuzzy title/count score. This is
+        // what disambiguates e.g. a manga from its same-named webcomic when the title alone can't.
+        string? ourAniListId = GetAniListId(manga);
+        MangaDexSearchResult? idMatch = ourAniListId is null
+            ? null
+            : candidates.FirstOrDefault(c => string.Equals(c.AniListId, ourAniListId, StringComparison.Ordinal));
+
+        if (idMatch is not null)
         {
+            topId = idMatch.MangaDexId;
+            topScore = 1f;
             newStatus = MetadataSourceStatus.AutoMatched;
-            decision = "AutoMatched";
-        }
-        else if (topScore >= 0.50f && scored.Count > 1 && topScore - secondScore < 0.10f)
-        {
-            newStatus = MetadataSourceStatus.Ambiguous;
-            decision = "Ambiguous";
-        }
-        else if (topScore < 0.50f)
-        {
-            newStatus = MetadataSourceStatus.NoMatch;
-            decision = "NoMatch";
+            decision = "AutoMatched(anilist)";
         }
         else
         {
-            // Single candidate above 0.90: AutoMatched (already handled above)
-            // Single candidate between 0.50 and 0.90: NoMatch (not confident enough)
-            newStatus = MetadataSourceStatus.NoMatch;
-            decision = "NoMatch";
+            int ourChapterCount = allChapters.Count;
+            var scored = candidates
+                .Select(c => (candidate: c, score: ScoreCandidate(normalizedTitle, ourChapterCount, c)))
+                .OrderByDescending(x => x.score)
+                .ToList();
+
+            topScore = scored[0].score;
+            secondScore = scored.Count > 1 ? scored[1].score : 0f;
+            topId = scored[0].candidate.MangaDexId;
+
+            if (topScore >= 0.90f && (scored.Count == 1 || topScore - secondScore >= 0.10f))
+            {
+                newStatus = MetadataSourceStatus.AutoMatched;
+                decision = "AutoMatched";
+            }
+            else if (topScore >= 0.50f && scored.Count > 1 && topScore - secondScore < 0.10f)
+            {
+                newStatus = MetadataSourceStatus.Ambiguous;
+                decision = "Ambiguous";
+            }
+            else
+            {
+                // Single candidate 0.50–0.90, or top below 0.50: not confident enough to link.
+                newStatus = MetadataSourceStatus.NoMatch;
+                decision = "NoMatch";
+            }
         }
 
         Log.Info($"Auto-match decision: mangaId={manga.Key} topCandidateId={topId} topScore={topScore:F4} secondScore={secondScore:F4} decision={decision}");
@@ -465,5 +482,22 @@ public class ResolveMissingVolumesForMangaWorker(
         string lower = title.ToLowerInvariant();
         string noPunct = PunctuationRegex.Replace(lower, " ");
         return WhitespaceRegex.Replace(noPunct, " ").Trim();
+    }
+
+    private static readonly Regex AniListIdRegex = new(@"anilist\.co/manga/(\d+)", RegexOptions.Compiled);
+
+    /// <summary>The AniList id from the series' external links, if it carries one (e.g. captured from a
+    /// connector page). This is the identifier we match against a MangaDex entry's <c>links.al</c>.</summary>
+    private static string? GetAniListId(Series manga)
+    {
+        foreach (Link link in manga.Links)
+        {
+            if (!link.LinkProvider.Equals("AniList", StringComparison.OrdinalIgnoreCase))
+                continue;
+            Match m = AniListIdRegex.Match(link.LinkUrl);
+            if (m.Success)
+                return m.Groups[1].Value;
+        }
+        return null;
     }
 }
