@@ -1,3 +1,4 @@
+using API.HttpRequesters;
 using API.Schema.ActionsContext;
 using API.Schema.LibraryContext;
 using API.Schema.NotificationsContext;
@@ -32,6 +33,10 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
     /// <summary>Base URL of the local server outbound metadata requests should be redirected to.</summary>
     public required string OutboundHttpTarget { get; init; }
 
+    /// <summary>Optional stub for the connectors' HTTP edge, so a connector flow can be driven without
+    /// real network access. When set, it replaces the registered <see cref="IHttpRequester"/>.</summary>
+    public IHttpRequester? ConnectorHttpRequester { get; init; }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("Kenku:RunStartup", "false");
@@ -47,6 +52,12 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
             RouteOutboundHttp<MangaDexVolumeResolver>(services);
             RouteOutboundHttp<MangaDexSearchService>(services);
             RouteOutboundHttp<WikipediaVolumeResolver>(services);
+
+            if (ConnectorHttpRequester is not null)
+            {
+                services.RemoveAll<IHttpRequester>();
+                services.AddSingleton(ConnectorHttpRequester);
+            }
         });
     }
 
