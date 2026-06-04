@@ -93,6 +93,31 @@ public class WeebCentralTests
     }
 
     [Fact]
+    public async Task GetMangaFromId_IgnoresGenericTrackerLinks_KeepingOnlyEntryUrls()
+    {
+        // A footer/home link to a tracker must not be mistaken for the series' identity link — only an
+        // entry URL (e.g. /manga/<id>) is a real cross-reference.
+        var html = """
+        <html><head><title>Fire Punch | Weeb Central</title></head>
+        <body>
+            <a href="https://anilist.co/manga/87170/Fire-Punch">AniList</a>
+            <a href="https://anilist.co/forum/recent">AniList Forums</a>
+            <a href="https://anilist.co">AniList Home</a>
+        </body></html>
+        """;
+
+        var settings = CreateSettings();
+        var weebCentral = new WeebCentral(settings, CreateMockClient(html).Object);
+
+        var result = await weebCentral.GetMangaFromId("wc-1");
+
+        Assert.NotNull(result);
+        var aniListLinks = result.Value.Item1.Links.Where(l => l.LinkProvider == "AniList").ToList();
+        Assert.Single(aniListLinks);
+        Assert.Equal("https://anilist.co/manga/87170/Fire-Punch", aniListLinks[0].LinkUrl);
+    }
+
+    [Fact]
     public async Task GetChapterImageUrls_RequestsImagesPartial_AndExtractsPageImages()
     {
         // WeebCentral defers chapter images to the /chapters/{id}/images HTMX partial; scraping the

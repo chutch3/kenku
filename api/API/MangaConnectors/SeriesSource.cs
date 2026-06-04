@@ -25,14 +25,16 @@ public abstract class SeriesSource(string name, string[] supportedLanguages, str
     public bool Enabled { get; internal set; } = true;
     protected KenkuSettings Settings => settings;
 
-    // Known external metadata trackers a series page may link out to. Their stable ids cross-reference
-    // to MangaDex's own `links` (e.g. AniList), enabling identifier matching instead of a fuzzy title guess.
-    private static readonly (string Domain, string Provider)[] TrackerProviders =
+    // Known external metadata trackers a series page may link out to, matched on the shape of an *entry*
+    // URL (not just the domain) so a generic footer/home link isn't mistaken for the series' identity.
+    // Their stable ids cross-reference to MangaDex's own `links` (e.g. AniList), enabling identifier
+    // matching instead of a fuzzy title guess.
+    private static readonly (string Provider, Regex EntryUrl)[] TrackerProviders =
     {
-        ("anilist.co", "AniList"),
-        ("myanimelist.net", "MyAnimeList"),
-        ("mangaupdates.com", "MangaUpdates"),
-        ("anime-planet.com", "Anime Planet"),
+        ("AniList", new Regex(@"^https?://(www\.)?anilist\.co/manga/\d+", RegexOptions.Compiled | RegexOptions.IgnoreCase)),
+        ("MyAnimeList", new Regex(@"^https?://(www\.)?myanimelist\.net/manga/\d+", RegexOptions.Compiled | RegexOptions.IgnoreCase)),
+        ("MangaUpdates", new Regex(@"^https?://(www\.)?mangaupdates\.com/series", RegexOptions.Compiled | RegexOptions.IgnoreCase)),
+        ("Anime Planet", new Regex(@"^https?://(www\.)?anime-planet\.com/manga/", RegexOptions.Compiled | RegexOptions.IgnoreCase)),
     };
 
     /// <summary>
@@ -53,9 +55,9 @@ public abstract class SeriesSource(string name, string[] supportedLanguages, str
             string href = anchor.GetAttributeValue("href", "");
             if (string.IsNullOrEmpty(href))
                 continue;
-            foreach ((string domain, string provider) in TrackerProviders)
+            foreach ((string provider, Regex entryUrl) in TrackerProviders)
             {
-                if (href.Contains(domain, StringComparison.OrdinalIgnoreCase) && seen.Add(href))
+                if (entryUrl.IsMatch(href) && seen.Add(href))
                 {
                     links.Add(new Link(provider, href));
                     break;
