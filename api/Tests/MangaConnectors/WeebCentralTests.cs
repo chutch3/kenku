@@ -118,6 +118,31 @@ public class WeebCentralTests
     }
 
     [Fact]
+    public async Task GetMangaFromId_CapturesEntryUrlsForEachProvider_AndRejectsGenericOnes()
+    {
+        var html = """
+        <html><head><title>X | Weeb Central</title></head>
+        <body>
+            <a href="https://anilist.co/manga/87170">al</a>
+            <a href="https://myanimelist.net/manga/98270">mal</a>
+            <a href="https://www.mangaupdates.com/series/eur1ktv">mu</a>
+            <a href="https://www.anime-planet.com/manga/fire-punch">ap</a>
+            <a href="https://www.mangaupdates.com/seriesranking">generic mu</a>
+            <a href="https://myanimelist.net/forum">generic mal</a>
+        </body></html>
+        """;
+
+        var settings = CreateSettings();
+        var weebCentral = new WeebCentral(settings, CreateMockClient(html).Object);
+
+        var result = await weebCentral.GetMangaFromId("wc-1");
+
+        Assert.NotNull(result);
+        var providers = result.Value.Item1.Links.Select(l => l.LinkProvider).OrderBy(p => p).ToArray();
+        Assert.Equal(new[] { "AniList", "Anime Planet", "MangaUpdates", "MyAnimeList" }, providers);
+    }
+
+    [Fact]
     public async Task GetChapterImageUrls_RequestsImagesPartial_AndExtractsPageImages()
     {
         // WeebCentral defers chapter images to the /chapters/{id}/images HTMX partial; scraping the

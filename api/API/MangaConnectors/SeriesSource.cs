@@ -33,7 +33,7 @@ public abstract class SeriesSource(string name, string[] supportedLanguages, str
     {
         ("AniList", new Regex(@"^https?://(www\.)?anilist\.co/manga/\d+", RegexOptions.Compiled | RegexOptions.IgnoreCase)),
         ("MyAnimeList", new Regex(@"^https?://(www\.)?myanimelist\.net/manga/\d+", RegexOptions.Compiled | RegexOptions.IgnoreCase)),
-        ("MangaUpdates", new Regex(@"^https?://(www\.)?mangaupdates\.com/series", RegexOptions.Compiled | RegexOptions.IgnoreCase)),
+        ("MangaUpdates", new Regex(@"^https?://(www\.)?mangaupdates\.com/series[/.]", RegexOptions.Compiled | RegexOptions.IgnoreCase)),
         ("Anime Planet", new Regex(@"^https?://(www\.)?anime-planet\.com/manga/", RegexOptions.Compiled | RegexOptions.IgnoreCase)),
     };
 
