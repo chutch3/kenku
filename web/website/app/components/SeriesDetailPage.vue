@@ -8,6 +8,10 @@
                     {{ series.name }}
                     <SourceIcon v-for="m in series.sourceIds" v-bind="m" :key="m.key" />
                 </p>
+                <div v-if="series" class="flex flex-wrap items-center gap-2">
+                    <SeriesStatusBadge :series="series" type="track" />
+                    <SeriesStatusBadge :series="series" type="release" />
+                </div>
                 <USkeleton v-else as="p" class="h-20 w-full" />
                 <div v-if="series" class="flex flex-row gap-1 flex-wrap">
                     <UBadge v-for="author in series.authors" :key="author.key" variant="outline" color="neutral"

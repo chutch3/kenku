@@ -8,7 +8,7 @@
                     :alt="`${mangaConnector.name} icon`"
                     :class="[
                         'w-full rounded-full outline-2 -outline-offset-1',
-                        props.useForDownload ? 'outline-green-500' : 'outline-red-500',
+                        props.useForDownload ? 'outline-jade-500' : 'outline-sumi-400/60',
                     ]" />
                 <p v-else>{{ mangaConnectorName }}</p>
             </UTooltip>
