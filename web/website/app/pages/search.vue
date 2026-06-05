@@ -4,13 +4,35 @@
             <div class="flex max-sm:flex-col flex-row w-full h-full justify-between gap-4">
                 <UStepper v-model="activeStep" orientation="vertical" :items="items" class="h-full" disabled color="secondary" />
                 <UCard class="grow">
-                    <div class="flex flex-col justify-between gap-2">
-                        <UInput v-model="query" class="w-full" :disabled="busy" />
-                        <div class="flex flex-wrap gap-1 w-full justify-center">
+                    <div class="flex flex-col justify-between gap-3">
+                        <div class="flex gap-2">
+                            <UInput
+                                v-model="query"
+                                class="grow"
+                                size="lg"
+                                icon="i-lucide-search"
+                                autofocus
+                                placeholder="Search by title, or paste a series URL…"
+                                :disabled="busy"
+                                @keydown.enter="performSearch" />
+                            <UButton
+                                size="lg"
+                                color="primary"
+                                icon="i-lucide-search"
+                                :disabled="busy || !query"
+                                :loading="busy"
+                                @click="performSearch">
+                                Search
+                            </UButton>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <span class="text-xs text-muted mr-1">Source:</span>
                             <UButton
                                 v-for="c in connectors"
                                 :key="c.key"
-                                :color="selectedConnector?.key == c.key ? 'secondary' : 'neutral'"
+                                size="sm"
+                                :color="selectedConnector?.key == c.key ? 'primary' : 'neutral'"
+                                :variant="selectedConnector?.key == c.key ? 'soft' : 'outline'"
                                 :disabled="busy"
                                 @click="connectorClick(c)">
                                 <template #leading>
@@ -18,7 +40,6 @@
                                 </template>
                                 {{ c.name }}
                             </UButton>
-                            <UButton color="primary" :disabled="busy" :loading="busy" @click="performSearch">Search</UButton>
                         </div>
                     </div>
                 </UCard>
@@ -76,7 +97,7 @@ const isUrl = (input: string): boolean => {
 
 const connectorClick = (c: MangaConnector) => {
     connector.value = c;
-    performSearch();
+    if (query.value) performSearch();
 };
 
 const searchResult = useState<MinimalSeries[]>(() => []);
