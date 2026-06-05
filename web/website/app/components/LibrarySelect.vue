@@ -4,7 +4,7 @@
         v-else
         v-model="library"
         :default-value="libraryId ?? undefined"
-        placeholder="Library"
+        placeholder="Choose a library…"
         icon="i-lucide-library-big"
         color="secondary"
         :items="libraries?.map((l) => l.key)"
