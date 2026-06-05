@@ -12,7 +12,8 @@
                     <SeriesStatusBadge :series="series" type="track" />
                     <SeriesStatusBadge :series="series" type="release" />
                 </div>
-                <USkeleton v-else as="p" class="h-20 w-full" />
+                <SeriesProgress v-if="series?.fileLibraryId" :manga-id="series.key" class="mt-1" />
+                <USkeleton v-else-if="!series" as="p" class="h-20 w-full" />
                 <div v-if="series" class="flex flex-row gap-1 flex-wrap">
                     <UBadge v-for="author in series.authors" :key="author.key" variant="outline" color="neutral"
                         ><NuxtLink :to="`/series/author/${author.key}?return=${$route.fullPath}`">{{ author.name }}</NuxtLink></UBadge

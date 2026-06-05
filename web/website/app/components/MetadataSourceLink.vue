@@ -1,14 +1,17 @@
 <template>
     <UCard>
         <template #header>
-            <div class="flex items-center justify-between gap-2">
-                <h1 class="font-semibold">Metadata Match</h1>
-                <UBadge :color="statusColor" variant="subtle">{{ statusLabel }}</UBadge>
+            <div>
+                <div class="flex items-center justify-between gap-2">
+                    <h2 class="font-display text-lg font-semibold text-highlighted">Metadata source</h2>
+                    <UBadge :color="statusColor" variant="subtle">{{ statusLabel }}</UBadge>
+                </div>
+                <p class="text-xs text-muted">Canonical title, volumes and chapter numbers come from here (MangaDex).</p>
             </div>
         </template>
 
         <p v-if="needsLinking" class="text-sm text-muted mb-2">
-            Volumes may be incomplete until this series is linked to the correct MangaDex entry.
+            Volumes may be incomplete until this series is linked to the correct entry.
         </p>
 
         <div class="flex gap-2">
@@ -119,10 +122,7 @@ const link = async (candidate: Candidate) => {
             path: { MangaId: props.mangaId },
             body: { sourceType: 'MangaDex', externalId },
         });
-        await $api('/v2/Series/{MangaId}/metadataSource/refresh', {
-            method: 'POST',
-            path: { MangaId: props.mangaId },
-        });
+        await $api('/v2/Series/{MangaId}/metadataSource/refresh', { method: 'POST', path: { MangaId: props.mangaId } });
         candidates.value = [];
         searched.value = false;
         await refreshSource();

@@ -41,24 +41,22 @@
                             <p class="text-xs text-muted">Sites Kenku pulls chapters from — toggle which to use.</p>
                         </div>
                     </template>
-                    <div class="flex flex-row gap-2 w-full flex-wrap">
+                    <div class="flex flex-col gap-2">
                         <div
-                            v-for="mangaconnectorId in [...series.sourceIds].sort((a, b) =>
-                                a.mangaConnectorName < b.mangaConnectorName ? -1 : 1
-                            )"
-                            :key="mangaconnectorId.key"
-                            class="bg-elevated p-1 rounded-lg w-fit flex items-center justify-center gap-2">
-                            <SourceIcon v-bind="mangaconnectorId" />
-                            <UTooltip
-                                :text="
-                                    mangaconnectorId.useForDownload ? 'Stop downloading from this website' : 'Download from this website'
-                                ">
-                                <UButton
-                                    :icon="mangaconnectorId.useForDownload ? 'i-lucide-cloud-off' : 'i-lucide-cloud-download'"
-                                    variant="ghost"
-                                    :disabled="!series?.fileLibraryId"
-                                    @click="setRequestedFrom(mangaconnectorId.mangaConnectorName, !mangaconnectorId.useForDownload)" />
-                            </UTooltip>
+                            v-for="src in [...series.sourceIds].sort((a, b) => (a.mangaConnectorName < b.mangaConnectorName ? -1 : 1))"
+                            :key="src.key"
+                            class="flex items-center gap-3 bg-elevated rounded-lg px-3 py-2">
+                            <SourceIcon v-bind="src" />
+                            <span class="text-sm grow truncate">{{ src.mangaConnectorName }}</span>
+                            <span
+                                class="font-mono text-[0.65rem] uppercase tracking-wide"
+                                :class="src.useForDownload ? 'text-success' : 'text-dimmed'">
+                                {{ src.useForDownload ? 'On' : 'Off' }}
+                            </span>
+                            <USwitch
+                                :model-value="src.useForDownload"
+                                :disabled="!series?.fileLibraryId"
+                                @update:model-value="(v) => setRequestedFrom(src.mangaConnectorName, v)" />
                         </div>
                     </div>
                 </UCard>
