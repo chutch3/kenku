@@ -62,7 +62,10 @@
                 <template #default>
                     <div class="flex flex-row gap-2 w-full items-center">
                         <UTooltip :text="chapter.downloaded ? 'Downloaded' : 'Not downloaded'">
-                            <UIcon :name="chapter.downloaded ? 'i-lucide-cloud-check' : 'i-lucide-cloud-alert'" size="20" />
+                            <UIcon
+                                :name="chapter.downloaded ? 'i-lucide-cloud-check' : 'i-lucide-cloud-alert'"
+                                size="20"
+                                :class="chapter.downloaded ? 'text-success' : 'text-dimmed'" />
                         </UTooltip>
                         <div
                             v-for="mangaconnectorId in chapter.sourceIds.sort((a, b) =>
