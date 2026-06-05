@@ -6,7 +6,8 @@
             :key="m.key"
             :series="m"
             :expanded="i === expanded"
-            class="cursor-pointer"
+            :style="{ '--rev-i': Math.min(i, 24) }"
+            class="reveal cursor-pointer"
             @click="$emit('click', m)" />
     </div>
 </template>

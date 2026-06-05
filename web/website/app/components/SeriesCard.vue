@@ -1,12 +1,11 @@
 <template>
-    <UCard
-        :ui="{ body: 'p-0 sm:p-0', root: 'overflow-visible' }"
-        class="relative max-sm:w-[var(--mangacover-width-sm)] max-sm:h-[var(--mangacover-height-sm)] w-(--mangacover-width) h-(--mangacover-height) mt-4 mr-4">
+    <div class="kenku-lift group relative max-sm:w-[var(--mangacover-width-sm)] w-(--mangacover-width) mt-4 mr-4 rounded-lg">
         <SeriesCover :series="series" blur />
-        <div class="absolute -top-4 -right-4 flex flex-col bg-pink rounded-full">
+        <div
+            class="absolute -top-3 -right-3 flex flex-col items-center bg-primary rounded-full p-0.5 shadow-lg shadow-vermillion-900/40 ring-2 ring-default">
             <SourceIcon v-for="m in series.sourceIds" v-bind="m" :key="m.key" />
         </div>
-    </UCard>
+    </div>
 </template>
 
 <script setup lang="ts">

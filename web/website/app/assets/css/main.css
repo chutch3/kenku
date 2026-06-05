@@ -1,18 +1,315 @@
 @import 'tailwindcss';
 @import '@nuxt/ui';
 
+/* ============================================================================
+   烏  KARASU — the Kenku theme
+   An ink-and-vermillion yokai aesthetic. A kenku is a crow-tengu (烏天狗): a
+   bird-spirit that collects and mimics stories — a fitting patron for a manga
+   hoard. Sumi ink at night, washi paper by day, torii vermillion throughout.
+   ========================================================================== */
+
 @theme {
-    --color-pink: #f5a9b8;
-    --color-blue: #5bcefa;
+    /* ---- Type ----------------------------------------------------------- */
+    /* @nuxt/fonts (bundled with @nuxt/ui) self-hosts these from Google Fonts. */
+    --font-sans: 'Zen Kaku Gothic New', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Shippori Mincho', ui-serif, 'Hiragino Mincho ProN', serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+    /* ---- Vermillion / 朱 (primary — torii & tengu-mask red) -------------- */
+    --color-vermillion-50: #fff1ef;
+    --color-vermillion-100: #ffdfdb;
+    --color-vermillion-200: #ffc0b8;
+    --color-vermillion-300: #fb958a;
+    --color-vermillion-400: #f26a5b;
+    --color-vermillion-500: #e5483a;
+    --color-vermillion-600: #cc3527;
+    --color-vermillion-700: #a82a1f;
+    --color-vermillion-800: #87251d;
+    --color-vermillion-900: #6f241e;
+    --color-vermillion-950: #3d0f0a;
+
+    /* ---- Jade / 翡翠 (secondary — crow-feather teal, ukiyo-e complement) -- */
+    --color-jade-50: #ecfdf7;
+    --color-jade-100: #d0f8ec;
+    --color-jade-200: #a4f0dc;
+    --color-jade-300: #67e2c8;
+    --color-jade-400: #2ecdb1;
+    --color-jade-500: #12b299;
+    --color-jade-600: #08907e;
+    --color-jade-700: #0b7267;
+    --color-jade-800: #0e5b53;
+    --color-jade-900: #104b45;
+    --color-jade-950: #022e2a;
+
+    /* ---- Yamabuki / 山吹 (accent — moonlight gold, for ratings) ---------- */
+    --color-yamabuki-50: #fef9ec;
+    --color-yamabuki-100: #fbeec5;
+    --color-yamabuki-200: #f7dc88;
+    --color-yamabuki-300: #f3c84e;
+    --color-yamabuki-400: #efb22a;
+    --color-yamabuki-500: #e09614;
+    --color-yamabuki-600: #c2740f;
+    --color-yamabuki-700: #9b5410;
+    --color-yamabuki-800: #804314;
+    --color-yamabuki-900: #6d3917;
+    --color-yamabuki-950: #3e1c07;
+
+    /* ---- Sumi / 墨 (neutral — blue-black ink, not flat gray) ------------- */
+    --color-sumi-50: #f4f5f7;
+    --color-sumi-100: #e6e7ec;
+    --color-sumi-200: #cbcdd6;
+    --color-sumi-300: #a5a9b7;
+    --color-sumi-400: #787d90;
+    --color-sumi-500: #585d70;
+    --color-sumi-600: #444858;
+    --color-sumi-700: #363949;
+    --color-sumi-800: #21222d;
+    --color-sumi-900: #16171f;
+    --color-sumi-950: #0c0d13;
 }
 
-:root {
-    --mangacover-width: 240px;
-    --mangacover-height: 350px;
-    --mangacover-width-sm: 150px;
-    --mangacover-height-sm: 220px;
+/* ----------------------------------------------------------------------------
+   Surface tokens. Override Nuxt UI's neutral-derived defaults so day reads as
+   warm washi paper and night reads as deep sumi ink, instead of flat zinc.
+   -------------------------------------------------------------------------- */
+@layer base {
+    :root,
+    .light {
+        --ui-bg: #f6f1e7; /* washi paper */
+        --ui-bg-muted: #efe9da;
+        --ui-bg-elevated: #fcf8ef;
+        --ui-bg-accented: #e7dfcc;
+        --ui-bg-inverted: #211f26;
+        --ui-border: #e2d9c6;
+        --ui-border-muted: #ebe4d4;
+        --ui-border-accented: #d4c9b1;
+        --ui-border-inverted: #211f26;
+        --ui-text-dimmed: #948d7b;
+        --ui-text-muted: #6a6556;
+        --ui-text-toned: #423f3a;
+        --ui-text: #2a2730;
+        --ui-text-highlighted: #110f15;
+        --ui-text-inverted: #f6f1e7;
+
+        --kenku-paper: #f6f1e7;
+        --kenku-screentone: 0, 0, 0;
+        --kenku-grain-opacity: 0.05;
+        --kenku-glow-strength: 0.1;
+    }
+
+    .dark {
+        --ui-bg: #0b0c12; /* deep ink night */
+        --ui-bg-muted: #101119;
+        --ui-bg-elevated: #181a24;
+        --ui-bg-accented: #23252f;
+        --ui-bg-inverted: #ededf2;
+        --ui-border: #23252f;
+        --ui-border-muted: #1a1c25;
+        --ui-border-accented: #2f3240;
+        --ui-border-inverted: #ededf2;
+        --ui-text-dimmed: #686b7c;
+        --ui-text-muted: #9396a6;
+        --ui-text-toned: #c3c5d0;
+        --ui-text: #ededf2;
+        --ui-text-highlighted: #ffffff;
+        --ui-text-inverted: #0b0c12;
+
+        --kenku-paper: #0b0c12;
+        --kenku-screentone: 255, 255, 255;
+        --kenku-grain-opacity: 0.035;
+        --kenku-glow-strength: 0.16;
+    }
+
+    :root {
+        --ui-radius: 0.4rem;
+
+        /* manga cover sizing (unchanged contract) */
+        --mangacover-width: 240px;
+        --mangacover-height: 350px;
+        --mangacover-width-sm: 150px;
+        --mangacover-height-sm: 220px;
+    }
+
+    /* Let the fixed atmosphere layer (which carries the base color) show through. */
+    html {
+        background-color: var(--kenku-paper);
+    }
+    body {
+        background-color: transparent;
+        font-family: var(--font-sans);
+        font-feature-settings: 'palt' 1;
+        letter-spacing: 0.005em;
+    }
+
+    /* Display type — manga/print serif, slightly tightened. */
+    .font-display {
+        font-family: var(--font-display);
+        letter-spacing: -0.01em;
+    }
+
+    code,
+    kbd,
+    samp,
+    .font-mono {
+        font-family: var(--font-mono);
+    }
+
+    ::selection {
+        background: rgba(229, 72, 58, 0.28);
+        color: var(--ui-text-highlighted);
+    }
+
+    /* Restrained, ink-toned scrollbars. */
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--ui-border-accented) transparent;
+    }
 }
 
+/* ----------------------------------------------------------------------------
+   Atmosphere — fixed, behind everything, never intercepts pointer events.
+   1) manga screentone halftone dots   2) paper grain   3) ambient glows
+   -------------------------------------------------------------------------- */
+.kenku-atmosphere {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+    background: var(--kenku-paper);
+}
+
+/* Manga screentone — the structural texture (our answer to the cyber grid). */
+.kenku-atmosphere::before {
+    content: '';
+    position: absolute;
+    inset: -10%;
+    background-image: radial-gradient(rgba(var(--kenku-screentone), 1) 0.6px, transparent 0.9px);
+    background-size: 7px 7px;
+    opacity: 0.05;
+}
+
+/* Paper grain. */
+.kenku-atmosphere::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: var(--kenku-grain-opacity);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.kenku-glow {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(120px);
+}
+.kenku-glow--vermillion {
+    top: -18%;
+    left: 50%;
+    width: 70vw;
+    height: 40vh;
+    transform: translateX(-50%);
+    background: rgba(229, 72, 58, var(--kenku-glow-strength));
+}
+.kenku-glow--jade {
+    bottom: -22%;
+    right: -8%;
+    width: 45vw;
+    height: 45vh;
+    background: rgba(18, 178, 153, calc(var(--kenku-glow-strength) * 0.8));
+}
+
+/* ----------------------------------------------------------------------------
+   Effects — neon ink glows for accent text & seals.
+   -------------------------------------------------------------------------- */
+.text-glow-vermillion {
+    text-shadow:
+        0 0 18px rgba(229, 72, 58, 0.45),
+        0 0 2px rgba(229, 72, 58, 0.3);
+}
+.text-glow-jade {
+    text-shadow: 0 0 18px rgba(18, 178, 153, 0.45);
+}
+
+/* Card lift used on series cards / interactive surfaces. */
+.kenku-lift {
+    transition:
+        transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+        box-shadow 0.35s ease,
+        border-color 0.35s ease;
+}
+.kenku-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 38px -12px rgba(229, 72, 58, 0.45);
+}
+
+/* ----------------------------------------------------------------------------
+   Motion — one orchestrated page-load reveal beats scattered micro-interactions.
+   `.reveal` rises + fades in; stagger children with `--rev-i`.
+   -------------------------------------------------------------------------- */
+@keyframes kenku-rise {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes kenku-seal {
+    0% {
+        opacity: 0;
+        transform: scale(0.7) rotate(-12deg);
+    }
+    60% {
+        transform: scale(1.06) rotate(3deg);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) rotate(0);
+    }
+}
+
+.reveal {
+    animation: kenku-rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: calc(var(--rev-i, 0) * 60ms);
+}
+
+.seal-in {
+    animation: kenku-seal 0.7s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .reveal,
+    .seal-in {
+        animation: none;
+    }
+    .kenku-lift {
+        transition: none;
+    }
+}
+
+/* Nuxt page transition. */
+.page-enter-active,
+.page-leave-active {
+    transition:
+        opacity 0.3s ease,
+        transform 0.3s ease;
+}
+.page-enter-from {
+    opacity: 0;
+    transform: translateY(10px);
+}
+.page-leave-to {
+    opacity: 0;
+    transform: translateY(-6px);
+}
+
+/* ----------------------------------------------------------------------------
+   Legacy keyframes still referenced by components.
+   -------------------------------------------------------------------------- */
 @keyframes shake {
     0% {
         transform: translate(1px, 1px) rotate(0deg);
@@ -55,6 +352,6 @@
         background-color: initial;
     }
     50% {
-        background-color: var(--color-secondary);
+        background-color: var(--color-vermillion-500);
     }
 }

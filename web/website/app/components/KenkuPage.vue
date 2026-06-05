@@ -15,7 +15,9 @@
                             >{{ backUrl ? 'Back' : 'Home' }}</UButton
                         >
                         <slot name="title">
-                            <p v-if="title" class="text-2xl text-primary font-semibold">{{ title }}</p>
+                            <p v-if="title" class="font-display text-2xl text-highlighted font-semibold flex items-center gap-2.5">
+                                <span class="inline-block h-5 w-1 rounded-full bg-primary" />{{ title }}
+                            </p>
                         </slot>
                     </div>
                     <div class="flex flew-row gap-2">

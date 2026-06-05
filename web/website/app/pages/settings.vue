@@ -1,6 +1,6 @@
 <template>
-    <KenkuPage>
-        <UPageSection title="Settings" :ui="{ container: 'py-2 sm:py-2 lg:py-2 gap-2' }">
+    <KenkuPage title="Settings">
+        <UPageSection :ui="{ container: 'py-2 sm:py-2 lg:py-2 gap-2' }">
             <template #description>
                 <div v-if="settingsStatus === 'error'">
                     <p class="text-warning">Unable to connect to api.</p>
@@ -53,9 +53,9 @@
                     <h1>Comics &amp; Torrents</h1>
                 </template>
                 <p class="text-dimmed text-sm mb-2">
-                    Add Kenku to Prowlarr as a <b>Mylar</b> application (Settings &rarr; Apps). Use the URL and API key
-                    below; Prowlarr will sync your comic indexers into Kenku automatically. Configure one or more
-                    download clients to fetch releases. Metron provides comic metadata.
+                    Add Kenku to Prowlarr as a <b>Mylar</b> application (Settings &rarr; Apps). Use the URL and API key below; Prowlarr will
+                    sync your comic indexers into Kenku automatically. Configure one or more download clients to fetch releases. Metron
+                    provides comic metadata.
                 </p>
                 <UFormField label="Kenku Base URL (Mylar Server)">
                     <UInput :model-value="baseUrl" readonly class="w-full" :ui="{ trailing: 'pe-1' }">
@@ -90,7 +90,9 @@
                 <p v-if="!downloadClients.length" class="text-dimmed text-sm">No download clients configured.</p>
                 <ul v-else class="text-sm">
                     <li v-for="client in downloadClients" :key="client.id" class="flex items-center gap-2">
-                        <span>{{ client.name }} <span class="text-dimmed">({{ client.type }} &middot; {{ client.baseUrl }})</span></span>
+                        <span
+                            >{{ client.name }} <span class="text-dimmed">({{ client.type }} &middot; {{ client.baseUrl }})</span></span
+                        >
                         <UBadge :color="client.enabled ? 'success' : 'neutral'" variant="subtle" size="sm">
                             {{ client.enabled ? 'enabled' : 'disabled' }}
                         </UBadge>
@@ -207,7 +209,11 @@ const downloadClients = computed(() => settingsData.value?.downloadClients ?? []
 const baseUrl = computed(() => (import.meta.client ? window.location.origin : ''));
 
 const copy = async (value: string) => {
-    try { await navigator.clipboard.writeText(value); } catch { /* clipboard unavailable */ }
+    try {
+        await navigator.clipboard.writeText(value);
+    } catch {
+        /* clipboard unavailable */
+    }
 };
 
 const regenerateApiKey = async () => {
@@ -225,7 +231,10 @@ const removeDownloadClient = async (id?: number) => {
 };
 
 const onMetronClick = async () => {
-    if (!metronConnected.value) { metronModal.open(); return; }
+    if (!metronConnected.value) {
+        metronModal.open();
+        return;
+    }
     await $api('/v2/Settings/Metron', { method: 'DELETE' });
     await refreshNuxtData(FetchKeys.Settings.All);
 };
@@ -236,3 +245,17 @@ const deCamel = (camel: string): string =>
 
 useHead({ title: 'Settings' });
 </script>
+
+<style scoped>
+/* Card section headings in the display serif, with a small vermillion tick. */
+:deep(h1) {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--ui-text-highlighted);
+}
+:deep(h2) {
+    font-family: var(--font-display);
+    color: var(--ui-text-highlighted);
+}
+</style>

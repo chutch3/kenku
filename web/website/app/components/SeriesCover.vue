@@ -1,23 +1,20 @@
 <template>
     <div
-        class="relative object-contain max-sm:w-[var(--mangacover-width-sm)] max-sm:h-[var(--mangacover-height-sm)] w-(--mangacover-width) h-(--mangacover-height) rounded-lg overflow-clip">
-        <div
-            v-if="blur"
-            class="absolute l-0 t-0 w-full h-full rounded-lg overflow-clip"
-            style="
-                background: linear-gradient(150deg, rgba(245, 169, 184, 0.3) 50%, rgba(91, 206, 250, 0.2));
-                box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-                backdrop-filter: blur(2px) brightness(70%);
-                -webkit-backdrop-filter: blur(2px) brightness(70%);
-            ">
-            <p class="p-3 max-sm:text-sm text-xl font-semibold max-h-full overflow-clip text-shadow-lg text-white">
-                {{ series?.name }}
-            </p>
-        </div>
+        class="kenku-cover group/cover relative max-sm:w-[var(--mangacover-width-sm)] max-sm:h-[var(--mangacover-height-sm)] w-(--mangacover-width) h-(--mangacover-height) rounded-lg overflow-clip ring-1 ring-default">
         <FallbackImage
             :src="coverUrl"
             :alt="`${series.name} cover`"
-            class="w-full h-full object-cover" />
+            class="w-full h-full object-cover transition-transform duration-500 group-hover/cover:scale-105" />
+        <!-- Manga-cover scrim: art stays visible, title sits in an ink wash. -->
+        <div
+            v-if="blur"
+            class="absolute inset-x-0 bottom-0 flex flex-col justify-end pt-12 pb-3 px-3 bg-gradient-to-t from-black/90 via-black/55 to-transparent">
+            <span class="h-px w-8 bg-vermillion-500 mb-2 shadow-[0_0_8px_var(--color-vermillion-500)]" />
+            <p
+                class="font-display max-sm:text-sm text-lg/tight font-semibold text-white line-clamp-3 [text-shadow:0_1px_8px_rgba(0,0,0,0.6)]">
+                {{ series?.name }}
+            </p>
+        </div>
     </div>
 </template>
 

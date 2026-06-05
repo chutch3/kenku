@@ -1,5 +1,5 @@
 <template>
-    <KenkuPage>
+    <KenkuPage title="Add Series">
         <UPageSection :ui="{ container: 'gap-1 sm:gap-1 lg:gap-1 py-4 sm:py-1 lg:py-1 gap-1 sm:gap-1 lg:gap-1' }" class="h-fit">
             <div class="flex max-sm:flex-col flex-row w-full h-full justify-between gap-4">
                 <UStepper v-model="activeStep" orientation="vertical" :items="items" class="h-full" disabled color="secondary" />
@@ -36,7 +36,12 @@
         <SeriesCardList
             :series="searchResult"
             class="overflow-y-scroll h-full pb-70"
-            @click="(m) => navigateTo(`/series/${m.key}?return=${$route.fullPath}&connectorName=${m.sourceIds[0]?.mangaConnectorName}&connectorSeriesId=${m.sourceIds[0]?.objId}#download`)" />
+            @click="
+                (m) =>
+                    navigateTo(
+                        `/series/${m.key}?return=${$route.fullPath}&connectorName=${m.sourceIds[0]?.mangaConnectorName}&connectorSeriesId=${m.sourceIds[0]?.objId}#download`
+                    )
+            " />
     </KenkuPage>
 </template>
 

@@ -1,5 +1,14 @@
 export default defineAppConfig({
     ui: {
-        colors: { primary: 'pink', secondary: 'blue', success: 'green', info: 'cyan', warning: 'yellow', error: 'red', neutral: 'zinc' },
+        // 烏 Karasu — ink-and-vermillion yokai palette.
+        colors: {
+            primary: 'vermillion',
+            secondary: 'jade',
+            success: 'jade',
+            info: 'jade',
+            warning: 'yamabuki',
+            error: 'vermillion',
+            neutral: 'sumi',
+        },
     },
 });
