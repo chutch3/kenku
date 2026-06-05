@@ -2,6 +2,23 @@
 
 <!-- version list -->
 
+## v0.8.0 (2026-06-05)
+
+### Features
+
+- Redesign the add-series search flow
+  ([`ce4b3a5`](https://github.com/chutch3/kenku/commit/ce4b3a52600916e64e4d38174f227b7aea090677))
+
+- Restructure settings into tabbed sections with status
+  ([`c86094d`](https://github.com/chutch3/kenku/commit/c86094d05178e7fe838395be5de3f0ccc923feda))
+
+- Streamline tracking with one-click add and clearer wording
+  ([`d9aa84c`](https://github.com/chutch3/kenku/commit/d9aa84c8f9a074037da1ca976af6efb325ed1a41))
+
+- Surface download progress and clearer source controls
+  ([`0ffab48`](https://github.com/chutch3/kenku/commit/0ffab48a9ee118f7714e8d164286068a80fd57bd))
+
+
 ## v0.7.1 (2026-06-05)
 
 ### Bug Fixes
