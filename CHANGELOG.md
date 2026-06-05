@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v0.7.1 (2026-06-05)
+
+### Bug Fixes
+
+- Load page data on client-side navigation
+  ([`6d8a76c`](https://github.com/chutch3/kenku/commit/6d8a76c623ba6f769ee93412a953cb0328717be7))
+
+- Support enter-to-search and clarify source selection
+  ([`4686bf0`](https://github.com/chutch3/kenku/commit/4686bf06686ebcfdccaee7c2921ea889d78dcf98))
+
+
 ## v0.7.0 (2026-06-05)
 
 ### Features
