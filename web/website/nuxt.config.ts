@@ -15,8 +15,5 @@ export default defineNuxtConfig({
     },
     vite: { plugins: [tailwindcss()] },
     nitro: { prerender: { failOnError: false } },
-    app: {
-        pageTransition: { name: 'page', mode: 'out-in' },
-        head: { title: 'Kenku', htmlAttrs: { lang: 'en' }, link: [{ rel: 'icon', type: 'image/svg+xml', href: '/kenku.svg' }] },
-    },
+    app: { head: { title: 'Kenku', htmlAttrs: { lang: 'en' }, link: [{ rel: 'icon', type: 'image/svg+xml', href: '/kenku.svg' }] } },
 });
