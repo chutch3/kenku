@@ -4,7 +4,7 @@
             <div class="flex flex-col gap-2">
                 <SeriesCover v-if="series" :series="series" class="self-center" />
                 <USkeleton v-else class="w-[240px] h-[350px]" />
-                <p v-if="series" class="font-semibold text-xl">
+                <p v-if="series" class="font-display font-semibold text-2xl/snug text-highlighted">
                     {{ series.name }}
                     <SourceIcon v-for="m in series.sourceIds" v-bind="m" :key="m.key" />
                 </p>
