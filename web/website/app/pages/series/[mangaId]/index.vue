@@ -5,10 +5,20 @@
                 v-if="!isSearchResult || (series && series.fileLibraryId)"
                 :manga-id="mangaId"
                 class="min-xl:h-full min-xl:overflow-y-scroll" />
-            <div class="flex flex-col gap-2">
-                <UCard :class="[flashDownloading ? 'animate-[flash_0.75s_ease_0.5s]' : '']">
+            <div class="flex flex-col gap-3">
+                <!-- Untracked preview: make "add it" the obvious primary action. -->
+                <TrackSeriesPanel
+                    v-if="isSearchResult && !series?.fileLibraryId"
+                    :manga-id="mangaId"
+                    @tracked="refreshNuxtData(FetchKeys.Series.Id(mangaId))" />
+
+                <!-- Storage: where files land. -->
+                <UCard v-if="!isSearchResult || series?.fileLibraryId" :class="[flashDownloading ? 'animate-[flash_0.75s_ease_0.5s]' : '']">
                     <template #header>
-                        <h1 class="font-semibold">Download</h1>
+                        <div>
+                            <h2 class="font-display text-lg font-semibold text-highlighted">Storage</h2>
+                            <p class="text-xs text-muted">Where Kenku saves downloaded files.</p>
+                        </div>
                     </template>
                     <LibrarySelect
                         :manga-id="mangaId"
@@ -21,11 +31,19 @@
                         class="w-full mt-2"
                         @layout-changed="refreshNuxtData(FetchKeys.Series.Id(mangaId))" />
                     <LooseChapters v-if="series?.fileLibraryId" :manga-id="mangaId" class="w-full mt-2" />
-                    <div
-                        v-if="series && (!isSearchResult || series.fileLibraryId)"
-                        class="flex flex-row gap-2 w-full flex-wrap my-2 justify-between">
+                </UCard>
+
+                <!-- Download sources: which sites to pull from. -->
+                <UCard v-if="series && (!isSearchResult || series.fileLibraryId)">
+                    <template #header>
+                        <div>
+                            <h2 class="font-display text-lg font-semibold text-highlighted">Download sources</h2>
+                            <p class="text-xs text-muted">Sites Kenku pulls chapters from — toggle which to use.</p>
+                        </div>
+                    </template>
+                    <div class="flex flex-row gap-2 w-full flex-wrap">
                         <div
-                            v-for="mangaconnectorId in series.sourceIds.sort((a, b) =>
+                            v-for="mangaconnectorId in [...series.sourceIds].sort((a, b) =>
                                 a.mangaConnectorName < b.mangaConnectorName ? -1 : 1
                             )"
                             :key="mangaconnectorId.key"
@@ -44,6 +62,8 @@
                         </div>
                     </div>
                 </UCard>
+
+                <!-- Metadata: link to the canonical MangaDex entry. -->
                 <MetadataSourceLink
                     v-if="!isSearchResult || (series && series.fileLibraryId)"
                     :manga-id="mangaId"

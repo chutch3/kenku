@@ -20,46 +20,69 @@
                     </div>
                 </NuxtLink>
             </template>
-            <template #body>
-                <UNavigationMenu :items="items" orientation="vertical" variant="link" color="neutral" />
-            </template>
+
             <template #default>
-                <UNavigationMenu :items="items" orientation="horizontal" variant="link" color="neutral" />
+                <UNavigationMenu :items="primaryNav" variant="link" />
             </template>
+
+            <template #body>
+                <UNavigationMenu :items="primaryNav" orientation="vertical" variant="link" class="-mx-2.5" />
+                <USeparator class="my-4" />
+                <UNavigationMenu :items="devLinks" orientation="vertical" variant="link" class="-mx-2.5" />
+            </template>
+
             <template #right>
-                <UTooltip text="Activity log">
-                    <UButton
-                        icon="i-lucide-scroll-text"
-                        :to="`/actions?return=${$route.fullPath}`"
-                        :disabled="$route.fullPath.startsWith('/actions')"
-                        variant="ghost"
-                        color="neutral" />
-                </UTooltip>
-                <UButton icon="i-lucide-plus" to="/search" color="primary" variant="solid">
-                    <template #default>
-                        <span class="max-sm:hidden">Add series</span>
-                    </template>
+                <UButton color="neutral" variant="ghost" class="max-sm:hidden gap-1.5" aria-label="Search" @click="cmdkOpen = true">
+                    <UIcon name="i-lucide-search" class="size-4" />
+                    <span class="text-dimmed text-sm">Search</span>
+                    <span class="flex gap-0.5">
+                        <UKbd value="meta" />
+                        <UKbd value="k" />
+                    </span>
                 </UButton>
+                <UButton
+                    icon="i-lucide-search"
+                    color="neutral"
+                    variant="ghost"
+                    class="sm:hidden"
+                    aria-label="Search"
+                    @click="cmdkOpen = true" />
+
+                <UButton icon="i-lucide-plus" to="/search" color="primary">
+                    <span class="max-sm:hidden">Add series</span>
+                </UButton>
+
                 <UColorModeButton />
-                <UTooltip text="Settings">
-                    <UButton icon="i-lucide-settings" variant="ghost" to="/settings" color="neutral" />
-                </UTooltip>
+
+                <UDropdownMenu :items="devLinks as DropdownMenuItem[]" :content="{ align: 'end' }">
+                    <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" aria-label="More" class="max-sm:hidden" />
+                </UDropdownMenu>
             </template>
         </UHeader>
+
         <UMain>
             <UPage>
                 <NuxtPage />
             </UPage>
         </UMain>
+
+        <AppCommandPalette />
     </UApp>
 </template>
 
 <script setup lang="ts">
-import type { NavigationMenuItem } from '#ui/components/NavigationMenu.vue';
+import type { NavigationMenuItem, DropdownMenuItem } from '@nuxt/ui';
 
-const items = computed<NavigationMenuItem[]>(() => [
-    { label: 'Library', to: '/', icon: 'i-lucide-library' },
+const cmdkOpen = useState('cmdk-open', () => false);
+
+const primaryNav = computed<NavigationMenuItem[]>(() => [
+    { label: 'Library', to: '/', icon: 'i-lucide-library', exact: true },
+    { label: 'Activity', to: '/actions', icon: 'i-lucide-scroll-text' },
+    { label: 'Settings', to: '/settings', icon: 'i-lucide-settings' },
+]);
+
+const devLinks = computed<NavigationMenuItem[]>(() => [
     { label: 'GitHub', to: 'https://github.com/chutch3/kenku', icon: 'i-lucide-github', target: '_blank' },
-    { label: 'Swagger', to: `${useRuntimeConfig().public.openFetch.api.baseURL}swagger`, icon: 'i-lucide-book-open', target: '_blank' },
+    { label: 'API docs', to: `${useRuntimeConfig().public.openFetch.api.baseURL}swagger`, icon: 'i-lucide-book-open', target: '_blank' },
 ]);
 </script>
