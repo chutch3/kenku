@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v0.7.0 (2026-06-05)
+
+### Features
+
+- Clarify series flow, surface status, and improve wayfinding
+  ([`e8c9c05`](https://github.com/chutch3/kenku/commit/e8c9c0596e973ec389ffce67490ca026b8a43195))
+
+- Reskin frontend with the karasu ink-and-vermillion theme
+  ([`f8fd956`](https://github.com/chutch3/kenku/commit/f8fd956a500cec00f1f6092c8864f89f3214714c))
+
+
 ## v0.6.0 (2026-06-04)
 
 ### Bug Fixes
