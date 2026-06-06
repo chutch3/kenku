@@ -4,8 +4,8 @@ using API.JobRuntime.Handlers;
 using API.MangaConnectors;
 using API.HttpRequesters;
 using API.Schema.SeriesContext;
+using API.Services;
 using API.Workers;
-using API.Workers.MangaDownloadWorkers;
 using API.Workers.MaintenanceWorkers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,7 +16,7 @@ using Xunit;
 
 namespace API.Tests.Workers;
 
-public class DownloadChapterFromSourceWorkerTests
+public class ChapterDownloadServiceTests
 {
     /// <summary>A MemoryStream that records whether it was disposed.</summary>
     private sealed class TrackingStream : MemoryStream
@@ -48,6 +48,16 @@ public class DownloadChapterFromSourceWorkerTests
         using var ms = new MemoryStream();
         image.SaveAsJpeg(ms);
         return ms.ToArray();
+    }
+
+    private static async Task RunDownload(IServiceProvider sp, KenkuSettings settings, SeriesSource connector, string chapterKey)
+    {
+        using var scope = sp.CreateScope();
+        var p = scope.ServiceProvider;
+        var service = new ChapterDownloadService(settings, [connector], p.GetRequiredService<IJobStore>(),
+            p.GetRequiredService<IClock>(), [], new LibraryLayoutResolver());
+        await service.DownloadAsync(p.GetRequiredService<SeriesContext>(),
+            p.GetRequiredService<API.Schema.ActionsContext.ActionsContext>(), chapterKey, CancellationToken.None);
     }
 
     [Fact]
@@ -101,9 +111,8 @@ public class DownloadChapterFromSourceWorkerTests
             services.AddSingleton<IJobStore, InMemoryJobStore>();
             var serviceProvider = services.BuildServiceProvider();
 
-            var worker = new DownloadChapterFromSourceWorker(connectorId, new[] { mockConnector.Object }, settings);
 
-            await worker.DoWork(serviceProvider.CreateScope());
+            await RunDownload(serviceProvider, settings, mockConnector.Object, connectorId.Key);
 
             var updated = await context.Chapters.FirstAsync(c => c.Key == chapter.Key);
             Assert.True(updated.Downloaded, "Chapter should be marked downloaded on the happy path.");
@@ -157,10 +166,9 @@ public class DownloadChapterFromSourceWorkerTests
 
         var serviceProvider = services.BuildServiceProvider();
 
-        var worker = new DownloadChapterFromSourceWorker(connectorId, new[] { mockConnector.Object }, settings);
         
         // 2. Act - Try to download
-        await worker.DoWork(serviceProvider.CreateScope());
+        await RunDownload(serviceProvider, settings, mockConnector.Object, connectorId.Key);
 
         // 3. Assert - The chapter should NOT be marked as downloaded
         var updatedChapter = await context.Chapters.FirstAsync(c => c.Key == chapter.Key);
@@ -211,8 +219,7 @@ public class DownloadChapterFromSourceWorkerTests
             services.AddSingleton<IJobStore, InMemoryJobStore>();
             var serviceProvider = services.BuildServiceProvider();
 
-            var worker = new DownloadChapterFromSourceWorker(connectorId, new[] { mockConnector.Object }, settings);
-            await worker.DoWork(serviceProvider.CreateScope());
+            await RunDownload(serviceProvider, settings, mockConnector.Object, connectorId.Key);
 
             string expectedFile = chapter.GetArchiveFileName(settings.ChapterNamingScheme);
             string expectedRelative = Path.Join("Vol 5", expectedFile);
@@ -277,8 +284,7 @@ public class DownloadChapterFromSourceWorkerTests
             services.AddSingleton<IJobStore, InMemoryJobStore>();
             var serviceProvider = services.BuildServiceProvider();
 
-            var worker = new DownloadChapterFromSourceWorker(connectorId, new[] { mockConnector.Object }, settings);
-            await worker.DoWork(serviceProvider.CreateScope());
+            await RunDownload(serviceProvider, settings, mockConnector.Object, connectorId.Key);
 
             var jobs = await serviceProvider.GetRequiredService<IJobStore>().GetAllAsync();
             var bundleJob = jobs.SingleOrDefault(j => j.Type == ReconcileVolumeBundleHandler.Type);
@@ -353,8 +359,7 @@ public class DownloadChapterFromSourceWorkerTests
             services.AddSingleton<IJobStore, InMemoryJobStore>();
             var serviceProvider = services.BuildServiceProvider();
 
-            var worker = new DownloadChapterFromSourceWorker(connectorId, new[] { mockConnector.Object }, settings);
-            await worker.DoWork(serviceProvider.CreateScope());
+            await RunDownload(serviceProvider, settings, mockConnector.Object, connectorId.Key);
 
             // Both require the SourceIds-dependent cover step to run without throwing. VolumeCBZ places
             // chapters (and the cover) flat at the series root — they're merged into the bundle.

@@ -2,7 +2,7 @@ namespace API.Acquirers;
 
 /// <summary>
 /// How a connector turns a Chapter into a .cbz on disk. Each SeriesSource declares one kind;
-/// StartNewChapterDownloadsWorker uses the kind to dispatch to the matching IChapterAcquirer.
+/// ChapterDownloadService uses the kind to dispatch to the matching IChapterAcquirer.
 /// </summary>
 public enum AcquisitionKind
 {

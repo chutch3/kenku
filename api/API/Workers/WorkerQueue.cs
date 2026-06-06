@@ -18,7 +18,7 @@ public class WorkerQueue : IWorkerQueue
 
     internal readonly ConcurrentDictionary<IPeriodic, Task> PeriodicWorkers = new();
     // Thread-safe set: known workers are mutated from background start/cleanup tasks while being read
-    // concurrently by worker threads (e.g. StartNewChapterDownloadsWorker). A plain HashSet would tear.
+    // concurrently by background tasks. A plain HashSet would tear.
     private readonly ConcurrentDictionary<BaseWorker, byte> _knownWorkers = new();
     private readonly ConcurrentDictionary<BaseWorker, Task<BaseWorker[]>> _runningWorkers = new();
     private readonly SemaphoreSlim _concurrencySemaphore;

@@ -153,7 +153,6 @@ builder.Services.AddSingleton<SendNotificationsWorker>();
 builder.Services.AddSingleton<UpdateChaptersDownloadedWorker>();
 builder.Services.AddSingleton<CheckForNewChaptersWorker>();
 builder.Services.AddSingleton<CleanupMangaCoversWorker>();
-builder.Services.AddSingleton<StartNewChapterDownloadsWorker>();
 builder.Services.AddSingleton<RemoveOldNotificationsWorker>();
 builder.Services.AddSingleton<UpdateCoversWorker>();
 builder.Services.AddSingleton<CleanupSourceIdsWithoutSource>();
@@ -182,11 +181,20 @@ builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handler
 builder.Services.AddScoped<API.Services.VolumeResolutionService>();
 builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.ResolveSeriesVolumesHandler>();
 builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.DownloadChapterHandler>();
+builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.RefreshLibrariesHandler>();
 builder.Services.AddScoped<API.JobRuntime.IJobStore, API.JobRuntime.EfJobStore>();
-builder.Services.AddScoped<API.JobRuntime.Dispatcher>();
+// Overall download concurrency is bounded by MaxConcurrentDownloads (per-host rate limiting is separate,
+// in RateLimitHandler); per-series fairness comes from the dispatcher's per-resource cap.
+builder.Services.AddScoped(sp => new API.JobRuntime.Dispatcher(
+    sp.GetRequiredService<API.JobRuntime.IJobStore>(),
+    sp.GetRequiredService<API.JobRuntime.HandlerRegistry>(),
+    sp.GetRequiredService<API.JobRuntime.IClock>(),
+    globalCap: Math.Max(1, settings.MaxConcurrentDownloads),
+    running: sp.GetRequiredService<API.JobRuntime.RunningJobRegistry>()));
 builder.Services.AddHostedService<API.JobRuntime.JobPoolService>();
 builder.Services.AddHostedService<API.JobRuntime.VolumeBundleReconciler>();
 builder.Services.AddHostedService<API.JobRuntime.VolumeResolutionReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.DownloadReconciler>();
 builder.Services.AddSingleton<Kenku>();
 
 builder.Services.AddTorrentAcquisitionPath(settings, log);

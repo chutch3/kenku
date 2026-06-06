@@ -6,6 +6,7 @@ using API.Schema.ActionsContext;
 using API.Schema.ActionsContext.Actions;
 using API.Schema.JobsContext;
 using API.Schema.SeriesContext;
+using API.Workers;
 using log4net;
 using Microsoft.EntityFrameworkCore;
 
@@ -121,8 +122,41 @@ public class ChapterDownloadService(
         }
 
         await EnqueueReadyVolumeBundleJobs(seriesContext, chapter.ParentManga, ct);
+        await MaybeEnqueueLibraryRefresh(seriesContext, ct);
         return true;
     }
+
+    /// <summary>Chapters wanted for download that aren't downloaded yet (and aren't bundled).</summary>
+    public static Task<List<SourceId<Chapter>>> GetMissingChapters(SeriesContext ctx, CancellationToken ct) =>
+        ctx.MangaConnectorToChapter
+            .Include(id => id.Obj)
+            // Bundled chapters live inside a Vol N.cbz; their individual file is intentionally gone, so they
+            // are NOT missing — re-downloading them recreates a duplicate beside the bundle.
+            .Where(id => !id.Obj.Downloaded && id.UseForDownload && !id.Obj.IsBundled)
+            .ToListAsync(ct);
+
+    /// <summary>Enqueues a (deduped) RefreshLibraries job when the user's refresh setting is satisfied.</summary>
+    private async Task MaybeEnqueueLibraryRefresh(SeriesContext seriesContext, CancellationToken ct)
+    {
+        bool refresh = settings.LibraryRefreshSetting switch
+        {
+            LibraryRefreshSetting.AfterAllFinished => await AllDownloadsFinished(seriesContext, ct),
+            LibraryRefreshSetting.AfterMangaFinished => await seriesContext.MangaConnectorToChapter
+                .Include(chId => chId.Obj).Where(chId => chId.UseForDownload).AllAsync(chId => chId.Obj.Downloaded, ct),
+            LibraryRefreshSetting.AfterEveryChapter => true,
+            LibraryRefreshSetting.WhileDownloading => await AllDownloadsFinished(seriesContext, ct)
+                || DateTime.UtcNow.Subtract(RefreshLibrariesHandler.LastRefresh).TotalMinutes > settings.RefreshLibraryWhileDownloadingEveryMinutes,
+            _ => true
+        };
+        if (!refresh)
+            return;
+
+        await jobStore.EnqueueAsync(new Job(RefreshLibrariesHandler.Type, "{}", clock.UtcNow,
+            dedupKey: "refresh-libraries"), ct);
+    }
+
+    private static async Task<bool> AllDownloadsFinished(SeriesContext ctx, CancellationToken ct) =>
+        (await GetMissingChapters(ctx, ct)).Count == 0;
 
     /// <summary>
     /// Under VolumeCBZ, enqueue a ReconcileVolumeBundle job for any volume that just became

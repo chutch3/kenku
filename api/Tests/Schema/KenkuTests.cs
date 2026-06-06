@@ -53,7 +53,6 @@ public class KenkuTests
         services.AddTransient<UpdateChaptersDownloadedWorker>(_ => new UpdateChaptersDownloadedWorker(testSettings));
         services.AddTransient<CheckForNewChaptersWorker>(_ => new CheckForNewChaptersWorker(testSettings, emptyConnectors));
         services.AddTransient<CleanupMangaCoversWorker>(_ => new CleanupMangaCoversWorker(testSettings));
-        services.AddTransient<StartNewChapterDownloadsWorker>(_ => new StartNewChapterDownloadsWorker(testSettings, mockWorkerQueue, emptyConnectors));
         services.AddTransient<RemoveOldNotificationsWorker>(_ => new RemoveOldNotificationsWorker());
         services.AddTransient<UpdateCoversWorker>(_ => new UpdateCoversWorker(emptyConnectors));
         services.AddTransient<CleanupSourceIdsWithoutSource>(_ => new CleanupSourceIdsWithoutSource(emptyConnectors, testSettings));
@@ -126,7 +125,6 @@ public class KenkuTests
         mockQueue.Verify(x => x.AddWorker(It.IsAny<UpdateMetadataWorker>()), Times.Once);
         mockQueue.Verify(x => x.AddWorker(It.IsAny<NotifyOnNewDownloadsWorker>()), Times.Once);
         mockQueue.Verify(x => x.AddWorker(It.IsAny<CheckForNewChaptersWorker>()), Times.Once);
-        mockQueue.Verify(x => x.AddWorker(It.IsAny<StartNewChapterDownloadsWorker>()), Times.Once);
         mockQueue.Verify(x => x.AddWorker(It.IsAny<RemoveOldNotificationsWorker>()), Times.Once);
         mockQueue.Verify(x => x.AddWorker(It.IsAny<UpdateCoversWorker>()), Times.Once);
         mockQueue.Verify(x => x.AddWorker(It.IsAny<CleanupOrphanedFilesWorker>()), Times.Once);
