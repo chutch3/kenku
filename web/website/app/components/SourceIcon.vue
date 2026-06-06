@@ -7,8 +7,10 @@
                     :src="mangaConnector?.iconUrl"
                     :alt="`${mangaConnector.name} icon`"
                     :class="[
-                        'w-full rounded-full outline-2 -outline-offset-1',
-                        props.useForDownload ? 'outline-jade-500' : 'outline-sumi-400/60',
+                        'w-full rounded-full',
+                        props.ring === false
+                            ? ''
+                            : ['outline-2 -outline-offset-1', props.useForDownload ? 'outline-jade-500' : 'outline-sumi-400/60'],
                     ]" />
                 <p v-else>{{ mangaConnectorName }}</p>
             </UTooltip>
@@ -21,7 +23,7 @@ import type { components } from '#open-fetch-schemas/api';
 type SeriesSourceId = components['schemas']['SeriesSourceId'];
 type ChapterSourceId = components['schemas']['ChapterSourceId'];
 
-const props = defineProps<SeriesSourceId | ChapterSourceId>();
+const props = defineProps<(SeriesSourceId | ChapterSourceId) & { ring?: boolean }>();
 
 const { data: mangaConnector } = await useApi('/v2/SeriesSource/{MangaConnectorName}', {
     path: { MangaConnectorName: props.mangaConnectorName },
