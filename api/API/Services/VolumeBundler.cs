@@ -16,6 +16,43 @@ public class VolumeBundler(KenkuSettings settings)
 {
     private static readonly ILog Log = LogManager.GetLogger(typeof(VolumeBundler));
 
+    /// <summary>
+    /// Makes a volume's bundle correct: bundles it if it is ready and unbundled, rebuilds it if its
+    /// chapter set has drifted from what the bundle records, and no-ops if it is already fresh or not yet
+    /// ready. Idempotent — safe to re-run. Absorbs the EnsureReadyVolumesBundled / EnsureBundledVolumesFresh
+    /// reconcilers into a single per-volume operation.
+    /// </summary>
+    public async Task ReconcileAsync(SeriesContext context, string mangaId, int volumeNumber, CancellationToken ct)
+    {
+        if (await context.Series.Include(m => m.Chapters).FirstOrDefaultAsync(m => m.Key == mangaId, ct) is not { } series)
+        {
+            Log.Warn($"Series not found for manga {mangaId}");
+            return;
+        }
+
+        VolumeMetadata? volumeMetadata = await context.VolumeMetadata
+            .FirstOrDefaultAsync(v => v.MangaId == mangaId && v.VolumeNumber == volumeNumber, ct);
+
+        if (volumeMetadata?.ArchiveFileName is not null)
+        {
+            HashSet<string> recorded = (await context.BundleChapterMaps
+                    .Where(m => m.VolumeKey == volumeMetadata.Key).ToListAsync(ct))
+                .Select(m => m.ChapterKey).ToHashSet();
+            HashSet<string> desired = series.Chapters
+                .Where(c => c.VolumeNumber == volumeNumber && c.Downloaded).Select(c => c.Key).ToHashSet();
+
+            if (desired.SetEquals(recorded))
+                return; // bundle is fresh
+
+            await UnbundleAsync(context, mangaId, volumeNumber, ct);
+            await BundleAsync(context, mangaId, volumeNumber, ct);
+            return;
+        }
+
+        if (VolumeBundlePolicy.VolumesReadyToBundle(series).Contains(volumeNumber))
+            await BundleAsync(context, mangaId, volumeNumber, ct);
+    }
+
     public async Task BundleAsync(SeriesContext context, string mangaId, int volumeNumber, CancellationToken ct)
     {
         var volumeMetadata = await context.VolumeMetadata
