@@ -4,6 +4,7 @@ using API.Schema.SeriesContext;
 using API.Services;
 using API.Workers.MaintenanceWorkers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using WireMock.Matchers;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
@@ -52,13 +53,15 @@ public class VolumeResolutionIntegrationTests : IDisposable
         StubAggregate(Ok(Fixture("aggregate-all.json")));
     }
 
-    private ResolveMissingVolumesForMangaWorker Worker(string mangaKey)
+    private async Task ResolveAsync(string mangaKey)
     {
         var http = new HttpClient(new HostRewritingHandler(_server.Url!));
-        return new ResolveMissingVolumesForMangaWorker(
-            new ConcurrentQueue<string>([mangaKey]), _harness.Settings,
+        var service = new VolumeResolutionService(_harness.Settings,
             new MangaDexVolumeResolver(http), new MangaDexSearchService(http),
             new IVolumeResolver[] { new WikipediaVolumeResolver(http) });
+        using var scope = _harness.CreateScope();
+        var ctx = scope.ServiceProvider.GetRequiredService<SeriesContext>();
+        await service.ResolveAsync(ctx, mangaKey, CancellationToken.None);
     }
 
     private async Task<string> SeedDandadan(Action<Series, SeriesContext> addChapters)
@@ -102,7 +105,7 @@ public class VolumeResolutionIntegrationTests : IDisposable
             AddChapter(m, ctx, "235");                                        // past last volume → stays loose
         });
 
-        await Worker(key).DoWork(_harness.CreateScope());
+        await ResolveAsync(key);
 
         var ch = await ChaptersByNumber();
         var source = await _harness.Query(c => c.Set<MetadataSource>().FirstAsync(s => s.MangaId == key));
@@ -127,7 +130,7 @@ public class VolumeResolutionIntegrationTests : IDisposable
 
         string key = await SeedDandadan((m, ctx) => { AddChapter(m, ctx, "1"); AddChapter(m, ctx, "86"); AddChapter(m, ctx, "201"); });
 
-        await Worker(key).DoWork(_harness.CreateScope());
+        await ResolveAsync(key);
 
         var ch = await ChaptersByNumber();
         Assert.Equal(1, ch["1"].VolumeNumber);    // Wikipedia covers these
@@ -146,7 +149,7 @@ public class VolumeResolutionIntegrationTests : IDisposable
 
         string key = await SeedDandadan((m, ctx) => { AddChapter(m, ctx, "1"); AddChapter(m, ctx, "86"); });
 
-        var ex = await Record.ExceptionAsync(() => Worker(key).DoWork(_harness.CreateScope()));
+        var ex = await Record.ExceptionAsync(() => ResolveAsync(key));
         Assert.Null(ex); // pipeline did not crash
 
         var ch = await ChaptersByNumber();
@@ -162,7 +165,7 @@ public class VolumeResolutionIntegrationTests : IDisposable
 
         string key = await SeedDandadan((m, ctx) => { AddChapter(m, ctx, "1"); AddChapter(m, ctx, "85"); AddChapter(m, ctx, "86"); AddChapter(m, ctx, "201"); });
 
-        await Worker(key).DoWork(_harness.CreateScope());
+        await ResolveAsync(key);
 
         var ch = await ChaptersByNumber();
         Assert.Equal(1, ch["1"].VolumeNumber);    // MangaDex still covers 1–85

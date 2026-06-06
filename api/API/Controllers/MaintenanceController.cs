@@ -1,3 +1,4 @@
+using API.JobRuntime;
 using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;
 using API.Workers;
@@ -72,17 +73,15 @@ public class MaintenanceController(SeriesContext mangaContext, ActionsContext ac
     }
 
     /// <summary>
-    /// Queues a <see cref="ResolveMissingVolumesWorker"/> to guess or resolve volume numbers for downloaded chapters.
+    /// Enqueues a ResolveSeriesVolumes job for each series with unresolved chapter volumes.
     /// </summary>
-    /// <param name="workerQueue"></param>
-    /// <param name="settings"></param>
-    /// <param name="mangaDexVolumeResolver"></param>
-    /// <response code="202">Resolve worker queued</response>
+    /// <response code="200">Resolve jobs enqueued</response>
     [HttpPost("ResolveMissingVolumes")]
-    [ProducesResponseType(Status202Accepted)]
-    public Ok ResolveMissingVolumes([FromServices] IWorkerQueue workerQueue, [FromServices] KenkuSettings settings, [FromServices] IBatchWorkerFactory<string> factory)
+    [ProducesResponseType(Status200OK)]
+    public async Task<Ok> ResolveMissingVolumes([FromServices] IJobStore jobStore, [FromServices] KenkuSettings settings,
+        [FromServices] IClock clock)
     {
-        workerQueue.AddWorker(new ResolveMissingVolumesWorker(settings, factory));
+        await VolumeResolutionReconciler.ScanAndEnqueueAsync(mangaContext, jobStore, settings, clock.UtcNow, HttpContext.RequestAborted);
         return TypedResults.Ok();
     }
 
@@ -101,7 +100,7 @@ public class MaintenanceController(SeriesContext mangaContext, ActionsContext ac
     }
 
     /// <summary>
-    /// Clears all chapter volume numbers and queues a <see cref="ResolveMissingVolumesWorker"/> to re-resolve them from scratch.
+    /// Clears all chapter volume numbers and enqueues ResolveSeriesVolumes jobs to re-resolve them from scratch.
     /// </summary>
     /// <param name="workerQueue"></param>
     /// <param name="settings"></param>
@@ -112,9 +111,9 @@ public class MaintenanceController(SeriesContext mangaContext, ActionsContext ac
     [ProducesResponseType(Status200OK)]
     [ProducesResponseType<string>(Status500InternalServerError, "text/plain")]
     public async Task<Results<Ok, InternalServerError<string>>> ResetAndResolveVolumes(
-        [FromServices] IWorkerQueue workerQueue,
+        [FromServices] IJobStore jobStore,
         [FromServices] KenkuSettings settings,
-        [FromServices] IBatchWorkerFactory<string> factory)
+        [FromServices] IClock clock)
     {
         var chapters = await mangaContext.Chapters.ToListAsync(HttpContext.RequestAborted);
         foreach (var chapter in chapters)
@@ -123,7 +122,7 @@ public class MaintenanceController(SeriesContext mangaContext, ActionsContext ac
         if (await mangaContext.Sync(HttpContext.RequestAborted, GetType(), nameof(ResetAndResolveVolumes)) is { success: false } result)
             return TypedResults.InternalServerError(result.exceptionMessage);
 
-        workerQueue.AddWorker(new ResolveMissingVolumesWorker(settings, factory));
+        await VolumeResolutionReconciler.ScanAndEnqueueAsync(mangaContext, jobStore, settings, clock.UtcNow, HttpContext.RequestAborted);
         return TypedResults.Ok();
     }
 }

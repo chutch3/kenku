@@ -58,7 +58,6 @@ public class KenkuTests
         services.AddTransient<UpdateCoversWorker>(_ => new UpdateCoversWorker(emptyConnectors));
         services.AddTransient<CleanupSourceIdsWithoutSource>(_ => new CleanupSourceIdsWithoutSource(emptyConnectors, testSettings));
         services.AddTransient<CleanupOrphanedFilesWorker>();
-        services.AddTransient<ResolveMissingVolumesWorker>(_ => new ResolveMissingVolumesWorker(testSettings, Mock.Of<IBatchWorkerFactory<string>>()));
         services.AddTransient<SyncChapterFileNamesWorker>(_ => new SyncChapterFileNamesWorker(testSettings));
         services.AddTransient<NotifyOnNewDownloadsWorker>(_ => new NotifyOnNewDownloadsWorker(Mock.Of<API.Notifications.INotificationDispatcher>()));
 
@@ -131,7 +130,6 @@ public class KenkuTests
         mockQueue.Verify(x => x.AddWorker(It.IsAny<RemoveOldNotificationsWorker>()), Times.Once);
         mockQueue.Verify(x => x.AddWorker(It.IsAny<UpdateCoversWorker>()), Times.Once);
         mockQueue.Verify(x => x.AddWorker(It.IsAny<CleanupOrphanedFilesWorker>()), Times.Once);
-        mockQueue.Verify(x => x.AddWorker(It.IsAny<ResolveMissingVolumesWorker>()), Times.Once);
         mockQueue.Verify(x => x.AddWorker(It.IsAny<SyncChapterFileNamesWorker>()), Times.Once);
     }
 

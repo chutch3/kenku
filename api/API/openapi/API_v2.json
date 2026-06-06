@@ -1703,13 +1703,10 @@
         "tags": [
           "Maintenance"
         ],
-        "summary": "Queues a API.Workers.MaintenanceWorkers.ResolveMissingVolumesWorker to guess or resolve volume numbers for downloaded chapters.",
+        "summary": "Enqueues a ResolveSeriesVolumes job for each series with unresolved chapter volumes.",
         "responses": {
           "200": {
-            "description": "OK"
-          },
-          "202": {
-            "description": "Resolve worker queued"
+            "description": "Resolve jobs enqueued"
           }
         }
       }
@@ -1732,7 +1729,7 @@
         "tags": [
           "Maintenance"
         ],
-        "summary": "Clears all chapter volume numbers and queues a API.Workers.MaintenanceWorkers.ResolveMissingVolumesWorker to re-resolve them from scratch.",
+        "summary": "Clears all chapter volume numbers and enqueues ResolveSeriesVolumes jobs to re-resolve them from scratch.",
         "responses": {
           "200": {
             "description": "Volumes cleared and resolve worker queued"
@@ -4878,7 +4875,7 @@
         "tags": [
           "Volume"
         ],
-        "summary": "Queues a BundleVolumeWorker to merge all unbundled chapters into a single CBZ.",
+        "summary": "Enqueues a ReconcileVolumeBundle job to merge all unbundled chapters into a single CBZ.",
         "parameters": [
           {
             "name": "MangaId",
@@ -4937,7 +4934,7 @@
         "tags": [
           "Volume"
         ],
-        "summary": "Queues an UnbundleVolumeWorker to split the bundle CBZ back into individual chapter CBZs.",
+        "summary": "Enqueues a ReconcileVolumeBundle (Unbundle) job to split the bundle CBZ back into chapter CBZs.",
         "parameters": [
           {
             "name": "MangaId",

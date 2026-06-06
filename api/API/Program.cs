@@ -166,8 +166,6 @@ builder.Services.AddHttpClient<MangaDexSearchService>();
 builder.Services.AddSingleton<IMangaDexSearchService>(sp => sp.GetRequiredService<MangaDexSearchService>());
 builder.Services.AddHttpClient<AniListSearchService>();
 builder.Services.AddSingleton<IAniListSearchService>(sp => sp.GetRequiredService<AniListSearchService>());
-builder.Services.AddSingleton<IBatchWorkerFactory<string>, ResolveMissingVolumesForMangaWorkerFactory>();
-builder.Services.AddSingleton<ResolveMissingVolumesWorker>();
 builder.Services.AddSingleton<SyncChapterFileNamesWorker>();
 builder.Services.AddSingleton<IChapterThumbnailService, ChapterThumbnailService>();
 
@@ -187,6 +185,7 @@ builder.Services.AddScoped<API.JobRuntime.IJobStore, API.JobRuntime.EfJobStore>(
 builder.Services.AddScoped<API.JobRuntime.Dispatcher>();
 builder.Services.AddHostedService<API.JobRuntime.JobPoolService>();
 builder.Services.AddHostedService<API.JobRuntime.VolumeBundleReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.VolumeResolutionReconciler>();
 builder.Services.AddSingleton<Kenku>();
 
 builder.Services.AddTorrentAcquisitionPath(settings, log);

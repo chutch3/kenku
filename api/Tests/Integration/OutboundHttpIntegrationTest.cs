@@ -3,6 +3,7 @@ using System.Text;
 using API.HttpRequesters;
 using API.Schema.SeriesContext;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using WireMock.Matchers;
 using WireMock.RequestBuilders;
@@ -30,6 +31,18 @@ public abstract class OutboundHttpIntegrationTest : IDisposable
         App.Dispose();
         Server.Stop();
         GC.SuppressFinalize(this);
+    }
+
+    /// <summary>Runs the dispatcher until the job queue is drained — the test-mode substitute for the
+    /// hosted worker pool (disabled under RunStartup=false).</summary>
+    protected async Task DrainJobsAsync(int maxJobs = 200)
+    {
+        for (int i = 0; i < maxJobs; i++)
+        {
+            using var scope = App.Services.CreateScope();
+            if (!await scope.ServiceProvider.GetRequiredService<API.JobRuntime.Dispatcher>().RunOnceAsync())
+                return;
+        }
     }
 
     /// <summary>Polls <paramref name="condition"/> until it holds or the (short, fail-fast) timeout elapses.</summary>

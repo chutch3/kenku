@@ -1,4 +1,5 @@
 using API.Controllers;
+using API.JobRuntime;
 using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;
 using API.Workers;
@@ -91,9 +92,7 @@ public class MaintenanceControllerTests
 
         var controller = CreateController(mangaCtx, actionsCtx);
         var result = await controller.ResetAndResolveVolumes(
-            new Mock<IWorkerQueue>().Object,
-            new KenkuSettings(),
-            new Mock<IBatchWorkerFactory<string>>().Object);
+            new InMemoryJobStore(), new KenkuSettings(), new SystemClock());
 
         Assert.IsType<Ok>(result.Result);
         var chapters = await mangaCtx.Chapters.ToListAsync();
@@ -101,11 +100,10 @@ public class MaintenanceControllerTests
     }
 
     [Fact]
-    public async Task ResetAndResolveVolumes_WhenStrategyDisabled_StillClearsVolumesAndQueuesWorker()
+    public async Task ResetAndResolveVolumes_WhenStrategyDisabled_ClearsVolumes_ButEnqueuesNothing()
     {
-        // Documents the current behavior: endpoint clears volumes regardless of strategy,
-        // then queues a worker that will immediately exit (Disabled check is in the worker, not the endpoint).
-        // The worker being queued is intentional — the endpoint is a repair tool and always queues.
+        // The endpoint clears volumes regardless of strategy, but resolution being disabled means there is
+        // nothing to re-resolve, so no jobs are enqueued (the disabled check is at enqueue time now).
         var (mangaCtx, actionsCtx) = CreateContexts();
         var library = new FileLibrary("/tmp/test", "Test Library");
         mangaCtx.FileLibraries.Add(library);
@@ -114,16 +112,14 @@ public class MaintenanceControllerTests
         mangaCtx.Chapters.Add(new Chapter(manga, "1", 3, null) { Downloaded = true, FileName = "test1.cbz" });
         await mangaCtx.SaveChangesAsync();
 
-        var mockQueue = new Mock<IWorkerQueue>();
+        var jobStore = new InMemoryJobStore();
         var controller = CreateController(mangaCtx, actionsCtx);
         var result = await controller.ResetAndResolveVolumes(
-            mockQueue.Object,
-            new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.Disabled },
-            new Mock<IBatchWorkerFactory<string>>().Object);
+            jobStore, new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.Disabled }, new SystemClock());
 
         Assert.IsType<Ok>(result.Result);
         Assert.All(await mangaCtx.Chapters.ToListAsync(), c => Assert.Null(c.VolumeNumber));
-        mockQueue.Verify(x => x.AddWorker(It.IsAny<ResolveMissingVolumesWorker>()), Times.Once);
+        Assert.Empty(await jobStore.GetAllAsync());
     }
 
     [Fact]
@@ -143,27 +139,28 @@ public class MaintenanceControllerTests
 
         var controller = CreateController(mangaCtx, actionsCtx);
         await controller.ResetAndResolveVolumes(
-            new Mock<IWorkerQueue>().Object,
-            new KenkuSettings(),
-            new Mock<IBatchWorkerFactory<string>>().Object);
+            new InMemoryJobStore(), new KenkuSettings(), new SystemClock());
 
         var chapters = await mangaCtx.Chapters.ToListAsync();
         Assert.All(chapters, c => Assert.Null(c.VolumeNumber));
     }
 
     [Fact]
-    public async Task ResetAndResolveVolumes_QueuesResolveMissingVolumesWorker()
+    public async Task ResetAndResolveVolumes_EnqueuesAResolveJobPerSeries()
     {
         var (mangaCtx, actionsCtx) = CreateContexts();
-        var mockQueue = new Mock<IWorkerQueue>();
-        var controller = CreateController(mangaCtx, actionsCtx);
+        var library = new FileLibrary("/tmp/test", "Test Library");
+        mangaCtx.FileLibraries.Add(library);
+        var manga = new Series("Test", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
+        mangaCtx.Series.Add(manga);
+        mangaCtx.Chapters.Add(new Chapter(manga, "1", 3, null) { Downloaded = true, FileName = "test1.cbz" });
+        await mangaCtx.SaveChangesAsync();
 
-        var result = await controller.ResetAndResolveVolumes(
-            mockQueue.Object,
-            new KenkuSettings(),
-            new Mock<IBatchWorkerFactory<string>>().Object);
+        var jobStore = new InMemoryJobStore();
+        var controller = CreateController(mangaCtx, actionsCtx);
+        var result = await controller.ResetAndResolveVolumes(jobStore, new KenkuSettings(), new SystemClock());
 
         Assert.IsType<Ok>(result.Result);
-        mockQueue.Verify(x => x.AddWorker(It.IsAny<ResolveMissingVolumesWorker>()), Times.Once);
+        Assert.Single(await jobStore.GetAllAsync());
     }
 }

@@ -14,16 +14,15 @@ using Xunit;
 
 namespace API.Tests.Workers;
 
-public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
+public class VolumeResolutionServiceTests : IDisposable
 {
     private readonly string _testRoot;
-    private readonly Mock<IServiceScope> _mockScope;
     private readonly SeriesContext _mangaContext;
     private readonly ActionsContext _actionsContext;
     private readonly Mock<IMangaDexVolumeResolver> _mockMangaDexResolver;
     private readonly Mock<IMangaDexSearchService> _mockSearchService;
 
-    public ResolveMissingVolumesForMangaWorkerTests()
+    public VolumeResolutionServiceTests()
     {
         _testRoot = Path.Combine(Path.GetTempPath(), $"ResolveForMangaTest_{Guid.NewGuid()}");
         Directory.CreateDirectory(_testRoot);
@@ -38,12 +37,6 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
             .Options;
         _actionsContext = new ActionsContext(actionsOptions);
 
-        var serviceProvider = new Mock<IServiceProvider>();
-        serviceProvider.Setup(x => x.GetService(typeof(SeriesContext))).Returns(_mangaContext);
-        serviceProvider.Setup(x => x.GetService(typeof(ActionsContext))).Returns(_actionsContext);
-
-        _mockScope = new Mock<IServiceScope>();
-        _mockScope.Setup(x => x.ServiceProvider).Returns(serviceProvider.Object);
 
         _mockMangaDexResolver = new Mock<IMangaDexVolumeResolver>();
         _mockMangaDexResolver
@@ -67,14 +60,19 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         _actionsContext.Dispose();
     }
 
-    private ResolveMissingVolumesForMangaWorker MakeWorker(KenkuSettings settings, string mangaKey) =>
-        new(new ConcurrentQueue<string>([mangaKey]), settings, _mockMangaDexResolver.Object, _mockSearchService.Object);
+    private async Task<BaseWorker[]> Resolve(KenkuSettings settings, string mangaKey,
+        IMangaDexVolumeResolver? resolver = null, SeriesContext? context = null)
+    {
+        await new VolumeResolutionService(settings, resolver ?? _mockMangaDexResolver.Object, _mockSearchService.Object)
+            .ResolveAsync(context ?? _mangaContext, mangaKey, CancellationToken.None);
+        return [];
+    }
 
-    private ResolveMissingVolumesForMangaWorker MakeWorker(KenkuSettings settings, string mangaKey, IMangaDexVolumeResolver resolver) =>
-        new(new ConcurrentQueue<string>([mangaKey]), settings, resolver, _mockSearchService.Object);
-
-    private ResolveMissingVolumesForMangaWorker MakeWorker(KenkuSettings settings, IEnumerable<string> mangaKeys) =>
-        new(new ConcurrentQueue<string>(mangaKeys), settings, _mockMangaDexResolver.Object, _mockSearchService.Object);
+    private async Task ResolveAll(KenkuSettings settings, IEnumerable<string> mangaKeys)
+    {
+        foreach (var key in mangaKeys)
+            await Resolve(settings, key);
+    }
 
     [Fact]
     public async Task DoWork_WhenExactLookupFails_FallsBackToColorHeuristic()
@@ -93,7 +91,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         CreateColorCbz(Path.Combine(mangaDir, "chap1.cbz"));
         CreateGrayscaleCbz(Path.Combine(mangaDir, "chap2.cbz"));
 
-        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key);
 
         Assert.NotNull((await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
         Assert.NotNull((await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "2")).VolumeNumber);
@@ -116,7 +114,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         CreateGrayscaleCbz(Path.Combine(mangaDir, "chap1.cbz"));
         CreateColorCbz(Path.Combine(mangaDir, "chap2.cbz"));
 
-        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key);
 
         Assert.Null((await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
         Assert.Null((await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "2")).VolumeNumber);
@@ -137,7 +135,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         Directory.CreateDirectory(mangaDir);
         CreateColorCbz(Path.Combine(mangaDir, "chap1.cbz"));
 
-        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key);
 
         Assert.Null((await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
     }
@@ -159,7 +157,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         // chap1.cbz intentionally absent
         CreateGrayscaleCbz(Path.Combine(mangaDir, "chap2.cbz"));
 
-        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key);
 
         Assert.Null((await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
         Assert.Null((await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "2")).VolumeNumber);
@@ -186,19 +184,12 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         }
 
         using var workerContext = new SeriesContext(options);
-        var sp = new Mock<IServiceProvider>();
-        sp.Setup(x => x.GetService(typeof(SeriesContext))).Returns(workerContext);
-        sp.Setup(x => x.GetService(typeof(ActionsContext))).Returns(_actionsContext);
-        var scope = new Mock<IServiceScope>();
-        scope.Setup(x => x.ServiceProvider).Returns(sp.Object);
 
         string mangaDir = Path.Combine(_testRoot, manga.DirectoryName);
         Directory.CreateDirectory(mangaDir);
         CreateColorCbz(Path.Combine(mangaDir, "chap2.cbz"));
 
-        await new ResolveMissingVolumesForMangaWorker(
-            new ConcurrentQueue<string>([manga.Key]), settings, _mockMangaDexResolver.Object, _mockSearchService.Object)
-            .DoWork(scope.Object);
+        await Resolve(settings, manga.Key, context: workerContext);
 
         Assert.Equal(11, (await workerContext.Chapters.FirstAsync(c => c.ChapterNumber == "2")).VolumeNumber);
     }
@@ -219,7 +210,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         resolver.Setup(r => r.GetChapterToVolumeMapAsync(It.IsAny<Series>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, int> { { "1", 3 }, { "2", 3 } });
 
-        await MakeWorker(settings, manga.Key, resolver.Object).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key, resolver.Object);
 
         Assert.Equal(3, (await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
         Assert.Equal(3, (await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "2")).VolumeNumber);
@@ -242,7 +233,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         resolver.Setup(r => r.GetChapterToVolumeMapAsync(It.IsAny<Series>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, int> { { "1", 1 }, { "2", 1 } });
 
-        await MakeWorker(settings, manga.Key, resolver.Object).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key, resolver.Object);
 
         Assert.Equal(1, (await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
         Assert.Equal(1, (await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "2")).VolumeNumber);
@@ -266,7 +257,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         CreateColorCbz(Path.Combine(mangaDir, "chap1.cbz"));
         CreateGrayscaleCbz(Path.Combine(mangaDir, "chap2.cbz"));
 
-        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key);
 
         Assert.Equal(1, (await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
         Assert.Equal(1, (await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "2")).VolumeNumber);
@@ -289,7 +280,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         CreateColorCbz(Path.Combine(mangaDir, "chap1.cbz"));
         CreateColorCbz(Path.Combine(mangaDir, "chap2.cbz"));
 
-        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key);
 
         Assert.Equal(1, (await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
         Assert.Null((await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "2")).VolumeNumber);
@@ -316,19 +307,12 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         }
 
         using var workerContext = new SeriesContext(options);
-        var sp = new Mock<IServiceProvider>();
-        sp.Setup(x => x.GetService(typeof(SeriesContext))).Returns(workerContext);
-        sp.Setup(x => x.GetService(typeof(ActionsContext))).Returns(_actionsContext);
-        var scope = new Mock<IServiceScope>();
-        scope.Setup(x => x.ServiceProvider).Returns(sp.Object);
 
         string mangaDir = Path.Combine(_testRoot, manga.DirectoryName);
         Directory.CreateDirectory(mangaDir);
         CreateGrayscaleCbz(Path.Combine(mangaDir, "chap2.cbz"));
 
-        await new ResolveMissingVolumesForMangaWorker(
-            new ConcurrentQueue<string>([manga.Key]), settings, _mockMangaDexResolver.Object, _mockSearchService.Object)
-            .DoWork(scope.Object);
+        await Resolve(settings, manga.Key, context: workerContext);
 
         Assert.Equal(10, (await workerContext.Chapters.FirstAsync(c => c.ChapterNumber == "2")).VolumeNumber);
     }
@@ -348,7 +332,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         Directory.CreateDirectory(mangaDir);
         CreateColorCbz(Path.Combine(mangaDir, "chap1.cbz"));
 
-        var result = await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        var result = await Resolve(settings, manga.Key);
 
         // Resolution workers must NEVER queue file moves
         Assert.DoesNotContain(result, w => w is RenameChapterFileWorker);
@@ -371,7 +355,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         Directory.CreateDirectory(mangaDir);
         CreateColorCbz(Path.Combine(mangaDir, "chap1.cbz"));
 
-        var result = await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        var result = await Resolve(settings, manga.Key);
 
         // Resolution workers must NEVER queue file moves
         Assert.DoesNotContain(result, w => w is RenameChapterFileWorker);
@@ -400,7 +384,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         Directory.CreateDirectory(mangaDir);
         CreateColorCbz(Path.Combine(mangaDir, chapter.FileName!));
 
-        var result = await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        var result = await Resolve(settings, manga.Key);
 
         Assert.DoesNotContain(result, w => w is RenameChapterFileWorker);
     }
@@ -423,7 +407,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
             zip.CreateEntry("readme.txt");
         CreateColorCbz(Path.Combine(mangaDir, "chap2.cbz"));
 
-        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key);
 
         Assert.Null((await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
         Assert.Equal(1, (await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "2")).VolumeNumber);
@@ -444,7 +428,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         Directory.CreateDirectory(mangaDir);
         CreateColorCbz(Path.Combine(mangaDir, "chap1.cbz"));
 
-        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key);
 
         Assert.Null((await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
     }
@@ -466,7 +450,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         CreateColorCbz(Path.Combine(mangaDir, "chap1.cbz"));
         await File.WriteAllBytesAsync(Path.Combine(mangaDir, "chap2.cbz"), [0x00, 0x01, 0x02, 0x03]);
 
-        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key);
 
         Assert.Equal(1, (await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
         Assert.Equal(1, (await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "2")).VolumeNumber);
@@ -485,7 +469,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         _mangaContext.Chapters.Add(new Chapter(manga, "1", null, "Title 1") { Downloaded = false, FileName = "chap1.cbz" });
         await _mangaContext.SaveChangesAsync();
 
-        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key);
 
         Assert.Null((await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
     }
@@ -508,7 +492,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         resolver.Setup(r => r.GetChapterToVolumeMapAsync(It.IsAny<Series>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, int> { { "1", 3 } });
 
-        await MakeWorker(settings, manga.Key, resolver.Object).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key, resolver.Object);
 
         Assert.Equal(3, (await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
     }
@@ -533,7 +517,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
             CreateColorCbz(Path.Combine(mangaDir, "chap1.cbz"));
         }
 
-        await MakeWorker(settings, [manga1.Key, manga2.Key]).DoWork(_mockScope.Object);
+        await ResolveAll(settings, new[] { manga1.Key, manga2.Key });
 
         Assert.Equal(1, (await _mangaContext.Chapters.FirstAsync(c => c.ParentMangaId == manga1.Key)).VolumeNumber);
         Assert.Equal(1, (await _mangaContext.Chapters.FirstAsync(c => c.ParentMangaId == manga2.Key)).VolumeNumber);
@@ -558,7 +542,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
             WriteGrayscaleImage(zip, "001.jpg");
         }
 
-        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key);
 
         Assert.Equal(1, (await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
     }
@@ -583,7 +567,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
             .Setup(r => r.GetChapterToVolumeMapAsync(It.IsAny<Series>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("MangaDex unavailable"));
 
-        await MakeWorker(settings, manga.Key, throwingResolver.Object).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key, throwingResolver.Object);
 
         Assert.Equal(1, (await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
     }
@@ -611,7 +595,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
             .Setup(r => r.GetChapterToVolumeMapAsync(It.IsAny<Series>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, int> { ["1"] = 1, ["2"] = 1 });
 
-        await MakeWorker(settings, manga.Key, resolver.Object).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key, resolver.Object);
 
         // Mapped=0 → resolvedExact=false → heuristic runs → color cover assigns vol 1
         Assert.Equal(1, (await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "50")).VolumeNumber);
@@ -638,9 +622,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         resolver.Setup(r => r.GetChapterToVolumeMapAsync(It.IsAny<Series>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, int> { { "1", 1 }, { "2", 1 } });
 
-        await new ResolveMissingVolumesForMangaWorker(
-            new ConcurrentQueue<string>([manga.Key]), settings, resolver.Object, _mockSearchService.Object)
-            .DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key, resolver.Object);
 
         var ch1 = await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1");
         var ch2 = await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "2");
@@ -669,7 +651,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         CreateColorCbz(Path.Combine(mangaDir, "chap1.cbz"));
         CreateGrayscaleCbz(Path.Combine(mangaDir, "chap2.cbz"));
 
-        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key);
 
         var ch1 = await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1");
         var ch2 = await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "2");
@@ -705,7 +687,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
             .Setup(s => s.GetChapterToVolumeMapAsync("true-uuid", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, int> { { "1", 1 } });
 
-        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key);
 
         var updatedSource = await _mangaContext.Set<MetadataSource>().FirstAsync(s => s.MangaId == manga.Key);
         Assert.Equal(MetadataSourceStatus.AutoMatched, updatedSource.Status);
@@ -737,7 +719,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
             .Setup(s => s.GetChapterToVolumeMapAsync("berserk-uuid", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, int> { { "1", 1 }, { "2", 1 } });
 
-        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key);
 
         var updatedSource = await _mangaContext.Set<MetadataSource>().FirstAsync(s => s.MangaId == manga.Key);
         Assert.Equal(MetadataSourceStatus.AutoMatched, updatedSource.Status);
@@ -769,7 +751,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
                 new() { MangaDexId = "some-uuid", Title = "Completely Different Title ABCDEF", Author = null, ChapterCount = 999 }
             });
 
-        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key);
 
         var updatedSource = await _mangaContext.Set<MetadataSource>().FirstAsync(s => s.MangaId == manga.Key);
         Assert.Equal(MetadataSourceStatus.NoMatch, updatedSource.Status);
@@ -806,7 +788,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
             .Setup(s => s.GetChapterToVolumeMapAsync("berserk-uuid", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, int> { { "1", 1 }, { "2", 1 } });
 
-        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key);
 
         Assert.Equal(1, (await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
         var ch2 = await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "2");
@@ -836,7 +818,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
                 new() { MangaDexId = "candidate-b", Title = "Berserk", Author = null, ChapterCount = 1 }
             });
 
-        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key);
 
         var updatedSource = await _mangaContext.Set<MetadataSource>().FirstAsync(s => s.MangaId == manga.Key);
         Assert.Equal(MetadataSourceStatus.Ambiguous, updatedSource.Status);
@@ -868,7 +850,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
             .Setup(s => s.GetChapterToVolumeMapAsync("berserk-uuid", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, int>());
 
-        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key);
 
         var updatedSource = await _mangaContext.Set<MetadataSource>().FirstAsync(s => s.MangaId == manga.Key);
         Assert.Equal(MetadataSourceStatus.Unlinked, updatedSource.Status);
@@ -900,7 +882,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
             .Setup(s => s.GetChapterToVolumeMapAsync("dandadan-uuid", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, int> { { "1", 1 } });
 
-        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key);
 
         var updatedSource = await _mangaContext.Set<MetadataSource>().FirstAsync(s => s.MangaId == manga.Key);
         Assert.Equal(MetadataSourceStatus.AutoMatched, updatedSource.Status);
@@ -932,7 +914,7 @@ public class ResolveMissingVolumesForMangaWorkerTests : IDisposable
         for (int i = 2; i <= chapterCount; i++)
             CreateGrayscaleCbz(Path.Combine(mangaDir, $"chap{i}.cbz"));
 
-        await MakeWorker(settings, manga.Key).DoWork(_mockScope.Object);
+        await Resolve(settings, manga.Key);
 
         // None of the bloated run should be assigned a volume.
         foreach (var num in new[] { "1", "20", "45" })

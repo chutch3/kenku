@@ -5,6 +5,7 @@ using API.Schema.SeriesContext;
 using API.Services;
 using API.Workers.MaintenanceWorkers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using WireMock.Matchers;
@@ -94,11 +95,11 @@ public class HeuristicCompositionIntegrationTests : IDisposable
 
         var http = new HttpClient(new HostRewritingHandler(_server.Url!));
         StubAggregateCoveringChapters1To3();
-        var worker = new ResolveMissingVolumesForMangaWorker(
-            new ConcurrentQueue<string>([mangaKey]), _harness.Settings,
+        var service = new VolumeResolutionService(_harness.Settings,
             new MangaDexVolumeResolver(http), new MangaDexSearchService(http), []);
 
-        await worker.DoWork(_harness.CreateScope());
+        using (var scope = _harness.CreateScope())
+            await service.ResolveAsync(scope.ServiceProvider.GetRequiredService<SeriesContext>(), mangaKey, CancellationToken.None);
 
         var ch = await _harness.Query(c => c.Chapters.ToDictionaryAsync(x => x.ChapterNumber, x => x));
 
