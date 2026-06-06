@@ -2,6 +2,28 @@
 
 <!-- version list -->
 
+## v0.8.1 (2026-06-06)
+
+### Bug Fixes
+
+- Clarify the two metadata cards on series detail
+  ([`3c29eb6`](https://github.com/chutch3/kenku/commit/3c29eb6fec7557319bcfa2b06b8559afc0e61b5d))
+
+- Declutter source icons on series cards
+  ([`92f6abd`](https://github.com/chutch3/kenku/commit/92f6abdc0c3758d1fc90de3c25e1dd80c9d8c7b1))
+
+- Render primary elements in dark mode
+  ([`e952642`](https://github.com/chutch3/kenku/commit/e9526424f0a75d24c9c329f0fd7bc95b8fb392cf))
+
+### Documentation
+
+- Add the release and deploy runbook
+  ([`0fe312f`](https://github.com/chutch3/kenku/commit/0fe312f15d79edb39c2558ab9d80e1a897524d90))
+
+- Capture activity and metadata concerns in the rearch plan
+  ([`e52ce62`](https://github.com/chutch3/kenku/commit/e52ce62dec276b00ee1f8de8b28d2f8c13c6cd91))
+
+
 ## v0.8.0 (2026-06-05)
 
 ### Features
