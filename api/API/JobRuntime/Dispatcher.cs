@@ -17,9 +17,11 @@ public class Dispatcher
     private readonly TimeSpan _leaseDuration;
     private readonly int _globalCap;
     private readonly int _perResourceCap;
+    private readonly RunningJobRegistry _running;
 
     public Dispatcher(IJobStore store, HandlerRegistry registry, IClock clock,
-        BackoffPolicy? backoff = null, TimeSpan? leaseDuration = null, int globalCap = 8, int perResourceCap = 2)
+        BackoffPolicy? backoff = null, TimeSpan? leaseDuration = null, int globalCap = 8, int perResourceCap = 2,
+        RunningJobRegistry? running = null)
     {
         _store = store;
         _registry = registry;
@@ -28,6 +30,7 @@ public class Dispatcher
         _leaseDuration = leaseDuration ?? TimeSpan.FromMinutes(10);
         _globalCap = globalCap;
         _perResourceCap = perResourceCap;
+        _running = running ?? new RunningJobRegistry();
     }
 
     /// <summary>Claims and runs at most one ready job. Returns false when nothing was ready.</summary>
@@ -45,15 +48,17 @@ public class Dispatcher
             return true;
         }
 
+        using var jobCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         try
         {
-            await handler.ExecuteAsync(job, ct);
+            using (_running.Track(job.Key, jobCts))
+                await handler.ExecuteAsync(job, jobCts.Token);
             job.Status = JobStatus.Succeeded;
             job.Error = null;
             job.LeasedUntil = null;
             job.FinishedAt = _clock.UtcNow;
         }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        catch (OperationCanceledException) when (jobCts.IsCancellationRequested)
         {
             job.Status = JobStatus.Cancelled;
             job.LeasedUntil = null;

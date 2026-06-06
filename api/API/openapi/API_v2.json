@@ -1211,7 +1211,7 @@
         "tags": [
           "JobQueue"
         ],
-        "summary": "Cancels a job. A Queued job is cancelled immediately; a Running job stops cooperatively.",
+        "summary": "Cancels a job. A Queued job is cancelled immediately; a Running job is signalled to stop\n            cooperatively — the dispatcher records it Cancelled once the handler honours the token.",
         "parameters": [
           {
             "name": "JobId",
@@ -1232,6 +1232,9 @@
                 }
               }
             }
+          },
+          "202": {
+            "description": "A running job was signalled to cancel."
           },
           "404": {
             "description": "Not Found",

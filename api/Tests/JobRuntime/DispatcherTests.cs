@@ -138,6 +138,36 @@ public class DispatcherTests
     }
 
     [Fact]
+    public async Task RunningJob_CancelledViaRegistry_StopsAndIsMarkedCancelled()
+    {
+        var store = new InMemoryJobStore();
+        var clock = new FakeClock();
+        var running = new RunningJobRegistry();
+        var started = new TaskCompletionSource();
+        var handler = new BlockingHandler("block", started);
+        var dispatcher = new Dispatcher(store, new HandlerRegistry([handler]), clock, running: running);
+        var job = await store.EnqueueAsync(new Job("block", "{}", clock.UtcNow));
+
+        Task<bool> run = dispatcher.RunOnceAsync();
+        await started.Task; // the handler is now running
+
+        Assert.True(running.Cancel(job.Key));
+        Assert.True(await run);
+        Assert.Equal(JobStatus.Cancelled, job.Status);
+        Assert.Null(job.LeasedUntil);
+    }
+
+    private sealed class BlockingHandler(string jobType, TaskCompletionSource started) : IJobHandler
+    {
+        public string JobType => jobType;
+        public async Task ExecuteAsync(Job job, CancellationToken ct)
+        {
+            started.SetResult();
+            await Task.Delay(Timeout.Infinite, ct);
+        }
+    }
+
+    [Fact]
     public async Task UnknownJobType_GoesToNeedsAttention()
     {
         var (dispatcher, store, clock) = Build([new RecordingHandler("test", [])]);

@@ -18,7 +18,8 @@ namespace API.Controllers;
 [ApiVersion(2)]
 [ApiController]
 [Route("v{version:apiVersion}/[controller]")]
-public class JobQueueController(IJobStore store, HandlerRegistry registry, IClock clock) : ControllerBase
+public class JobQueueController(IJobStore store, HandlerRegistry registry, IClock clock, RunningJobRegistry running)
+    : ControllerBase
 {
     /// <summary>Enqueues a job. The type must be in the handler registry (trust boundary).</summary>
     /// <response code="201">The enqueued <see cref="QueuedJob"/>.</response>
@@ -72,21 +73,33 @@ public class JobQueueController(IJobStore store, HandlerRegistry registry, ICloc
         return TypedResults.Ok(QueuedJob.From(job));
     }
 
-    /// <summary>Cancels a job. A Queued job is cancelled immediately; a Running job stops cooperatively.</summary>
+    /// <summary>Cancels a job. A Queued job is cancelled immediately; a Running job is signalled to stop
+    /// cooperatively — the dispatcher records it Cancelled once the handler honours the token.</summary>
+    /// <response code="202">A running job was signalled to cancel.</response>
     [HttpPost("{JobId}/Cancel")]
     [ProducesResponseType<QueuedJob>(Status200OK, "application/json")]
+    [ProducesResponseType(Status202Accepted)]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType(Status412PreconditionFailed)]
-    public async Task<Results<Ok<QueuedJob>, NotFound<string>, StatusCodeHttpResult>> Cancel(string JobId)
+    public async Task<Results<Ok<QueuedJob>, Accepted, NotFound<string>, StatusCodeHttpResult>> Cancel(string JobId)
     {
         if (await store.GetAsync(JobId) is not { } job)
             return TypedResults.NotFound(nameof(JobId));
-        if (job.Status is not (JobStatus.Queued or JobStatus.Running))
-            return TypedResults.StatusCode(Status412PreconditionFailed);
 
-        job.Status = JobStatus.Cancelled;
-        job.FinishedAt = clock.UtcNow;
-        await store.UpdateAsync(job);
-        return TypedResults.Ok(QueuedJob.From(job));
+        if (job.Status == JobStatus.Queued)
+        {
+            job.Status = JobStatus.Cancelled;
+            job.FinishedAt = clock.UtcNow;
+            await store.UpdateAsync(job);
+            return TypedResults.Ok(QueuedJob.From(job));
+        }
+
+        if (job.Status == JobStatus.Running)
+        {
+            running.Cancel(job.Key);
+            return TypedResults.Accepted((string?)null);
+        }
+
+        return TypedResults.StatusCode(Status412PreconditionFailed);
     }
 }
