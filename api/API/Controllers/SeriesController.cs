@@ -274,7 +274,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [ProducesResponseType<string>(Status412PreconditionFailed,  "text/plain")]
     [ProducesResponseType<string>(Status428PreconditionRequired,  "text/plain")]
     [ProducesResponseType<string>(Status500InternalServerError,  "text/plain")]
-    public async Task<Results<Ok, NotFound<string>, StatusCodeHttpResult, InternalServerError<string>>> MarkAsRequested(string MangaId, string MangaConnectorName, bool IsRequested)
+    public async Task<Results<Ok, NotFound<string>, StatusCodeHttpResult, InternalServerError<string>>> MarkAsRequested(string MangaId, string MangaConnectorName, bool IsRequested, [FromServices] API.JobRuntime.IJobStore jobStore, [FromServices] API.JobRuntime.IClock clock)
     {
         if (await context.Series
                 .Include(m => m.Chapters)
@@ -310,9 +310,13 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
             return TypedResults.InternalServerError(result.exceptionMessage);
 
         DownloadCoverFromSourceWorker downloadCover = new(mcId, connectors);
-        RetrieveChaptersFromSourceWorker retrieveChapters = new(mcId, settings.DownloadLanguage, connectors);
-        workerQueue.AddWorkers([downloadCover, retrieveChapters]);
-        
+        workerQueue.AddWorker(downloadCover);
+        await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
+            API.JobRuntime.Handlers.SyncSeriesChaptersHandler.Type,
+            API.JobRuntime.Handlers.SyncSeriesChaptersHandler.PayloadFor(mcId.Key, settings.DownloadLanguage), clock.UtcNow,
+            resourceKey: mcId.ObjId, dedupKey: API.JobRuntime.SeriesChapterSyncReconciler.DedupKey(mcId.Key)),
+            HttpContext.RequestAborted);
+
         return TypedResults.Ok();
     }
     

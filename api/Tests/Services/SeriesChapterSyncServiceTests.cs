@@ -1,7 +1,7 @@
 using API.MangaConnectors;
 using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;
-using API.Workers.MangaDownloadWorkers;
+using API.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -13,13 +13,12 @@ using ChapterConnectorId = API.Schema.SeriesContext.SourceId<API.Schema.SeriesCo
 
 namespace API.Tests.Workers;
 
-public class RetrieveChaptersFromSourceWorkerTests : IDisposable
+public class SeriesChapterSyncServiceTests : IDisposable
 {
-    private readonly Mock<IServiceScope> _mockScope;
     private readonly SeriesContext _mangaContext;
     private readonly ActionsContext _actionsContext;
 
-    public RetrieveChaptersFromSourceWorkerTests()
+    public SeriesChapterSyncServiceTests()
     {
         var mangaOptions = new DbContextOptionsBuilder<SeriesContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
@@ -31,12 +30,6 @@ public class RetrieveChaptersFromSourceWorkerTests : IDisposable
             .Options;
         _actionsContext = new ActionsContext(actionsOptions);
 
-        var serviceProvider = new Mock<IServiceProvider>();
-        serviceProvider.Setup(x => x.GetService(typeof(SeriesContext))).Returns(_mangaContext);
-        serviceProvider.Setup(x => x.GetService(typeof(ActionsContext))).Returns(_actionsContext);
-
-        _mockScope = new Mock<IServiceScope>();
-        _mockScope.Setup(x => x.ServiceProvider).Returns(serviceProvider.Object);
     }
 
     public void Dispose()
@@ -75,9 +68,8 @@ public class RetrieveChaptersFromSourceWorkerTests : IDisposable
             .ReturnsAsync([(fetchedChapter, fetchedChMcId)]);
         // Name is set via constructor parameter
 
-        var worker = new RetrieveChaptersFromSourceWorker(mangaMcId, "en", new[] { mockConnector.Object });
-
-        await worker.DoWork(_mockScope.Object);
+        await new SeriesChapterSyncService(new[] { mockConnector.Object })
+            .SyncAsync(_mangaContext, _actionsContext, mangaMcId.Key, "en", CancellationToken.None);
 
         var chapterInDb = await _mangaContext.Chapters.FirstAsync();
         Assert.Equal(5, chapterInDb.VolumeNumber); // This will fail until we fix the worker
