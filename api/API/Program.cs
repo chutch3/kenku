@@ -147,7 +147,6 @@ builder.Services.AddSingleton<API.Acquirers.IChapterAcquirer>(sp =>
 // 4. Register your Workers
 builder.Services.AddSingleton<API.Notifications.INotificationDispatcher, API.Notifications.DbNotificationDispatcher>();
 builder.Services.AddSingleton<NotifyOnNewDownloadsWorker>();
-builder.Services.AddSingleton<UpdateMetadataWorker>();
 builder.Services.AddSingleton<SendNotificationsWorker>();
 builder.Services.AddSingleton<UpdateChaptersDownloadedWorker>();
 builder.Services.AddSingleton<UpdateCoversWorker>();
@@ -179,6 +178,7 @@ builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handler
 builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.RefreshLibrariesHandler>();
 builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.SyncSeriesChaptersHandler>();
 builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.CleanupHandler>();
+builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.RefreshExternalMetadataHandler>();
 builder.Services.AddScoped<API.JobRuntime.IJobStore, API.JobRuntime.EfJobStore>();
 // Overall download concurrency is bounded by MaxConcurrentDownloads (per-host rate limiting is separate,
 // in RateLimitHandler); per-series fairness comes from the dispatcher's per-resource cap.
@@ -194,6 +194,7 @@ builder.Services.AddHostedService<API.JobRuntime.VolumeResolutionReconciler>();
 builder.Services.AddHostedService<API.JobRuntime.DownloadReconciler>();
 builder.Services.AddHostedService<API.JobRuntime.SeriesChapterSyncReconciler>();
 builder.Services.AddHostedService<API.JobRuntime.CleanupReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.MetadataRefreshReconciler>();
 builder.Services.AddSingleton<Kenku>();
 
 builder.Services.AddTorrentAcquisitionPath(settings, log);

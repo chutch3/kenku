@@ -61,7 +61,6 @@ public class Kenku
 
     internal void AddDefaultWorkers()
     {
-        _workerQueue.AddWorker(GetWorker<UpdateMetadataWorker>());
         _workerQueue.AddWorker(GetWorker<NotifyOnNewDownloadsWorker>());
         _workerQueue.AddWorker(GetWorker<UpdateCoversWorker>());
         // Orphaned-file cleanup is destructive, so the scheduled run is report-only (dry-run).
