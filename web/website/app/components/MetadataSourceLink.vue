@@ -3,10 +3,10 @@
         <template #header>
             <div>
                 <div class="flex items-center justify-between gap-2">
-                    <h2 class="font-display text-lg font-semibold text-highlighted">Metadata source</h2>
+                    <h2 class="font-display text-lg font-semibold text-highlighted">Volume mapping</h2>
                     <UBadge :color="statusColor" variant="subtle">{{ statusLabel }}</UBadge>
                 </div>
-                <p class="text-xs text-muted">Canonical title, volumes and chapter numbers come from here (MangaDex).</p>
+                <p class="text-xs text-muted">Match this series to its MangaDex entry to get correct volume &amp; chapter numbers.</p>
             </div>
         </template>
 

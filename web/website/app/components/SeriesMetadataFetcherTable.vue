@@ -1,7 +1,10 @@
 <template>
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
         <template #header>
-            <h1 class="font-semibold">Metadata</h1>
+            <div>
+                <h2 class="font-display text-lg font-semibold text-highlighted">Series details</h2>
+                <p class="text-xs text-muted">Pull title, description &amp; cover from MyAnimeList or Metron.</p>
+            </div>
         </template>
         <UTable
             v-if="metadataFetchers && metadata"
