@@ -1031,6 +1031,76 @@
         }
       }
     },
+    "/v2/Jobs": {
+      "get": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Most recent persisted job executions.",
+        "responses": {
+          "200": {
+            "description": "API.Controllers.DTOs.Job",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Job"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Jobs/Summary": {
+      "get": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Counts of persisted jobs grouped by execution state.",
+        "responses": {
+          "200": {
+            "description": "Map of API.Workers.WorkerExecutionState to count.",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "Failed": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "Cancelled": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "Created": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "Waiting": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "Running": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "Completed": {
+                      "type": "integer",
+                      "format": "int32"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/Library/unresolved": {
       "get": {
         "tags": [
@@ -1365,6 +1435,15 @@
             "name": "dryRun",
             "in": "query",
             "description": "If true, only log what would be deleted without actually deleting it.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "force",
+            "in": "query",
+            "description": "If true, bypass the safety guards that skip wiping an untracked library or\n            deleting a majority of a library's archives. Use only for a deliberate bulk cleanup.",
             "schema": {
               "type": "boolean",
               "default": false
@@ -5562,6 +5641,61 @@
         "additionalProperties": false,
         "description": "Represents a single file move operation in a reorganize preview."
       },
+      "Job": {
+        "required": [
+          "createdAt",
+          "key",
+          "name",
+          "state",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Worker type that ran."
+          },
+          "name": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Human-readable label for the execution."
+          },
+          "state": {
+            "$ref": "#/components/schemas/WorkerExecutionState"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "UTC time the record was created.",
+            "format": "date-time"
+          },
+          "startedAt": {
+            "type": "string",
+            "description": "UTC time the execution started, if it has.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "finishedAt": {
+            "type": "string",
+            "description": "UTC time the execution finished, if it has.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "description": "Failure message, if the execution failed.",
+            "nullable": true
+          },
+          "key": {
+            "maxLength": 64,
+            "minLength": 16,
+            "type": "string",
+            "description": "Unique Identifier of the DTO"
+          }
+        },
+        "additionalProperties": false,
+        "description": "API.Schema.JobsContext.JobRecord DTO — a persisted worker execution."
+      },
       "LibraryConnector": {
         "required": [
           "baseUrl",
@@ -6446,6 +6580,17 @@
         "additionalProperties": false,
         "description": "Entry for a manga with unresolved chapters or missing files."
       },
+      "VolumeBundleState": {
+        "enum": [
+          "NotApplicable",
+          "Bundled",
+          "ReadyToBundle",
+          "PendingNewerVolume",
+          "Incomplete"
+        ],
+        "type": "string",
+        "description": "Where a volume stands with respect to VolumeCBZ bundling."
+      },
       "VolumeEntry": {
         "type": "object",
         "properties": {
@@ -6474,10 +6619,21 @@
               "$ref": "#/components/schemas/ChapterFileEntry"
             },
             "nullable": true
+          },
+          "downloadedChapterCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "bundleState": {
+            "$ref": "#/components/schemas/VolumeBundleState"
+          },
+          "bundleReason": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false,
-        "description": "One volume with its chapter list."
+        "description": "One volume with its chapter list and bundling status."
       },
       "VolumeListResult": {
         "type": "object",
@@ -6570,6 +6726,9 @@
     },
     {
       "name": "FileLibrary"
+    },
+    {
+      "name": "Jobs"
     },
     {
       "name": "Library"

@@ -13,6 +13,8 @@ public class WorkerQueue : IWorkerQueue
 
     private readonly IServiceProvider _serviceProvider;
     private readonly KenkuSettings _settings;
+    // Optional: absent in lightweight test harnesses that don't register the jobs store.
+    private readonly IJobRecorder? _jobRecorder;
 
     internal readonly ConcurrentDictionary<IPeriodic, Task> PeriodicWorkers = new();
     // Thread-safe set: known workers are mutated from background start/cleanup tasks while being read
@@ -25,6 +27,7 @@ public class WorkerQueue : IWorkerQueue
     {
         _serviceProvider = serviceProvider;
         _settings = settings;
+        _jobRecorder = serviceProvider.GetService<IJobRecorder>();
         _concurrencySemaphore = new SemaphoreSlim(settings.MaxConcurrentWorkers, settings.MaxConcurrentWorkers);
     }
 
@@ -114,6 +117,9 @@ public class WorkerQueue : IWorkerQueue
                 return;
             }
 
+            if (_jobRecorder is not null)
+                _ = _jobRecorder.RecordStartedAsync(worker);
+
             // Attach cleanup + follow-up scheduling to the returned task itself. This fires for EVERY
             // return path of DoWork (work done, dependency-waiting, dependency-starting), so the
             // concurrency slot is always released and follow-up workers are always queued.
@@ -153,6 +159,15 @@ public class WorkerQueue : IWorkerQueue
             // acquire the slot and a re-queued worker is not skipped as "already running".
             _runningWorkers.Remove(worker, out _);
             _concurrencySemaphore.Release();
+        }
+
+        if (_jobRecorder is not null)
+        {
+            WorkerExecutionState state = task.IsCompletedSuccessfully ? WorkerExecutionState.Completed
+                : task.IsCanceled ? WorkerExecutionState.Cancelled
+                : WorkerExecutionState.Failed;
+            string? error = task.IsFaulted ? task.Exception?.GetBaseException().Message : null;
+            await _jobRecorder.RecordFinishedAsync(worker, state, error);
         }
 
         if (newWorkers.Length > 0)

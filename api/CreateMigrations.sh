@@ -8,3 +8,4 @@ dotnet ef migrations add $1 --context MangaContext --output-dir Migrations/Manga
 dotnet ef migrations add $1 --context LibraryContext --output-dir Migrations/Library
 dotnet ef migrations add $1 --context NotificationsContext --output-dir Migrations/Notifications
 dotnet ef migrations add $1 --context ActionsContext --output-dir Migrations/Actions
+dotnet ef migrations add $1 --context JobsContext --output-dir Migrations/Jobs

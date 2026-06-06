@@ -54,6 +54,7 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
             UseInMemory<NotificationsContext>(services);
             UseInMemory<LibraryContext>(services);
             UseInMemory<ActionsContext>(services);
+            UseInMemory<global::API.Schema.JobsContext.JobsContext>(services);
 
             RouteOutboundHttp<MangaDexVolumeResolver>(services);
             RouteOutboundHttp<MangaDexSearchService>(services);
@@ -94,5 +95,12 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
     {
         using var scope = Services.CreateScope();
         return await action(scope.ServiceProvider.GetRequiredService<SeriesContext>());
+    }
+
+    /// <summary>Runs <paramref name="action"/> against a fresh scope's JobsContext (assert persisted jobs).</summary>
+    public async Task<T> WithJobsContext<T>(Func<global::API.Schema.JobsContext.JobsContext, Task<T>> action)
+    {
+        using var scope = Services.CreateScope();
+        return await action(scope.ServiceProvider.GetRequiredService<global::API.Schema.JobsContext.JobsContext>());
     }
 }

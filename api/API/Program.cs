@@ -173,6 +173,7 @@ builder.Services.AddSingleton<IChapterThumbnailService, ChapterThumbnailService>
 
 builder.Services.AddSingleton<RateLimitHandler>();
 builder.Services.AddSingleton<IHttpRequester, HttpRequester>();
+builder.Services.AddSingleton<API.Workers.IJobRecorder, API.Workers.JobRecorder>();
 builder.Services.AddSingleton<IWorkerQueue, WorkerQueue>();
 builder.Services.AddSingleton<Kenku>();
 
@@ -185,6 +186,8 @@ builder.Services.AddDbContext<NotificationsContext>(options =>
 builder.Services.AddDbContext<LibraryContext>(options =>
     options.UseNpgsql(connectionStringBuilder.ConnectionString));
 builder.Services.AddDbContext<ActionsContext>(options =>
+    options.UseNpgsql(connectionStringBuilder.ConnectionString));
+builder.Services.AddDbContext<API.Schema.JobsContext.JobsContext>(options =>
     options.UseNpgsql(connectionStringBuilder.ConnectionString));
 
 builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
@@ -301,6 +304,12 @@ try //Connect to DB and apply migrations
 
         if(await context.Sync(CancellationToken.None, reason: "Startup actions") is { success: false } contextException)
             log.ErrorFormat("Failed to save database changes: {0}", contextException.exceptionMessage);
+    }
+
+    using (IServiceScope scope = app.Services.CreateScope())
+    {
+        API.Schema.JobsContext.JobsContext context = scope.ServiceProvider.GetRequiredService<API.Schema.JobsContext.JobsContext>();
+        await context.Database.MigrateAsync(CancellationToken.None);
     }
 }
 catch (Exception e)
