@@ -2,9 +2,6 @@
 /Manga/
 /settings/
 
-# ---- Local planning docs (not part of the repo) ----
-/docs/job-runtime-rearch.md
-
 # ---- .NET (api/) ----
 [Bb]in/
 [Oo]bj/
