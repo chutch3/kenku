@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using static Microsoft.AspNetCore.Http.StatusCodes;
+using Job = API.Controllers.DTOs.Job;
 // ReSharper disable InconsistentNaming
 
 namespace API.Controllers;
