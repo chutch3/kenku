@@ -8,6 +8,7 @@ public class RateLimitHandler : DelegatingHandler
 {
     private ILog Log { get; } = LogManager.GetLogger(typeof(RateLimitHandler));
     private readonly PartitionedRateLimiter<HttpRequestMessage> _limiter;
+    private readonly TimeSpan _requestTimeout;
 
     public RateLimitHandler(KenkuSettings settings) : this(settings, new HttpClientHandler())
     {
@@ -18,8 +19,10 @@ public class RateLimitHandler : DelegatingHandler
     /// overriding the rate so behaviour can be verified without real network calls.
     /// </summary>
     internal RateLimitHandler(KenkuSettings settings, HttpMessageHandler innerHandler,
-        int? requestsPerMinute = null, int queueLimit = 2000) : base(innerHandler)
+        int? requestsPerMinute = null, int queueLimit = 2000, TimeSpan? requestTimeout = null) : base(innerHandler)
     {
+        _requestTimeout = requestTimeout ?? TimeSpan.FromSeconds(Constants.HttpRequestTimeout);
+
         // Calculate tokens per minute. Default is 90.
         int rpm = requestsPerMinute ?? (settings.UserAgent.Equals(KenkuSettings.DefaultUserAgent)
             ? int.Min(Constants.RequestsPerMinute, 90)
@@ -47,19 +50,23 @@ public class RateLimitHandler : DelegatingHandler
     {
         Log.DebugFormat("Requesting lease {0}", request.RequestUri);
 
-        // Wait for a token from the host's bucket.
-        // If the queue is full or cancellation happens, this throws.
+        // Wait for a token under the caller's token only. The queue wait must NOT be charged against the
+        // request timeout — a request waiting for the host's bucket to replenish is making progress, not
+        // stalling on the network. Charging it was the #31 download loop (cancel → re-queue → repeat).
         using RateLimitLease lease = await _limiter.AcquireAsync(request, permitCount: 1, cancellationToken);
 
         Log.DebugFormat("Acquired lease {0}", request.RequestUri);
 
-        if (lease.IsAcquired)
+        if (!lease.IsAcquired)
         {
-            return await base.SendAsync(request, cancellationToken);
+            Log.WarnFormat("Rate limit lease NOT acquired for {0}", request.RequestUri);
+            return new(HttpStatusCode.TooManyRequests);
         }
 
-        Log.WarnFormat("Rate limit lease NOT acquired for {0}", request.RequestUri);
-        return new(HttpStatusCode.TooManyRequests);
+        // The timeout covers only the network send.
+        using CancellationTokenSource timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(_requestTimeout);
+        return await base.SendAsync(request, timeoutCts.Token);
     }
 
     protected override void Dispose(bool disposing)

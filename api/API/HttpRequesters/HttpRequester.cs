@@ -11,9 +11,12 @@ internal class HttpRequester : IHttpRequester
 
     public HttpRequester(RateLimitHandler rateLimitHandler, KenkuSettings settings)
     {
+        // The request timeout lives in RateLimitHandler so it covers only the network send, not the
+        // rate-limit queue wait. HttpClient.Timeout would wrap the whole chain (queue wait included),
+        // which is the #31 download loop, so it is disabled here.
         _client = new HttpClient(handler: rateLimitHandler)
         {
-            Timeout = TimeSpan.FromSeconds(Constants.HttpRequestTimeout),
+            Timeout = Timeout.InfiniteTimeSpan,
             DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher,
             DefaultRequestHeaders = { { "User-Agent", settings.UserAgent } }
         };

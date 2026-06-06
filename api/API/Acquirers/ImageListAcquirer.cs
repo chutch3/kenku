@@ -28,67 +28,75 @@ public class ImageListAcquirer(KenkuSettings settings) : IChapterAcquirer
         string saveArchiveFilePath,
         CancellationToken ct)
     {
-        List<Stream> images = new();
+        string[] imageUrls;
         try
         {
-            string[] imageUrls = await source.GetChapterImageUrls(chapter);
-            if (imageUrls.Length == 0)
-            {
-                // No pages resolved (e.g. connector returned nothing). Fail instead of writing an
-                // empty .cbz that would be marked Downloaded and never retried.
-                Log.Warn($"No image URLs for chapter {chapter.Obj}; not writing an archive.");
-                return null;
-            }
+            imageUrls = await source.GetChapterImageUrls(chapter);
+        }
+        catch (Exception ex)
+        {
+            Log.ErrorFormat("Failed to resolve image URLs for chapter {0}: {1}", chapter.Obj, ex);
+            return null;
+        }
 
-            foreach (string imageUrl in imageUrls)
-            {
-                Stream? imageStream = await source.DownloadImage(imageUrl, ct);
-                if (imageStream is not null)
-                    images.Add(await ProcessImage(imageStream, ct));
-            }
+        if (imageUrls.Length == 0)
+        {
+            // No pages resolved (e.g. connector returned nothing). Fail instead of writing an
+            // empty .cbz that would be marked Downloaded and never retried.
+            Log.Warn($"No image URLs for chapter {chapter.Obj}; not writing an archive.");
+            return null;
+        }
 
-            if (images.Count == 0)
-            {
-                Log.Warn($"None of the {imageUrls.Length} page image(s) for chapter {chapter.Obj} could be downloaded; not writing an archive.");
-                return null;
-            }
-
-            Log.Debug($"Images downloaded for chapter {chapter.Obj}. Packaging...");
-
-            // ZIP-it and ship-it
-            using (ZipArchive archive = ZipFile.Open(saveArchiveFilePath, ZipArchiveMode.Create))
+        // Build the archive at a sibling temp path and move it into place only once it is complete, so a
+        // cancel or crash mid-write can never leave a partial/corrupt .cbz at the final path (#31).
+        string tempPath = saveArchiveFilePath + ".part";
+        try
+        {
+            int written = 0;
+            using (ZipArchive archive = ZipFile.Open(tempPath, ZipArchiveMode.Create))
             {
                 if (Constants.CreateComicInfoXml)
                 {
                     Log.Debug("Writing ComicInfo.xml");
-                    Stream comicStream = archive.CreateEntry("ComicInfo.xml").Open();
-                    string comicInfo = chapter.Obj.GetComicInfoXmlString();
-                    await comicStream.WriteAsync(Encoding.UTF8.GetBytes(comicInfo), ct);
-                    await comicStream.DisposeAsync();
+                    await using Stream comicStream = archive.CreateEntry("ComicInfo.xml").Open();
+                    await comicStream.WriteAsync(Encoding.UTF8.GetBytes(chapter.Obj.GetComicInfoXmlString()), ct);
                 }
 
-                for (int i = 0; i < images.Count; i++)
+                foreach (string imageUrl in imageUrls)
                 {
-                    Log.Debug($"Packaging images to archive {chapter.Obj} , image {i}");
-                    Stream zipStream = archive.CreateEntry($"{i}.jpg").Open();
-                    Stream imageStream = images[i];
-                    imageStream.Position = 0;
-                    await imageStream.CopyToAsync(zipStream, ct);
-                    await zipStream.DisposeAsync();
+                    Stream? imageStream = await source.DownloadImage(imageUrl, ct);
+                    if (imageStream is null)
+                        continue;
+
+                    await using Stream processed = await ProcessImage(imageStream, ct);
+                    processed.Position = 0;
+                    await using Stream zipStream = archive.CreateEntry($"{written}.jpg").Open();
+                    await processed.CopyToAsync(zipStream, ct);
+                    written++;
                 }
             }
 
+            if (written == 0)
+            {
+                Log.Warn($"None of the {imageUrls.Length} page image(s) for chapter {chapter.Obj} could be downloaded; not writing an archive.");
+                TryDelete(tempPath);
+                return null;
+            }
+
+            File.Move(tempPath, saveArchiveFilePath, overwrite: true);
             return saveArchiveFilePath;
         }
         catch (Exception ex)
         {
             Log.ErrorFormat("Failed to download chapter {0}: {1}", chapter.Obj, ex);
+            TryDelete(tempPath);
             return null;
         }
-        finally
-        {
-            images.ForEach(i => i.Dispose());
-        }
+    }
+
+    private static void TryDelete(string path)
+    {
+        try { File.Delete(path); } catch (Exception ex) { Log.Warn($"Could not delete temp archive {path}: {ex.Message}"); }
     }
 
     private async Task<Stream> ProcessImage(Stream imageStream, CancellationToken cancellationToken)

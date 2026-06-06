@@ -37,6 +37,12 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
     /// real network access. When set, it replaces the registered <see cref="IHttpRequester"/>.</summary>
     public IHttpRequester? ConnectorHttpRequester { get; init; }
 
+    /// <summary>Optional fake network edge for the rate-limited HTTP stack — the layer beneath
+    /// <see cref="IHttpRequester"/>. When set, replaces the <see cref="RateLimitHandler"/> singleton with
+    /// one built over this inner handler, so the real HttpRequester + RateLimitHandler composition is
+    /// exercised without real network.</summary>
+    public (HttpMessageHandler Inner, int RequestsPerMinute, int QueueLimit, TimeSpan RequestTimeout)? RateLimit { get; init; }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("Kenku:RunStartup", "false");
@@ -57,6 +63,13 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
             {
                 services.RemoveAll<IHttpRequester>();
                 services.AddSingleton(ConnectorHttpRequester);
+            }
+
+            if (RateLimit is { } rl)
+            {
+                services.RemoveAll<RateLimitHandler>();
+                services.AddSingleton(sp => new RateLimitHandler(
+                    sp.GetRequiredService<KenkuSettings>(), rl.Inner, rl.RequestsPerMinute, rl.QueueLimit, rl.RequestTimeout));
             }
         });
     }
