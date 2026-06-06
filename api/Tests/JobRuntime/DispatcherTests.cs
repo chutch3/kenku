@@ -111,6 +111,33 @@ public class DispatcherTests
     }
 
     [Fact]
+    public async Task RunOnce_WhenHandlerHonoursCancellation_MarksJobCancelled()
+    {
+        var store = new InMemoryJobStore();
+        var clock = new FakeClock();
+        var handler = new CancelObservingHandler("cancelme");
+        var dispatcher = new Dispatcher(store, new HandlerRegistry([handler]), clock);
+        var job = await store.EnqueueAsync(new Job("cancelme", "{}", clock.UtcNow));
+
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+        Assert.True(await dispatcher.RunOnceAsync(cts.Token));
+
+        Assert.Equal(JobStatus.Cancelled, job.Status);
+        Assert.Null(job.LeasedUntil);
+    }
+
+    private sealed class CancelObservingHandler(string jobType) : IJobHandler
+    {
+        public string JobType => jobType;
+        public Task ExecuteAsync(Job job, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            return Task.CompletedTask;
+        }
+    }
+
+    [Fact]
     public async Task UnknownJobType_GoesToNeedsAttention()
     {
         var (dispatcher, store, clock) = Build([new RecordingHandler("test", [])]);
