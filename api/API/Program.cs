@@ -12,7 +12,6 @@ using API.Schema.NotificationsContext;
 using API.Workers;
 using API.Workers.MangaDownloadWorkers;
 using API.Workers.PeriodicWorkers;
-using API.Workers.PeriodicWorkers.MaintenanceWorkers;
 using API.Workers.MaintenanceWorkers;
 using API.Extensions;
 using Asp.Versioning;
@@ -151,10 +150,7 @@ builder.Services.AddSingleton<NotifyOnNewDownloadsWorker>();
 builder.Services.AddSingleton<UpdateMetadataWorker>();
 builder.Services.AddSingleton<SendNotificationsWorker>();
 builder.Services.AddSingleton<UpdateChaptersDownloadedWorker>();
-builder.Services.AddSingleton<CleanupMangaCoversWorker>();
-builder.Services.AddSingleton<RemoveOldNotificationsWorker>();
 builder.Services.AddSingleton<UpdateCoversWorker>();
-builder.Services.AddSingleton<CleanupSourceIdsWithoutSource>();
 builder.Services.AddSingleton<CleanupOrphanedFilesWorker>();
 builder.Services.AddHttpClient<MangaDexVolumeResolver>();
 builder.Services.AddSingleton<IMangaDexVolumeResolver>(sp => sp.GetRequiredService<MangaDexVolumeResolver>());
@@ -182,6 +178,7 @@ builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handler
 builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.DownloadChapterHandler>();
 builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.RefreshLibrariesHandler>();
 builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.SyncSeriesChaptersHandler>();
+builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.CleanupHandler>();
 builder.Services.AddScoped<API.JobRuntime.IJobStore, API.JobRuntime.EfJobStore>();
 // Overall download concurrency is bounded by MaxConcurrentDownloads (per-host rate limiting is separate,
 // in RateLimitHandler); per-series fairness comes from the dispatcher's per-resource cap.
@@ -196,6 +193,7 @@ builder.Services.AddHostedService<API.JobRuntime.VolumeBundleReconciler>();
 builder.Services.AddHostedService<API.JobRuntime.VolumeResolutionReconciler>();
 builder.Services.AddHostedService<API.JobRuntime.DownloadReconciler>();
 builder.Services.AddHostedService<API.JobRuntime.SeriesChapterSyncReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.CleanupReconciler>();
 builder.Services.AddSingleton<Kenku>();
 
 builder.Services.AddTorrentAcquisitionPath(settings, log);

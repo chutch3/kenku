@@ -7,7 +7,6 @@ using API.Schema.SeriesContext.MetadataFetchers;
 using API.Workers;
 using API.Workers.MangaDownloadWorkers;
 using API.Workers.PeriodicWorkers;
-using API.Workers.PeriodicWorkers.MaintenanceWorkers;
 using API.Workers.MaintenanceWorkers;
 using log4net;
 using Microsoft.EntityFrameworkCore;
@@ -51,8 +50,6 @@ public class Kenku
     {
         // 3. Pulling workers directly from the DI container
         _workerQueue.AddWorker(GetWorker<SendNotificationsWorker>());
-        _workerQueue.AddWorker(GetWorker<CleanupSourceIdsWithoutSource>());
-        _workerQueue.AddWorker(GetWorker<CleanupMangaCoversWorker>());
 
         // Moved to AddDefaultWorkers
 
@@ -66,7 +63,6 @@ public class Kenku
     {
         _workerQueue.AddWorker(GetWorker<UpdateMetadataWorker>());
         _workerQueue.AddWorker(GetWorker<NotifyOnNewDownloadsWorker>());
-        _workerQueue.AddWorker(GetWorker<RemoveOldNotificationsWorker>());
         _workerQueue.AddWorker(GetWorker<UpdateCoversWorker>());
         // Orphaned-file cleanup is destructive, so the scheduled run is report-only (dry-run).
         // Actual deletion must be requested explicitly via POST /v2/Maintenance/CleanupOrphanedFiles.

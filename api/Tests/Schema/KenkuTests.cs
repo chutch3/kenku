@@ -7,7 +7,6 @@ using API.Schema.NotificationsContext;
 using API.Schema.SeriesContext.MetadataFetchers;
 using API.Workers;
 using API.Workers.PeriodicWorkers;
-using API.Workers.PeriodicWorkers.MaintenanceWorkers;
 using API.Workers.MaintenanceWorkers;
 using API.Workers.MangaDownloadWorkers;
 using Microsoft.EntityFrameworkCore;
@@ -51,10 +50,7 @@ public class KenkuTests
         services.AddTransient<UpdateMetadataWorker>(_ => new UpdateMetadataWorker(emptyFetchers));
         services.AddTransient<SendNotificationsWorker>(_ => new SendNotificationsWorker());
         services.AddTransient<UpdateChaptersDownloadedWorker>(_ => new UpdateChaptersDownloadedWorker(testSettings));
-        services.AddTransient<CleanupMangaCoversWorker>(_ => new CleanupMangaCoversWorker(testSettings));
-        services.AddTransient<RemoveOldNotificationsWorker>(_ => new RemoveOldNotificationsWorker());
         services.AddTransient<UpdateCoversWorker>(_ => new UpdateCoversWorker(emptyConnectors));
-        services.AddTransient<CleanupSourceIdsWithoutSource>(_ => new CleanupSourceIdsWithoutSource(emptyConnectors, testSettings));
         services.AddTransient<CleanupOrphanedFilesWorker>();
         services.AddTransient<SyncChapterFileNamesWorker>(_ => new SyncChapterFileNamesWorker(testSettings));
         services.AddTransient<NotifyOnNewDownloadsWorker>(_ => new NotifyOnNewDownloadsWorker(Mock.Of<API.Notifications.INotificationDispatcher>()));
@@ -123,7 +119,6 @@ public class KenkuTests
 
         mockQueue.Verify(x => x.AddWorker(It.IsAny<UpdateMetadataWorker>()), Times.Once);
         mockQueue.Verify(x => x.AddWorker(It.IsAny<NotifyOnNewDownloadsWorker>()), Times.Once);
-        mockQueue.Verify(x => x.AddWorker(It.IsAny<RemoveOldNotificationsWorker>()), Times.Once);
         mockQueue.Verify(x => x.AddWorker(It.IsAny<UpdateCoversWorker>()), Times.Once);
         mockQueue.Verify(x => x.AddWorker(It.IsAny<CleanupOrphanedFilesWorker>()), Times.Once);
         mockQueue.Verify(x => x.AddWorker(It.IsAny<SyncChapterFileNamesWorker>()), Times.Once);
