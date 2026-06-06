@@ -171,6 +171,23 @@ Step 0 ships value alone (would have caught the #31 loop) and is independent of 
 - Run backend tests via the **Tests** project; building `api/API/API.csproj` directly triggers OpenAPI generation that writes to a system path (fails in restricted sandboxes).
 - Prod is Docker Swarm service `downloads_kenku`; image pinned in the **homelab** repo (`stacks/apps/downloads/docker-compose.yml`). Operational knobs (`HTTP_REQUEST_TIMEOUT`, `REQUESTS_PER_MINUTE`) are read from env at startup — set them in compose, **not** ad-hoc `service update` (those revert on redeploy).
 
+**Ship a change — release + deploy runbook.** End-to-end once a PR is green on `main`:
+1. **Merge** (clean history, no merge bubble): `gh pr merge <n> --rebase --delete-branch`, then `git checkout main && git pull --ff-only`.
+2. **Release** — dispatch the manual workflow; semantic-release derives the version from commit types (`feat:`→minor, `fix:`→patch) and builds + pushes the image:
+   ```bash
+   gh workflow run Release --ref main          # workflow_dispatch
+   rid=$(gh run list --workflow=Release --limit 1 --json databaseId --jq '.[0].databaseId')
+   gh run watch "$rid" --exit-status
+   gh release view --json tagName --jq .tagName            # -> vX.Y.Z
+   ```
+   Produces tag `vX.Y.Z` + `ghcr.io/chutch3/kenku:X.Y.Z` (no `v`). Sanity check: `docker manifest inspect ghcr.io/chutch3/kenku:X.Y.Z`.
+3. **Redeploy** — in the **homelab** repo, bump the pin in `stacks/apps/downloads/docker-compose.yml` (`image: ghcr.io/chutch3/kenku:X.Y.Z`), then from the homelab repo root:
+   ```bash
+   task ansible:deploy:service -- -e "stack_name=downloads"
+   ```
+   This runs `ansible/playbooks/deploy/stack.yml` against the `homelab-swarm` Docker context, updating the `downloads_kenku` stack (the playbook resolves `stack_name` → `stacks/apps/downloads/docker-compose.yml`). Verify the rollout: `docker service ps downloads_kenku` — new task `Running`, previous `Shutdown`.
+- The compose-pin bump is a **separate commit in the homelab repo**; the Release workflow does **not** touch homelab. Conventional-commit rule applies there too (e.g. `chore: bump kenku to X.Y.Z`).
+
 ## Getting started (first concrete steps)
 1. `git fetch && git checkout main` — sync to current (prod is **0.8.0**; engine code unchanged since 0.7.1).
 2. Ground yourself: read `api/API/Workers/{BaseWorker,PoolWorker,WorkerQueue}.cs` + the worker dirs; the current worker map is in the repo's earlier diagram / this doc's mapping table.
