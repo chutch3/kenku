@@ -2,6 +2,7 @@ using API.Acquirers;
 using API.JobRuntime;
 using API.JobRuntime.Handlers;
 using API.MangaConnectors;
+using API.Notifications;
 using API.Schema.ActionsContext;
 using API.Schema.ActionsContext.Actions;
 using API.Schema.JobsContext;
@@ -24,7 +25,8 @@ public class ChapterDownloadService(
     IJobStore jobStore,
     IClock clock,
     IEnumerable<IChapterAcquirer> acquirers,
-    ILibraryLayoutResolver layoutResolver)
+    ILibraryLayoutResolver layoutResolver,
+    INotificationDispatcher? notificationDispatcher = null)
 {
     private readonly IChapterAcquirer[] _acquirers = acquirers.ToArray();
 
@@ -107,6 +109,23 @@ public class ChapterDownloadService(
             };
             foreach (var result in await Task.WhenAll(syncTasks))
                 if (!result.success) Log.Error($"Failed to save database changes: {result.exceptionMessage}");
+
+            // Emit the "chapter downloaded" notification at the source of the event (replacing the old
+            // NotifyOnNewDownloads polling observer); SendNotifications later fans it out to connectors.
+            // Best-effort — a notification failure must never fail the download or skip its follow-ups (§4.1).
+            if (notificationDispatcher is not null)
+            {
+                try
+                {
+                    string body = $"{chapter.ParentManga.Name} Ch. {chapter.ChapterNumber}" +
+                                  (string.IsNullOrEmpty(chapter.FileName) ? "" : $" - {chapter.FileName}");
+                    await notificationDispatcher.DispatchAsync("Chapter downloaded", body, ct);
+                }
+                catch (Exception ex)
+                {
+                    Log.ErrorFormat("Failed to dispatch download notification for {0}: {1}", chapter, ex.Message);
+                }
+            }
 
             if (directoryPath != null)
             {

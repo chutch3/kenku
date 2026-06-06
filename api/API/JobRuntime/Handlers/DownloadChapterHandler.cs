@@ -39,7 +39,8 @@ public class DownloadChapterHandler(IServiceScopeFactory scopeFactory) : IJobHan
             provider.GetRequiredService<IJobStore>(),
             provider.GetRequiredService<IClock>(),
             provider.GetServices<IChapterAcquirer>(),
-            new LibraryLayoutResolver());
+            new LibraryLayoutResolver(),
+            provider.GetRequiredService<API.Notifications.INotificationDispatcher>());
 
         await service.DownloadAsync(
             provider.GetRequiredService<SeriesContext>(),

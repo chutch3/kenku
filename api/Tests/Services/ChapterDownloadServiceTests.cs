@@ -50,12 +50,13 @@ public class ChapterDownloadServiceTests
         return ms.ToArray();
     }
 
-    private static async Task RunDownload(IServiceProvider sp, KenkuSettings settings, SeriesSource connector, string chapterKey)
+    private static async Task RunDownload(IServiceProvider sp, KenkuSettings settings, SeriesSource connector, string chapterKey,
+        API.Notifications.INotificationDispatcher? dispatcher = null)
     {
         using var scope = sp.CreateScope();
         var p = scope.ServiceProvider;
         var service = new ChapterDownloadService(settings, [connector], p.GetRequiredService<IJobStore>(),
-            p.GetRequiredService<IClock>(), [], new LibraryLayoutResolver());
+            p.GetRequiredService<IClock>(), [], new LibraryLayoutResolver(), dispatcher);
         await service.DownloadAsync(p.GetRequiredService<SeriesContext>(),
             p.GetRequiredService<API.Schema.ActionsContext.ActionsContext>(), chapterKey, CancellationToken.None);
     }
@@ -112,11 +113,14 @@ public class ChapterDownloadServiceTests
             var serviceProvider = services.BuildServiceProvider();
 
 
-            await RunDownload(serviceProvider, settings, mockConnector.Object, connectorId.Key);
+            var dispatcher = new Mock<API.Notifications.INotificationDispatcher>();
+            await RunDownload(serviceProvider, settings, mockConnector.Object, connectorId.Key, dispatcher.Object);
 
             var updated = await context.Chapters.FirstAsync(c => c.Key == chapter.Key);
             Assert.True(updated.Downloaded, "Chapter should be marked downloaded on the happy path.");
             Assert.True(sourceStream.Disposed, "The source image stream returned by DownloadImage must be disposed (no leak).");
+            // A successful download emits the "chapter downloaded" notification at the source (replaces the polling observer).
+            dispatcher.Verify(d => d.DispatchAsync("Chapter downloaded", It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
         }
         finally
         {

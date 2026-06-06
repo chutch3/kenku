@@ -49,7 +49,6 @@ public class Kenku
     public async Task StartupTasks()
     {
         // 3. Pulling workers directly from the DI container
-        _workerQueue.AddWorker(GetWorker<SendNotificationsWorker>());
 
         // Moved to AddDefaultWorkers
 
@@ -61,7 +60,6 @@ public class Kenku
 
     internal void AddDefaultWorkers()
     {
-        _workerQueue.AddWorker(GetWorker<NotifyOnNewDownloadsWorker>());
         _workerQueue.AddWorker(GetWorker<UpdateCoversWorker>());
         // Orphaned-file cleanup is destructive, so the scheduled run is report-only (dry-run).
         // Actual deletion must be requested explicitly via POST /v2/Maintenance/CleanupOrphanedFiles.
