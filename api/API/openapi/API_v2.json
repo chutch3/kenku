@@ -6032,7 +6032,8 @@
           "AfterEveryChapter",
           "WhileDownloading"
         ],
-        "type": "string"
+        "type": "string",
+        "description": "When to trigger an external library (Kavita/Komga) rescan relative to downloads."
       },
       "LibraryType": {
         "enum": [
