@@ -303,7 +303,7 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IWo
     }
 
     /// <summary>
-    /// Queues a BundleVolumeWorker to merge all unbundled chapters into a single CBZ.
+    /// Enqueues a ReconcileVolumeBundle job to merge all unbundled chapters into a single CBZ.
     /// </summary>
     /// <param name="MangaId"><see cref="SchemaManga"/>.Key</param>
     /// <param name="VolumeNumber">Volume number to bundle</param>
@@ -322,7 +322,7 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IWo
         if (manga is null)
             return TypedResults.NotFound(nameof(MangaId));
 
-        // VolumeMetadata is derived on demand by BundleVolumeWorker, so its absence is not a 404 —
+        // VolumeMetadata is derived on demand by the bundler, so its absence is not a 404 —
         // what matters is whether there are unbundled chapters with files to bundle.
         bool hasUnbundledChapters = await context.Chapters
             .AnyAsync(c => c.ParentMangaId == MangaId
@@ -339,7 +339,7 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IWo
     }
 
     /// <summary>
-    /// Queues an UnbundleVolumeWorker to split the bundle CBZ back into individual chapter CBZs.
+    /// Enqueues a ReconcileVolumeBundle (Unbundle) job to split the bundle CBZ back into chapter CBZs.
     /// </summary>
     /// <param name="MangaId"><see cref="SchemaManga"/>.Key</param>
     /// <param name="VolumeNumber">Volume number to unbundle</param>
