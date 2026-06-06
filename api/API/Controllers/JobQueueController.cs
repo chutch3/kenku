@@ -43,6 +43,17 @@ public class JobQueueController(IJobStore store, HandlerRegistry registry, ICloc
     public async Task<Ok<List<QueuedJob>>> GetAll() =>
         TypedResults.Ok((await store.GetAllAsync()).Select(QueuedJob.From).ToList());
 
+    /// <summary>Rollup of runtime jobs by status (AF6a) — drives the queue badge/overview.</summary>
+    [HttpGet("Summary")]
+    [ProducesResponseType<Dictionary<JobStatus, int>>(Status200OK, "application/json")]
+    public async Task<Ok<Dictionary<JobStatus, int>>> Summary()
+    {
+        Dictionary<JobStatus, int> counts = (await store.GetAllAsync())
+            .GroupBy(j => j.Status)
+            .ToDictionary(g => g.Key, g => g.Count());
+        return TypedResults.Ok(counts);
+    }
+
     /// <summary>A single runtime job by id.</summary>
     [HttpGet("{JobId}")]
     [ProducesResponseType<QueuedJob>(Status200OK, "application/json")]

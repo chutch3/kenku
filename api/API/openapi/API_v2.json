@@ -1106,6 +1106,53 @@
         }
       }
     },
+    "/v2/JobQueue/Summary": {
+      "get": {
+        "tags": [
+          "JobQueue"
+        ],
+        "summary": "Rollup of runtime jobs by status (AF6a) — drives the queue badge/overview.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "Queued": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "Running": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "Succeeded": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "Failed": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "NeedsAttention": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "Cancelled": {
+                      "type": "integer",
+                      "format": "int32"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/JobQueue/{JobId}": {
       "get": {
         "tags": [
