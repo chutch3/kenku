@@ -22,9 +22,11 @@ public class ChapterDownloadService(
     IEnumerable<SeriesSource> connectors,
     IJobStore jobStore,
     IClock clock,
-    IChapterAcquirer acquirer,
+    IEnumerable<IChapterAcquirer> acquirers,
     ILibraryLayoutResolver layoutResolver)
 {
+    private readonly IChapterAcquirer[] _acquirers = acquirers.ToArray();
+
     private static readonly ILog Log = LogManager.GetLogger(typeof(ChapterDownloadService));
 
     /// <summary>Returns true if the chapter was downloaded; false on any skip or failure.</summary>
@@ -74,6 +76,9 @@ public class ChapterDownloadService(
         string? directoryPath = Path.GetDirectoryName(saveArchiveFilePath);
         if (directoryPath != null && !Directory.Exists(directoryPath))
             Directory.CreateDirectory(directoryPath);
+
+        // Pick the acquirer matching the source's delivery Kind; fall back to the historical image-list path.
+        IChapterAcquirer acquirer = _acquirers.FirstOrDefault(a => a.Kind == seriesSource.Kind) ?? new ImageListAcquirer(settings);
 
         // Delegate the actual fetch + package step. Acquirer logs its own errors and returns null on failure.
         string? acquiredPath = await acquirer.AcquireAsync(mangaConnectorId, seriesSource, saveArchiveFilePath, ct);

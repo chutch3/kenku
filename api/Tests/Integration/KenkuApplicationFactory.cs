@@ -47,6 +47,10 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
     /// without depending on a production handler existing yet.</summary>
     public IReadOnlyList<API.JobRuntime.IJobHandler> ExtraJobHandlers { get; init; } = [];
 
+    /// <summary>Extra connectors to register, so a download/sync job can be driven against a stubbed
+    /// <see cref="API.MangaConnectors.SeriesSource"/> without real network.</summary>
+    public IReadOnlyList<API.MangaConnectors.SeriesSource> ExtraConnectors { get; init; } = [];
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("Kenku:RunStartup", "false");
@@ -79,6 +83,9 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
 
             foreach (API.JobRuntime.IJobHandler handler in ExtraJobHandlers)
                 services.AddSingleton(handler);
+
+            foreach (API.MangaConnectors.SeriesSource connector in ExtraConnectors)
+                services.AddSingleton(connector);
         });
     }
 

@@ -47,7 +47,7 @@ public class DownloadChapterFromSourceWorker(
 
     protected override async Task<BaseWorker[]> DoWorkInternal()
     {
-        var service = new ChapterDownloadService(settings, connectors, _jobStore, _clock, _acquirer, _layoutResolver);
+        var service = new ChapterDownloadService(settings, connectors, _jobStore, _clock, [_acquirer], _layoutResolver);
         if (!await service.DownloadAsync(SeriesContext, ActionsContext, ChapterIdId, CancellationToken))
             return [];
 
