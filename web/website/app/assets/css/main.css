@@ -8,7 +8,10 @@
    hoard. Sumi ink at night, washi paper by day, torii vermillion throughout.
    ========================================================================== */
 
-@theme {
+/* `static` forces every shade to be emitted. Without it Tailwind v4 tree-shakes
+   unused shades (e.g. vermillion-400), which Nuxt UI needs for the dark-mode
+   `primary`/`secondary` ramp — otherwise solid buttons render transparent in dark. */
+@theme static {
     /* ---- Type ----------------------------------------------------------- */
     /* @nuxt/fonts (bundled with @nuxt/ui) self-hosts these from Google Fonts. */
     --font-sans: 'Zen Kaku Gothic New', ui-sans-serif, system-ui, sans-serif;
