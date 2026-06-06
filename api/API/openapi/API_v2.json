@@ -2401,7 +2401,7 @@
         "tags": [
           "MetadataSource"
         ],
-        "summary": "Queues a background worker to refresh chapter volumes for a Series from its confirmed MangaDex ExternalId.",
+        "summary": "Enqueues a ResolveSeriesVolumes job to refresh chapter volumes for a Series from its confirmed MangaDex ExternalId.",
         "parameters": [
           {
             "name": "MangaId",

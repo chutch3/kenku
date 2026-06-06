@@ -1,14 +1,16 @@
 using API.Controllers.DTOs;
 using API.Controllers.Requests;
+using API.JobRuntime;
+using API.JobRuntime.Handlers;
 using API.Schema.SeriesContext;
 using API.Services;
 using API.Workers;
-using API.Workers.MaintenanceWorkers;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using static Microsoft.AspNetCore.Http.StatusCodes;
+using JobEntity = API.Schema.JobsContext.Job;
 
 // ReSharper disable InconsistentNaming
 
@@ -187,7 +189,7 @@ public class MetadataSourceController : ControllerBase
     }
 
     /// <summary>
-    /// Queues a background worker to refresh chapter volumes for a Series from its confirmed MangaDex ExternalId.
+    /// Enqueues a ResolveSeriesVolumes job to refresh chapter volumes for a Series from its confirmed MangaDex ExternalId.
     /// </summary>
     /// <param name="MangaId"><see cref="Schema.SeriesContext.Series"/>.Key</param>
     /// <response code="202">Job queued. Returns jobId.</response>
@@ -197,7 +199,8 @@ public class MetadataSourceController : ControllerBase
     [ProducesResponseType<object>(Status202Accepted, "application/json")]
     [ProducesResponseType<string>(Status400BadRequest, "text/plain")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
-    public async Task<Results<Accepted<object>, BadRequest<string>, NotFound<string>>> RefreshMetadataSource(string MangaId)
+    public async Task<Results<Accepted<object>, BadRequest<string>, NotFound<string>>> RefreshMetadataSource(
+        string MangaId, [FromServices] IJobStore jobStore, [FromServices] IClock clock)
     {
         if (await context.Series
                 .Include(m => m.MetadataSource)
@@ -208,10 +211,12 @@ public class MetadataSourceController : ControllerBase
             || string.IsNullOrEmpty(manga.MetadataSource.ExternalId))
             return TypedResults.BadRequest("MetadataSource is Unlinked. Set an ExternalId first via PUT metadataSource.");
 
-        var worker = new RefreshMetadataSourceWorker(MangaId);
-        workerQueue.AddWorker(worker);
+        JobEntity job = await jobStore.EnqueueAsync(new JobEntity(ResolveSeriesVolumesHandler.Type,
+            ResolveSeriesVolumesHandler.PayloadFor(MangaId), clock.UtcNow,
+            resourceKey: VolumeResolutionReconciler.ResourceKey, dedupKey: VolumeResolutionReconciler.DedupKey(MangaId)),
+            HttpContext.RequestAborted);
 
-        return TypedResults.Accepted<object>((string?)null, new { jobId = worker.Key });
+        return TypedResults.Accepted<object>((string?)null, new { jobId = job.Key });
     }
 
     // --- Scoring helpers ---

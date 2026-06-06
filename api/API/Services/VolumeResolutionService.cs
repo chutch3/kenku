@@ -63,12 +63,19 @@ public class VolumeResolutionService(
             (manga.MetadataSource?.Status == MetadataSourceStatus.Unlinked || GetAniListId(manga) is not null))
             await TryAutoMatch(context, manga, chapters, ct);
 
-        bool exactAllowed = settings.VolumeResolutionStrategy
+        // A user-confirmed link is always synced from its source, regardless of the global auto-resolution
+        // strategy — this is the manual "refresh from metadata source" path (absorbed from RefreshMetadataSource).
+        bool confirmed = manga.MetadataSource?.Status == MetadataSourceStatus.Confirmed;
+        bool exactAllowed = confirmed || settings.VolumeResolutionStrategy
             is VolumeResolutionStrategy.ExactOnly or VolumeResolutionStrategy.ExactThenGuess;
 
         // Step 1: exact sources — merged by confidence, re-runnable, never overriding a manual fix.
         if (exactAllowed)
             await ApplyExactSources(manga, chapters, ct);
+
+        // Record the sync time for a confirmed source so the UI can show "last refreshed".
+        if (confirmed)
+            manga.MetadataSource!.LastSyncedAt = DateTime.UtcNow;
 
         // Step 2: color heuristic fills whatever the exact sources couldn't; anything still
         // unresolved is intentionally left loose for the user to assign.

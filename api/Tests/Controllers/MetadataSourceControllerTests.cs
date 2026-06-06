@@ -1,6 +1,7 @@
 using API.Controllers;
 using API.Controllers.DTOs;
 using API.Controllers.Requests;
+using API.JobRuntime;
 using API.Schema.SeriesContext;
 using API.Services;
 using API.Workers;
@@ -172,7 +173,7 @@ public class MetadataSourceControllerTests
     public async Task RefreshMetadataSource_UnknownManga_ReturnsNotFound()
     {
         using var ctx = CreateContext();
-        var result = await CreateController(ctx).RefreshMetadataSource("nonexistent");
+        var result = await CreateController(ctx).RefreshMetadataSource("nonexistent", new InMemoryJobStore(), new SystemClock());
 
         Assert.IsType<NotFound<string>>(result.Result);
     }
@@ -186,19 +187,14 @@ public class MetadataSourceControllerTests
         await ctx.SaveChangesAsync();
 
         // MetadataSource is Unlinked by default
-        var result = await CreateController(ctx).RefreshMetadataSource(manga.Key);
+        var result = await CreateController(ctx).RefreshMetadataSource(manga.Key, new InMemoryJobStore(), new SystemClock());
 
         Assert.IsType<BadRequest<string>>(result.Result);
     }
 
     [Fact]
-    public async Task RefreshMetadataSource_ConfirmedSource_ReturnsAccepted()
+    public async Task RefreshMetadataSource_ConfirmedSource_EnqueuesResolveJob_AndReturnsAccepted()
     {
-        // NOTE: This test verifies the happy-path routing logic (manga found, source confirmed).
-        // The static Kenku.AddWorker call requires the KenkuSettings file to be accessible,
-        // which is not guaranteed in CI. We verify that the result shape is Accepted when all
-        // preconditions are met, using an environment variable to skip the Kenku init issue.
-        // The actual worker behaviour is tested separately in RefreshMetadataSourceWorkerTests.
         using var ctx = CreateContext();
         var manga = MakeTestManga("Naruto");
         manga.MetadataSource!.ExternalId = "naruto-ext-id";
@@ -206,11 +202,10 @@ public class MetadataSourceControllerTests
         ctx.Series.Add(manga);
         await ctx.SaveChangesAsync();
 
-        // Verify the manga exists and has a confirmed source (preconditions for 202 response)
-        var loaded = await ctx.Series.Include(m => m.MetadataSource).FirstAsync(m => m.Key == manga.Key);
-        Assert.Equal(MetadataSourceStatus.Confirmed, loaded.MetadataSource!.Status);
-        Assert.Equal("naruto-ext-id", loaded.MetadataSource!.ExternalId);
-        // The actual endpoint returns Accepted (202) when these conditions hold.
-        // Verified by integration-level inspection; skipping direct call to avoid Kenku static init.
+        var jobStore = new InMemoryJobStore();
+        var result = await CreateController(ctx).RefreshMetadataSource(manga.Key, jobStore, new SystemClock());
+
+        Assert.IsType<Accepted<object>>(result.Result);
+        Assert.Single(await jobStore.GetAllAsync());
     }
 }

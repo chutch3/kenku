@@ -74,6 +74,36 @@ public class VolumeResolutionServiceTests : IDisposable
             await Resolve(settings, key);
     }
 
+    // Absorbs the former RefreshMetadataSource worker: a Confirmed link is synced from its source even when
+    // auto-resolution is Disabled, applying the exact map and stamping LastSyncedAt.
+    [Fact]
+    public async Task Resolve_ConfirmedSource_AppliesExactMap_AndStampsLastSyncedAt_EvenWhenDisabled()
+    {
+        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.Disabled };
+        var library = new FileLibrary(_testRoot, "Test Library");
+        _mangaContext.FileLibraries.Add(library);
+        var manga = new Series("One Piece", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
+        manga.MetadataSource!.Status = MetadataSourceStatus.Confirmed;
+        manga.MetadataSource.ExternalId = "op-id";
+        _mangaContext.Series.Add(manga);
+        _mangaContext.Chapters.Add(new Chapter(manga, "1", null, null));
+        _mangaContext.Chapters.Add(new Chapter(manga, "12", null, null));
+        await _mangaContext.SaveChangesAsync();
+
+        _mockMangaDexResolver
+            .Setup(r => r.GetChapterToVolumeMapAsync(It.IsAny<Series>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int> { { "1", 1 }, { "12", 2 } });
+
+        await Resolve(settings, manga.Key);
+
+        var ch = await _mangaContext.Chapters.ToDictionaryAsync(c => c.ChapterNumber, c => c);
+        Assert.Equal(1, ch["1"].VolumeNumber);
+        Assert.Equal(MetadataConfidence.Exact, ch["1"].MetadataConfidence);
+        Assert.Equal(2, ch["12"].VolumeNumber);
+        var source = await _mangaContext.Series.Include(m => m.MetadataSource).FirstAsync(m => m.Key == manga.Key);
+        Assert.NotNull(source.MetadataSource!.LastSyncedAt);
+    }
+
     [Fact]
     public async Task DoWork_WhenExactLookupFails_FallsBackToColorHeuristic()
     {
