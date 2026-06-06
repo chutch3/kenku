@@ -3,8 +3,8 @@ using API.Schema.JobsContext;
 namespace API.JobRuntime;
 
 /// <summary>
-/// In-memory <see cref="IJobStore"/> for the dispatcher test harness. Claim selection is deterministic
-/// (priority, then FIFO by CreatedAt, then Key) so DF1 is provable under a fake clock.
+/// In-memory <see cref="IJobStore"/> for the dispatcher test harness. Uses the shared
+/// <see cref="JobReadySelection"/> so it claims identically to the EF-backed store (DF1–DF7).
 /// </summary>
 public class InMemoryJobStore : IJobStore
 {
@@ -16,7 +16,7 @@ public class InMemoryJobStore : IJobStore
         lock (_lock)
         {
             if (job.DedupKey is { } dedup &&
-                _jobs.FirstOrDefault(j => j.DedupKey == dedup && IsActive(j.Status)) is { } existing)
+                _jobs.FirstOrDefault(j => j.DedupKey == dedup && JobReadySelection.IsActive(j.Status)) is { } existing)
                 return Task.FromResult(existing);
 
             _jobs.Add(job);
@@ -29,34 +29,21 @@ public class InMemoryJobStore : IJobStore
     {
         lock (_lock)
         {
-            bool IsLeaseActive(Job j) => j.Status == JobStatus.Running && j.LeasedUntil > now;
-
-            if (_jobs.Count(IsLeaseActive) >= globalCap)
+            if (JobReadySelection.PickClaimable(_jobs, now, globalCap, perResourceCap) is not { } job)
                 return Task.FromResult<Job?>(null);
 
-            Job? job = _jobs
-                .Where(j => (j.Status == JobStatus.Queued && j.ScheduledFor <= now)
-                            || (j.Status == JobStatus.Running && j.LeasedUntil <= now))
-                .OrderByDescending(j => j.Priority)
-                .ThenBy(j => j.CreatedAt)
-                .ThenBy(j => j.Key, StringComparer.Ordinal)
-                .FirstOrDefault(j => j.ResourceKey is null
-                                     || _jobs.Count(o => o.ResourceKey == j.ResourceKey && IsLeaseActive(o)) < perResourceCap);
-
-            if (job is null)
-                return Task.FromResult<Job?>(null);
-
-            job.Status = JobStatus.Running;
-            job.Attempts++;
-            job.StartedAt ??= now;
-            job.LeasedUntil = now + leaseDuration;
+            JobReadySelection.MarkClaimed(job, now, leaseDuration);
             return Task.FromResult<Job?>(job);
         }
     }
 
-    private static bool IsActive(JobStatus status) => status is JobStatus.Queued or JobStatus.Running;
-
     public Task UpdateAsync(Job job, CancellationToken ct = default) => Task.CompletedTask;
+
+    public Task<Job?> GetAsync(string key, CancellationToken ct = default)
+    {
+        lock (_lock)
+            return Task.FromResult(_jobs.FirstOrDefault(j => j.Key == key));
+    }
 
     public Task<IReadOnlyList<Job>> GetAllAsync(CancellationToken ct = default)
     {

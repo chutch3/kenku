@@ -175,6 +175,13 @@ builder.Services.AddSingleton<RateLimitHandler>();
 builder.Services.AddSingleton<IHttpRequester, HttpRequester>();
 builder.Services.AddSingleton<API.Workers.IJobRecorder, API.Workers.JobRecorder>();
 builder.Services.AddSingleton<IWorkerQueue, WorkerQueue>();
+
+// Job runtime (parallel to the legacy worker engine until handlers migrate onto it).
+builder.Services.AddSingleton<API.JobRuntime.IClock, API.JobRuntime.SystemClock>();
+builder.Services.AddSingleton(sp => new API.JobRuntime.HandlerRegistry(sp.GetServices<API.JobRuntime.IJobHandler>()));
+builder.Services.AddScoped<API.JobRuntime.IJobStore, API.JobRuntime.EfJobStore>();
+builder.Services.AddScoped<API.JobRuntime.Dispatcher>();
+builder.Services.AddHostedService<API.JobRuntime.JobPoolService>();
 builder.Services.AddSingleton<Kenku>();
 
 builder.Services.AddTorrentAcquisitionPath(settings, log);

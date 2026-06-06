@@ -1031,6 +1031,241 @@
         }
       }
     },
+    "/v2/JobQueue": {
+      "post": {
+        "tags": [
+          "JobQueue"
+        ],
+        "summary": "Enqueues a job. The type must be in the handler registry (trust boundary).",
+        "requestBody": {
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/EnqueueJobRequest"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/EnqueueJobRequest"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/EnqueueJobRequest"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/EnqueueJobRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The enqueued API.Controllers.DTOs.QueuedJob.",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueuedJob"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown/unregistered job type.",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "JobQueue"
+        ],
+        "summary": "All runtime jobs.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QueuedJob"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/JobQueue/{JobId}": {
+      "get": {
+        "tags": [
+          "JobQueue"
+        ],
+        "summary": "A single runtime job by id.",
+        "parameters": [
+          {
+            "name": "JobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueuedJob"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/JobQueue/{JobId}/Retry": {
+      "post": {
+        "tags": [
+          "JobQueue"
+        ],
+        "summary": "Re-queues a API.Schema.JobsContext.JobStatus.NeedsAttention job, resetting its attempts.",
+        "parameters": [
+          {
+            "name": "JobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueuedJob"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The job is not in NeedsAttention.",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/JobQueue/{JobId}/Cancel": {
+      "post": {
+        "tags": [
+          "JobQueue"
+        ],
+        "summary": "Cancels a job. A Queued job is cancelled immediately; a Running job stops cooperatively.",
+        "parameters": [
+          {
+            "name": "JobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueuedJob"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/Jobs": {
       "get": {
         "tags": [
@@ -5599,6 +5834,41 @@
         ],
         "type": "string"
       },
+      "EnqueueJobRequest": {
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Registered job type to run."
+          },
+          "payload": {
+            "type": "string",
+            "description": "Typed JSON payload for the handler.",
+            "nullable": true
+          },
+          "resourceKey": {
+            "type": "string",
+            "description": "Fairness/rate-limit key (host or series).",
+            "nullable": true
+          },
+          "dedupKey": {
+            "type": "string",
+            "description": "Coalescing key — a second enqueue with the same key while one is active is a no-op.",
+            "nullable": true
+          },
+          "priority": {
+            "type": "integer",
+            "description": "Higher runs first.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Trigger payload for enqueueing a runtime job. Only a registered API.Controllers.Requests.EnqueueJobRequest.Type is accepted."
+      },
       "FileLibrary": {
         "required": [
           "basePath",
@@ -5695,6 +5965,17 @@
         },
         "additionalProperties": false,
         "description": "API.Schema.JobsContext.JobRecord DTO — a persisted worker execution."
+      },
+      "JobStatus": {
+        "enum": [
+          "Queued",
+          "Running",
+          "Succeeded",
+          "Failed",
+          "NeedsAttention",
+          "Cancelled"
+        ],
+        "type": "string"
       },
       "LibraryConnector": {
         "required": [
@@ -6131,6 +6412,67 @@
         },
         "additionalProperties": false,
         "description": "Request body for PUT /api/v2/Series/{mangaId}/libraryLayout."
+      },
+      "QueuedJob": {
+        "required": [
+          "attempts",
+          "createdAt",
+          "key",
+          "maxAttempts",
+          "scheduledFor",
+          "status",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Registered job type."
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "attempts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxAttempts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "resourceKey": {
+            "type": "string",
+            "description": "Fairness/rate-limit key.",
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "description": "Last failure message.",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "scheduledFor": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "key": {
+            "maxLength": 64,
+            "minLength": 16,
+            "type": "string",
+            "description": "Unique Identifier of the DTO"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A API.Controllers.DTOs.Job in the runtime queue."
       },
       "ReorganizeJobResult": {
         "type": "object",
@@ -6726,6 +7068,9 @@
     },
     {
       "name": "FileLibrary"
+    },
+    {
+      "name": "JobQueue"
     },
     {
       "name": "Jobs"

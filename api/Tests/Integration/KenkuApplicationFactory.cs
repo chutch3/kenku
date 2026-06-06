@@ -43,6 +43,10 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
     /// exercised without real network.</summary>
     public (HttpMessageHandler Inner, int RequestsPerMinute, int QueueLimit, TimeSpan RequestTimeout)? RateLimit { get; init; }
 
+    /// <summary>Extra job handlers to register, so a test can enqueue and run a job through the real runtime
+    /// without depending on a production handler existing yet.</summary>
+    public IReadOnlyList<API.JobRuntime.IJobHandler> ExtraJobHandlers { get; init; } = [];
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("Kenku:RunStartup", "false");
@@ -72,6 +76,9 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
                 services.AddSingleton(sp => new RateLimitHandler(
                     sp.GetRequiredService<KenkuSettings>(), rl.Inner, rl.RequestsPerMinute, rl.QueueLimit, rl.RequestTimeout));
             }
+
+            foreach (API.JobRuntime.IJobHandler handler in ExtraJobHandlers)
+                services.AddSingleton(handler);
         });
     }
 

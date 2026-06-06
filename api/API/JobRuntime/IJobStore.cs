@@ -26,5 +26,7 @@ public interface IJobStore
 
     Task UpdateAsync(Job job, CancellationToken ct = default);
 
+    Task<Job?> GetAsync(string key, CancellationToken ct = default);
+
     Task<IReadOnlyList<Job>> GetAllAsync(CancellationToken ct = default);
 }
