@@ -14,21 +14,34 @@ public class InMemoryJobStore : IJobStore
     public Task<Job> EnqueueAsync(Job job, CancellationToken ct = default)
     {
         lock (_lock)
+        {
+            if (job.DedupKey is { } dedup &&
+                _jobs.FirstOrDefault(j => j.DedupKey == dedup && IsActive(j.Status)) is { } existing)
+                return Task.FromResult(existing);
+
             _jobs.Add(job);
+        }
         return Task.FromResult(job);
     }
 
-    public Task<Job?> ClaimNextReadyAsync(DateTime now, TimeSpan leaseDuration, CancellationToken ct = default)
+    public Task<Job?> ClaimNextReadyAsync(DateTime now, TimeSpan leaseDuration, int globalCap, int perResourceCap,
+        CancellationToken ct = default)
     {
         lock (_lock)
         {
+            bool IsLeaseActive(Job j) => j.Status == JobStatus.Running && j.LeasedUntil > now;
+
+            if (_jobs.Count(IsLeaseActive) >= globalCap)
+                return Task.FromResult<Job?>(null);
+
             Job? job = _jobs
-                .Where(j => j.Status == JobStatus.Queued && j.ScheduledFor <= now
-                            && (j.LeasedUntil is null || j.LeasedUntil <= now))
+                .Where(j => (j.Status == JobStatus.Queued && j.ScheduledFor <= now)
+                            || (j.Status == JobStatus.Running && j.LeasedUntil <= now))
                 .OrderByDescending(j => j.Priority)
                 .ThenBy(j => j.CreatedAt)
                 .ThenBy(j => j.Key, StringComparer.Ordinal)
-                .FirstOrDefault();
+                .FirstOrDefault(j => j.ResourceKey is null
+                                     || _jobs.Count(o => o.ResourceKey == j.ResourceKey && IsLeaseActive(o)) < perResourceCap);
 
             if (job is null)
                 return Task.FromResult<Job?>(null);
@@ -40,6 +53,8 @@ public class InMemoryJobStore : IJobStore
             return Task.FromResult<Job?>(job);
         }
     }
+
+    private static bool IsActive(JobStatus status) => status is JobStatus.Queued or JobStatus.Running;
 
     public Task UpdateAsync(Job job, CancellationToken ct = default) => Task.CompletedTask;
 

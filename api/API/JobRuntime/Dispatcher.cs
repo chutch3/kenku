@@ -15,21 +15,25 @@ public class Dispatcher
     private readonly IClock _clock;
     private readonly BackoffPolicy _backoff;
     private readonly TimeSpan _leaseDuration;
+    private readonly int _globalCap;
+    private readonly int _perResourceCap;
 
     public Dispatcher(IJobStore store, HandlerRegistry registry, IClock clock,
-        BackoffPolicy? backoff = null, TimeSpan? leaseDuration = null)
+        BackoffPolicy? backoff = null, TimeSpan? leaseDuration = null, int globalCap = 8, int perResourceCap = 2)
     {
         _store = store;
         _registry = registry;
         _clock = clock;
         _backoff = backoff ?? BackoffPolicy.Default;
         _leaseDuration = leaseDuration ?? TimeSpan.FromMinutes(10);
+        _globalCap = globalCap;
+        _perResourceCap = perResourceCap;
     }
 
     /// <summary>Claims and runs at most one ready job. Returns false when nothing was ready.</summary>
     public async Task<bool> RunOnceAsync(CancellationToken ct = default)
     {
-        Job? job = await _store.ClaimNextReadyAsync(_clock.UtcNow, _leaseDuration, ct);
+        Job? job = await _store.ClaimNextReadyAsync(_clock.UtcNow, _leaseDuration, _globalCap, _perResourceCap, ct);
         if (job is null)
             return false;
 
