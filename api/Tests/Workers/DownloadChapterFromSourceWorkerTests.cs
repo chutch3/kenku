@@ -1,3 +1,6 @@
+using System.Text.Json;
+using API.JobRuntime;
+using API.JobRuntime.Handlers;
 using API.MangaConnectors;
 using API.HttpRequesters;
 using API.Schema.SeriesContext;
@@ -94,6 +97,8 @@ public class DownloadChapterFromSourceWorkerTests
             services.AddSingleton(context);
             services.AddDbContext<API.Schema.ActionsContext.ActionsContext>(o => o.UseInMemoryDatabase("Actions-" + Guid.NewGuid().ToString("N")));
             services.AddDbContext<API.Schema.NotificationsContext.NotificationsContext>(o => o.UseInMemoryDatabase("Notifications-" + Guid.NewGuid().ToString("N")));
+            services.AddSingleton<IClock, SystemClock>();
+            services.AddSingleton<IJobStore, InMemoryJobStore>();
             var serviceProvider = services.BuildServiceProvider();
 
             var worker = new DownloadChapterFromSourceWorker(connectorId, new[] { mockConnector.Object }, settings);
@@ -147,6 +152,8 @@ public class DownloadChapterFromSourceWorkerTests
         services.AddSingleton(context);
         services.AddDbContext<API.Schema.ActionsContext.ActionsContext>(o => o.UseInMemoryDatabase("Actions"));
         services.AddDbContext<API.Schema.NotificationsContext.NotificationsContext>(o => o.UseInMemoryDatabase("Notifications"));
+        services.AddSingleton<IClock, SystemClock>();
+        services.AddSingleton<IJobStore, InMemoryJobStore>();
 
         var serviceProvider = services.BuildServiceProvider();
 
@@ -200,6 +207,8 @@ public class DownloadChapterFromSourceWorkerTests
             services.AddSingleton(context);
             services.AddDbContext<API.Schema.ActionsContext.ActionsContext>(o => o.UseInMemoryDatabase("Actions-" + Guid.NewGuid().ToString("N")));
             services.AddDbContext<API.Schema.NotificationsContext.NotificationsContext>(o => o.UseInMemoryDatabase("Notifications-" + Guid.NewGuid().ToString("N")));
+            services.AddSingleton<IClock, SystemClock>();
+            services.AddSingleton<IJobStore, InMemoryJobStore>();
             var serviceProvider = services.BuildServiceProvider();
 
             var worker = new DownloadChapterFromSourceWorker(connectorId, new[] { mockConnector.Object }, settings);
@@ -264,15 +273,19 @@ public class DownloadChapterFromSourceWorkerTests
             services.AddSingleton(context);
             services.AddDbContext<API.Schema.ActionsContext.ActionsContext>(o => o.UseInMemoryDatabase("Actions-" + Guid.NewGuid().ToString("N")));
             services.AddDbContext<API.Schema.NotificationsContext.NotificationsContext>(o => o.UseInMemoryDatabase("Notifications-" + Guid.NewGuid().ToString("N")));
+            services.AddSingleton<IClock, SystemClock>();
+            services.AddSingleton<IJobStore, InMemoryJobStore>();
             var serviceProvider = services.BuildServiceProvider();
 
             var worker = new DownloadChapterFromSourceWorker(connectorId, new[] { mockConnector.Object }, settings);
-            BaseWorker[] created = await worker.DoWork(serviceProvider.CreateScope());
+            await worker.DoWork(serviceProvider.CreateScope());
 
-            var bundle = created.OfType<BundleVolumeWorker>().FirstOrDefault();
-            Assert.NotNull(bundle);
-            Assert.Equal(manga.Key, bundle!.MangaId);
-            Assert.Equal(1, bundle.VolumeNumber);
+            var jobs = await serviceProvider.GetRequiredService<IJobStore>().GetAllAsync();
+            var bundleJob = jobs.SingleOrDefault(j => j.Type == ReconcileVolumeBundleHandler.Type);
+            Assert.NotNull(bundleJob);
+            var payload = JsonSerializer.Deserialize<ReconcileVolumeBundlePayload>(bundleJob!.Payload)!;
+            Assert.Equal(manga.Key, payload.SeriesKey);
+            Assert.Equal(1, payload.Volume);
         }
         finally
         {
@@ -336,15 +349,19 @@ public class DownloadChapterFromSourceWorkerTests
             services.AddSingleton(runCtx);
             services.AddDbContext<API.Schema.ActionsContext.ActionsContext>(o => o.UseInMemoryDatabase("Actions-" + Guid.NewGuid().ToString("N")));
             services.AddDbContext<API.Schema.NotificationsContext.NotificationsContext>(o => o.UseInMemoryDatabase("Notifications-" + Guid.NewGuid().ToString("N")));
+            services.AddSingleton<IClock, SystemClock>();
+            services.AddSingleton<IJobStore, InMemoryJobStore>();
             var serviceProvider = services.BuildServiceProvider();
 
             var worker = new DownloadChapterFromSourceWorker(connectorId, new[] { mockConnector.Object }, settings);
-            BaseWorker[] created = await worker.DoWork(serviceProvider.CreateScope());
+            await worker.DoWork(serviceProvider.CreateScope());
 
             // Both require the SourceIds-dependent cover step to run without throwing. VolumeCBZ places
             // chapters (and the cover) flat at the series root — they're merged into the bundle.
             Assert.True(File.Exists(Path.Combine(mangaDir, "cover.jpg")), "cover.jpg should be written into the series folder");
-            Assert.Contains(created.OfType<BundleVolumeWorker>(), b => b.VolumeNumber == 1);
+            var jobs = await serviceProvider.GetRequiredService<IJobStore>().GetAllAsync();
+            Assert.Contains(jobs, j => j.Type == ReconcileVolumeBundleHandler.Type
+                && JsonSerializer.Deserialize<ReconcileVolumeBundlePayload>(j.Payload)!.Volume == 1);
         }
         finally
         {

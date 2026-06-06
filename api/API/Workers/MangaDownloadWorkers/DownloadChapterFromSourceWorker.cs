@@ -1,13 +1,17 @@
 using System.Diagnostics.CodeAnalysis;
 using API.Acquirers;
+using API.JobRuntime;
+using API.JobRuntime.Handlers;
 using API.MangaConnectors;
 using API.Services;
 using API.Workers.MaintenanceWorkers;
 using API.Schema.ActionsContext;
 using API.Schema.ActionsContext.Actions;
+using API.Schema.JobsContext;
 using API.Schema.SeriesContext;
 using API.Workers.PeriodicWorkers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace API.Workers.MangaDownloadWorkers;
 
@@ -34,11 +38,15 @@ public class DownloadChapterFromSourceWorker(
     private SeriesContext SeriesContext = null!;
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     private ActionsContext ActionsContext = null!;
+    private IJobStore _jobStore = null!;
+    private IClock _clock = null!;
 
     protected override void SetContexts(IServiceScope serviceScope)
     {
         SeriesContext = GetContext<SeriesContext>(serviceScope);
         ActionsContext = GetContext<ActionsContext>(serviceScope);
+        _jobStore = serviceScope.ServiceProvider.GetRequiredService<IJobStore>();
+        _clock = serviceScope.ServiceProvider.GetRequiredService<IClock>();
     }
 
     protected override async Task<BaseWorker[]> DoWorkInternal()
@@ -133,29 +141,31 @@ public class DownloadChapterFromSourceWorker(
             return []; // Fail early!
         }
 
-        BaseWorker[] bundleWorkers = await GetReadyVolumeBundleWorkers(chapter.ParentManga);
+        await EnqueueReadyVolumeBundleJobs(chapter.ParentManga);
 
         bool refreshLibrary = await CheckLibraryRefresh();
         if (refreshLibrary)
             Log.Info($"Condition {settings.LibraryRefreshSetting} met.");
-        return refreshLibrary ? [.. bundleWorkers, new RefreshLibrariesWorker()] : bundleWorkers;
+        return refreshLibrary ? [new RefreshLibrariesWorker()] : [];
     }
 
     /// <summary>
-    /// Under VolumeCBZ, queue a bundle for any volume that just became closed-and-complete (see
-    /// <see cref="VolumeBundlePolicy"/>). Volume-less and trailing/in-progress volumes are skipped,
-    /// so this no-ops for other layouts and for series that are still mid-volume.
+    /// Under VolumeCBZ, enqueue a ReconcileVolumeBundle job for any volume that just became
+    /// closed-and-complete (see <see cref="VolumeBundlePolicy"/>). Volume-less and trailing/in-progress
+    /// volumes are skipped, so this no-ops for other layouts and for series still mid-volume. Deduped per
+    /// volume so it coalesces with the reconciler.
     /// </summary>
-    private async Task<BaseWorker[]> GetReadyVolumeBundleWorkers(Series manga)
+    private async Task EnqueueReadyVolumeBundleJobs(Series manga)
     {
         if (manga.LibraryLayout != LibraryLayout.VolumeCBZ)
-            return [];
+            return;
 
         await SeriesContext.Entry(manga).Collection(m => m.Chapters).LoadAsync(CancellationToken);
 
-        return VolumeBundlePolicy.VolumesReadyToBundle(manga)
-            .Select(volume => (BaseWorker)new BundleVolumeWorker(manga.Key, volume, settings))
-            .ToArray();
+        foreach (int volume in VolumeBundlePolicy.VolumesReadyToBundle(manga))
+            await _jobStore.EnqueueAsync(new Job(ReconcileVolumeBundleHandler.Type,
+                ReconcileVolumeBundleHandler.PayloadFor(manga.Key, volume), _clock.UtcNow,
+                resourceKey: manga.Key, dedupKey: VolumeBundleReconciler.DedupKey(manga.Key, volume)), CancellationToken);
     }
 
     private async Task EnsureCoverInPublicationFolder(Series manga, SeriesSource seriesSource, SourceId<Series> mangaConnectorId, string publicationFolder)

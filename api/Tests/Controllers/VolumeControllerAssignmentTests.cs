@@ -1,3 +1,4 @@
+using API.JobRuntime;
 using API;
 using API.Controllers;
 using API.Controllers.DTOs;
@@ -43,7 +44,7 @@ public class VolumeControllerAssignmentTests : IDisposable
     {
         var settings = new KenkuSettings { AppData = _tempDir };
         var workerQueueMock = new Mock<IWorkerQueue>();
-        var controller = new VolumeController(ctx, settings, workerQueueMock.Object);
+        var controller = new VolumeController(ctx, settings, workerQueueMock.Object, new InMemoryJobStore(), new SystemClock());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()

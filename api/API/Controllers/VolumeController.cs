@@ -1,5 +1,7 @@
 using API.Controllers.DTOs;
 using API.Controllers.Requests;
+using API.JobRuntime;
+using API.JobRuntime.Handlers;
 using API.Schema.SeriesContext;
 using API.Services;
 using API.Workers;
@@ -10,6 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using static Microsoft.AspNetCore.Http.StatusCodes;
 using SchemaManga = API.Schema.SeriesContext.Series;
+using JobEntity = API.Schema.JobsContext.Job;
 
 // ReSharper disable InconsistentNaming
 
@@ -18,7 +21,8 @@ namespace API.Controllers;
 [ApiVersion(2)]
 [ApiController]
 [Route("v{v:apiVersion}/Series/{MangaId}")]
-public class VolumeController(SeriesContext context, KenkuSettings settings, IWorkerQueue workerQueue)
+public class VolumeController(SeriesContext context, KenkuSettings settings, IWorkerQueue workerQueue,
+    IJobStore jobStore, IClock clock)
     : ControllerBase
 {
     /// <summary>
@@ -328,9 +332,10 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IWo
         if (!hasUnbundledChapters)
             return TypedResults.Conflict("No unbundled chapters with files exist for this volume");
 
-        var worker = new BundleVolumeWorker(MangaId, VolumeNumber, settings);
-        workerQueue.AddWorker(worker);
-        return TypedResults.Accepted<BundleJobResult>((string?)null, new BundleJobResult(worker.Key));
+        JobEntity job = await jobStore.EnqueueAsync(new JobEntity(ReconcileVolumeBundleHandler.Type,
+            ReconcileVolumeBundleHandler.PayloadFor(MangaId, VolumeNumber, BundleAction.Bundle), clock.UtcNow,
+            resourceKey: MangaId), HttpContext.RequestAborted);
+        return TypedResults.Accepted<BundleJobResult>((string?)null, new BundleJobResult(job.Key));
     }
 
     /// <summary>
@@ -368,9 +373,10 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IWo
             ? null
             : "No chapter map found; unbundle may be incomplete";
 
-        var worker = new UnbundleVolumeWorker(MangaId, VolumeNumber, settings);
-        workerQueue.AddWorker(worker);
-        return TypedResults.Accepted<UnbundleJobResult>((string?)null, new UnbundleJobResult(worker.Key, warning));
+        JobEntity job = await jobStore.EnqueueAsync(new JobEntity(ReconcileVolumeBundleHandler.Type,
+            ReconcileVolumeBundleHandler.PayloadFor(MangaId, VolumeNumber, BundleAction.Unbundle), clock.UtcNow,
+            resourceKey: MangaId), HttpContext.RequestAborted);
+        return TypedResults.Accepted<UnbundleJobResult>((string?)null, new UnbundleJobResult(job.Key, warning));
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────────

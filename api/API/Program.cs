@@ -184,6 +184,7 @@ builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handler
 builder.Services.AddScoped<API.JobRuntime.IJobStore, API.JobRuntime.EfJobStore>();
 builder.Services.AddScoped<API.JobRuntime.Dispatcher>();
 builder.Services.AddHostedService<API.JobRuntime.JobPoolService>();
+builder.Services.AddHostedService<API.JobRuntime.VolumeBundleReconciler>();
 builder.Services.AddSingleton<Kenku>();
 
 builder.Services.AddTorrentAcquisitionPath(settings, log);

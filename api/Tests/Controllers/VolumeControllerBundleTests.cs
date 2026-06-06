@@ -1,6 +1,7 @@
 using API;
 using API.Controllers;
 using API.Controllers.DTOs;
+using API.JobRuntime;
 using API.Schema.SeriesContext;
 using API.Workers;
 using Microsoft.AspNetCore.Http;
@@ -38,16 +39,16 @@ public class VolumeControllerBundleTests : IDisposable
         return new SeriesContext(options);
     }
 
-    private (VolumeController controller, Mock<IWorkerQueue> workerQueueMock) CreateController(SeriesContext ctx)
+    private (VolumeController controller, InMemoryJobStore jobStore) CreateController(SeriesContext ctx)
     {
         var settings = new KenkuSettings { AppData = _tempDir };
-        var workerQueueMock = new Mock<IWorkerQueue>();
-        var controller = new VolumeController(ctx, settings, workerQueueMock.Object);
+        var jobStore = new InMemoryJobStore();
+        var controller = new VolumeController(ctx, settings, new Mock<IWorkerQueue>().Object, jobStore, new SystemClock());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()
         };
-        return (controller, workerQueueMock);
+        return (controller, jobStore);
     }
 
     private SchemaFileLibrary MakeLibrary()
@@ -90,12 +91,12 @@ public class VolumeControllerBundleTests : IDisposable
         ctx.Chapters.Add(ch);
         await ctx.SaveChangesAsync();
 
-        var (controller, workerQueueMock) = CreateController(ctx);
+        var (controller, jobStore) = CreateController(ctx);
         var result = await controller.PostBundle(manga.Key, 1);
 
         var accepted = Assert.IsType<Accepted<BundleJobResult>>(result.Result);
         Assert.NotEmpty(accepted.Value!.JobId);
-        workerQueueMock.Verify(q => q.AddWorker(It.IsAny<BaseWorker>()), Times.Once);
+        Assert.Single(await jobStore.GetAllAsync());
     }
 
     [Fact]
@@ -133,13 +134,13 @@ public class VolumeControllerBundleTests : IDisposable
         ctx.Chapters.Add(ch);
         await ctx.SaveChangesAsync();
 
-        var (controller, workerQueueMock) = CreateController(ctx);
+        var (controller, jobStore) = CreateController(ctx);
         var result = await controller.PostBundle(manga.Key, 1);
 
         var accepted = Assert.IsType<Accepted<BundleJobResult>>(result.Result);
         Assert.NotNull(accepted.Value);
         Assert.NotEmpty(accepted.Value!.JobId);
-        workerQueueMock.Verify(q => q.AddWorker(It.IsAny<BaseWorker>()), Times.Once);
+        Assert.Single(await jobStore.GetAllAsync());
     }
 
     // ──────────────────────────────────────────────────────
@@ -215,14 +216,14 @@ public class VolumeControllerBundleTests : IDisposable
         });
         await ctx.SaveChangesAsync();
 
-        var (controller, workerQueueMock) = CreateController(ctx);
+        var (controller, jobStore) = CreateController(ctx);
         var result = await controller.DeleteBundle(manga.Key, 1);
 
         var accepted = Assert.IsType<Accepted<UnbundleJobResult>>(result.Result);
         Assert.NotNull(accepted.Value);
         Assert.NotEmpty(accepted.Value!.JobId);
         Assert.Null(accepted.Value.Warning);
-        workerQueueMock.Verify(q => q.AddWorker(It.IsAny<BaseWorker>()), Times.Once);
+        Assert.Single(await jobStore.GetAllAsync());
     }
 
     [Fact]
@@ -238,7 +239,7 @@ public class VolumeControllerBundleTests : IDisposable
         ctx.VolumeMetadata.Add(vol);
         await ctx.SaveChangesAsync();
 
-        var (controller, workerQueueMock) = CreateController(ctx);
+        var (controller, jobStore) = CreateController(ctx);
         var result = await controller.DeleteBundle(manga.Key, 1);
 
         var accepted = Assert.IsType<Accepted<UnbundleJobResult>>(result.Result);
