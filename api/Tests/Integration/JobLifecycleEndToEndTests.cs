@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 using API.Controllers.DTOs;
 using API.JobRuntime;
 using API.Schema.JobsContext;
-using API.Tests.JobRuntime;
+using API.Tests.Unit.JobRuntime;
 using Microsoft.Extensions.DependencyInjection;
 using WireMock.Server;
 using Xunit;
