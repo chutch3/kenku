@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 
 namespace API.Tests.Integration;
 
@@ -33,7 +34,12 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
         new ServiceCollection().AddEntityFrameworkInMemoryDatabase().BuildServiceProvider();
 
     /// <summary>Base URL of the local server outbound metadata requests should be redirected to.</summary>
-    public required string OutboundHttpTarget { get; init; }
+    public string OutboundHttpTarget { get; init; } = "http://localhost:1";
+
+    /// <summary>When set, the three core contexts (Series, Jobs, Actions) are backed by this Postgres
+    /// database instead of the default InMemory stores. Used by concurrency and migration tests that
+    /// need a real relational engine.</summary>
+    public string? PostgresConnectionString { get; init; }
 
     /// <summary>Optional stub for the connectors' HTTP edge, so a connector flow can be driven without
     /// real network access. When set, it replaces the registered <see cref="IHttpRequester"/>.</summary>
@@ -70,11 +76,22 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
         builder.UseSetting("Kenku:AppData", Path.Combine(Path.GetTempPath(), "kenku-test-" + _id));
         builder.ConfigureTestServices(services =>
         {
-            UseInMemory<SeriesContext>(services);
-            UseInMemory<NotificationsContext>(services);
-            UseInMemory<LibraryContext>(services);
-            UseInMemory<ActionsContext>(services);
-            UseInMemory<global::API.Schema.JobsContext.JobsContext>(services);
+            if (PostgresConnectionString is not null)
+            {
+                UseNpgsql<SeriesContext>(services, PostgresConnectionString);
+                UseNpgsql<global::API.Schema.JobsContext.JobsContext>(services, PostgresConnectionString);
+                UseNpgsql<ActionsContext>(services, PostgresConnectionString);
+                UseInMemory<NotificationsContext>(services);
+                UseInMemory<LibraryContext>(services);
+            }
+            else
+            {
+                UseInMemory<SeriesContext>(services);
+                UseInMemory<NotificationsContext>(services);
+                UseInMemory<LibraryContext>(services);
+                UseInMemory<ActionsContext>(services);
+                UseInMemory<global::API.Schema.JobsContext.JobsContext>(services);
+            }
 
             RouteOutboundHttp<MangaDexVolumeResolver>(services);
             RouteOutboundHttp<MangaDexSearchService>(services);
@@ -118,6 +135,20 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
         });
     }
 
+    protected override IHost CreateHost(IHostBuilder builder)
+    {
+        var host = base.CreateHost(builder);
+        if (PostgresConnectionString is not null)
+        {
+            using var scope = host.Services.CreateScope();
+            var sp = scope.ServiceProvider;
+            sp.GetRequiredService<SeriesContext>().Database.MigrateAsync().GetAwaiter().GetResult();
+            sp.GetRequiredService<global::API.Schema.JobsContext.JobsContext>().Database.MigrateAsync().GetAwaiter().GetResult();
+            sp.GetRequiredService<ActionsContext>().Database.MigrateAsync().GetAwaiter().GetResult();
+        }
+        return host;
+    }
+
     private void UseInMemory<TContext>(IServiceCollection services) where TContext : DbContext
     {
         services.RemoveAll<DbContextOptions<TContext>>();
@@ -125,6 +156,13 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
         services.AddDbContext<TContext>(o => o
             .UseInMemoryDatabase($"{typeof(TContext).Name}-{_id}")
             .UseInternalServiceProvider(_efProvider));
+    }
+
+    private static void UseNpgsql<TContext>(IServiceCollection services, string connectionString) where TContext : DbContext
+    {
+        services.RemoveAll<DbContextOptions<TContext>>();
+        services.RemoveAll<TContext>();
+        services.AddDbContext<TContext>(o => o.UseNpgsql(connectionString));
     }
 
     // Replaces the typed client's primary handler so its (absolute) requests are redirected to the
