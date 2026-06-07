@@ -65,10 +65,10 @@ public class JobFairnessEndToEndTests : IDisposable
         return o;
     }
 
-    private async Task Enqueue(HttpClient client, string resourceKey)
+    private async Task Enqueue(HttpClient client, string resourceKey, int priority)
     {
         var response = await client.PostAsJsonAsync("/v2/JobQueue",
-            new { type = "gate", payload = "{}", resourceKey });
+            new { type = "gate", payload = "{}", resourceKey, priority });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
@@ -89,9 +89,11 @@ public class JobFairnessEndToEndTests : IDisposable
     public async Task OneResourceCannotHoldAllSlots_AnotherResourceGetsASlot()
     {
         using var client = _app.CreateClient();
-        await Enqueue(client, "series-A");   // A1
-        await Enqueue(client, "series-A");   // A2
-        await Enqueue(client, "series-B");   // B1
+        // series-A's jobs even outrank series-B by priority — so a broken cap would deterministically claim
+        // the surplus A second. Fairness must override priority: A is capped, so B gets the slot instead.
+        await Enqueue(client, "series-A", priority: 1);   // A1
+        await Enqueue(client, "series-A", priority: 1);   // A2
+        await Enqueue(client, "series-B", priority: 0);   // B1
 
         // First tick claims an A (it's at cap 1 now). Second tick must skip A and claim B.
         var tick1 = RunOnceBackground();
