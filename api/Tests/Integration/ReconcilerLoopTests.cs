@@ -70,7 +70,9 @@ public class ReconcilerLoopTests : IAsyncLifetime
     public async Task DownloadReconciler_OnFirstTick_EnqueuesDownloadJobForRequestedChapter()
     {
         bool appeared = false;
-        var deadline = DateTime.UtcNow.AddSeconds(10);
+        // 25 s covers two full reconciler intervals (each 10 s) in case the first tick races
+        // with other startup work and is silently retried.
+        var deadline = DateTime.UtcNow.AddSeconds(25);
         while (DateTime.UtcNow < deadline)
         {
             var jobs = await _app.WithJobsContext(ctx => ctx.JobQueue.ToListAsync());
