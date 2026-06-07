@@ -1,3 +1,4 @@
+using API.Services.Interfaces;
 ﻿using API.Controllers.DTOs;
 using API.MangaConnectors;
 using MangaConnectorImpl = API.MangaConnectors.SeriesSource;

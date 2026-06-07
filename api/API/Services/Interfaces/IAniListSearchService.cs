@@ -1,4 +1,4 @@
-namespace API.Services;
+namespace API.Services.Interfaces;
 
 /// <summary>
 /// Raw result from AniList search, before scoring.

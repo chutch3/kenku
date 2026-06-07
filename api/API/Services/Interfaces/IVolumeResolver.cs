@@ -1,6 +1,6 @@
 using API.Schema.SeriesContext;
 
-namespace API.Services;
+namespace API.Services.Interfaces;
 
 /// <summary>
 /// A single source of volume information (MangaDex, a scraped chapter list, the color heuristic, …).

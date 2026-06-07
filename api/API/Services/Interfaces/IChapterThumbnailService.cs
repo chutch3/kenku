@@ -1,4 +1,4 @@
-namespace API.Services;
+namespace API.Services.Interfaces;
 
 /// <summary>
 /// Generates and caches chapter preview thumbnails from CBZ archive files.

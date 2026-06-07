@@ -1,3 +1,4 @@
+using API.Services.Interfaces;
 using System.IO.Compression;
 using System.Text.RegularExpressions;
 using API.Schema.SeriesContext;

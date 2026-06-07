@@ -1,6 +1,6 @@
 using API.Schema.SeriesContext;
 
-namespace API.Services;
+namespace API.Services.Interfaces;
 
 /// <summary>Where a chapter's archive ends up on disk under a given <see cref="LibraryLayout"/>.</summary>
 public enum ChapterPlacement

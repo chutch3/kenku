@@ -1,3 +1,4 @@
+using API.Services.Interfaces;
 using API.Controllers;
 using API.Controllers.Requests;
 using API.Controllers.DTOs;
@@ -36,7 +37,7 @@ public class ChaptersControllerTests: IDisposable
         var testSettings = new API.KenkuSettings { AppData = Path.GetTempPath() };
 
         var connectors = Enumerable.Empty<API.MangaConnectors.SeriesSource>();
-        var mockThumbnailService = new Mock<API.Services.IChapterThumbnailService>();
+        var mockThumbnailService = new Mock<API.Services.Interfaces.IChapterThumbnailService>();
 
         var controller = new ChaptersController(ctx, testSettings, connectors, mockThumbnailService.Object);
         controller.ControllerContext = new ControllerContext

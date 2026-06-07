@@ -1,4 +1,4 @@
-namespace API.Services;
+namespace API.Services.Interfaces;
 
 /// <summary>
 /// Searches MangaDex for manga by title.
