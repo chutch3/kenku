@@ -14,7 +14,7 @@ using System.Threading;
 
 using API.Acquirers;
 
-namespace API.MangaConnectors;
+namespace API.Connectors;
 
 public class AsuraComic : SeriesSource
 {

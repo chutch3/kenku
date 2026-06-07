@@ -3,7 +3,7 @@ using API.Acquirers;
 using API.Indexers;
 using API.Schema.SeriesContext;
 
-namespace API.MangaConnectors;
+namespace API.Connectors;
 
 /// <summary>
 /// A series source whose "site" is the configured set of indexers (see <see cref="IIndexerClient"/>).

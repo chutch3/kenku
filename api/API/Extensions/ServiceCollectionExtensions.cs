@@ -3,7 +3,7 @@ using API.DownloadClients.Interfaces;
 using API.Indexers.Interfaces;
 using API.Acquirers;
 using API.Indexers;
-using API.MangaConnectors;
+using API.Connectors;
 using API.HttpRequesters;
 using API.DownloadClients;
 using log4net;

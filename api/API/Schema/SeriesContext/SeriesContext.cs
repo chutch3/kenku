@@ -1,4 +1,4 @@
-﻿using API.MangaConnectors;
+﻿using API.Connectors;
 using API.Schema.SeriesContext.MetadataFetchers;
 using log4net;
 using Microsoft.EntityFrameworkCore;

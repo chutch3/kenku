@@ -1,4 +1,4 @@
-using API.MangaConnectors;
+using API.Connectors;
 using API.Schema.NotificationsContext;
 using API.Schema.SeriesContext;
 using log4net;

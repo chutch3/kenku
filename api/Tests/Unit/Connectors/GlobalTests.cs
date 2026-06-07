@@ -1,10 +1,10 @@
-using API.MangaConnectors;
+using API.Connectors;
 using API.Schema.SeriesContext;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit;
 
-namespace API.Tests.Unit.MangaConnectors;
+namespace API.Tests.Unit.Connectors;
 
 public class GlobalTests
 {

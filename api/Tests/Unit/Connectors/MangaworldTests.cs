@@ -2,13 +2,13 @@ using API.HttpRequesters.Interfaces;
 using System.Net;
 using System.Text;
 using API;
-using API.MangaConnectors;
+using API.Connectors;
 using API.HttpRequesters;
 using API.Schema.SeriesContext;
 using Moq;
 using Xunit;
 
-namespace API.Tests.Unit.MangaConnectors;
+namespace API.Tests.Unit.Connectors;
 
 public class MangaworldTests
 {

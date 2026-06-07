@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using API.MangaConnectors;
+using API.Connectors;
 using Microsoft.EntityFrameworkCore;
 
 namespace API.Schema.SeriesContext;

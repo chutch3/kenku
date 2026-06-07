@@ -1,5 +1,5 @@
 using API;
-using API.MangaConnectors;
+using API.Connectors;
 using API.HttpRequesters;
 using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;

@@ -6,7 +6,7 @@ using API.JobRuntime.Interfaces;
 using API.Acquirers;
 using API.JobRuntime;
 using API.JobRuntime.Handlers;
-using API.MangaConnectors;
+using API.Connectors;
 using API.Notifications;
 using API.Schema.ActionsContext;
 using API.Schema.ActionsContext.Actions;

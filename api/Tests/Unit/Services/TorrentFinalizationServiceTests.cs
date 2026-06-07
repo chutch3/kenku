@@ -3,7 +3,7 @@ using System.IO.Compression;
 using API;
 using API.Acquirers;
 using API.DownloadClients;
-using API.MangaConnectors;
+using API.Connectors;
 using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;
 using API.Services;

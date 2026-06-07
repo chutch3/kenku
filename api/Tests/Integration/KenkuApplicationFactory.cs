@@ -50,8 +50,8 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
     public IReadOnlyList<API.JobRuntime.Interfaces.IJobHandler> ExtraJobHandlers { get; init; } = [];
 
     /// <summary>Extra connectors to register, so a download/sync job can be driven against a stubbed
-    /// <see cref="API.MangaConnectors.SeriesSource"/> without real network.</summary>
-    public IReadOnlyList<API.MangaConnectors.SeriesSource> ExtraConnectors { get; init; } = [];
+    /// <see cref="API.Connectors.SeriesSource"/> without real network.</summary>
+    public IReadOnlyList<API.Connectors.SeriesSource> ExtraConnectors { get; init; } = [];
 
     /// <summary>Optional clock override so a test can control backoff/lease/scheduling windows without real
     /// waits — the time "edge", swapped like the DB and network edges. When set, replaces the singleton
@@ -113,7 +113,7 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
             foreach (API.JobRuntime.Interfaces.IJobHandler handler in ExtraJobHandlers)
                 services.AddSingleton(handler);
 
-            foreach (API.MangaConnectors.SeriesSource connector in ExtraConnectors)
+            foreach (API.Connectors.SeriesSource connector in ExtraConnectors)
                 services.AddSingleton(connector);
         });
     }

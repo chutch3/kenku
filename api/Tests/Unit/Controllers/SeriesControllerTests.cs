@@ -30,10 +30,10 @@ public class MangaControllerTests
     private static SeriesController CreateController(
         SeriesContext ctx, 
         ActionsContext actionsCtx, 
-        IEnumerable<API.MangaConnectors.SeriesSource>? connectors = null)
+        IEnumerable<API.Connectors.SeriesSource>? connectors = null)
     {
         var settings = new KenkuSettings { AppData = Path.GetTempPath() };
-        var connectorsList = connectors ?? Enumerable.Empty<API.MangaConnectors.SeriesSource>();
+        var connectorsList = connectors ?? Enumerable.Empty<API.Connectors.SeriesSource>();
         var controller = new SeriesController(ctx, actionsCtx, settings, connectorsList);
         controller.ControllerContext = new ControllerContext
         {
@@ -69,7 +69,7 @@ public class MangaControllerTests
         var manga = MakeTestManga("New Series");
         var connectorId = new ConnectorId(manga, "MangaDex", "ext-id", null);
 
-        var mockConnector = new Mock<API.MangaConnectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
+        var mockConnector = new Mock<API.Connectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
         mockConnector.Setup(c => c.GetMangaFromId("ext-id")).ReturnsAsync((manga, connectorId));
 
         var controller = CreateController(ctx, actionsCtx, [mockConnector.Object]);

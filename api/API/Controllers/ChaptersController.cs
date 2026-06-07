@@ -1,7 +1,7 @@
 using API.Services.Interfaces;
 using API.Controllers.DTOs;
 using API.Controllers.Requests;
-using API.MangaConnectors;
+using API.Connectors;
 using API.Schema.SeriesContext;
 using API.Services;
 using Asp.Versioning;
@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using static Microsoft.AspNetCore.Http.StatusCodes;
 using Chapter = API.Controllers.DTOs.Chapter;
-using MangaConnectorImpl = API.MangaConnectors.SeriesSource;
+using MangaConnectorImpl = API.Connectors.SeriesSource;
 
 
 // ReSharper disable InconsistentNaming
@@ -269,14 +269,14 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
     }
 
     /// <summary>
-    /// (Un-)Marks <see cref="Chapter"/> as requested for Download from <see cref="API.MangaConnectors.SeriesSource"/>
+    /// (Un-)Marks <see cref="Chapter"/> as requested for Download from <see cref="API.Connectors.SeriesSource"/>
     /// </summary>
     /// <param name="ChapterId"><see cref="Chapter"/> with <paramref name="ChapterId"/></param>
-    /// <param name="MangaConnectorName"><see cref="API.MangaConnectors.SeriesSource"/> with <paramref name="MangaConnectorName"/></param>
+    /// <param name="MangaConnectorName"><see cref="API.Connectors.SeriesSource"/> with <paramref name="MangaConnectorName"/></param>
     /// <param name="IsRequested">true to mark as requested, false to mark as not-requested</param>
     /// <response code="200"></response>
     /// <response code="404"><paramref name="ChapterId"/> or <paramref name="MangaConnectorName"/> not found</response>
-    /// <response code="428"><see cref="Chapter"/> is not linked to <see cref="API.MangaConnectors.SeriesSource"/> yet. Search for <see cref="Chapter"/> on <see cref="API.MangaConnectors.SeriesSource"/> first (to create a <see cref="DTOs.SourceId{T}"/>).</response>
+    /// <response code="428"><see cref="Chapter"/> is not linked to <see cref="API.Connectors.SeriesSource"/> yet. Search for <see cref="Chapter"/> on <see cref="API.Connectors.SeriesSource"/> first (to create a <see cref="DTOs.SourceId{T}"/>).</response>
     /// <response code="500">Error during Database Operation</response>
     [HttpPatch("{ChapterId}/DownloadFrom/{MangaConnectorName}/{IsRequested}")]
     [ProducesResponseType(Status200OK)]

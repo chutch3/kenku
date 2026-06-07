@@ -2,7 +2,7 @@ using API.JobRuntime.Interfaces;
 using API.JobRuntime.Reconcilers;
 using API.JobRuntime;
 using API.JobRuntime.Handlers;
-using API.MangaConnectors;
+using API.Connectors;
 using API.Schema.SeriesContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

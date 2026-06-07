@@ -5,7 +5,7 @@ using API.Acquirers;
 using API.DownloadClients;
 using API.JobRuntime;
 using API.JobRuntime.Handlers;
-using API.MangaConnectors;
+using API.Connectors;
 using API.Schema.SeriesContext;
 using Microsoft.EntityFrameworkCore;
 using Moq;

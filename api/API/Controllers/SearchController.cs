@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using API.Controllers.DTOs;
-using API.MangaConnectors;
-using MangaConnectorImpl = API.MangaConnectors.SeriesSource;
+using API.Connectors;
+using MangaConnectorImpl = API.Connectors.SeriesSource;
 using API.Schema.SeriesContext;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;

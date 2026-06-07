@@ -2,7 +2,7 @@ using API.HttpRequesters.Interfaces;
 using System.Net;
 using API;
 using API.HttpRequesters;
-using API.MangaConnectors;
+using API.Connectors;
 using API.Schema.ActionsContext;
 using API.Schema.ActionsContext.Actions;
 using API.Schema.SeriesContext;

@@ -3,7 +3,7 @@ using API.JobRuntime.Reconcilers;
 using System.Text.Json;
 using API.JobRuntime;
 using API.JobRuntime.Handlers;
-using API.MangaConnectors;
+using API.Connectors;
 using API.HttpRequesters;
 using API.Schema.SeriesContext;
 using API.Services;

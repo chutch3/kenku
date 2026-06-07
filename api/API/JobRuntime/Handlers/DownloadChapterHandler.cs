@@ -2,7 +2,7 @@ using API.Acquirers.Interfaces;
 using API.JobRuntime.Interfaces;
 using System.Text.Json;
 using API.Acquirers;
-using API.MangaConnectors;
+using API.Connectors;
 using API.Schema.ActionsContext;
 using API.Schema.JobsContext;
 using API.Schema.SeriesContext;

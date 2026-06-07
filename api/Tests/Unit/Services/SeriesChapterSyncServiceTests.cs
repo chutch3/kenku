@@ -1,4 +1,4 @@
-using API.MangaConnectors;
+using API.Connectors;
 using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;
 using API.Services;

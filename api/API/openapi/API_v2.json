@@ -623,7 +623,7 @@
         "tags": [
           "Chapters"
         ],
-        "summary": "(Un-)Marks API.Controllers.DTOs.Chapter as requested for Download from API.MangaConnectors.SeriesSource",
+        "summary": "(Un-)Marks API.Controllers.DTOs.Chapter as requested for Download from API.Connectors.SeriesSource",
         "parameters": [
           {
             "name": "ChapterId",
@@ -637,7 +637,7 @@
           {
             "name": "MangaConnectorName",
             "in": "path",
-            "description": "API.MangaConnectors.SeriesSource with MangaConnectorName",
+            "description": "API.Connectors.SeriesSource with MangaConnectorName",
             "required": true,
             "schema": {
               "type": "string"
@@ -678,7 +678,7 @@
             }
           },
           "428": {
-            "description": "API.Controllers.DTOs.Chapter is not linked to API.MangaConnectors.SeriesSource yet. Search for API.Controllers.DTOs.Chapter on API.MangaConnectors.SeriesSource first (to create a API.Controllers.DTOs.SourceId`1).",
+            "description": "API.Controllers.DTOs.Chapter is not linked to API.Connectors.SeriesSource yet. Search for API.Controllers.DTOs.Chapter on API.Connectors.SeriesSource first (to create a API.Controllers.DTOs.SourceId`1).",
             "content": {
               "text/plain; x-version=2.0": {
                 "schema": {
@@ -2824,12 +2824,12 @@
         "tags": [
           "Search"
         ],
-        "summary": "Initiate a search for a API.Schema.SeriesContext.Series on API.Controllers.DTOs.SeriesSource with searchTerm",
+        "summary": "Initiate a search for a API.Schema.SeriesContext.Series on API.Connectors.SeriesSource with searchTerm",
         "parameters": [
           {
             "name": "MangaConnectorName",
             "in": "path",
-            "description": "API.Controllers.DTOs.SeriesSource.Name",
+            "description": "API.Connectors.SeriesSource.Name",
             "required": true,
             "schema": {
               "type": "string"
@@ -2860,7 +2860,7 @@
             }
           },
           "404": {
-            "description": "API.Controllers.DTOs.SeriesSource with Name not found",
+            "description": "API.Connectors.SeriesSource with Name not found",
             "content": {
               "text/plain; x-version=2.0": {
                 "schema": {
@@ -2890,7 +2890,7 @@
             }
           },
           "412": {
-            "description": "API.Controllers.DTOs.SeriesSource with Name is disabled"
+            "description": "API.Connectors.SeriesSource with Name is disabled"
           }
         }
       }
@@ -2900,12 +2900,12 @@
         "tags": [
           "Search"
         ],
-        "summary": "Returns full API.Schema.SeriesContext.Series detail from a API.Controllers.DTOs.SeriesSource by its site ID, without saving to the database",
+        "summary": "Returns full API.Schema.SeriesContext.Series detail from a API.Connectors.SeriesSource by its site ID, without saving to the database",
         "parameters": [
           {
             "name": "MangaConnectorName",
             "in": "path",
-            "description": "API.Controllers.DTOs.SeriesSource.Name",
+            "description": "API.Connectors.SeriesSource.Name",
             "required": true,
             "schema": {
               "type": "string"
@@ -2949,7 +2949,7 @@
         "tags": [
           "Search"
         ],
-        "summary": "Returns API.Schema.SeriesContext.Series from the API.Controllers.DTOs.SeriesSource associated with url",
+        "summary": "Returns API.Schema.SeriesContext.Series from the API.Connectors.SeriesSource associated with url",
         "parameters": [
           {
             "name": "url",
@@ -3025,7 +3025,7 @@
         "tags": [
           "Series"
         ],
-        "summary": "Returns all API.Schema.SeriesContext.Series that are being downloaded from at least one API.MangaConnectors.SeriesSource",
+        "summary": "Returns all API.Schema.SeriesContext.Series that are being downloaded from at least one API.Connectors.SeriesSource",
         "responses": {
           "200": {
             "description": "API.Controllers.DTOs.MinimalSeries exert of API.Schema.SeriesContext.Series. Use M:API.Controllers.SeriesController.GetManga(System.String) for more information",
@@ -3326,7 +3326,7 @@
         "tags": [
           "Series"
         ],
-        "summary": "(Un-)Marks API.Controllers.DTOs.Series as requested for Download from API.MangaConnectors.SeriesSource",
+        "summary": "(Un-)Marks API.Controllers.DTOs.Series as requested for Download from API.Connectors.SeriesSource",
         "parameters": [
           {
             "name": "MangaId",
@@ -3340,7 +3340,7 @@
           {
             "name": "MangaConnectorName",
             "in": "path",
-            "description": "API.MangaConnectors.SeriesSource with MangaConnectorName",
+            "description": "API.Connectors.SeriesSource with MangaConnectorName",
             "required": true,
             "schema": {
               "type": "string"
@@ -3381,7 +3381,7 @@
             }
           },
           "412": {
-            "description": "API.Controllers.DTOs.Series was not linked to API.MangaConnectors.SeriesSource, so nothing changed",
+            "description": "API.Controllers.DTOs.Series was not linked to API.Connectors.SeriesSource, so nothing changed",
             "content": {
               "text/plain; x-version=2.0": {
                 "schema": {
@@ -3391,7 +3391,7 @@
             }
           },
           "428": {
-            "description": "API.Controllers.DTOs.Series is not linked to API.MangaConnectors.SeriesSource yet. Search for API.Controllers.DTOs.Series on API.MangaConnectors.SeriesSource first (to create a API.Controllers.DTOs.SourceId`1).",
+            "description": "API.Controllers.DTOs.Series is not linked to API.Connectors.SeriesSource yet. Search for API.Controllers.DTOs.Series on API.Connectors.SeriesSource first (to create a API.Controllers.DTOs.SourceId`1).",
             "content": {
               "text/plain; x-version=2.0": {
                 "schema": {
@@ -3408,7 +3408,7 @@
         "tags": [
           "Series"
         ],
-        "summary": "Initiate a search for API.Schema.SeriesContext.Series on a different API.MangaConnectors.SeriesSource",
+        "summary": "Initiate a search for API.Schema.SeriesContext.Series on a different API.Connectors.SeriesSource",
         "parameters": [
           {
             "name": "MangaId",
@@ -3422,7 +3422,7 @@
           {
             "name": "MangaConnectorName",
             "in": "path",
-            "description": "API.MangaConnectors.SeriesSource.Name",
+            "description": "API.Connectors.SeriesSource.Name",
             "required": true,
             "schema": {
               "type": "string"
@@ -3444,7 +3444,7 @@
             }
           },
           "404": {
-            "description": "API.MangaConnectors.SeriesSource with Name not found",
+            "description": "API.Connectors.SeriesSource with Name not found",
             "content": {
               "text/plain; x-version=2.0": {
                 "schema": {
@@ -3474,7 +3474,7 @@
             }
           },
           "412": {
-            "description": "API.MangaConnectors.SeriesSource with Name is disabled"
+            "description": "API.Connectors.SeriesSource with Name is disabled"
           }
         }
       }
@@ -3751,10 +3751,10 @@
         "tags": [
           "SeriesSource"
         ],
-        "summary": "Get all API.MangaConnectors.SeriesSource (Scanlation-Sites)",
+        "summary": "Get all API.Connectors.SeriesSource (Scanlation-Sites)",
         "responses": {
           "200": {
-            "description": "Names of API.MangaConnectors.SeriesSource (Scanlation-Sites)",
+            "description": "Names of API.Connectors.SeriesSource (Scanlation-Sites)",
             "content": {
               "application/json; x-version=2.0": {
                 "schema": {
@@ -3774,12 +3774,12 @@
         "tags": [
           "SeriesSource"
         ],
-        "summary": "Returns the API.MangaConnectors.SeriesSource (Scanlation-Sites) with the requested Name",
+        "summary": "Returns the API.Connectors.SeriesSource (Scanlation-Sites) with the requested Name",
         "parameters": [
           {
             "name": "MangaConnectorName",
             "in": "path",
-            "description": "API.MangaConnectors.SeriesSource.Name",
+            "description": "API.Connectors.SeriesSource.Name",
             "required": true,
             "schema": {
               "type": "string"
@@ -3815,7 +3815,7 @@
         "tags": [
           "SeriesSource"
         ],
-        "summary": "Get all API.MangaConnectors.SeriesSource (Scanlation-Sites) with Enabled-Status",
+        "summary": "Get all API.Connectors.SeriesSource (Scanlation-Sites) with Enabled-Status",
         "parameters": [
           {
             "name": "Enabled",
@@ -3848,12 +3848,12 @@
         "tags": [
           "SeriesSource"
         ],
-        "summary": "Enabled or disables API.MangaConnectors.SeriesSource (Scanlation-Sites) with Name",
+        "summary": "Enabled or disables API.Connectors.SeriesSource (Scanlation-Sites) with Name",
         "parameters": [
           {
             "name": "MangaConnectorName",
             "in": "path",
-            "description": "API.MangaConnectors.SeriesSource.Name",
+            "description": "API.Connectors.SeriesSource.Name",
             "required": true,
             "schema": {
               "type": "string"
@@ -3874,7 +3874,7 @@
             "description": ""
           },
           "404": {
-            "description": "API.MangaConnectors.SeriesSource (Scanlation-Sites) with Name not found.",
+            "description": "API.Connectors.SeriesSource (Scanlation-Sites) with Name not found.",
             "content": {
               "text/plain; x-version=2.0": {
                 "schema": {

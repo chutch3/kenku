@@ -1,5 +1,5 @@
 ﻿using API.Controllers.DTOs;
-using API.MangaConnectors;
+using API.Connectors;
 using API.Schema.ActionsContext;
 using API.Schema.ActionsContext.Actions;
 using API.Schema.SeriesContext;
@@ -15,7 +15,7 @@ using Author = API.Controllers.DTOs.Author;
 using Chapter = API.Schema.SeriesContext.Chapter;
 using Link = API.Controllers.DTOs.Link;
 using Series = API.Controllers.DTOs.Series;
-using MangaConnectorImpl = API.MangaConnectors.SeriesSource;
+using MangaConnectorImpl = API.Connectors.SeriesSource;
 
 // ReSharper disable InconsistentNaming
 
@@ -51,7 +51,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     }
     
     /// <summary>
-    /// Returns all <see cref="Schema.SeriesContext.Series"/> that are being downloaded from at least one <see cref="API.MangaConnectors.SeriesSource"/>
+    /// Returns all <see cref="Schema.SeriesContext.Series"/> that are being downloaded from at least one <see cref="API.Connectors.SeriesSource"/>
     /// </summary>
     /// <response code="200"><see cref="MinimalSeries"/> exert of <see cref="Schema.SeriesContext.Series"/>. Use <see cref="GetManga"/> for more information</response>
     /// <response code="500">Error during Database Operation</response>
@@ -263,15 +263,15 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     }
 
     /// <summary>
-    /// (Un-)Marks <see cref="Series"/> as requested for Download from <see cref="API.MangaConnectors.SeriesSource"/>
+    /// (Un-)Marks <see cref="Series"/> as requested for Download from <see cref="API.Connectors.SeriesSource"/>
     /// </summary>
     /// <param name="MangaId"><see cref="Series"/> with <paramref name="MangaId"/></param>
-    /// <param name="MangaConnectorName"><see cref="API.MangaConnectors.SeriesSource"/> with <paramref name="MangaConnectorName"/></param>
+    /// <param name="MangaConnectorName"><see cref="API.Connectors.SeriesSource"/> with <paramref name="MangaConnectorName"/></param>
     /// <param name="IsRequested">true to mark as requested, false to mark as not-requested</param>
     /// <response code="200"></response>
     /// <response code="404"><paramref name="MangaId"/> or <paramref name="MangaConnectorName"/> not found</response>
-    /// <response code="412"><see cref="Series"/> was not linked to <see cref="API.MangaConnectors.SeriesSource"/>, so nothing changed</response>
-    /// <response code="428"><see cref="Series"/> is not linked to <see cref="API.MangaConnectors.SeriesSource"/> yet. Search for <see cref="Series"/> on <see cref="API.MangaConnectors.SeriesSource"/> first (to create a <see cref="DTOs.SourceId{T}"/>).</response>
+    /// <response code="412"><see cref="Series"/> was not linked to <see cref="API.Connectors.SeriesSource"/>, so nothing changed</response>
+    /// <response code="428"><see cref="Series"/> is not linked to <see cref="API.Connectors.SeriesSource"/> yet. Search for <see cref="Series"/> on <see cref="API.Connectors.SeriesSource"/> first (to create a <see cref="DTOs.SourceId{T}"/>).</response>
     /// <response code="500">Error during Database Operation</response>
     [HttpPatch("{MangaId}/DownloadFrom/{MangaConnectorName}/{IsRequested}")]
     [ProducesResponseType(Status200OK)]
@@ -329,13 +329,13 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     }
     
     /// <summary>
-    /// Initiate a search for <see cref="API.Schema.SeriesContext.Series"/> on a different <see cref="API.MangaConnectors.SeriesSource"/>
+    /// Initiate a search for <see cref="API.Schema.SeriesContext.Series"/> on a different <see cref="API.Connectors.SeriesSource"/>
     /// </summary>
     /// <param name="MangaId"><see cref="API.Schema.SeriesContext.Series"/> with <paramref name="MangaId"/></param>
-    /// <param name="MangaConnectorName"><see cref="API.MangaConnectors.SeriesSource"/>.Name</param>
+    /// <param name="MangaConnectorName"><see cref="API.Connectors.SeriesSource"/>.Name</param>
     /// <response code="200"><see cref="MinimalSeries"/> exert of <see cref="Schema.SeriesContext.Series"/></response>
-    /// <response code="404"><see cref="API.MangaConnectors.SeriesSource"/> with Name not found</response>
-    /// <response code="412"><see cref="API.MangaConnectors.SeriesSource"/> with Name is disabled</response>
+    /// <response code="404"><see cref="API.Connectors.SeriesSource"/> with Name not found</response>
+    /// <response code="412"><see cref="API.Connectors.SeriesSource"/> with Name is disabled</response>
     [HttpGet("{MangaId}/OnMangaConnector/{MangaConnectorName}")]
     [ProducesResponseType<List<MinimalSeries>>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]

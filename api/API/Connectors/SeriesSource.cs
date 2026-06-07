@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 
-namespace API.MangaConnectors;
+namespace API.Connectors;
 
 [PrimaryKey("Name")]
 [Table("MangaConnector")] // Existing DB table; a follow-up hand-crafted migration is needed to rename to "SeriesSource" (see TECHNICAL_DEBT.md).

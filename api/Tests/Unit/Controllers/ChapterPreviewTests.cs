@@ -52,7 +52,7 @@ public class ChapterPreviewTests : IDisposable
 
     private ChaptersController CreateController(SeriesContext ctx, IChapterThumbnailService? thumbnailService = null)
     {
-        var connectors = Enumerable.Empty<API.MangaConnectors.SeriesSource>();
+        var connectors = Enumerable.Empty<API.Connectors.SeriesSource>();
         thumbnailService ??= new ChapterThumbnailService();
 
         var controller = new ChaptersController(ctx, _settings, connectors, thumbnailService);
@@ -189,7 +189,7 @@ public class ChapterPreviewTests : IDisposable
         var service = new ChapterThumbnailService();
 
         var controller = new ChaptersController(ctx, _settings,
-            Enumerable.Empty<API.MangaConnectors.SeriesSource>(), service);
+            Enumerable.Empty<API.Connectors.SeriesSource>(), service);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
 
         string cachePath = Path.Combine(_previewsDir, $"{chapter.Key}.jpg");

@@ -1,6 +1,6 @@
 using System.IO.Compression;
 using API.Acquirers;
-using API.MangaConnectors;
+using API.Connectors;
 using API.Schema.SeriesContext;
 using Moq;
 using SixLabors.ImageSharp;

@@ -2,12 +2,12 @@ using API.Indexers.Interfaces;
 using API;
 using API.Acquirers;
 using API.Indexers;
-using API.MangaConnectors;
+using API.Connectors;
 using API.Schema.SeriesContext;
 using Moq;
 using Xunit;
 
-namespace API.Tests.Unit.MangaConnectors;
+namespace API.Tests.Unit.Connectors;
 
 public class IndexerBackedSeriesSourceTests
 {

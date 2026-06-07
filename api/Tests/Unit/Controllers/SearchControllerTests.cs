@@ -28,7 +28,7 @@ public class SearchControllerTests
         SeriesContext ctx,
         Func<string, string, (SchemaManga, SchemaConnectorId)?>? connectorLookup = null)
     {
-        var connectors = Enumerable.Empty<API.MangaConnectors.SeriesSource>();
+        var connectors = Enumerable.Empty<API.Connectors.SeriesSource>();
         var controller = new SearchController(ctx, connectors, connectorLookup ?? ((_, _) => null));
         controller.ControllerContext = new ControllerContext
         {
@@ -125,7 +125,7 @@ public class SearchControllerTests
         var manga = MakeTestManga("One Punch Man", "http://example.com/opm.jpg");
         var connectorId = MakeConnectorId(manga, "MangaDex", "opm-id");
 
-        var mockConnector = new Mock<API.MangaConnectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
+        var mockConnector = new Mock<API.Connectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
         mockConnector.Setup(c => c.SearchManga(It.IsAny<string>())).ReturnsAsync([(manga, connectorId)]);
         // Enabled is true by default, and Name is set in constructor.
 
@@ -180,7 +180,7 @@ public class SearchControllerTests
         ctx.MangaConnectorToManga.Add(connectorId);
         ctx.SaveChanges();
 
-        var mockConnector = new Mock<API.MangaConnectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
+        var mockConnector = new Mock<API.Connectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
         mockConnector.Setup(c => c.SearchManga(It.IsAny<string>())).ReturnsAsync([(manga, connectorId)]);
 
         var controller = CreateController(ctx);

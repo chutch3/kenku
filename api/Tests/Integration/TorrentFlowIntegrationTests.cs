@@ -5,7 +5,7 @@ using API;
 using API.Acquirers;
 using API.Extensions;
 using API.Indexers;
-using API.MangaConnectors;
+using API.Connectors;
 using API.HttpRequesters;
 using API.DownloadClients;
 using log4net;

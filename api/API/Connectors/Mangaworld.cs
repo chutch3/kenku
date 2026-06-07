@@ -10,7 +10,7 @@ using HtmlAgilityPack;
 
 using API.Acquirers;
 
-namespace API.MangaConnectors;
+namespace API.Connectors;
 
 public sealed class Mangaworld : SeriesSource
 {

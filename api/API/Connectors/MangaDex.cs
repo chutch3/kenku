@@ -8,7 +8,7 @@ using Newtonsoft.Json.Linq;
 
 using API.Acquirers;
 
-namespace API.MangaConnectors;
+namespace API.Connectors;
 
 public class MangaDex : SeriesSource
 {

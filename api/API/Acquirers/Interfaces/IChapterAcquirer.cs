@@ -1,4 +1,4 @@
-using API.MangaConnectors;
+using API.Connectors;
 using API.Schema.SeriesContext;
 
 namespace API.Acquirers.Interfaces;

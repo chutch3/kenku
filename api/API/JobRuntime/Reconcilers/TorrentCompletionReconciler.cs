@@ -3,7 +3,7 @@ using API.JobRuntime.Interfaces;
 using API.Acquirers;
 using API.DownloadClients;
 using API.JobRuntime.Handlers;
-using API.MangaConnectors;
+using API.Connectors;
 using API.Schema.JobsContext;
 using API.Schema.SeriesContext;
 using log4net;

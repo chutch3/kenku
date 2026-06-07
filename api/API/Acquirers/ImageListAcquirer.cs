@@ -1,7 +1,7 @@
 using API.Acquirers.Interfaces;
 using System.IO.Compression;
 using System.Text;
-using API.MangaConnectors;
+using API.Connectors;
 using API.Schema.SeriesContext;
 using log4net;
 using SixLabors.ImageSharp;
