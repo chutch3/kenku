@@ -59,13 +59,8 @@ public class Kenku
 
     internal void AddDefaultWorkers()
     {
-        // Cover refresh, chapter file placement, volume resolution, VolumeCBZ bundling, cleanup, metadata
-        // and notifications are handled by the runtime's hosted reconcilers + jobs.
-
-        // Torrent completion worker is registered only when the torrent path is configured;
-        // skip silently if absent so deployments without Prowlarr+qBittorrent are unaffected.
-        if (_serviceProvider.GetService<TorrentCompletionWorker>() is { } torrentWorker)
-            _workerQueue.AddWorker(torrentWorker);
+        // Cover refresh, chapter file placement, volume resolution, VolumeCBZ bundling, torrent completion,
+        // cleanup, metadata and notifications are handled by the runtime's hosted reconcilers + jobs.
 
         if(Constants.UpdateChaptersDownloadedBeforeStarting)
             _workerQueue.AddWorker(GetWorker<UpdateChaptersDownloadedWorker>());

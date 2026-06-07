@@ -3,7 +3,6 @@ using API.Indexers;
 using API.MangaConnectors;
 using API.HttpRequesters;
 using API.DownloadClients;
-using API.Workers.PeriodicWorkers;
 using log4net;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -83,7 +82,7 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredService<ReleaseSelector>(),
                 new TorrentAcquirerSettings(settings.TorrentStagingDirectory, settings.IndexerComicCategories)));
 
-        services.AddSingleton<TorrentCompletionWorker>();
+        services.AddHostedService<API.JobRuntime.TorrentCompletionReconciler>();
 
         return services;
     }

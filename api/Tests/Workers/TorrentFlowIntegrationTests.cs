@@ -5,7 +5,6 @@ using API.Indexers;
 using API.MangaConnectors;
 using API.HttpRequesters;
 using API.DownloadClients;
-using API.Workers.PeriodicWorkers;
 using log4net;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -46,7 +45,6 @@ public class TorrentFlowIntegrationTests
         Assert.NotNull(provider.GetService<IDownloadClientFactory>());
         Assert.NotNull(provider.GetService<IDownloadClient>());
         Assert.NotNull(provider.GetService<IChapterAcquirer>());
-        Assert.NotNull(provider.GetService<TorrentCompletionWorker>());
     }
 
     [Fact]
@@ -62,7 +60,6 @@ public class TorrentFlowIntegrationTests
         // Acquisition path is gated on an enabled download client.
         Assert.Null(provider.GetService<IDownloadClient>());
         Assert.Null(provider.GetService<IChapterAcquirer>());
-        Assert.Null(provider.GetService<TorrentCompletionWorker>());
     }
 
     [Fact]
