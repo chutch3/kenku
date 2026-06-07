@@ -13,6 +13,20 @@ jobs:
     defaults:
       run:
         working-directory: ./api
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: kenku
+          POSTGRES_PASSWORD: kenku_test
+          POSTGRES_DB: postgres
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout
         uses: actions/checkout@v6
