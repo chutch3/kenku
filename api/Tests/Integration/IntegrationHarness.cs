@@ -1,12 +1,7 @@
-using System.Text.Json;
 using API;
-using API.JobRuntime;
-using API.JobRuntime.Handlers;
 using API.Schema.ActionsContext;
-using API.Schema.JobsContext;
 using API.Schema.NotificationsContext;
 using API.Schema.SeriesContext;
-using API.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -63,29 +58,6 @@ public sealed class IntegrationHarness : IDisposable
     {
         using var scope = _root.CreateScope();
         return await query(scope.ServiceProvider.GetRequiredService<SeriesContext>());
-    }
-
-    /// <summary>
-    /// Reconcile chapter file placement the way the runtime does: scan for drifted chapters, enqueue
-    /// PlaceChapterFile jobs, then run each job's placement logic in its own fresh scope (#19). Returns
-    /// the jobs enqueued.
-    /// </summary>
-    public async Task<IReadOnlyList<Job>> ReconcileChapterFilePlacement()
-    {
-        var store = new InMemoryJobStore();
-        using (var scope = CreateScope())
-            await ChapterFilePlacementReconciler.ScanAndEnqueueAsync(
-                scope.ServiceProvider.GetRequiredService<SeriesContext>(), store, Settings, DateTime.UtcNow, default);
-
-        IReadOnlyList<Job> jobs = await store.GetAllAsync();
-        foreach (Job job in jobs)
-        {
-            PlaceChapterFilePayload payload = JsonSerializer.Deserialize<PlaceChapterFilePayload>(job.Payload)!;
-            using var scope = CreateScope();
-            await new ChapterFilePlacementService(Settings).PlaceAsync(
-                scope.ServiceProvider.GetRequiredService<SeriesContext>(), payload.ChapterKey, payload.TargetFileName, default);
-        }
-        return jobs;
     }
 
     public void Dispose()
