@@ -173,8 +173,9 @@ public class ChapterDownloadServiceTests
         var serviceProvider = services.BuildServiceProvider();
 
         
-        // 2. Act - Try to download
-        await RunDownload(serviceProvider, settings, mockConnector.Object, connectorId.Key);
+        // 2. Act - failures now throw so the dispatcher can record them
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => RunDownload(serviceProvider, settings, mockConnector.Object, connectorId.Key));
 
         // 3. Assert - The chapter should NOT be marked as downloaded
         var updatedChapter = await context.Chapters.FirstAsync(c => c.Key == chapter.Key);

@@ -44,9 +44,10 @@ public class DownloadChapterHandler(IServiceScopeFactory scopeFactory) : IJobHan
             new LibraryLayoutResolver(),
             provider.GetRequiredService<API.Notifications.Interfaces.INotificationDispatcher>());
 
-        await service.DownloadAsync(
-            provider.GetRequiredService<SeriesContext>(),
-            provider.GetRequiredService<ActionsContext>(),
-            payload.ChapterKey, ct);
+        if (!await service.DownloadAsync(
+                provider.GetRequiredService<SeriesContext>(),
+                provider.GetRequiredService<ActionsContext>(),
+                payload.ChapterKey, ct))
+            return; // already downloaded — idempotent success
     }
 }

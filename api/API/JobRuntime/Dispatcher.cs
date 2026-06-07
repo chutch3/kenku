@@ -65,6 +65,10 @@ public class Dispatcher
             job.LeasedUntil = null;
             job.FinishedAt = _clock.UtcNow;
         }
+        catch (OperationCanceledException)
+        {
+            Fail(job, "Timed out waiting for a network request or rate-limit slot.", retryable: true);
+        }
         catch (Exception e)
         {
             Fail(job, e.Message, retryable: true);

@@ -20,8 +20,8 @@ namespace API.Services;
 /// <summary>
 /// Downloads a single chapter: resolve it, fetch+package the .cbz via the <see cref="IChapterAcquirer"/>,
 /// mark it Downloaded, propagate the series cover, and enqueue any volume that just became ready to bundle.
-/// This is the domain logic shared by the legacy download worker and the DownloadChapter job handler, so
-/// both behave identically during the migration. Idempotent: an already-downloaded chapter is a no-op.
+/// Idempotent: an already-downloaded chapter returns false without throwing. Any other failure throws so
+/// the caller (dispatcher) records the error and applies bounded retry.
 /// </summary>
 public class ChapterDownloadService(
     KenkuSettings settings,
@@ -36,7 +36,7 @@ public class ChapterDownloadService(
 
     private static readonly ILog Log = LogManager.GetLogger(typeof(ChapterDownloadService));
 
-    /// <summary>Returns true if the chapter was downloaded; false on any skip or failure.</summary>
+    /// <summary>Returns true if the chapter was downloaded; false only when already downloaded (idempotent no-op).</summary>
     public async Task<bool> DownloadAsync(SeriesContext seriesContext, ActionsContext actionsContext, string chapterKey, CancellationToken ct)
     {
         Log.Debug($"Downloading chapter for SourceId {chapterKey}...");
@@ -48,10 +48,7 @@ public class ChapterDownloadService(
                 .ThenInclude(c => c.ParentManga)
                 .ThenInclude(m => m.SourceIds) // cover propagation reads ParentManga.SourceIds — must be loaded
                 .FirstOrDefaultAsync(c => c.Key == chapterKey, ct) is not { } mangaConnectorId)
-        {
-            Log.Error("Could not get SourceId.");
-            return false;
-        }
+            throw new InvalidOperationException($"SourceId '{chapterKey}' not found.");
 
         if (await mangaConnectorId.Obj.CheckDownloaded(seriesContext, settings.ChapterNamingScheme, token: ct))
         {
@@ -61,19 +58,13 @@ public class ChapterDownloadService(
 
         SeriesSource? seriesSource = connectors.FirstOrDefault(c => c.Name.Equals(mangaConnectorId.MangaConnectorName, StringComparison.InvariantCultureIgnoreCase));
         if (seriesSource is null)
-        {
-            Log.Error("Could not get SeriesSource.");
-            return false;
-        }
+            throw new InvalidOperationException($"SeriesSource '{mangaConnectorId.MangaConnectorName}' is not registered.");
 
         Log.Debug($"Downloading chapter for SourceId {mangaConnectorId}...");
 
         Chapter chapter = mangaConnectorId.Obj;
         if (chapter.ParentManga.LibraryId is null)
-        {
-            Log.Info($"Library is not set for {chapter.ParentManga} {chapter}");
-            return false;
-        }
+            throw new InvalidOperationException($"Library is not set for {chapter.ParentManga} {chapter}.");
 
         // Place the chapter according to the series' LibraryLayout (Flat / Vol N folder) rather than
         // always at the series root. Volume-less chapters fall back to the root (see resolver).
@@ -87,10 +78,10 @@ public class ChapterDownloadService(
         // Pick the acquirer matching the source's delivery Kind; fall back to the historical image-list path.
         IChapterAcquirer acquirer = _acquirers.FirstOrDefault(a => a.Kind == seriesSource.Kind) ?? new ImageListAcquirer(settings);
 
-        // Delegate the actual fetch + package step. Acquirer logs its own errors and returns null on failure.
+        // Delegate the actual fetch + package step. Acquirer returns null on failure.
         string? acquiredPath = await acquirer.AcquireAsync(mangaConnectorId, seriesSource, saveArchiveFilePath, ct);
         if (acquiredPath is null)
-            return false;
+            throw new InvalidOperationException($"Acquirer returned null for chapter {chapter} — download failed.");
 
         try
         {
@@ -141,7 +132,7 @@ public class ChapterDownloadService(
         catch (Exception ex)
         {
             Log.ErrorFormat("Failed to finalise chapter {0}: {1}", chapter, ex);
-            return false; // Fail early!
+            throw;
         }
 
         await EnqueueReadyVolumeBundleJobs(seriesContext, chapter.ParentManga, ct);
