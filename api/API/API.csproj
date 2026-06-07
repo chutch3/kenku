@@ -42,7 +42,7 @@
         <PackageReference Include="Soenneker.Utils.String.NeedlemanWunsch" Version="4.0.983" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
         <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="10.1.0" />
-        <PackageReference Include="PuppeteerSharp" Version="20.2.5" />
+        <PackageReference Include="PuppeteerSharp" Version="25.1.0" />
         <PackageReference Include="System.Drawing.Common" Version="10.0.2" />
     </ItemGroup>
 
