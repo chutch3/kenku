@@ -43,7 +43,13 @@ public class CleanupReconciler(IServiceScopeFactory scopeFactory, IClock clock, 
     public static async Task EnqueueAllAsync(IJobStore store, DateTime now, CancellationToken ct)
     {
         foreach (CleanupKind kind in Enum.GetValues<CleanupKind>())
-            await store.EnqueueAsync(new Job(CleanupHandler.Type, CleanupHandler.PayloadFor(kind), now,
-                dedupKey: DedupKey(kind)), ct);
+        {
+            // Orphaned-file deletion is destructive, so the scheduled run is report-only (dry-run);
+            // actual deletion is requested explicitly via POST /v2/Maintenance/CleanupOrphanedFiles.
+            string payload = kind == CleanupKind.OrphanedFiles
+                ? CleanupHandler.PayloadFor(kind, dryRun: true)
+                : CleanupHandler.PayloadFor(kind);
+            await store.EnqueueAsync(new Job(CleanupHandler.Type, payload, now, dedupKey: DedupKey(kind)), ct);
+        }
     }
 }

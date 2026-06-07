@@ -14,7 +14,9 @@ public enum CleanupKind
     /// <summary>Delete cover-cache files no series references.</summary>
     MangaCovers,
     /// <summary>Delete source-ids whose connector no longer exists (orphans).</summary>
-    OrphanSourceIds
+    OrphanSourceIds,
+    /// <summary>Delete library archive files not tracked as downloaded chapters.</summary>
+    OrphanedFiles
 }
 
 /// <summary>
@@ -58,6 +60,98 @@ public class CleanupService
             Log.InfoFormat("Deleting {0}", path);
             File.Delete(path);
         }
+    }
+
+    /// <summary>Refuse to auto-delete more than this fraction of a library's archives without <c>force</c>.</summary>
+    private const double MaxDeleteFraction = 0.5;
+
+    private static readonly HashSet<string> ArchiveExtensions =
+        new(StringComparer.OrdinalIgnoreCase) { ".cbz", ".zip", ".rar" };
+
+    /// <summary>
+    /// Deletes archive files in each library that aren't tracked as downloaded chapters. Destructive, so:
+    /// <c>dryRun</c> only reports; and without <c>force</c> a library is skipped if none of its archives are
+    /// tracked (misconfigured path) or if a majority look orphaned (partial DB) — guarding against wipes.
+    /// </summary>
+    public async Task CleanupOrphanedFilesAsync(SeriesContext context, bool dryRun, bool force, CancellationToken ct)
+    {
+        Log.Info($"Starting Orphaned Files Cleanup (DryRun: {dryRun}, Force: {force})...");
+
+        List<FileLibrary> libraries = await context.FileLibraries.ToListAsync(ct);
+        List<Chapter> chapters = await context.Chapters
+            .Include(c => c.ParentManga)
+            .ThenInclude(m => m.Library)
+            .Where(c => c.Downloaded && c.FileName != null)
+            .ToListAsync(ct);
+
+        HashSet<string> trackedPaths = new(StringComparer.OrdinalIgnoreCase);
+        foreach (Chapter chapter in chapters)
+            if (chapter.GetFullFilepath(null) is { } path)
+                trackedPaths.Add(Path.GetFullPath(path));
+        Log.Debug($"Found {trackedPaths.Count} tracked files in database.");
+
+        int deletedCount = 0;
+        long deletedSize = 0;
+
+        foreach (FileLibrary library in libraries)
+        {
+            if (!Directory.Exists(library.BasePath))
+            {
+                Log.Warn($"Library path does not exist: {library.BasePath}");
+                continue;
+            }
+
+            Log.Debug($"Scanning library: {library.LibraryName} ({library.BasePath})");
+            List<string> archives = Directory.GetFiles(library.BasePath, "*", SearchOption.AllDirectories)
+                .Select(Path.GetFullPath)
+                .Where(p => ArchiveExtensions.Contains(Path.GetExtension(p)))
+                .ToList();
+            if (archives.Count == 0)
+                continue;
+
+            List<string> orphans = archives.Where(p => !trackedPaths.Contains(p)).ToList();
+            int trackedHere = archives.Count - orphans.Count;
+
+            // Guard 1: on-disk archives but none tracked → misconfigured path / un-imported series, not orphans.
+            if (!force && trackedHere == 0)
+            {
+                Log.Warn($"Skipping cleanup of '{library.LibraryName}' ({library.BasePath}): " +
+                         $"{archives.Count} archive(s) on disk but 0 tracked. Refusing to wipe an untracked library (force=true to override).");
+                continue;
+            }
+
+            // Guard 2: a majority looks orphaned → likely a partial DB, not reality.
+            if (!force && orphans.Count > archives.Count * MaxDeleteFraction)
+            {
+                Log.Warn($"Skipping cleanup of '{library.LibraryName}' ({library.BasePath}): " +
+                         $"{orphans.Count}/{archives.Count} archives appear orphaned (> {MaxDeleteFraction:P0}). Refusing (force=true to override).");
+                continue;
+            }
+
+            foreach (string fullPath in orphans)
+            {
+                FileInfo fileInfo = new(fullPath);
+                Log.Info($"{(dryRun ? "[DRY RUN] Would delete" : "Deleting")} orphaned file: {fullPath} ({fileInfo.Length / 1024.0 / 1024.0:F2} MB)");
+                if (dryRun)
+                {
+                    deletedCount++;
+                    deletedSize += fileInfo.Length;
+                    continue;
+                }
+                try
+                {
+                    File.Delete(fullPath);
+                    deletedCount++;
+                    deletedSize += fileInfo.Length;
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"Failed to delete {fullPath}: {ex.Message}");
+                }
+            }
+        }
+
+        Log.Info($"Cleanup complete. {(dryRun ? "Found" : "Deleted")} {deletedCount} files ({deletedSize / 1024.0 / 1024.0:F2} MB).");
     }
 
     public async Task CleanupOrphanSourceIdsAsync(SeriesContext context, IEnumerable<SeriesSource> connectors, KenkuSettings settings, CancellationToken ct)

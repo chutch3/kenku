@@ -1,7 +1,7 @@
 using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;
 using API.Workers;
-using API.Workers.MaintenanceWorkers;
+using API.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -9,14 +9,13 @@ using Xunit;
 
 namespace API.Tests.Workers;
 
-public class CleanupOrphanedFilesWorkerTests : IDisposable
+public class CleanupServiceTests : IDisposable
 {
     private readonly string _testRoot;
-    private readonly Mock<IServiceScope> _mockScope;
     private readonly SeriesContext _mangaContext;
     private readonly ActionsContext _actionsContext;
 
-    public CleanupOrphanedFilesWorkerTests()
+    public CleanupServiceTests()
     {
         _testRoot = Path.Combine(Path.GetTempPath(), $"CleanupTest_{Guid.NewGuid()}");
         Directory.CreateDirectory(_testRoot);
@@ -31,12 +30,6 @@ public class CleanupOrphanedFilesWorkerTests : IDisposable
             .Options;
         _actionsContext = new ActionsContext(actionsOptions);
 
-        var serviceProvider = new Mock<IServiceProvider>();
-        serviceProvider.Setup(x => x.GetService(typeof(SeriesContext))).Returns(_mangaContext);
-        serviceProvider.Setup(x => x.GetService(typeof(ActionsContext))).Returns(_actionsContext);
-
-        _mockScope = new Mock<IServiceScope>();
-        _mockScope.Setup(x => x.ServiceProvider).Returns(serviceProvider.Object);
     }
 
     public void Dispose()
@@ -71,8 +64,7 @@ public class CleanupOrphanedFilesWorkerTests : IDisposable
         File.WriteAllText(orphanedFile, "orphaned content");
 
         // Run worker
-        var worker = new CleanupOrphanedFilesWorker(dryRun: false);
-        await worker.DoWork(_mockScope.Object);
+        await new CleanupService().CleanupOrphanedFilesAsync(_mangaContext, dryRun: false, force: false, CancellationToken.None);
 
         Assert.True(File.Exists(trackedFile), "Tracked file should still exist");
         Assert.False(File.Exists(orphanedFile), "Orphaned file should be deleted");
@@ -105,8 +97,7 @@ public class CleanupOrphanedFilesWorkerTests : IDisposable
         File.WriteAllText(orphanedFile, "old content");
 
         // Run worker
-        var worker = new CleanupOrphanedFilesWorker(dryRun: false);
-        await worker.DoWork(_mockScope.Object);
+        await new CleanupService().CleanupOrphanedFilesAsync(_mangaContext, dryRun: false, force: false, CancellationToken.None);
 
         Assert.True(File.Exists(trackedFile), "Tracked file in subdirectory should still exist");
         Assert.False(File.Exists(orphanedFile), "Orphaned original file in root directory should be deleted");
@@ -128,8 +119,7 @@ public class CleanupOrphanedFilesWorkerTests : IDisposable
         File.WriteAllText(b, "2");
         File.WriteAllText(c, "3");
 
-        var worker = new CleanupOrphanedFilesWorker(dryRun: false, force: false);
-        await worker.DoWork(_mockScope.Object);
+        await new CleanupService().CleanupOrphanedFilesAsync(_mangaContext, dryRun: false, force: false, CancellationToken.None);
 
         Assert.True(File.Exists(a) && File.Exists(b) && File.Exists(c),
             "An untracked library must not be wiped without force.");
@@ -145,29 +135,10 @@ public class CleanupOrphanedFilesWorkerTests : IDisposable
         string orphan = Path.Combine(_testRoot, "a.cbz");
         File.WriteAllText(orphan, "1");
 
-        var worker = new CleanupOrphanedFilesWorker(dryRun: false, force: true);
-        await worker.DoWork(_mockScope.Object);
+        await new CleanupService().CleanupOrphanedFilesAsync(_mangaContext, dryRun: false, force: true, CancellationToken.None);
 
         Assert.False(File.Exists(orphan), "force=true should override the guard and delete orphans.");
     }
 
-    [Fact]
-    public void Worker_IsPeriodicWithCorrectInterval()
-    {
-        var worker = new CleanupOrphanedFilesWorker();
-        var periodic = Assert.IsAssignableFrom<IPeriodic>(worker);
-        Assert.Equal(TimeSpan.FromDays(1), periodic.Interval);
-    }
 
-    [Fact]
-    public async Task DoWork_UpdatesLastExecution()
-    {
-        var worker = new CleanupOrphanedFilesWorker();
-        var periodic = (IPeriodic)worker;
-        var before = DateTime.UtcNow;
-        
-        await worker.DoWork(_mockScope.Object);
-        
-        Assert.True(periodic.LastExecution >= before);
-    }
 }

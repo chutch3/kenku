@@ -148,7 +148,6 @@ builder.Services.AddSingleton<API.Acquirers.IChapterAcquirer>(sp =>
 builder.Services.AddSingleton<API.Notifications.INotificationDispatcher, API.Notifications.DbNotificationDispatcher>();
 builder.Services.AddSingleton<UpdateChaptersDownloadedWorker>();
 builder.Services.AddSingleton<UpdateCoversWorker>();
-builder.Services.AddSingleton<CleanupOrphanedFilesWorker>();
 builder.Services.AddHttpClient<MangaDexVolumeResolver>();
 builder.Services.AddSingleton<IMangaDexVolumeResolver>(sp => sp.GetRequiredService<MangaDexVolumeResolver>());
 builder.Services.AddHttpClient<WikipediaVolumeResolver>();

@@ -1714,7 +1714,7 @@
         "tags": [
           "Maintenance"
         ],
-        "summary": "Queues a API.Workers.MaintenanceWorkers.CleanupOrphanedFilesWorker to remove files from the library that are not tracked in the database.",
+        "summary": "Enqueues a Cleanup (OrphanedFiles) job to remove files from the library that are not tracked in the database.",
         "parameters": [
           {
             "name": "dryRun",
@@ -1737,10 +1737,7 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
-          },
-          "202": {
-            "description": "Cleanup worker queued"
+            "description": "Cleanup job enqueued"
           }
         }
       }

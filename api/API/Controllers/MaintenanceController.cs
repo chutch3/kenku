@@ -1,4 +1,6 @@
 using API.JobRuntime;
+using API.JobRuntime.Handlers;
+using API.Services;
 using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;
 using API.Workers;
@@ -57,18 +59,19 @@ public class MaintenanceController(SeriesContext mangaContext, ActionsContext ac
     }
 
     /// <summary>
-    /// Queues a <see cref="CleanupOrphanedFilesWorker"/> to remove files from the library that are not tracked in the database.
+    /// Enqueues a Cleanup (OrphanedFiles) job to remove files from the library that are not tracked in the database.
     /// </summary>
-    /// <param name="workerQueue"></param>
     /// <param name="dryRun">If true, only log what would be deleted without actually deleting it.</param>
     /// <param name="force">If true, bypass the safety guards that skip wiping an untracked library or
     /// deleting a majority of a library's archives. Use only for a deliberate bulk cleanup.</param>
-    /// <response code="202">Cleanup worker queued</response>
+    /// <response code="200">Cleanup job enqueued</response>
     [HttpPost("CleanupOrphanedFiles")]
-    [ProducesResponseType(Status202Accepted)]
-    public Ok CleanupOrphanedFiles([FromServices] IWorkerQueue workerQueue, bool dryRun = false, bool force = false)
+    [ProducesResponseType(Status200OK)]
+    public async Task<Ok> CleanupOrphanedFiles([FromServices] IJobStore jobStore, [FromServices] IClock clock, bool dryRun = false, bool force = false)
     {
-        workerQueue.AddWorker(new CleanupOrphanedFilesWorker(dryRun, force));
+        await jobStore.EnqueueAsync(new Schema.JobsContext.Job(
+            CleanupHandler.Type, CleanupHandler.PayloadFor(CleanupKind.OrphanedFiles, dryRun, force), clock.UtcNow),
+            HttpContext.RequestAborted);
         return TypedResults.Ok();
     }
 

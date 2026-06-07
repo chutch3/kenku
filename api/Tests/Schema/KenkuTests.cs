@@ -49,7 +49,6 @@ public class KenkuTests
         // with IEnumerable<T> parameters due to type matching limitations.
         services.AddTransient<UpdateChaptersDownloadedWorker>(_ => new UpdateChaptersDownloadedWorker(testSettings));
         services.AddTransient<UpdateCoversWorker>(_ => new UpdateCoversWorker(emptyConnectors));
-        services.AddTransient<CleanupOrphanedFilesWorker>();
         services.AddTransient<SyncChapterFileNamesWorker>(_ => new SyncChapterFileNamesWorker(testSettings));
 
         // 4. Inject empty fetchers, rate limiter, worker queue, and SeriesContext
@@ -115,7 +114,6 @@ public class KenkuTests
         kenkuManager.AddDefaultWorkers();
 
         mockQueue.Verify(x => x.AddWorker(It.IsAny<UpdateCoversWorker>()), Times.Once);
-        mockQueue.Verify(x => x.AddWorker(It.IsAny<CleanupOrphanedFilesWorker>()), Times.Once);
         mockQueue.Verify(x => x.AddWorker(It.IsAny<SyncChapterFileNamesWorker>()), Times.Once);
     }
 

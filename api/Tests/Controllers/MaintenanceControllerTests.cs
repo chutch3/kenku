@@ -1,5 +1,7 @@
 using API.Controllers;
 using API.JobRuntime;
+using API.JobRuntime.Handlers;
+using API.Services;
 using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;
 using API.Workers;
@@ -66,16 +68,20 @@ public class MaintenanceControllerTests
     }
 
     [Fact]
-    public void CleanupOrphanedFiles_QueuesWorker()
+    public async Task CleanupOrphanedFiles_EnqueuesADryRunCleanupJob()
     {
         var (mangaCtx, actionsCtx) = CreateContexts();
-        var mockQueue = new Mock<IWorkerQueue>();
+        var jobStore = new InMemoryJobStore();
         var controller = CreateController(mangaCtx, actionsCtx);
 
-        var result = controller.CleanupOrphanedFiles(mockQueue.Object, dryRun: true);
+        var result = await controller.CleanupOrphanedFiles(jobStore, new SystemClock(), dryRun: true);
 
         Assert.IsType<Ok>(result);
-        mockQueue.Verify(x => x.AddWorker(It.Is<CleanupOrphanedFilesWorker>(w => w.ToString().Contains("DryRun=True"))), Times.Once);
+        var job = Assert.Single(await jobStore.GetAllAsync());
+        Assert.Equal(CleanupHandler.Type, job.Type);
+        var payload = System.Text.Json.JsonSerializer.Deserialize<CleanupPayload>(job.Payload)!;
+        Assert.Equal(CleanupKind.OrphanedFiles, payload.Kind);
+        Assert.True(payload.DryRun);
     }
 
     [Fact]

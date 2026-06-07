@@ -61,11 +61,9 @@ public class Kenku
     internal void AddDefaultWorkers()
     {
         _workerQueue.AddWorker(GetWorker<UpdateCoversWorker>());
-        // Orphaned-file cleanup is destructive, so the scheduled run is report-only (dry-run).
-        // Actual deletion must be requested explicitly via POST /v2/Maintenance/CleanupOrphanedFiles.
-        _workerQueue.AddWorker(new CleanupOrphanedFilesWorker(dryRun: true));
         _workerQueue.AddWorker(GetWorker<SyncChapterFileNamesWorker>());
-        // Volume resolution + VolumeCBZ bundling are handled by the runtime's hosted reconcilers.
+        // Volume resolution, VolumeCBZ bundling, cleanup, metadata and notifications are handled by the
+        // runtime's hosted reconcilers + jobs.
 
         // Torrent completion worker is registered only when the torrent path is configured;
         // skip silently if absent so deployments without Prowlarr+qBittorrent are unaffected.
