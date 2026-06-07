@@ -19,19 +19,40 @@ namespace API.Tests.Integration;
 /// shared scaffolding — polling, library seeding, and MangaDex/Wikipedia/connector stubs — so individual
 /// tests express only what's specific to them.
 /// </summary>
-public abstract class OutboundHttpIntegrationTest : IDisposable
+public abstract class OutboundHttpIntegrationTest : IAsyncLifetime
 {
     protected readonly WireMockServer Server = WireMockServer.Start();
-    protected readonly KenkuApplicationFactory App;
+    protected KenkuApplicationFactory App { get; private set; } = null!;
+
+    private readonly IHttpRequester? _connectorHttp;
+    private readonly PostgresFixture _postgres = new();
+    private string? _dbName;
 
     protected OutboundHttpIntegrationTest(IHttpRequester? connectorHttp = null) =>
-        App = new KenkuApplicationFactory { OutboundHttpTarget = Server.Url!, ConnectorHttpRequester = connectorHttp };
+        _connectorHttp = connectorHttp;
 
-    public virtual void Dispose()
+    public virtual async Task InitializeAsync()
+    {
+        string? pgCs = null;
+        if (await _postgres.IsReachableAsync())
+        {
+            _dbName = await _postgres.CreateDatabaseAsync();
+            pgCs = _postgres.GetConnectionString(_dbName);
+        }
+        App = new KenkuApplicationFactory
+        {
+            OutboundHttpTarget = Server.Url!,
+            ConnectorHttpRequester = _connectorHttp,
+            PostgresConnectionString = pgCs,
+        };
+    }
+
+    public virtual async Task DisposeAsync()
     {
         App.Dispose();
         Server.Stop();
-        GC.SuppressFinalize(this);
+        if (_dbName is not null)
+            await _postgres.DropDatabaseAsync(_dbName);
     }
 
     /// <summary>Runs the dispatcher until the job queue is drained — the test-mode substitute for the

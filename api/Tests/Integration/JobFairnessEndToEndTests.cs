@@ -19,26 +19,38 @@ namespace API.Tests.Integration;
 /// dispatcher must not let that resource hold all in-flight slots — another resource gets a slot while the
 /// surplus waits. Driven through the booted app's real dispatcher + EF store with a deterministic cap.
 /// </summary>
-public class JobFairnessEndToEndTests : IDisposable
+public class JobFairnessEndToEndTests : IAsyncLifetime
 {
     private readonly WireMockServer _server = WireMockServer.Start();
     private readonly GateHandler _gate = new();
-    private readonly KenkuApplicationFactory _app;
+    private readonly PostgresFixture _postgres = new();
+    private string? _dbName;
+    private KenkuApplicationFactory _app = null!;
 
-    public JobFairnessEndToEndTests() =>
+    public async Task InitializeAsync()
+    {
+        string? pgCs = null;
+        if (await _postgres.IsReachableAsync())
+        {
+            _dbName = await _postgres.CreateDatabaseAsync();
+            pgCs = _postgres.GetConnectionString(_dbName);
+        }
         _app = new KenkuApplicationFactory
         {
             OutboundHttpTarget = _server.Url!,
             ExtraJobHandlers = [_gate],
             // Plenty of global slots, but only ONE in-flight per resource — so fairness is observable.
             DispatcherCaps = (GlobalCap: 8, PerResourceCap: 1),
+            PostgresConnectionString = pgCs,
         };
+    }
 
-    public void Dispose()
+    public async Task DisposeAsync()
     {
         _app.Dispose();
         _server.Stop();
-        GC.SuppressFinalize(this);
+        if (_dbName is not null)
+            await _postgres.DropDatabaseAsync(_dbName);
     }
 
     /// <summary>Records each started job's resource and blocks until released — so jobs stay in-flight

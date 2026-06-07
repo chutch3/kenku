@@ -25,17 +25,38 @@ namespace API.Tests.Integration;
 /// comics under a different category id, which is exactly how "search The Boys returns nothing" looked.
 /// </summary>
 [Trait("Category", "Integration")]
-public class IndexerSearchEndToEndTests : IDisposable
+public class IndexerSearchEndToEndTests : IAsyncLifetime
 {
     private const int IndexerCategory = 7030;   // the category Prowlarr synced for this indexer
     private const int GlobalFallbackCategory = 8000; // KenkuSettings.IndexerComicCategories default
 
     private readonly WireMockServer _server = WireMockServer.Start();
-    private readonly KenkuApplicationFactory _app;
+    private readonly PostgresFixture _postgres = new();
+    private string? _dbName;
+    private KenkuApplicationFactory _app = null!;
 
-    public IndexerSearchEndToEndTests() => _app = new KenkuApplicationFactory { OutboundHttpTarget = _server.Url! };
+    public async Task InitializeAsync()
+    {
+        string? pgCs = null;
+        if (await _postgres.IsReachableAsync())
+        {
+            _dbName = await _postgres.CreateDatabaseAsync();
+            pgCs = _postgres.GetConnectionString(_dbName);
+        }
+        _app = new KenkuApplicationFactory
+        {
+            OutboundHttpTarget = _server.Url!,
+            PostgresConnectionString = pgCs,
+        };
+    }
 
-    public void Dispose() { _app.Dispose(); _server.Stop(); }
+    public async Task DisposeAsync()
+    {
+        _app.Dispose();
+        _server.Stop();
+        if (_dbName is not null)
+            await _postgres.DropDatabaseAsync(_dbName);
+    }
 
     private const string TheBoysTorznab = """
     <?xml version="1.0" encoding="UTF-8"?>

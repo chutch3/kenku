@@ -13,26 +13,36 @@ namespace API.Tests.Integration;
 /// wait is not charged against the request timeout: a request merely waiting for a token survives the
 /// timeout window and is stopped only by real (worker) cancellation.
 /// </summary>
-public class DownloadRateLimitWiringTests : IDisposable
+public class DownloadRateLimitWiringTests : IAsyncLifetime
 {
     private readonly WireMockServer _server = WireMockServer.Start();
-    private readonly KenkuApplicationFactory _app;
+    private readonly PostgresFixture _postgres = new();
+    private string? _dbName;
+    private KenkuApplicationFactory _app = null!;
 
-    public DownloadRateLimitWiringTests()
+    public async Task InitializeAsync()
     {
+        string? pgCs = null;
+        if (await _postgres.IsReachableAsync())
+        {
+            _dbName = await _postgres.CreateDatabaseAsync();
+            pgCs = _postgres.GetConnectionString(_dbName);
+        }
         var inner = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));
         _app = new KenkuApplicationFactory
         {
             OutboundHttpTarget = _server.Url!,
-            RateLimit = (inner, RequestsPerMinute: 1, QueueLimit: 10, RequestTimeout: TimeSpan.FromMilliseconds(300))
+            RateLimit = (inner, RequestsPerMinute: 1, QueueLimit: 10, RequestTimeout: TimeSpan.FromMilliseconds(300)),
+            PostgresConnectionString = pgCs,
         };
     }
 
-    public void Dispose()
+    public async Task DisposeAsync()
     {
         _app.Dispose();
         _server.Stop();
-        GC.SuppressFinalize(this);
+        if (_dbName is not null)
+            await _postgres.DropDatabaseAsync(_dbName);
     }
 
     [Fact]

@@ -18,27 +18,39 @@ namespace API.Tests.Integration;
 /// AF6a: GET /v2/JobQueue/Summary returns correct status counts; a network-timeout OCE is exposed as a
 /// human-readable error, not the raw "A task was cancelled." message.
 /// </summary>
-public class JobQueueSummaryTests : IDisposable
+public class JobQueueSummaryTests : IAsyncLifetime
 {
     private readonly WireMockServer _server = WireMockServer.Start();
     private readonly FakeClock _clock = new();
     private readonly BoomHandler _boom = new();
     private readonly NetworkTimeoutHandler _timeout = new();
-    private readonly KenkuApplicationFactory _app;
+    private readonly PostgresFixture _postgres = new();
+    private string? _dbName;
+    private KenkuApplicationFactory _app = null!;
 
-    public JobQueueSummaryTests() =>
+    public async Task InitializeAsync()
+    {
+        string? pgCs = null;
+        if (await _postgres.IsReachableAsync())
+        {
+            _dbName = await _postgres.CreateDatabaseAsync();
+            pgCs = _postgres.GetConnectionString(_dbName);
+        }
         _app = new KenkuApplicationFactory
         {
             OutboundHttpTarget = _server.Url!,
             Clock = _clock,
             ExtraJobHandlers = [_boom, _timeout],
+            PostgresConnectionString = pgCs,
         };
+    }
 
-    public void Dispose()
+    public async Task DisposeAsync()
     {
         _app.Dispose();
         _server.Stop();
-        GC.SuppressFinalize(this);
+        if (_dbName is not null)
+            await _postgres.DropDatabaseAsync(_dbName);
     }
 
     /// <summary>Always throws — drives failed/retryable path.</summary>

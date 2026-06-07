@@ -21,10 +21,12 @@ namespace API.Tests.Integration;
 /// AF1a: SyncSeriesChapters job persists chapters through the real runtime.
 /// AF1b: DownloadCover job sets CoverFileNameInCache through the real runtime.
 /// </summary>
-public class ConnectorFlowEndToEndTests : IDisposable
+public class ConnectorFlowEndToEndTests : IAsyncLifetime
 {
     private readonly WireMockServer _server = WireMockServer.Start();
     private readonly string _libDir = Path.Combine(Path.GetTempPath(), "kenku-cf-" + Guid.NewGuid().ToString("N"));
+    private readonly PostgresFixture _postgres = new();
+    private string? _dbName;
 
     private static byte[] Jpeg()
     {
@@ -34,11 +36,18 @@ public class ConnectorFlowEndToEndTests : IDisposable
         return ms.ToArray();
     }
 
-    public void Dispose()
+    public async Task InitializeAsync()
+    {
+        if (await _postgres.IsReachableAsync())
+            _dbName = await _postgres.CreateDatabaseAsync();
+    }
+
+    public async Task DisposeAsync()
     {
         _server.Stop();
-        try { Directory.Delete(_libDir, recursive: true); } catch { /* best effort */ }
-        GC.SuppressFinalize(this);
+        try { Directory.Delete(_libDir, recursive: true); } catch { }
+        if (_dbName is not null)
+            await _postgres.DropDatabaseAsync(_dbName);
     }
 
     [Fact]
@@ -58,10 +67,12 @@ public class ConnectorFlowEndToEndTests : IDisposable
                 });
             });
 
+        string? pgCs = _dbName is not null ? _postgres.GetConnectionString(_dbName) : null;
         using var app = new KenkuApplicationFactory
         {
             OutboundHttpTarget = _server.Url!,
             ExtraConnectors = [connector.Object],
+            PostgresConnectionString = pgCs,
         };
         Directory.CreateDirectory(_libDir);
 
@@ -103,10 +114,12 @@ public class ConnectorFlowEndToEndTests : IDisposable
                 Content = new ByteArrayContent(jpegBytes),
             });
 
+        string? pgCs2 = _dbName is not null ? _postgres.GetConnectionString(_dbName) : null;
         using var app = new KenkuApplicationFactory
         {
             OutboundHttpTarget = _server.Url!,
             ConnectorHttpRequester = httpRequester.Object,
+            PostgresConnectionString = pgCs2,
         };
         Directory.CreateDirectory(_libDir);
 

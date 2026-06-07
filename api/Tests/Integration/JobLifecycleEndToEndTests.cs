@@ -19,27 +19,39 @@ namespace API.Tests.Integration;
 /// dispatcher + EF job store + JobQueue API): AF2c (bounded retry → NeedsAttention, stops re-queuing),
 /// AF6c (retry re-arms), AF6d (cancel a Queued or a Running job → Cancelled, no post-cancel side effect).
 /// </summary>
-public class JobLifecycleEndToEndTests : IDisposable
+public class JobLifecycleEndToEndTests : IAsyncLifetime
 {
     private readonly WireMockServer _server = WireMockServer.Start();
     private readonly FakeClock _clock = new();
     private readonly BoomHandler _boom = new();
     private readonly BlockingHandler _block = new();
-    private readonly KenkuApplicationFactory _app;
+    private readonly PostgresFixture _postgres = new();
+    private string? _dbName;
+    private KenkuApplicationFactory _app = null!;
 
-    public JobLifecycleEndToEndTests() =>
+    public async Task InitializeAsync()
+    {
+        string? pgCs = null;
+        if (await _postgres.IsReachableAsync())
+        {
+            _dbName = await _postgres.CreateDatabaseAsync();
+            pgCs = _postgres.GetConnectionString(_dbName);
+        }
         _app = new KenkuApplicationFactory
         {
             OutboundHttpTarget = _server.Url!,
             Clock = _clock,
             ExtraJobHandlers = [_boom, _block],
+            PostgresConnectionString = pgCs,
         };
+    }
 
-    public void Dispose()
+    public async Task DisposeAsync()
     {
         _app.Dispose();
         _server.Stop();
-        GC.SuppressFinalize(this);
+        if (_dbName is not null)
+            await _postgres.DropDatabaseAsync(_dbName);
     }
 
     /// <summary>Always fails — drives the bounded-retry path to NeedsAttention.</summary>

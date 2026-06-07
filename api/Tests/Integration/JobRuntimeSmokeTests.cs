@@ -18,7 +18,7 @@ namespace API.Tests.Integration;
 /// runtime (registry-validated trigger → EF job store → dispatcher → handler) runs to Succeeded, and an
 /// unknown job type is rejected at the trust boundary (AF6b).
 /// </summary>
-public class JobRuntimeSmokeTests : IDisposable
+public class JobRuntimeSmokeTests : IAsyncLifetime
 {
     private sealed class SmokeHandler : IJobHandler
     {
@@ -27,16 +27,32 @@ public class JobRuntimeSmokeTests : IDisposable
     }
 
     private readonly WireMockServer _server = WireMockServer.Start();
-    private readonly KenkuApplicationFactory _app;
+    private readonly PostgresFixture _postgres = new();
+    private string? _dbName;
+    private KenkuApplicationFactory _app = null!;
 
-    public JobRuntimeSmokeTests() =>
-        _app = new KenkuApplicationFactory { OutboundHttpTarget = _server.Url!, ExtraJobHandlers = [new SmokeHandler()] };
+    public async Task InitializeAsync()
+    {
+        string? pgCs = null;
+        if (await _postgres.IsReachableAsync())
+        {
+            _dbName = await _postgres.CreateDatabaseAsync();
+            pgCs = _postgres.GetConnectionString(_dbName);
+        }
+        _app = new KenkuApplicationFactory
+        {
+            OutboundHttpTarget = _server.Url!,
+            ExtraJobHandlers = [new SmokeHandler()],
+            PostgresConnectionString = pgCs,
+        };
+    }
 
-    public void Dispose()
+    public async Task DisposeAsync()
     {
         _app.Dispose();
         _server.Stop();
-        GC.SuppressFinalize(this);
+        if (_dbName is not null)
+            await _postgres.DropDatabaseAsync(_dbName);
     }
 
     private static readonly JsonSerializerOptions Json = BuildJson();

@@ -69,9 +69,13 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
     /// <see cref="API.JobRuntime.Dispatcher"/> is replaced with one using these caps (same store/registry/clock).</summary>
     public (int GlobalCap, int PerResourceCap)? DispatcherCaps { get; init; }
 
+    /// <summary>When true, reconcilers and the job pool hosted services run. Default false keeps tests
+    /// hermetic — call DrainJobsAsync() manually to drive the dispatcher.</summary>
+    public bool RunStartup { get; init; } = false;
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseSetting("Kenku:RunStartup", "false");
+        builder.UseSetting("Kenku:RunStartup", RunStartup ? "true" : "false");
         // Isolated, writable settings location — never touches the real path or the global APP_DATA env.
         builder.UseSetting("Kenku:AppData", Path.Combine(Path.GetTempPath(), "kenku-test-" + _id));
         builder.ConfigureTestServices(services =>

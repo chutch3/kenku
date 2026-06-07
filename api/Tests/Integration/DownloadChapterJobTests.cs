@@ -21,11 +21,13 @@ namespace API.Tests.Integration;
 /// store and run by the dispatcher fetches the chapter and marks it Downloaded with a .cbz on disk — the
 /// AF2a contract, now driven by the runtime instead of the legacy download worker.
 /// </summary>
-public class DownloadChapterJobTests : IDisposable
+public class DownloadChapterJobTests : IAsyncLifetime
 {
     private readonly WireMockServer _server = WireMockServer.Start();
-    private readonly KenkuApplicationFactory _app;
     private readonly string _libDir = Path.Combine(Path.GetTempPath(), "kenku-dl-" + Guid.NewGuid().ToString("N"));
+    private readonly PostgresFixture _postgres = new();
+    private string? _dbName;
+    private KenkuApplicationFactory _app = null!;
 
     private static byte[] Jpeg()
     {
@@ -35,24 +37,36 @@ public class DownloadChapterJobTests : IDisposable
         return ms.ToArray();
     }
 
-    public DownloadChapterJobTests()
+    public async Task InitializeAsync()
     {
+        string? pgCs = null;
+        if (await _postgres.IsReachableAsync())
+        {
+            _dbName = await _postgres.CreateDatabaseAsync();
+            pgCs = _postgres.GetConnectionString(_dbName);
+        }
         var settings = new KenkuSettings { AppData = _libDir };
         var connector = new Mock<SeriesSource>("StubConnector", new[] { "en" }, new[] { "stub.test" }, "icon", settings);
         connector.Setup(c => c.GetChapterImageUrls(It.IsAny<SourceId<Chapter>>())).ReturnsAsync(["u1", "u2"]);
         connector.Setup(c => c.DownloadImage(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => new MemoryStream(Jpeg()));
 
-        _app = new KenkuApplicationFactory { OutboundHttpTarget = _server.Url!, ExtraConnectors = [connector.Object] };
+        _app = new KenkuApplicationFactory
+        {
+            OutboundHttpTarget = _server.Url!,
+            ExtraConnectors = [connector.Object],
+            PostgresConnectionString = pgCs,
+        };
         Directory.CreateDirectory(_libDir);
     }
 
-    public void Dispose()
+    public async Task DisposeAsync()
     {
         _app.Dispose();
         _server.Stop();
-        try { Directory.Delete(_libDir, recursive: true); } catch { /* best effort */ }
-        GC.SuppressFinalize(this);
+        try { Directory.Delete(_libDir, recursive: true); } catch { }
+        if (_dbName is not null)
+            await _postgres.DropDatabaseAsync(_dbName);
     }
 
     [Fact]
@@ -90,12 +104,14 @@ public class DownloadChapterJobTests : IDisposable
 /// AF2d: a failed mid-download leaves no corrupt archive at the final path (temp-then-move invariant),
 /// and a subsequent retry succeeds once the transient error clears.
 /// </summary>
-public class DownloadChapterJobRetryTests : IDisposable
+public class DownloadChapterJobRetryTests : IAsyncLifetime
 {
     private readonly WireMockServer _server = WireMockServer.Start();
     private readonly string _libDir = Path.Combine(Path.GetTempPath(), "kenku-dl-retry-" + Guid.NewGuid().ToString("N"));
     private readonly FakeClock _clock = new();
-    private readonly KenkuApplicationFactory _app;
+    private readonly PostgresFixture _postgres = new();
+    private string? _dbName;
+    private KenkuApplicationFactory _app = null!;
 
     private static byte[] Jpeg()
     {
@@ -105,8 +121,14 @@ public class DownloadChapterJobRetryTests : IDisposable
         return ms.ToArray();
     }
 
-    public DownloadChapterJobRetryTests()
+    public async Task InitializeAsync()
     {
+        string? pgCs = null;
+        if (await _postgres.IsReachableAsync())
+        {
+            _dbName = await _postgres.CreateDatabaseAsync();
+            pgCs = _postgres.GetConnectionString(_dbName);
+        }
         bool failedOnce = false;
         var settings = new KenkuSettings { AppData = _libDir };
         var connector = new Mock<SeriesSource>("StubConnector", new[] { "en" }, new[] { "stub.test" }, "icon", settings);
@@ -131,15 +153,17 @@ public class DownloadChapterJobRetryTests : IDisposable
             OutboundHttpTarget = _server.Url!,
             Clock = _clock,
             ExtraConnectors = [connector.Object],
+            PostgresConnectionString = pgCs,
         };
     }
 
-    public void Dispose()
+    public async Task DisposeAsync()
     {
         _app.Dispose();
         _server.Stop();
-        try { Directory.Delete(_libDir, recursive: true); } catch { /* best effort */ }
-        GC.SuppressFinalize(this);
+        try { Directory.Delete(_libDir, recursive: true); } catch { }
+        if (_dbName is not null)
+            await _postgres.DropDatabaseAsync(_dbName);
     }
 
     [Fact]
