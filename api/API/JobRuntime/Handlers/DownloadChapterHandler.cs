@@ -1,3 +1,4 @@
+using API.Acquirers.Interfaces;
 using API.JobRuntime.Interfaces;
 using System.Text.Json;
 using API.Acquirers;
@@ -41,7 +42,7 @@ public class DownloadChapterHandler(IServiceScopeFactory scopeFactory) : IJobHan
             provider.GetRequiredService<IClock>(),
             provider.GetServices<IChapterAcquirer>(),
             new LibraryLayoutResolver(),
-            provider.GetRequiredService<API.Notifications.INotificationDispatcher>());
+            provider.GetRequiredService<API.Notifications.Interfaces.INotificationDispatcher>());
 
         await service.DownloadAsync(
             provider.GetRequiredService<SeriesContext>(),

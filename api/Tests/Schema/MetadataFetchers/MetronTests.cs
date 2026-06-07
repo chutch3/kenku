@@ -1,3 +1,4 @@
+using API.Schema.SeriesContext.MetadataFetchers.Interfaces;
 using API;
 using API.Schema.SeriesContext;
 using API.Schema.SeriesContext.MetadataFetchers;

@@ -1,4 +1,4 @@
-namespace API.Notifications;
+namespace API.Notifications.Interfaces;
 
 /// <summary>
 /// Owned abstraction for emitting a user-visible notification. Decouples notification fan-out from

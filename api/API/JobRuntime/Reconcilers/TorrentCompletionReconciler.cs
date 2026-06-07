@@ -1,3 +1,4 @@
+using API.DownloadClients.Interfaces;
 using API.JobRuntime.Interfaces;
 using API.Acquirers;
 using API.DownloadClients;

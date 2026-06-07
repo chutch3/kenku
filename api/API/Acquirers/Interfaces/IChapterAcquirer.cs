@@ -1,7 +1,7 @@
 using API.MangaConnectors;
 using API.Schema.SeriesContext;
 
-namespace API.Acquirers;
+namespace API.Acquirers.Interfaces;
 
 /// <summary>
 /// Produces the .cbz archive for a chapter at a specified path on disk. Implementations encapsulate

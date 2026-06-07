@@ -1,4 +1,4 @@
-namespace API.Schema.SeriesContext.MetadataFetchers;
+namespace API.Schema.SeriesContext.MetadataFetchers.Interfaces;
 
 /// <summary>
 /// Owned abstraction over the Metron (metron.cloud) comic metadata API. Lets the Metron

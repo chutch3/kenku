@@ -1,4 +1,4 @@
-namespace API.DownloadClients;
+namespace API.DownloadClients.Interfaces;
 
 /// <summary>
 /// Owned abstraction over an external download client (qBittorrent, Deluge, etc.). Kenku uses

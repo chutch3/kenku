@@ -1,3 +1,4 @@
+using API.HttpRequesters.Interfaces;
 using System.Net;
 using API;
 using API.MangaConnectors;

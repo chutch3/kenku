@@ -1,3 +1,4 @@
+using API.Indexers.Interfaces;
 using API.Indexers;
 using Moq;
 using Xunit;

@@ -1,3 +1,4 @@
+using API.DownloadClients.Interfaces;
 using API.DownloadClients;
 using API.Schema.ActionsContext;
 using API.Schema.ActionsContext.Actions;

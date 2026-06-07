@@ -53,7 +53,7 @@ public class ChapterDownloadServiceTests
     }
 
     private static async Task RunDownload(IServiceProvider sp, KenkuSettings settings, SeriesSource connector, string chapterKey,
-        API.Notifications.INotificationDispatcher? dispatcher = null)
+        API.Notifications.Interfaces.INotificationDispatcher? dispatcher = null)
     {
         using var scope = sp.CreateScope();
         var p = scope.ServiceProvider;
@@ -115,7 +115,7 @@ public class ChapterDownloadServiceTests
             var serviceProvider = services.BuildServiceProvider();
 
 
-            var dispatcher = new Mock<API.Notifications.INotificationDispatcher>();
+            var dispatcher = new Mock<API.Notifications.Interfaces.INotificationDispatcher>();
             await RunDownload(serviceProvider, settings, mockConnector.Object, connectorId.Key, dispatcher.Object);
 
             var updated = await context.Chapters.FirstAsync(c => c.Key == chapter.Key);

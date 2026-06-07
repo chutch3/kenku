@@ -1,3 +1,6 @@
+using API.Acquirers.Interfaces;
+using API.DownloadClients.Interfaces;
+using API.Indexers.Interfaces;
 using API.Acquirers;
 using API.Indexers;
 using API.MangaConnectors;

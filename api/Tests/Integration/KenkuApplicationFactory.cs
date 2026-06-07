@@ -1,3 +1,4 @@
+using API.HttpRequesters.Interfaces;
 using API.HttpRequesters;
 using API.Schema.ActionsContext;
 using API.Schema.LibraryContext;

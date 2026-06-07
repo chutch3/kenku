@@ -1,3 +1,4 @@
+using API.HttpRequesters.Interfaces;
 using API.Services.Interfaces;
 using System.Reflection;
 using API;
@@ -124,7 +125,7 @@ builder.Services.AddSingleton<SeriesSource, WeebCentral>();
 builder.Services.AddSingleton<MetadataFetcher, MyAnimeList>();
 // Metron comic metadata: client reads creds from settings; the fetcher always appears in the list
 // and degrades gracefully (returns nothing) when unconfigured.
-builder.Services.AddSingleton<API.Schema.SeriesContext.MetadataFetchers.IMetronClient>(sp =>
+builder.Services.AddSingleton<API.Schema.SeriesContext.MetadataFetchers.Interfaces.IMetronClient>(sp =>
 {
     var rl = sp.GetRequiredService<RateLimitHandler>();
     return new API.Schema.SeriesContext.MetadataFetchers.MetronClient(
@@ -132,11 +133,11 @@ builder.Services.AddSingleton<API.Schema.SeriesContext.MetadataFetchers.IMetronC
 });
 builder.Services.AddSingleton<MetadataFetcher>(sp =>
     new API.Schema.SeriesContext.MetadataFetchers.Metron(
-        sp.GetRequiredService<API.Schema.SeriesContext.MetadataFetchers.IMetronClient>()));
+        sp.GetRequiredService<API.Schema.SeriesContext.MetadataFetchers.Interfaces.IMetronClient>()));
 
 // 3b. Register your Chapter Acquirers (one per AcquisitionKind)
-builder.Services.AddSingleton<API.Acquirers.IChapterAcquirer, API.Acquirers.ImageListAcquirer>();
-builder.Services.AddSingleton<API.Acquirers.IChapterAcquirer>(sp =>
+builder.Services.AddSingleton<API.Acquirers.Interfaces.IChapterAcquirer, API.Acquirers.ImageListAcquirer>();
+builder.Services.AddSingleton<API.Acquirers.Interfaces.IChapterAcquirer>(sp =>
 {
     // Reuse the shared RateLimitHandler so direct-archive downloads honour per-host politeness too.
     var rl = sp.GetRequiredService<RateLimitHandler>();
@@ -144,7 +145,7 @@ builder.Services.AddSingleton<API.Acquirers.IChapterAcquirer>(sp =>
 });
 
 // 4. Register your Workers
-builder.Services.AddSingleton<API.Notifications.INotificationDispatcher, API.Notifications.DbNotificationDispatcher>();
+builder.Services.AddSingleton<API.Notifications.Interfaces.INotificationDispatcher, API.Notifications.DbNotificationDispatcher>();
 builder.Services.AddHttpClient<MangaDexVolumeResolver>();
 builder.Services.AddSingleton<IMangaDexVolumeResolver>(sp => sp.GetRequiredService<MangaDexVolumeResolver>());
 builder.Services.AddHttpClient<WikipediaVolumeResolver>();

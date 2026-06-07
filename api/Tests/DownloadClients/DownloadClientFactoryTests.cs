@@ -1,3 +1,4 @@
+using API.DownloadClients.Interfaces;
 using API;
 using API.DownloadClients;
 using Xunit;

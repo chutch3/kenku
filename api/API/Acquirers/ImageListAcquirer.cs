@@ -1,3 +1,4 @@
+using API.Acquirers.Interfaces;
 using System.IO.Compression;
 using System.Text;
 using API.MangaConnectors;

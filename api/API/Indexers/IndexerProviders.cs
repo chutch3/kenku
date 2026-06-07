@@ -1,3 +1,4 @@
+using API.Indexers.Interfaces;
 namespace API.Indexers;
 
 /// <summary>A manually-configured Torznab/Newznab indexer (name + endpoint + key + categories).</summary>

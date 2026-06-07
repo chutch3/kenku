@@ -1,4 +1,4 @@
-namespace API.Indexers;
+namespace API.Indexers.Interfaces;
 
 /// <summary>
 /// The aggregate search surface the rest of the app depends on. Fans a query out across every

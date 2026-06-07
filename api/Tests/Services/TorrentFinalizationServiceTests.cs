@@ -1,3 +1,4 @@
+using API.DownloadClients.Interfaces;
 using System.IO.Compression;
 using API;
 using API.Acquirers;

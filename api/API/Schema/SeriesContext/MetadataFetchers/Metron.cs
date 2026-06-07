@@ -1,3 +1,4 @@
+using API.Schema.SeriesContext.MetadataFetchers.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace API.Schema.SeriesContext.MetadataFetchers;

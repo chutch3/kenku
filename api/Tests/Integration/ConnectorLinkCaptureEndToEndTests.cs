@@ -7,7 +7,7 @@ namespace API.Tests.Integration;
 /// <summary>
 /// Outside-in: a series is imported through the actual add-to-library HTTP endpoint, so the request flows
 /// controller -> WeebCentral connector -> UpsertManga -> EF. The only thing stubbed is the connector's HTTP
-/// edge (the injected <see cref="API.HttpRequesters.IHttpRequester"/>). Asserts the external links the
+/// edge (the injected <see cref="API.HttpRequesters.Interfaces.IHttpRequester"/>). Asserts the external links the
 /// connector surfaced actually round-tripped to the database.
 /// </summary>
 [Trait("Category", "Integration")]

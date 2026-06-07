@@ -1,4 +1,4 @@
-﻿namespace API.HttpRequesters;
+﻿namespace API.HttpRequesters.Interfaces;
 
 public interface IHttpRequester
 {
