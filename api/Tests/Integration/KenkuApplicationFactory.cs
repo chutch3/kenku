@@ -56,6 +56,11 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
     /// <see cref="API.JobRuntime.IClock"/> the dispatcher resolves.</summary>
     public API.JobRuntime.IClock? Clock { get; init; }
 
+    /// <summary>Optional dispatcher concurrency caps, so fairness/concurrency behaviour is deterministic
+    /// rather than derived from the host's CPU count. When set, the production-registered
+    /// <see cref="API.JobRuntime.Dispatcher"/> is replaced with one using these caps (same store/registry/clock).</summary>
+    public (int GlobalCap, int PerResourceCap)? DispatcherCaps { get; init; }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("Kenku:RunStartup", "false");
@@ -90,6 +95,17 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
             {
                 services.RemoveAll<API.JobRuntime.IClock>();
                 services.AddSingleton(Clock);
+            }
+
+            if (DispatcherCaps is { } caps)
+            {
+                services.RemoveAll<API.JobRuntime.Dispatcher>();
+                services.AddScoped(sp => new API.JobRuntime.Dispatcher(
+                    sp.GetRequiredService<API.JobRuntime.IJobStore>(),
+                    sp.GetRequiredService<API.JobRuntime.HandlerRegistry>(),
+                    sp.GetRequiredService<API.JobRuntime.IClock>(),
+                    globalCap: caps.GlobalCap, perResourceCap: caps.PerResourceCap,
+                    running: sp.GetRequiredService<API.JobRuntime.RunningJobRegistry>()));
             }
 
             foreach (API.JobRuntime.IJobHandler handler in ExtraJobHandlers)
