@@ -6,7 +6,6 @@ using API.Schema.SeriesContext;
 using API.Schema.NotificationsContext;
 using API.Schema.SeriesContext.MetadataFetchers;
 using API.Workers;
-using API.Workers.PeriodicWorkers;
 using API.Workers.MaintenanceWorkers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -43,11 +42,7 @@ public class KenkuTests
         var emptyFetchers = new List<MetadataFetcher>();
         var mockWorkerQueue = workerQueueMock?.Object ?? new Mock<IWorkerQueue>().Object;
 
-        // 3. Register real workers with empty test dependencies — Moq cannot proxy primary constructors
-        // with IEnumerable<T> parameters due to type matching limitations.
-        services.AddTransient<UpdateChaptersDownloadedWorker>(_ => new UpdateChaptersDownloadedWorker(testSettings));
-
-        // 4. Inject empty fetchers, rate limiter, worker queue, and SeriesContext
+        // Inject empty fetchers, rate limiter, worker queue, and SeriesContext
         services.AddSingleton<IEnumerable<MetadataFetcher>>(emptyFetchers);
         services.AddSingleton(new RateLimitHandler(testSettings));
         services.AddSingleton(mockWorkerQueue);
@@ -102,18 +97,6 @@ public class KenkuTests
 
         Assert.False(foundMissing);
         Assert.Null(resolvedMissing);
-    }
-
-    [Fact]
-    public void AddDefaultWorkers_ShouldResolveAndTrackExpectedWorkers()
-    {
-        var mockQueue = new Mock<IWorkerQueue>();
-        var provider = BuildMockServiceProvider(workerQueueMock: mockQueue);
-        var kenkuManager = provider.GetRequiredService<Kenku>();
-
-        kenkuManager.AddDefaultWorkers();
-
-        mockQueue.Verify(x => x.AddWorker(It.IsAny<UpdateChaptersDownloadedWorker>()), Times.Once);
     }
 
     [Fact]

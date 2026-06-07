@@ -5,7 +5,6 @@ using API.HttpRequesters;
 using API.Schema.SeriesContext;
 using API.Schema.SeriesContext.MetadataFetchers;
 using API.Workers;
-using API.Workers.PeriodicWorkers;
 using API.Workers.MaintenanceWorkers;
 using log4net;
 using Microsoft.EntityFrameworkCore;
@@ -59,11 +58,10 @@ public class Kenku
 
     internal void AddDefaultWorkers()
     {
-        // Cover refresh, chapter file placement, volume resolution, VolumeCBZ bundling, torrent completion,
-        // cleanup, metadata and notifications are handled by the runtime's hosted reconcilers + jobs.
-
-        if(Constants.UpdateChaptersDownloadedBeforeStarting)
-            _workerQueue.AddWorker(GetWorker<UpdateChaptersDownloadedWorker>());
+        // All recurring background work — downloads, chapter sync, cover/metadata refresh, volume
+        // resolution + bundling, file placement, torrent completion, download-state verification, cleanup
+        // and notifications — is handled by the runtime's hosted reconcilers + jobs (see Program.cs). No
+        // legacy workers are scheduled by default.
     }
 
     internal bool TryGetSeriesSource(string name, [NotNullWhen(true)]out SeriesSource? seriesSource)
