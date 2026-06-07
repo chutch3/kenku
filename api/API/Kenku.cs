@@ -5,7 +5,6 @@ using API.HttpRequesters;
 using API.Schema.SeriesContext;
 using API.Schema.SeriesContext.MetadataFetchers;
 using API.Workers;
-using API.Workers.MangaDownloadWorkers;
 using API.Workers.PeriodicWorkers;
 using API.Workers.MaintenanceWorkers;
 using log4net;
@@ -60,9 +59,8 @@ public class Kenku
 
     internal void AddDefaultWorkers()
     {
-        _workerQueue.AddWorker(GetWorker<UpdateCoversWorker>());
-        // Chapter file placement, volume resolution, VolumeCBZ bundling, cleanup, metadata and
-        // notifications are handled by the runtime's hosted reconcilers + jobs.
+        // Cover refresh, chapter file placement, volume resolution, VolumeCBZ bundling, cleanup, metadata
+        // and notifications are handled by the runtime's hosted reconcilers + jobs.
 
         // Torrent completion worker is registered only when the torrent path is configured;
         // skip silently if absent so deployments without Prowlarr+qBittorrent are unaffected.
@@ -144,8 +142,16 @@ public class Kenku
         if (await context.Sync(token, reason: "AddMangaToContext") is { success: false })
             return null;
 
-        DownloadCoverFromSourceWorker downloadCoverWorker = new (result.Value.Item2, Connectors);
-        _workerQueue.AddWorker(downloadCoverWorker);
+        using (IServiceScope scope = _serviceProvider.CreateScope())
+        {
+            var jobStore = scope.ServiceProvider.GetRequiredService<JobRuntime.IJobStore>();
+            var clock = scope.ServiceProvider.GetRequiredService<JobRuntime.IClock>();
+            await jobStore.EnqueueAsync(new Schema.JobsContext.Job(
+                JobRuntime.Handlers.DownloadCoverHandler.Type,
+                JobRuntime.Handlers.DownloadCoverHandler.PayloadFor(result.Value.Item2.Key), clock.UtcNow,
+                resourceKey: result.Value.Item2.ObjId,
+                dedupKey: JobRuntime.CoverRefreshReconciler.DedupKey(result.Value.Item2.Key)), token);
+        }
 
         return result;
     }

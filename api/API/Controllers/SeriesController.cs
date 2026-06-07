@@ -4,7 +4,6 @@ using API.Schema.ActionsContext;
 using API.Schema.ActionsContext.Actions;
 using API.Schema.SeriesContext;
 using API.Workers;
-using API.Workers.MangaDownloadWorkers;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -309,8 +308,11 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
         if(await context.Sync(HttpContext.RequestAborted, GetType(), "Update download from SeriesSource.") is { success: false } result)
             return TypedResults.InternalServerError(result.exceptionMessage);
 
-        DownloadCoverFromSourceWorker downloadCover = new(mcId, connectors);
-        workerQueue.AddWorker(downloadCover);
+        await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
+            API.JobRuntime.Handlers.DownloadCoverHandler.Type,
+            API.JobRuntime.Handlers.DownloadCoverHandler.PayloadFor(mcId.Key), clock.UtcNow,
+            resourceKey: mcId.ObjId, dedupKey: API.JobRuntime.CoverRefreshReconciler.DedupKey(mcId.Key)),
+            HttpContext.RequestAborted);
         await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
             API.JobRuntime.Handlers.SyncSeriesChaptersHandler.Type,
             API.JobRuntime.Handlers.SyncSeriesChaptersHandler.PayloadFor(mcId.Key, settings.DownloadLanguage), clock.UtcNow,
@@ -337,7 +339,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
         if (await context.Series.FirstOrDefaultAsync(m => m.Key == MangaId, HttpContext.RequestAborted) is not { } manga)
             return TypedResults.NotFound(nameof(MangaId));
 
-        return await new SearchController(context, connectors, workerQueue).SearchManga(MangaConnectorName, manga.Name);
+        return await new SearchController(context, connectors).SearchManga(MangaConnectorName, manga.Name);
     }
     
     /// <summary>

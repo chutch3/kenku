@@ -29,8 +29,7 @@ public class SearchControllerTests
         Func<string, string, (SchemaManga, SchemaConnectorId)?>? connectorLookup = null)
     {
         var connectors = Enumerable.Empty<API.MangaConnectors.SeriesSource>();
-        var workerQueue = new Mock<API.Workers.IWorkerQueue>().Object;
-        var controller = new SearchController(ctx, connectors, workerQueue, connectorLookup ?? ((_, _) => null));
+        var controller = new SearchController(ctx, connectors, connectorLookup ?? ((_, _) => null));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()
@@ -131,8 +130,7 @@ public class SearchControllerTests
         // Enabled is true by default, and Name is set in constructor.
 
         var connectors = new[] { mockConnector.Object };
-        var workerQueue = new Mock<API.Workers.IWorkerQueue>().Object;
-        var controller = new SearchController(ctx, connectors, workerQueue);
+        var controller = new SearchController(ctx, connectors);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
 
         var result = await controller.SearchManga("MangaDex", "one punch man");
@@ -189,8 +187,7 @@ public class SearchControllerTests
         // We need to inject the mock connector. The CreateController helper doesn't support it well currently.
         // Let's manually create it.
         var connectors = new[] { mockConnector.Object };
-        var workerQueue = new Mock<API.Workers.IWorkerQueue>().Object;
-        var searchController = new SearchController(ctx, connectors, workerQueue, null);
+        var searchController = new SearchController(ctx, connectors, null);
         searchController.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
 
         var result = await searchController.SearchManga("MangaDex", "One Piece");

@@ -10,7 +10,6 @@ using API.Schema.SeriesContext;
 using API.Schema.SeriesContext.MetadataFetchers;
 using API.Schema.NotificationsContext;
 using API.Workers;
-using API.Workers.MangaDownloadWorkers;
 using API.Workers.PeriodicWorkers;
 using API.Workers.MaintenanceWorkers;
 using API.Extensions;
@@ -147,7 +146,6 @@ builder.Services.AddSingleton<API.Acquirers.IChapterAcquirer>(sp =>
 // 4. Register your Workers
 builder.Services.AddSingleton<API.Notifications.INotificationDispatcher, API.Notifications.DbNotificationDispatcher>();
 builder.Services.AddSingleton<UpdateChaptersDownloadedWorker>();
-builder.Services.AddSingleton<UpdateCoversWorker>();
 builder.Services.AddHttpClient<MangaDexVolumeResolver>();
 builder.Services.AddSingleton<IMangaDexVolumeResolver>(sp => sp.GetRequiredService<MangaDexVolumeResolver>());
 builder.Services.AddHttpClient<WikipediaVolumeResolver>();
@@ -177,6 +175,7 @@ builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handler
 builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.RefreshExternalMetadataHandler>();
 builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.SendNotificationsHandler>();
 builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.PlaceChapterFileHandler>();
+builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.DownloadCoverHandler>();
 builder.Services.AddScoped<API.JobRuntime.IJobStore, API.JobRuntime.EfJobStore>();
 // Overall download concurrency is bounded by MaxConcurrentDownloads (per-host rate limiting is separate,
 // in RateLimitHandler); per-series fairness comes from the dispatcher's per-resource cap.
@@ -195,6 +194,7 @@ builder.Services.AddHostedService<API.JobRuntime.CleanupReconciler>();
 builder.Services.AddHostedService<API.JobRuntime.MetadataRefreshReconciler>();
 builder.Services.AddHostedService<API.JobRuntime.NotificationReconciler>();
 builder.Services.AddHostedService<API.JobRuntime.ChapterFilePlacementReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.CoverRefreshReconciler>();
 builder.Services.AddSingleton<Kenku>();
 
 builder.Services.AddTorrentAcquisitionPath(settings, log);

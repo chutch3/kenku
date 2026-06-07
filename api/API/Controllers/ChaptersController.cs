@@ -3,7 +3,6 @@ using API.Controllers.Requests;
 using API.MangaConnectors;
 using API.Schema.SeriesContext;
 using API.Services;
-using API.Workers.MangaDownloadWorkers;
 using API.Workers;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;

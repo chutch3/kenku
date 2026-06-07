@@ -8,7 +8,6 @@ using API.Schema.SeriesContext.MetadataFetchers;
 using API.Workers;
 using API.Workers.PeriodicWorkers;
 using API.Workers.MaintenanceWorkers;
-using API.Workers.MangaDownloadWorkers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -41,14 +40,12 @@ public class KenkuTests
         services.AddSingleton<IEnumerable<SeriesSource>>(_ =>
             connectors ?? new List<SeriesSource>());
 
-        var emptyConnectors = new List<SeriesSource>();
         var emptyFetchers = new List<MetadataFetcher>();
         var mockWorkerQueue = workerQueueMock?.Object ?? new Mock<IWorkerQueue>().Object;
 
         // 3. Register real workers with empty test dependencies — Moq cannot proxy primary constructors
         // with IEnumerable<T> parameters due to type matching limitations.
         services.AddTransient<UpdateChaptersDownloadedWorker>(_ => new UpdateChaptersDownloadedWorker(testSettings));
-        services.AddTransient<UpdateCoversWorker>(_ => new UpdateCoversWorker(emptyConnectors));
 
         // 4. Inject empty fetchers, rate limiter, worker queue, and SeriesContext
         services.AddSingleton<IEnumerable<MetadataFetcher>>(emptyFetchers);
@@ -57,6 +54,10 @@ public class KenkuTests
         services.AddDbContext<SeriesContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
         services.AddDbContext<ActionsContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
         services.AddDbContext<NotificationsContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+
+        // AddMangaToContext enqueues a cover-download job through the runtime store.
+        services.AddSingleton<API.JobRuntime.IJobStore, API.JobRuntime.InMemoryJobStore>();
+        services.AddSingleton<API.JobRuntime.IClock, API.JobRuntime.SystemClock>();
 
         // 5. Register the Manager itself
         services.AddSingleton<Kenku>();
@@ -112,7 +113,7 @@ public class KenkuTests
 
         kenkuManager.AddDefaultWorkers();
 
-        mockQueue.Verify(x => x.AddWorker(It.IsAny<UpdateCoversWorker>()), Times.Once);
+        mockQueue.Verify(x => x.AddWorker(It.IsAny<UpdateChaptersDownloadedWorker>()), Times.Once);
     }
 
     [Fact]

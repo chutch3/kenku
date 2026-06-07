@@ -1,0 +1,122 @@
+using System.Net;
+using API;
+using API.HttpRequesters;
+using API.MangaConnectors;
+using API.Schema.ActionsContext;
+using API.Schema.ActionsContext.Actions;
+using API.Schema.SeriesContext;
+using API.Services;
+using Microsoft.EntityFrameworkCore;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
+
+namespace API.Tests.Services;
+
+public class CoverDownloadServiceTests : IDisposable
+{
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "kenku-coversvc-" + Guid.NewGuid().ToString("N"));
+    private readonly KenkuSettings _settings;
+    private readonly SeriesContext _seriesContext;
+    private readonly ActionsContext _actionsContext;
+
+    /// <summary>Minimal connector whose download client is backed by a faked HTTP boundary.</summary>
+    private sealed class FakeConnector : SeriesSource
+    {
+        public FakeConnector(KenkuSettings settings, IHttpRequester client)
+            : base("Fake:Conn", ["en"], ["fake.com"], "icon", settings)
+        {
+            downloadClient = client;
+        }
+
+        public override API.Acquirers.AcquisitionKind Kind => API.Acquirers.AcquisitionKind.ImageList;
+        public override Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName) => throw new NotSupportedException();
+        public override Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string url) => throw new NotSupportedException();
+        public override Task<(Series, SourceId<Series>)?> GetMangaFromId(string mangaIdOnSite) => throw new NotSupportedException();
+        public override Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> mangaId, string? language = null) => throw new NotSupportedException();
+        internal override Task<string[]> GetChapterImageUrls(SourceId<Chapter> chapterId) => throw new NotSupportedException();
+    }
+
+    public CoverDownloadServiceTests()
+    {
+        Directory.CreateDirectory(_root);
+        _settings = new KenkuSettings { AppData = _root };
+        _seriesContext = new SeriesContext(new DbContextOptionsBuilder<SeriesContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+        _actionsContext = new ActionsContext(new DbContextOptionsBuilder<ActionsContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+    }
+
+    public void Dispose()
+    {
+        _seriesContext.Dispose();
+        _actionsContext.Dispose();
+        try { Directory.Delete(_root, recursive: true); } catch { /* best effort */ }
+    }
+
+    private static byte[] Jpeg()
+    {
+        using var image = new Image<Rgba32>(8, 8);
+        using var ms = new MemoryStream();
+        image.SaveAsJpeg(ms);
+        return ms.ToArray();
+    }
+
+    private FakeConnector ConnectorServingJpeg()
+    {
+        var inner = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new ByteArrayContent(Jpeg())
+        });
+        var rateLimit = new RateLimitHandler(_settings, inner);
+        return new FakeConnector(_settings, new HttpRequester(rateLimit, _settings));
+    }
+
+    private async Task<SourceId<Series>> SeedSource(bool useForDownload = true)
+    {
+        var library = new FileLibrary(Path.Combine(_root, "lib"), "Lib");
+        _seriesContext.FileLibraries.Add(library);
+        var manga = new Series("Cover Series", "Desc", "https://example.com/img/cover.png", SeriesReleaseStatus.Continuing,
+            [], [], [], [], library);
+        _seriesContext.Series.Add(manga);
+        var mcId = new SourceId<Series>(manga, "Fake:Conn", "site-id", "https://fake.com/x", useForDownload);
+        _seriesContext.MangaConnectorToManga.Add(mcId);
+        await _seriesContext.SaveChangesAsync();
+        return mcId;
+    }
+
+    [Fact]
+    public async Task Download_CachesCover_SetsCoverFileNameAndRecordsAction()
+    {
+        var mcId = await SeedSource();
+        var connector = ConnectorServingJpeg();
+
+        await new CoverDownloadService([connector]).DownloadAsync(_seriesContext, _actionsContext, mcId.Key, CancellationToken.None);
+
+        var series = await _seriesContext.Series.FirstAsync();
+        Assert.NotNull(series.CoverFileNameInCache);
+        Assert.True(File.Exists(Path.Join(_settings.CoverImageCacheOriginal, series.CoverFileNameInCache)));
+        Assert.Single(await _actionsContext.Actions.OfType<CoverDownloadedActionRecord>().ToListAsync());
+    }
+
+    [Fact]
+    public async Task Download_WhenSourceIdNotFound_DoesNothing()
+    {
+        var connector = ConnectorServingJpeg();
+
+        await new CoverDownloadService([connector]).DownloadAsync(_seriesContext, _actionsContext, "missing-key", CancellationToken.None);
+
+        Assert.Empty(await _actionsContext.Actions.ToListAsync());
+    }
+
+    [Fact]
+    public async Task Download_WhenConnectorUnknown_DoesNothing()
+    {
+        var mcId = await SeedSource();
+
+        await new CoverDownloadService([]).DownloadAsync(_seriesContext, _actionsContext, mcId.Key, CancellationToken.None);
+
+        Assert.Null((await _seriesContext.Series.FirstAsync()).CoverFileNameInCache);
+        Assert.Empty(await _actionsContext.Actions.ToListAsync());
+    }
+}
