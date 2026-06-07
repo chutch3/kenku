@@ -1,3 +1,4 @@
+using API.Services.Interfaces;
 using System.IO.Compression;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;

@@ -1,3 +1,4 @@
+using API.HttpRequesters.Interfaces;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;

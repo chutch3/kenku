@@ -1,6 +1,8 @@
+using API.HttpRequesters.Interfaces;
+using API.Services.Interfaces;
 using System.Reflection;
 using API;
-using API.MangaConnectors;
+using API.Connectors;
 using API.Services;
 using API.HttpRequesters;
 using API.Schema.ActionsContext;
@@ -9,11 +11,8 @@ using API.Schema.LibraryContext;
 using API.Schema.SeriesContext;
 using API.Schema.SeriesContext.MetadataFetchers;
 using API.Schema.NotificationsContext;
-using API.Workers;
-using API.Workers.MangaDownloadWorkers;
-using API.Workers.PeriodicWorkers;
-using API.Workers.PeriodicWorkers.MaintenanceWorkers;
-using API.Workers.MaintenanceWorkers;
+using API.MetadataResolvers;
+using API.MetadataResolvers.Interfaces;
 using API.Extensions;
 using Asp.Versioning;
 using Asp.Versioning.Builder;
@@ -126,7 +125,7 @@ builder.Services.AddSingleton<SeriesSource, WeebCentral>();
 builder.Services.AddSingleton<MetadataFetcher, MyAnimeList>();
 // Metron comic metadata: client reads creds from settings; the fetcher always appears in the list
 // and degrades gracefully (returns nothing) when unconfigured.
-builder.Services.AddSingleton<API.Schema.SeriesContext.MetadataFetchers.IMetronClient>(sp =>
+builder.Services.AddSingleton<API.Schema.SeriesContext.MetadataFetchers.Interfaces.IMetronClient>(sp =>
 {
     var rl = sp.GetRequiredService<RateLimitHandler>();
     return new API.Schema.SeriesContext.MetadataFetchers.MetronClient(
@@ -134,11 +133,11 @@ builder.Services.AddSingleton<API.Schema.SeriesContext.MetadataFetchers.IMetronC
 });
 builder.Services.AddSingleton<MetadataFetcher>(sp =>
     new API.Schema.SeriesContext.MetadataFetchers.Metron(
-        sp.GetRequiredService<API.Schema.SeriesContext.MetadataFetchers.IMetronClient>()));
+        sp.GetRequiredService<API.Schema.SeriesContext.MetadataFetchers.Interfaces.IMetronClient>()));
 
 // 3b. Register your Chapter Acquirers (one per AcquisitionKind)
-builder.Services.AddSingleton<API.Acquirers.IChapterAcquirer, API.Acquirers.ImageListAcquirer>();
-builder.Services.AddSingleton<API.Acquirers.IChapterAcquirer>(sp =>
+builder.Services.AddSingleton<API.Acquirers.Interfaces.IChapterAcquirer, API.Acquirers.ImageListAcquirer>();
+builder.Services.AddSingleton<API.Acquirers.Interfaces.IChapterAcquirer>(sp =>
 {
     // Reuse the shared RateLimitHandler so direct-archive downloads honour per-host politeness too.
     var rl = sp.GetRequiredService<RateLimitHandler>();
@@ -146,18 +145,7 @@ builder.Services.AddSingleton<API.Acquirers.IChapterAcquirer>(sp =>
 });
 
 // 4. Register your Workers
-builder.Services.AddSingleton<API.Notifications.INotificationDispatcher, API.Notifications.DbNotificationDispatcher>();
-builder.Services.AddSingleton<NotifyOnNewDownloadsWorker>();
-builder.Services.AddSingleton<UpdateMetadataWorker>();
-builder.Services.AddSingleton<SendNotificationsWorker>();
-builder.Services.AddSingleton<UpdateChaptersDownloadedWorker>();
-builder.Services.AddSingleton<CheckForNewChaptersWorker>();
-builder.Services.AddSingleton<CleanupMangaCoversWorker>();
-builder.Services.AddSingleton<StartNewChapterDownloadsWorker>();
-builder.Services.AddSingleton<RemoveOldNotificationsWorker>();
-builder.Services.AddSingleton<UpdateCoversWorker>();
-builder.Services.AddSingleton<CleanupSourceIdsWithoutSource>();
-builder.Services.AddSingleton<CleanupOrphanedFilesWorker>();
+builder.Services.AddSingleton<API.Notifications.Interfaces.INotificationDispatcher, API.Notifications.DbNotificationDispatcher>();
 builder.Services.AddHttpClient<MangaDexVolumeResolver>();
 builder.Services.AddSingleton<IMangaDexVolumeResolver>(sp => sp.GetRequiredService<MangaDexVolumeResolver>());
 builder.Services.AddHttpClient<WikipediaVolumeResolver>();
@@ -166,14 +154,49 @@ builder.Services.AddHttpClient<MangaDexSearchService>();
 builder.Services.AddSingleton<IMangaDexSearchService>(sp => sp.GetRequiredService<MangaDexSearchService>());
 builder.Services.AddHttpClient<AniListSearchService>();
 builder.Services.AddSingleton<IAniListSearchService>(sp => sp.GetRequiredService<AniListSearchService>());
-builder.Services.AddSingleton<IBatchWorkerFactory<string>, ResolveMissingVolumesForMangaWorkerFactory>();
-builder.Services.AddSingleton<ResolveMissingVolumesWorker>();
-builder.Services.AddSingleton<SyncChapterFileNamesWorker>();
 builder.Services.AddSingleton<IChapterThumbnailService, ChapterThumbnailService>();
 
 builder.Services.AddSingleton<RateLimitHandler>();
 builder.Services.AddSingleton<IHttpRequester, HttpRequester>();
-builder.Services.AddSingleton<IWorkerQueue, WorkerQueue>();
+
+// Job runtime (parallel to the legacy worker engine until handlers migrate onto it).
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IClock, API.JobRuntime.SystemClock>();
+builder.Services.AddSingleton(sp => new API.JobRuntime.HandlerRegistry(sp.GetServices<API.JobRuntime.Interfaces.IJobHandler>()));
+builder.Services.AddSingleton<API.JobRuntime.RunningJobRegistry>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.ReconcileVolumeBundleHandler>();
+builder.Services.AddScoped<API.Services.VolumeResolutionService>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.ResolveSeriesVolumesHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.DownloadChapterHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.RefreshLibrariesHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.SyncSeriesChaptersHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.CleanupHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.RefreshExternalMetadataHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.SendNotificationsHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.PlaceChapterFileHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.DownloadCoverHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.FinalizeTorrentHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.VerifyDownloadStateHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.MoveDataHandler>();
+builder.Services.AddScoped<API.JobRuntime.Interfaces.IJobStore, API.JobRuntime.EfJobStore>();
+// Overall download concurrency is bounded by MaxConcurrentDownloads (per-host rate limiting is separate,
+// in RateLimitHandler); per-series fairness comes from the dispatcher's per-resource cap.
+builder.Services.AddScoped(sp => new API.JobRuntime.Dispatcher(
+    sp.GetRequiredService<API.JobRuntime.Interfaces.IJobStore>(),
+    sp.GetRequiredService<API.JobRuntime.HandlerRegistry>(),
+    sp.GetRequiredService<API.JobRuntime.Interfaces.IClock>(),
+    globalCap: Math.Max(1, settings.MaxConcurrentDownloads),
+    running: sp.GetRequiredService<API.JobRuntime.RunningJobRegistry>()));
+builder.Services.AddHostedService<API.JobRuntime.JobPoolService>();
+builder.Services.AddHostedService<API.JobRuntime.Reconcilers.VolumeBundleReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.Reconcilers.VolumeResolutionReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.Reconcilers.DownloadReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.Reconcilers.SeriesChapterSyncReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.Reconcilers.CleanupReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.Reconcilers.MetadataRefreshReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.Reconcilers.NotificationReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.Reconcilers.ChapterFilePlacementReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.Reconcilers.CoverRefreshReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.Reconcilers.DownloadStateReconciler>();
 builder.Services.AddSingleton<Kenku>();
 
 builder.Services.AddTorrentAcquisitionPath(settings, log);
@@ -185,6 +208,8 @@ builder.Services.AddDbContext<NotificationsContext>(options =>
 builder.Services.AddDbContext<LibraryContext>(options =>
     options.UseNpgsql(connectionStringBuilder.ConnectionString));
 builder.Services.AddDbContext<ActionsContext>(options =>
+    options.UseNpgsql(connectionStringBuilder.ConnectionString));
+builder.Services.AddDbContext<API.Schema.JobsContext.JobsContext>(options =>
     options.UseNpgsql(connectionStringBuilder.ConnectionString));
 
 builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
@@ -302,6 +327,12 @@ try //Connect to DB and apply migrations
         if(await context.Sync(CancellationToken.None, reason: "Startup actions") is { success: false } contextException)
             log.ErrorFormat("Failed to save database changes: {0}", contextException.exceptionMessage);
     }
+
+    using (IServiceScope scope = app.Services.CreateScope())
+    {
+        API.Schema.JobsContext.JobsContext context = scope.ServiceProvider.GetRequiredService<API.Schema.JobsContext.JobsContext>();
+        await context.Database.MigrateAsync(CancellationToken.None);
+    }
 }
 catch (Exception e)
 {
@@ -310,15 +341,11 @@ catch (Exception e)
 }
 
 log.Info("Starting Kenku.");
-var kenkuManager = app.Services.GetRequiredService<Kenku>();
 
 // Apply persisted connector enable/disable state from settings
 var kenkuSettings = app.Services.GetRequiredService<KenkuSettings>();
 var mangaConnectors = app.Services.GetRequiredService<IEnumerable<SeriesSource>>();
 kenkuSettings.ApplyDisabledConnectors(mangaConnectors);
-
-await kenkuManager.StartupTasks();
-kenkuManager.AddDefaultWorkers();
 }
 
 log.Info("Running app.");

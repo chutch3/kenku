@@ -1,8 +1,10 @@
+using API.HttpRequesters.Interfaces;
 using System.Net;
 using System.Text;
 using API.HttpRequesters;
 using API.Schema.SeriesContext;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using WireMock.Matchers;
 using WireMock.RequestBuilders;
@@ -17,19 +19,47 @@ namespace API.Tests.Integration;
 /// shared scaffolding — polling, library seeding, and MangaDex/Wikipedia/connector stubs — so individual
 /// tests express only what's specific to them.
 /// </summary>
-public abstract class OutboundHttpIntegrationTest : IDisposable
+public abstract class OutboundHttpIntegrationTest : IAsyncLifetime
 {
     protected readonly WireMockServer Server = WireMockServer.Start();
-    protected readonly KenkuApplicationFactory App;
+    protected KenkuApplicationFactory App { get; private set; } = null!;
+
+    private readonly IHttpRequester? _connectorHttp;
+    private readonly PostgresFixture _postgres = new();
+    private string? _dbName;
 
     protected OutboundHttpIntegrationTest(IHttpRequester? connectorHttp = null) =>
-        App = new KenkuApplicationFactory { OutboundHttpTarget = Server.Url!, ConnectorHttpRequester = connectorHttp };
+        _connectorHttp = connectorHttp;
 
-    public virtual void Dispose()
+    public virtual async Task InitializeAsync()
+    {
+        _dbName = await _postgres.CreateDatabaseAsync();
+        App = new KenkuApplicationFactory
+        {
+            OutboundHttpTarget = Server.Url!,
+            ConnectorHttpRequester = _connectorHttp,
+            PostgresConnectionString = _postgres.GetConnectionString(_dbName),
+        };
+    }
+
+    public virtual async Task DisposeAsync()
     {
         App.Dispose();
         Server.Stop();
-        GC.SuppressFinalize(this);
+        if (_dbName is not null)
+            await _postgres.DropDatabaseAsync(_dbName);
+    }
+
+    /// <summary>Runs the dispatcher until the job queue is drained — the test-mode substitute for the
+    /// hosted worker pool (disabled under RunStartup=false).</summary>
+    protected async Task DrainJobsAsync(int maxJobs = 200)
+    {
+        for (int i = 0; i < maxJobs; i++)
+        {
+            using var scope = App.Services.CreateScope();
+            if (!await scope.ServiceProvider.GetRequiredService<API.JobRuntime.Dispatcher>().RunOnceAsync())
+                return;
+        }
     }
 
     /// <summary>Polls <paramref name="condition"/> until it holds or the (short, fail-fast) timeout elapses.</summary>

@@ -1,3 +1,4 @@
+using API.DownloadClients.Interfaces;
 using System.Text.Json;
 using log4net;
 

@@ -1,15 +1,18 @@
+using API.JobRuntime.Reconcilers;
+using API.JobRuntime.Interfaces;
 using API.Controllers.DTOs;
 using API.Controllers.Requests;
+using API.JobRuntime;
+using API.JobRuntime.Handlers;
 using API.Schema.SeriesContext;
 using API.Services;
-using API.Workers;
-using API.Workers.MaintenanceWorkers;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using static Microsoft.AspNetCore.Http.StatusCodes;
 using SchemaManga = API.Schema.SeriesContext.Series;
+using JobEntity = API.Schema.JobsContext.Job;
 
 // ReSharper disable InconsistentNaming
 
@@ -18,7 +21,7 @@ namespace API.Controllers;
 [ApiVersion(2)]
 [ApiController]
 [Route("v{v:apiVersion}/Series/{MangaId}")]
-public class VolumeController(SeriesContext context, KenkuSettings settings, IWorkerQueue workerQueue)
+public class VolumeController(SeriesContext context, KenkuSettings settings, IJobStore jobStore, IClock clock)
     : ControllerBase
 {
     /// <summary>
@@ -155,10 +158,10 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IWo
     }
 
     /// <summary>
-    /// Queues RenameChapterFileWorker instances for each file that needs moving.
+    /// Enqueues a PlaceChapterFile job for each file that needs moving.
     /// </summary>
     /// <param name="MangaId"><see cref="Series"/>.Key</param>
-    /// <response code="202">Workers queued; returns first worker key as jobId</response>
+    /// <response code="202">Jobs enqueued; returns first job key as jobId</response>
     /// <response code="200">Nothing to reorganize</response>
     /// <response code="404">Series not found</response>
     [HttpPost("reorganize")]
@@ -183,29 +186,31 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IWo
         if (preview.Moves.Count == 0)
             return TypedResults.Ok(new ReorganizeJobResult(string.Empty));
 
-        // Build workers: one RenameChapterFileWorker per move
+        // Enqueue one PlaceChapterFile job per move.
         var chaptersByPath = manga.Chapters
             .Where(c => !c.IsBundled && c.FullArchiveFilePath != null)
             .ToDictionary(c => c.FullArchiveFilePath!, c => c);
 
-        var workers = preview.Moves
+        var jobs = preview.Moves
             .Where(m => chaptersByPath.ContainsKey(m.From))
             .Select(m =>
             {
                 var chapter = chaptersByPath[m.From];
                 string newFileName = Path.GetRelativePath(manga.FullDirectoryPath, m.To);
-                return new RenameChapterFileWorker(chapter.Key, newFileName, settings);
+                return new JobEntity(PlaceChapterFileHandler.Type,
+                    PlaceChapterFileHandler.PayloadFor(chapter.Key, newFileName), clock.UtcNow,
+                    resourceKey: manga.Key, dedupKey: ChapterFilePlacementReconciler.DedupKey(chapter.Key));
             })
-            .Cast<BaseWorker>()
             .ToList();
 
-        if (workers.Count == 0)
+        if (jobs.Count == 0)
             return TypedResults.Ok(new ReorganizeJobResult(string.Empty));
 
-        workerQueue.AddWorkers(workers);
+        foreach (var job in jobs)
+            await jobStore.EnqueueAsync(job, HttpContext.RequestAborted);
 
-        // Use the key of the first queued worker as the job ID
-        string jobId = workers[0].Key;
+        // Use the key of the first enqueued job as the job ID
+        string jobId = jobs[0].Key;
         return TypedResults.Accepted<ReorganizeJobResult>((string?)null, new ReorganizeJobResult(jobId));
     }
 
@@ -299,7 +304,7 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IWo
     }
 
     /// <summary>
-    /// Queues a BundleVolumeWorker to merge all unbundled chapters into a single CBZ.
+    /// Enqueues a ReconcileVolumeBundle job to merge all unbundled chapters into a single CBZ.
     /// </summary>
     /// <param name="MangaId"><see cref="SchemaManga"/>.Key</param>
     /// <param name="VolumeNumber">Volume number to bundle</param>
@@ -318,7 +323,7 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IWo
         if (manga is null)
             return TypedResults.NotFound(nameof(MangaId));
 
-        // VolumeMetadata is derived on demand by BundleVolumeWorker, so its absence is not a 404 —
+        // VolumeMetadata is derived on demand by the bundler, so its absence is not a 404 —
         // what matters is whether there are unbundled chapters with files to bundle.
         bool hasUnbundledChapters = await context.Chapters
             .AnyAsync(c => c.ParentMangaId == MangaId
@@ -328,13 +333,14 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IWo
         if (!hasUnbundledChapters)
             return TypedResults.Conflict("No unbundled chapters with files exist for this volume");
 
-        var worker = new BundleVolumeWorker(MangaId, VolumeNumber, settings);
-        workerQueue.AddWorker(worker);
-        return TypedResults.Accepted<BundleJobResult>((string?)null, new BundleJobResult(worker.Key));
+        JobEntity job = await jobStore.EnqueueAsync(new JobEntity(ReconcileVolumeBundleHandler.Type,
+            ReconcileVolumeBundleHandler.PayloadFor(MangaId, VolumeNumber, BundleAction.Bundle), clock.UtcNow,
+            resourceKey: MangaId), HttpContext.RequestAborted);
+        return TypedResults.Accepted<BundleJobResult>((string?)null, new BundleJobResult(job.Key));
     }
 
     /// <summary>
-    /// Queues an UnbundleVolumeWorker to split the bundle CBZ back into individual chapter CBZs.
+    /// Enqueues a ReconcileVolumeBundle (Unbundle) job to split the bundle CBZ back into chapter CBZs.
     /// </summary>
     /// <param name="MangaId"><see cref="SchemaManga"/>.Key</param>
     /// <param name="VolumeNumber">Volume number to unbundle</param>
@@ -368,9 +374,10 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IWo
             ? null
             : "No chapter map found; unbundle may be incomplete";
 
-        var worker = new UnbundleVolumeWorker(MangaId, VolumeNumber, settings);
-        workerQueue.AddWorker(worker);
-        return TypedResults.Accepted<UnbundleJobResult>((string?)null, new UnbundleJobResult(worker.Key, warning));
+        JobEntity job = await jobStore.EnqueueAsync(new JobEntity(ReconcileVolumeBundleHandler.Type,
+            ReconcileVolumeBundleHandler.PayloadFor(MangaId, VolumeNumber, BundleAction.Unbundle), clock.UtcNow,
+            resourceKey: MangaId), HttpContext.RequestAborted);
+        return TypedResults.Accepted<UnbundleJobResult>((string?)null, new UnbundleJobResult(job.Key, warning));
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────────

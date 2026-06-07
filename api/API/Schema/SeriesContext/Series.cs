@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Runtime.InteropServices;
-using API.Workers;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -107,15 +106,15 @@ public class Series : Identifiable
     }
 
     /// <summary>
-    /// Merges another Series (SourceIds and Chapters)
+    /// Merges <paramref name="other"/> into this series (deleting it) and returns the (from, to) file
+    /// moves the caller should enqueue as MoveData jobs to relocate the merged chapters' archives.
     /// </summary>
     /// <param name="other">The other <see cref="Series" /> to merge</param>
     /// <param name="context"><see cref="SeriesContext"/> to use for Database operations</param>
-    /// <returns>An array of <see cref="MoveFileOrFolderWorker"/> for moving <see cref="Chapter"/> to new Directory</returns>
-    public BaseWorker[] MergeFrom(Series other, SeriesContext context)
+    public (string from, string to)[] MergeFrom(Series other, SeriesContext context)
     {
         context.Series.Remove(other);
-        List<BaseWorker> newJobs = new();
+        List<(string from, string to)> moves = new();
 
         this.SourceIds = this.SourceIds
             .UnionBy(other.SourceIds, id => id.MangaConnectorName)
@@ -130,10 +129,10 @@ public class Series : Identifiable
             this.Chapters.Add(newChapter);
             if (newChapter.FullArchiveFilePath is not { } newPath)
                 continue;
-            newJobs.Add(new MoveFileOrFolderWorker(newPath, oldPath));
+            moves.Add((oldPath, newPath));
         }
-        
-        return newJobs.ToArray();
+
+        return moves.ToArray();
     }
 
     public async Task<(MemoryStream stream, FileInfo fileInfo)?> GetCoverImage(string cachePath, CancellationToken ct)

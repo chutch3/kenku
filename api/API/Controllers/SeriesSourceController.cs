@@ -1,6 +1,7 @@
+using API.Services.Interfaces;
 ﻿using API.Controllers.DTOs;
-using API.MangaConnectors;
-using MangaConnectorImpl = API.MangaConnectors.SeriesSource;
+using API.Connectors;
+using MangaConnectorImpl = API.Connectors.SeriesSource;
 using API.Schema.SeriesContext;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -16,9 +17,9 @@ namespace API.Controllers;
 public class SeriesSourceController(SeriesContext context, IEnumerable<MangaConnectorImpl> connectors, KenkuSettings settings) : ControllerBase
 {
     /// <summary>
-    /// Get all <see cref="API.MangaConnectors.SeriesSource"/> (Scanlation-Sites)
+    /// Get all <see cref="API.Connectors.SeriesSource"/> (Scanlation-Sites)
     /// </summary>
-    /// <response code="200">Names of <see cref="API.MangaConnectors.SeriesSource"/> (Scanlation-Sites)</response>
+    /// <response code="200">Names of <see cref="API.Connectors.SeriesSource"/> (Scanlation-Sites)</response>
     [HttpGet]
     [ProducesResponseType<List<DTOs.SeriesSource>>(Status200OK, "application/json")]
     public Ok<List<DTOs.SeriesSource>> GetConnectors()
@@ -29,9 +30,9 @@ public class SeriesSourceController(SeriesContext context, IEnumerable<MangaConn
     }
 
     /// <summary>
-    /// Returns the <see cref="API.MangaConnectors.SeriesSource"/> (Scanlation-Sites) with the requested Name
+    /// Returns the <see cref="API.Connectors.SeriesSource"/> (Scanlation-Sites) with the requested Name
     /// </summary>
-    /// <param name="MangaConnectorName"><see cref="API.MangaConnectors.SeriesSource"/>.Name</param>
+    /// <param name="MangaConnectorName"><see cref="API.Connectors.SeriesSource"/>.Name</param>
     /// <response code="200"></response>
     /// <response code="404"><see cref="DTOs.SeriesSource"/> (Scanlation-Sites) with Name not found.</response>
     [HttpGet("{MangaConnectorName}")]
@@ -46,7 +47,7 @@ public class SeriesSourceController(SeriesContext context, IEnumerable<MangaConn
     }
     
     /// <summary>
-    /// Get all <see cref="API.MangaConnectors.SeriesSource"/> (Scanlation-Sites) with <paramref name="Enabled"/>-Status
+    /// Get all <see cref="API.Connectors.SeriesSource"/> (Scanlation-Sites) with <paramref name="Enabled"/>-Status
     /// </summary>
     /// <response code="200"></response>
     [HttpGet("Enabled/{Enabled}")]
@@ -60,12 +61,12 @@ public class SeriesSourceController(SeriesContext context, IEnumerable<MangaConn
     }
 
     /// <summary>
-    /// Enabled or disables <see cref="API.MangaConnectors.SeriesSource"/> (Scanlation-Sites) with Name
+    /// Enabled or disables <see cref="API.Connectors.SeriesSource"/> (Scanlation-Sites) with Name
     /// </summary>
-    /// <param name="MangaConnectorName"><see cref="API.MangaConnectors.SeriesSource"/>.Name</param>
+    /// <param name="MangaConnectorName"><see cref="API.Connectors.SeriesSource"/>.Name</param>
     /// <param name="Enabled">Set true to enable, false to disable</param>
     /// <response code="200"></response>
-    /// <response code="404"><see cref="API.MangaConnectors.SeriesSource"/> (Scanlation-Sites) with Name not found.</response>
+    /// <response code="404"><see cref="API.Connectors.SeriesSource"/> (Scanlation-Sites) with Name not found.</response>
     /// <response code="500">Error during Database Operation</response>
     [HttpPatch("{MangaConnectorName}/SetEnabled/{Enabled}")]
     [ProducesResponseType(Status200OK)]

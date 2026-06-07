@@ -1,10 +1,9 @@
+using API.Services.Interfaces;
 using API.Controllers.DTOs;
 using API.Controllers.Requests;
-using API.MangaConnectors;
+using API.Connectors;
 using API.Schema.SeriesContext;
 using API.Services;
-using API.Workers.MangaDownloadWorkers;
-using API.Workers;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +11,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using static Microsoft.AspNetCore.Http.StatusCodes;
 using Chapter = API.Controllers.DTOs.Chapter;
-using MangaConnectorImpl = API.MangaConnectors.SeriesSource;
+using MangaConnectorImpl = API.Connectors.SeriesSource;
 
 
 // ReSharper disable InconsistentNaming
@@ -22,7 +21,7 @@ namespace API.Controllers;
 [ApiVersion(2)]
 [ApiController]
 [Route("v{v:apiVersion}/[controller]")]
-public class ChaptersController(SeriesContext context, KenkuSettings settings, IEnumerable<MangaConnectorImpl> connectors, IWorkerQueue workerQueue, IChapterThumbnailService chapterThumbnailService) : ControllerBase
+public class ChaptersController(SeriesContext context, KenkuSettings settings, IEnumerable<MangaConnectorImpl> connectors, IChapterThumbnailService chapterThumbnailService) : ControllerBase
 {
     /// <summary>
     /// Returns all <see cref="Schema.SeriesContext.Chapter"/> of <see cref="Schema.SeriesContext.Series"/> with <paramref name="MangaId"/>
@@ -190,7 +189,8 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
     /// <response code="404"><see cref="Chapter"/> with <paramref name="ChapterId"/> not found</response>
     /// <response code="500">Error during Database Operation</response>
     [HttpPatch("{ChapterId}")]
-    public async Task<Results<Ok, NotFound<string>, InternalServerError<string>>> UpdateChapter(string ChapterId, [FromBody] PatchChapterRecord patch)
+    public async Task<Results<Ok, NotFound<string>, InternalServerError<string>>> UpdateChapter(string ChapterId, [FromBody] PatchChapterRecord patch,
+        [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock)
     {
         if (await context.Chapters.FirstOrDefaultAsync(c => c.Key == ChapterId, HttpContext.RequestAborted) is not { } chapter)
             return TypedResults.NotFound(nameof(ChapterId));
@@ -198,13 +198,12 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
         string? oldFileName = chapter.FileName;
         bool fileNameChanged = patch.FileName != oldFileName;
 
-        // Trigger the worker we built!
+        // Move the file on disk via a background MoveData job.
         if (fileNameChanged && oldFileName is not null && patch.FileName is not null)
-        {
-            // Add the file move to your background queue
-            var moveWorker = new MoveFileOrFolderWorker(toLocation: patch.FileName, fromLocation: oldFileName);
-            workerQueue.AddWorker(moveWorker);
-        }
+            await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
+                API.JobRuntime.Handlers.MoveDataHandler.Type,
+                API.JobRuntime.Handlers.MoveDataHandler.PayloadFor(oldFileName, patch.FileName), clock.UtcNow,
+                dedupKey: API.JobRuntime.Handlers.MoveDataHandler.DedupKey(patch.FileName)), HttpContext.RequestAborted);
 
         chapter.FileName = patch.FileName;
         chapter.VolumeNumber = patch.VolumeNumber;
@@ -270,23 +269,23 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
     }
 
     /// <summary>
-    /// (Un-)Marks <see cref="Chapter"/> as requested for Download from <see cref="API.MangaConnectors.SeriesSource"/>
+    /// (Un-)Marks <see cref="Chapter"/> as requested for Download from <see cref="API.Connectors.SeriesSource"/>
     /// </summary>
     /// <param name="ChapterId"><see cref="Chapter"/> with <paramref name="ChapterId"/></param>
-    /// <param name="MangaConnectorName"><see cref="API.MangaConnectors.SeriesSource"/> with <paramref name="MangaConnectorName"/></param>
+    /// <param name="MangaConnectorName"><see cref="API.Connectors.SeriesSource"/> with <paramref name="MangaConnectorName"/></param>
     /// <param name="IsRequested">true to mark as requested, false to mark as not-requested</param>
     /// <response code="200"></response>
     /// <response code="404"><paramref name="ChapterId"/> or <paramref name="MangaConnectorName"/> not found</response>
-    /// <response code="428"><see cref="Chapter"/> is not linked to <see cref="API.MangaConnectors.SeriesSource"/> yet. Search for <see cref="Chapter"/> on <see cref="API.MangaConnectors.SeriesSource"/> first (to create a <see cref="DTOs.SourceId{T}"/>).</response>
+    /// <response code="428"><see cref="Chapter"/> is not linked to <see cref="API.Connectors.SeriesSource"/> yet. Search for <see cref="Chapter"/> on <see cref="API.Connectors.SeriesSource"/> first (to create a <see cref="DTOs.SourceId{T}"/>).</response>
     /// <response code="500">Error during Database Operation</response>
     [HttpPatch("{ChapterId}/DownloadFrom/{MangaConnectorName}/{IsRequested}")]
     [ProducesResponseType(Status200OK)]
     [ProducesResponseType<string>(Status404NotFound,  "text/plain")]
     [ProducesResponseType<string>(Status428PreconditionRequired,  "text/plain")]
     [ProducesResponseType<string>(Status500InternalServerError,  "text/plain")]
-    public async Task<Results<Ok, NotFound<string>, StatusCodeHttpResult, InternalServerError<string>>> MarkAsRequested(string ChapterId, string MangaConnectorName, bool IsRequested)
+    public async Task<Results<Ok, NotFound<string>, StatusCodeHttpResult, InternalServerError<string>>> MarkAsRequested(string ChapterId, string MangaConnectorName, bool IsRequested, [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock)
     {
-        if (await context.Chapters.FirstOrDefaultAsync(ch => ch.Key == ChapterId, HttpContext.RequestAborted) is not { } _)
+        if (await context.Chapters.FirstOrDefaultAsync(ch => ch.Key == ChapterId, HttpContext.RequestAborted) is not { } chapter)
             return TypedResults.NotFound(nameof(ChapterId));
         if(!connectors.Any(c => c.Name.Equals(MangaConnectorName, StringComparison.InvariantCultureIgnoreCase)))
             return TypedResults.NotFound(nameof(MangaConnectorName));
@@ -303,10 +302,11 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
             return TypedResults.InternalServerError(result.exceptionMessage);
 
         if (IsRequested)
-        {
-            DownloadChapterFromSourceWorker worker = new(chId, connectors, settings);
-            workerQueue.AddWorker(worker);
-        }
+            await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
+                API.JobRuntime.Handlers.DownloadChapterHandler.Type,
+                API.JobRuntime.Handlers.DownloadChapterHandler.PayloadFor(chId.Key), clock.UtcNow,
+                resourceKey: chapter.ParentMangaId, dedupKey: API.JobRuntime.Reconcilers.DownloadReconciler.DedupKey(chId.Key)),
+                HttpContext.RequestAborted);
 
         return TypedResults.Ok();
     }

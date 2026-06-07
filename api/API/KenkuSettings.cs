@@ -1,5 +1,5 @@
 ﻿using System.Runtime.InteropServices;
-using API.Workers;
+using API.Connectors;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
@@ -67,7 +67,7 @@ public class KenkuSettings
     public int RefreshLibraryWhileDownloadingEveryMinutes { get; set; } = 10;
 
     /// <summary>
-    /// Names of <see cref="API.MangaConnectors.SeriesSource"/> instances that have been explicitly disabled.
+    /// Names of <see cref="API.Connectors.SeriesSource"/> instances that have been explicitly disabled.
     /// Connectors absent from this set are considered enabled (opt-out model).
     /// </summary>
     public HashSet<string> DisabledConnectors { get; set; } = [];
@@ -349,7 +349,7 @@ public class KenkuSettings
     /// Applies the persisted <see cref="DisabledConnectors"/> set to a collection of connector instances.
     /// Call this once at startup after the DI container is built.
     /// </summary>
-    public void ApplyDisabledConnectors(IEnumerable<MangaConnectors.SeriesSource> connectors)
+    public void ApplyDisabledConnectors(IEnumerable<SeriesSource> connectors)
     {
         foreach (var connector in connectors)
             connector.Enabled = !DisabledConnectors.Contains(connector.Name);

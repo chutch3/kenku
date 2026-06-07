@@ -1,14 +1,9 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
-using API.MangaConnectors;
+using API.Connectors;
 using API.HttpRequesters;
 using API.Schema.SeriesContext;
 using API.Schema.SeriesContext.MetadataFetchers;
-using API.Workers;
-using API.Workers.MangaDownloadWorkers;
-using API.Workers.PeriodicWorkers;
-using API.Workers.PeriodicWorkers.MaintenanceWorkers;
-using API.Workers.MaintenanceWorkers;
 using log4net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection; // Required for GetRequiredService
@@ -23,7 +18,6 @@ public class Kenku
     private readonly IServiceProvider _serviceProvider;
     private readonly RateLimitHandler _rateLimitHandler;
     private readonly KenkuSettings _settings;
-    private readonly IWorkerQueue _workerQueue;
 
     public IEnumerable<SeriesSource> Connectors { get; }
     public IEnumerable<MetadataFetcher> MetadataFetchers { get; }
@@ -33,62 +27,13 @@ public class Kenku
         IEnumerable<SeriesSource> connectors,
         IEnumerable<MetadataFetcher> fetchers,
         RateLimitHandler rateLimitHandler,
-        KenkuSettings settings,
-        IWorkerQueue workerQueue)
+        KenkuSettings settings)
     {
         _serviceProvider = serviceProvider;
         _settings = settings;
         _rateLimitHandler = rateLimitHandler;
-        _workerQueue = workerQueue;
         Connectors = connectors;
         MetadataFetchers = fetchers;
-    }
-
-    // Helper to keep the startup lists clean
-    private T GetWorker<T>() where T : BaseWorker => _serviceProvider.GetRequiredService<T>();
-
-    public async Task StartupTasks()
-    {
-        // 3. Pulling workers directly from the DI container
-        _workerQueue.AddWorker(GetWorker<SendNotificationsWorker>());
-        _workerQueue.AddWorker(GetWorker<CleanupSourceIdsWithoutSource>());
-        _workerQueue.AddWorker(GetWorker<CleanupMangaCoversWorker>());
-
-        // Moved to AddDefaultWorkers
-
-        Log.Info("Waiting for startup to complete...");
-        while (_workerQueue.GetRunningWorkers().Any(w => w.State < WorkerExecutionState.Completed))
-            await Task.Delay(1000);
-        Log.Info("Start complete!");
-    }
-
-    internal void AddDefaultWorkers()
-    {
-        _workerQueue.AddWorker(GetWorker<UpdateMetadataWorker>());
-        _workerQueue.AddWorker(GetWorker<NotifyOnNewDownloadsWorker>());
-        _workerQueue.AddWorker(GetWorker<CheckForNewChaptersWorker>());
-        _workerQueue.AddWorker(GetWorker<StartNewChapterDownloadsWorker>());
-        _workerQueue.AddWorker(GetWorker<RemoveOldNotificationsWorker>());
-        _workerQueue.AddWorker(GetWorker<UpdateCoversWorker>());
-        // Orphaned-file cleanup is destructive, so the scheduled run is report-only (dry-run).
-        // Actual deletion must be requested explicitly via POST /v2/Maintenance/CleanupOrphanedFiles.
-        _workerQueue.AddWorker(new CleanupOrphanedFilesWorker(dryRun: true));
-        _workerQueue.AddWorker(GetWorker<ResolveMissingVolumesWorker>());
-        _workerQueue.AddWorker(GetWorker<SyncChapterFileNamesWorker>());
-        // Level-triggered bundling: bundles ready VolumeCBZ volumes even when no download just
-        // completed (restart, churn settled, re-recognized chapters). See #22.
-        _workerQueue.AddWorker(new EnsureReadyVolumesBundledWorker(_workerQueue, _settings));
-        // Level-triggered rebuild: re-bundles a volume whose chapter set changed after it was bundled
-        // (late download, re-assignment, manual fix) so the chapter lands in the right position.
-        _workerQueue.AddWorker(new EnsureBundledVolumesFreshWorker(_workerQueue, _settings));
-
-        // Torrent completion worker is registered only when the torrent path is configured;
-        // skip silently if absent so deployments without Prowlarr+qBittorrent are unaffected.
-        if (_serviceProvider.GetService<TorrentCompletionWorker>() is { } torrentWorker)
-            _workerQueue.AddWorker(torrentWorker);
-
-        if(Constants.UpdateChaptersDownloadedBeforeStarting)
-            _workerQueue.AddWorker(GetWorker<UpdateChaptersDownloadedWorker>());
     }
 
     internal bool TryGetSeriesSource(string name, [NotNullWhen(true)]out SeriesSource? seriesSource)
@@ -162,8 +107,16 @@ public class Kenku
         if (await context.Sync(token, reason: "AddMangaToContext") is { success: false })
             return null;
 
-        DownloadCoverFromSourceWorker downloadCoverWorker = new (result.Value.Item2, Connectors);
-        _workerQueue.AddWorker(downloadCoverWorker);
+        using (IServiceScope scope = _serviceProvider.CreateScope())
+        {
+            var jobStore = scope.ServiceProvider.GetRequiredService<JobRuntime.Interfaces.IJobStore>();
+            var clock = scope.ServiceProvider.GetRequiredService<JobRuntime.Interfaces.IClock>();
+            await jobStore.EnqueueAsync(new Schema.JobsContext.Job(
+                JobRuntime.Handlers.DownloadCoverHandler.Type,
+                JobRuntime.Handlers.DownloadCoverHandler.PayloadFor(result.Value.Item2.Key), clock.UtcNow,
+                resourceKey: result.Value.Item2.ObjId,
+                dedupKey: JobRuntime.Reconcilers.CoverRefreshReconciler.DedupKey(result.Value.Item2.Key)), token);
+        }
 
         return result;
     }

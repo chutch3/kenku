@@ -30,9 +30,9 @@ public class VolumeIdentifierMatchEndToEndTests : OutboundHttpIntegrationTest
     private async Task ResolveAndExpectLink(string mangaKey, string expectedExternalId)
     {
         (await App.CreateClient().PostAsync("/v2/Maintenance/ResolveMissingVolumes", null)).EnsureSuccessStatusCode();
+        await DrainJobsAsync();
 
-        bool linked = await WaitUntil(async () => (await MetadataSourceFor(mangaKey)).ExternalId == expectedExternalId);
-        Assert.True(linked, $"series was not linked to {expectedExternalId}");
+        Assert.Equal(expectedExternalId, (await MetadataSourceFor(mangaKey)).ExternalId);
     }
 
     [Fact]

@@ -1,10 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using API.Controllers.DTOs;
-using API.MangaConnectors;
-using MangaConnectorImpl = API.MangaConnectors.SeriesSource;
+using API.Connectors;
+using MangaConnectorImpl = API.Connectors.SeriesSource;
 using API.Schema.SeriesContext;
-using API.Workers;
-using API.Workers.MangaDownloadWorkers;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -21,7 +19,6 @@ namespace API.Controllers;
 public class SearchController(
     SeriesContext context,
     IEnumerable<MangaConnectorImpl> connectors,
-    IWorkerQueue workerQueue,
     Func<string, string, (Series, Schema.SeriesContext.SourceId<Series>)?>? connectorLookup = null)
     : ControllerBase
 {
@@ -118,7 +115,8 @@ public class SearchController(
     [ProducesResponseType<MinimalSeries>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType<string>(Status500InternalServerError, "text/plain")]
-    public async Task<Results<Ok<MinimalSeries>, NotFound<string>, InternalServerError<string>>> GetMangaFromUrl([FromQuery] string url)
+    public async Task<Results<Ok<MinimalSeries>, NotFound<string>, InternalServerError<string>>> GetMangaFromUrl(
+        [FromQuery] string url, [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock)
     {
         url = url.Trim('"', '\'', ' '); // Trim extraneous values
         if (connectors.FirstOrDefault(c => c.Name.Equals("Global", StringComparison.InvariantCultureIgnoreCase)) is not { } connector)
@@ -133,8 +131,12 @@ public class SearchController(
         added.manga.IsTracked = true;
         await context.SaveChangesAsync(HttpContext.RequestAborted);
 
-        // Kick off cover download worker
-        workerQueue.AddWorker(new DownloadCoverFromSourceWorker(added.id, connectors));
+        // Kick off cover download job
+        await jobStore.EnqueueAsync(new Schema.JobsContext.Job(
+            API.JobRuntime.Handlers.DownloadCoverHandler.Type,
+            API.JobRuntime.Handlers.DownloadCoverHandler.PayloadFor(added.id.Key), clock.UtcNow,
+            resourceKey: added.id.ObjId, dedupKey: API.JobRuntime.Reconcilers.CoverRefreshReconciler.DedupKey(added.id.Key)),
+            HttpContext.RequestAborted);
 
         IEnumerable<DTOs.SourceId<DTOs.Series>> ids = added.manga.SourceIds.Select(id =>
             new DTOs.SourceId<DTOs.Series>(id.Key, id.MangaConnectorName, id.ObjId, id.IdOnConnectorSite, id.WebsiteUrl, id.UseForDownload));

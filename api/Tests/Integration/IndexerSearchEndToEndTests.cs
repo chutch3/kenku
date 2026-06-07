@@ -1,3 +1,6 @@
+using API.Services.Interfaces;
+using API.JobRuntime.Interfaces;
+using API.JobRuntime.Reconcilers;
 using System.Net;
 using System.Text.Json;
 using API;
@@ -22,17 +25,32 @@ namespace API.Tests.Integration;
 /// comics under a different category id, which is exactly how "search The Boys returns nothing" looked.
 /// </summary>
 [Trait("Category", "Integration")]
-public class IndexerSearchEndToEndTests : IDisposable
+public class IndexerSearchEndToEndTests : IAsyncLifetime
 {
     private const int IndexerCategory = 7030;   // the category Prowlarr synced for this indexer
     private const int GlobalFallbackCategory = 8000; // KenkuSettings.IndexerComicCategories default
 
     private readonly WireMockServer _server = WireMockServer.Start();
-    private readonly KenkuApplicationFactory _app;
+    private readonly PostgresFixture _postgres = new();
+    private string _dbName = null!;
+    private KenkuApplicationFactory _app = null!;
 
-    public IndexerSearchEndToEndTests() => _app = new KenkuApplicationFactory { OutboundHttpTarget = _server.Url! };
+    public async Task InitializeAsync()
+    {
+        _dbName = await _postgres.CreateDatabaseAsync();
+        _app = new KenkuApplicationFactory
+        {
+            OutboundHttpTarget = _server.Url!,
+            PostgresConnectionString = _postgres.GetConnectionString(_dbName),
+        };
+    }
 
-    public void Dispose() { _app.Dispose(); _server.Stop(); }
+    public async Task DisposeAsync()
+    {
+        _app.Dispose();
+        _server.Stop();
+        await _postgres.DropDatabaseAsync(_dbName);
+    }
 
     private const string TheBoysTorznab = """
     <?xml version="1.0" encoding="UTF-8"?>

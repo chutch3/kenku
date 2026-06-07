@@ -1,3 +1,4 @@
+using API.DownloadClients.Interfaces;
 namespace API.DownloadClients;
 
 public interface IDownloadClientFactory

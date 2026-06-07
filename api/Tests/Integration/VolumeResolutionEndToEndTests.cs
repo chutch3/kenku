@@ -53,11 +53,10 @@ public class VolumeResolutionEndToEndTests : OutboundHttpIntegrationTest
 
         var response = await App.CreateClient().PostAsync("/v2/Maintenance/ResolveMissingVolumes", null);
         response.EnsureSuccessStatusCode();
+        await DrainJobsAsync();
 
-        bool resolved = await WaitUntil(
-            async () => (await App.WithSeriesContext(c => c.Chapters.CountAsync(x => x.VolumeNumber == null))) == 0,
-            TimeSpan.FromSeconds(20));
-        Assert.True(resolved, "chapters were not resolved over the real HTTP stack");
+        int unresolved = await App.WithSeriesContext(c => c.Chapters.CountAsync(x => x.VolumeNumber == null));
+        Assert.Equal(0, unresolved);
 
         var byNumber = await App.WithSeriesContext(c => c.Chapters.ToDictionaryAsync(x => x.ChapterNumber, x => x.VolumeNumber));
         Assert.Equal(1, byNumber["1"]);     // MangaDex

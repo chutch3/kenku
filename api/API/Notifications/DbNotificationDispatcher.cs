@@ -1,3 +1,4 @@
+using API.Notifications.Interfaces;
 using API.Schema.NotificationsContext;
 using log4net;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,7 +7,7 @@ namespace API.Notifications;
 
 /// <summary>
 /// Persists notifications to the NotificationsContext. The downstream SendNotificationsWorker is
-/// what actually fans them out to the configured external notification connectors (Gotify, Ntfy, …).
+/// what actually fans them out is the SendNotifications job (to Gotify, Ntfy, …).
 /// Creates its own DI scope per dispatch so the dispatcher itself can be a singleton.
 /// </summary>
 public class DbNotificationDispatcher(IServiceScopeFactory scopeFactory) : INotificationDispatcher

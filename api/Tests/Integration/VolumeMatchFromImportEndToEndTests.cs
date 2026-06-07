@@ -38,8 +38,8 @@ public class VolumeMatchFromImportEndToEndTests() : OutboundHttpIntegrationTest(
 
         // 3. Resolve — the captured link must pick true-uuid even though the decoy wins on title + count.
         (await App.CreateClient().PostAsync("/v2/Maintenance/ResolveMissingVolumes", null)).EnsureSuccessStatusCode();
+        await DrainJobsAsync();
 
-        bool matched = await WaitUntil(async () => (await MetadataSourceFor(mangaKey)).ExternalId == "true-uuid");
-        Assert.True(matched, "imported series did not match MangaDex via its captured AniList link");
+        Assert.Equal("true-uuid", (await MetadataSourceFor(mangaKey)).ExternalId);
     }
 }

@@ -1,4 +1,5 @@
-using API.MangaConnectors;
+using API.Acquirers.Interfaces;
+using API.Connectors;
 using API.Schema.SeriesContext;
 using log4net;
 

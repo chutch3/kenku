@@ -1,10 +1,8 @@
 ﻿using API.Controllers.DTOs;
-using API.MangaConnectors;
+using API.Connectors;
 using API.Schema.ActionsContext;
 using API.Schema.ActionsContext.Actions;
 using API.Schema.SeriesContext;
-using API.Workers;
-using API.Workers.MangaDownloadWorkers;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -17,7 +15,7 @@ using Author = API.Controllers.DTOs.Author;
 using Chapter = API.Schema.SeriesContext.Chapter;
 using Link = API.Controllers.DTOs.Link;
 using Series = API.Controllers.DTOs.Series;
-using MangaConnectorImpl = API.MangaConnectors.SeriesSource;
+using MangaConnectorImpl = API.Connectors.SeriesSource;
 
 // ReSharper disable InconsistentNaming
 
@@ -26,7 +24,7 @@ namespace API.Controllers;
 [ApiVersion(2)]
 [ApiController]
 [Route("v{v:apiVersion}/[controller]")]
-public class SeriesController(SeriesContext context, ActionsContext actionsContext, KenkuSettings settings, IEnumerable<MangaConnectorImpl> connectors, IWorkerQueue workerQueue) : ControllerBase
+public class SeriesController(SeriesContext context, ActionsContext actionsContext, KenkuSettings settings, IEnumerable<MangaConnectorImpl> connectors) : ControllerBase
 {
     
     /// <summary>
@@ -53,7 +51,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     }
     
     /// <summary>
-    /// Returns all <see cref="Schema.SeriesContext.Series"/> that are being downloaded from at least one <see cref="API.MangaConnectors.SeriesSource"/>
+    /// Returns all <see cref="Schema.SeriesContext.Series"/> that are being downloaded from at least one <see cref="API.Connectors.SeriesSource"/>
     /// </summary>
     /// <response code="200"><see cref="MinimalSeries"/> exert of <see cref="Schema.SeriesContext.Series"/>. Use <see cref="GetManga"/> for more information</response>
     /// <response code="500">Error during Database Operation</response>
@@ -133,16 +131,20 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [HttpPost("{MangaIdFrom}/MergeInto/{MangaIdInto}")]
     [ProducesResponseType(Status200OK)]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
-    public async Task<Results<Ok, NotFound<string>>> MergeIntoManga (string MangaIdFrom, string MangaIdInto)
+    public async Task<Results<Ok, NotFound<string>>> MergeIntoManga (string MangaIdFrom, string MangaIdInto,
+        [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock)
     {
         if (await context.MangaIncludeAll().FirstOrDefaultAsync(m => m.Key == MangaIdFrom, HttpContext.RequestAborted) is not { } from)
             return TypedResults.NotFound(nameof(MangaIdFrom));
         if (await context.MangaIncludeAll().FirstOrDefaultAsync(m => m.Key == MangaIdInto, HttpContext.RequestAborted) is not { } into)
             return TypedResults.NotFound(nameof(MangaIdInto));
-        
-        BaseWorker[] newJobs = into.MergeFrom(from, context);
-        workerQueue.AddWorkers(newJobs);
-        
+
+        foreach ((string from_, string to) in into.MergeFrom(from, context))
+            await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
+                API.JobRuntime.Handlers.MoveDataHandler.Type,
+                API.JobRuntime.Handlers.MoveDataHandler.PayloadFor(from_, to), clock.UtcNow,
+                dedupKey: API.JobRuntime.Handlers.MoveDataHandler.DedupKey(to)), HttpContext.RequestAborted);
+
         return TypedResults.Ok();
     }
 
@@ -206,7 +208,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [ProducesResponseType(Status200OK)]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType<string>(Status500InternalServerError,  "text/plain")]
-    public async Task<Results<Ok, NotFound<string>, InternalServerError<string>>> ChangeLibrary(string MangaId, string LibraryId, [FromQuery] string? connectorName = null, [FromQuery] string? connectorSeriesId = null)
+    public async Task<Results<Ok, NotFound<string>, InternalServerError<string>>> ChangeLibrary(string MangaId, string LibraryId, [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock, [FromQuery] string? connectorName = null, [FromQuery] string? connectorSeriesId = null)
     {
         if (await context.FileLibraries.FirstOrDefaultAsync(l => l.Key == LibraryId, HttpContext.RequestAborted) is not { } library)
             return TypedResults.NotFound(nameof(LibraryId));
@@ -244,9 +246,12 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
         Dictionary<Chapter, string?> oldPaths = manga.Chapters.Where(ch => ch.Downloaded).ToDictionary(ch => ch, ch => ch.FullArchiveFilePath);
         manga.Library = library;
         Dictionary<Chapter, string?> newPaths = oldPaths.ToDictionary(kv => kv.Key, kv => kv.Key.FullArchiveFilePath);
-        IEnumerable<MoveFileOrFolderWorker> workers = oldPaths.Select(kv => new MoveFileOrFolderWorker(newPaths[kv.Key]!, kv.Value!));
-        workerQueue.AddWorkers(workers);
-        
+        foreach (var kv in oldPaths)
+            await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
+                API.JobRuntime.Handlers.MoveDataHandler.Type,
+                API.JobRuntime.Handlers.MoveDataHandler.PayloadFor(kv.Value!, newPaths[kv.Key]!), clock.UtcNow,
+                dedupKey: API.JobRuntime.Handlers.MoveDataHandler.DedupKey(newPaths[kv.Key]!)), HttpContext.RequestAborted);
+
         if(await context.Sync(HttpContext.RequestAborted, GetType(), "Move Series") is { success: false } mangaContextResult)
             return TypedResults.InternalServerError(mangaContextResult.exceptionMessage);
         
@@ -258,15 +263,15 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     }
 
     /// <summary>
-    /// (Un-)Marks <see cref="Series"/> as requested for Download from <see cref="API.MangaConnectors.SeriesSource"/>
+    /// (Un-)Marks <see cref="Series"/> as requested for Download from <see cref="API.Connectors.SeriesSource"/>
     /// </summary>
     /// <param name="MangaId"><see cref="Series"/> with <paramref name="MangaId"/></param>
-    /// <param name="MangaConnectorName"><see cref="API.MangaConnectors.SeriesSource"/> with <paramref name="MangaConnectorName"/></param>
+    /// <param name="MangaConnectorName"><see cref="API.Connectors.SeriesSource"/> with <paramref name="MangaConnectorName"/></param>
     /// <param name="IsRequested">true to mark as requested, false to mark as not-requested</param>
     /// <response code="200"></response>
     /// <response code="404"><paramref name="MangaId"/> or <paramref name="MangaConnectorName"/> not found</response>
-    /// <response code="412"><see cref="Series"/> was not linked to <see cref="API.MangaConnectors.SeriesSource"/>, so nothing changed</response>
-    /// <response code="428"><see cref="Series"/> is not linked to <see cref="API.MangaConnectors.SeriesSource"/> yet. Search for <see cref="Series"/> on <see cref="API.MangaConnectors.SeriesSource"/> first (to create a <see cref="DTOs.SourceId{T}"/>).</response>
+    /// <response code="412"><see cref="Series"/> was not linked to <see cref="API.Connectors.SeriesSource"/>, so nothing changed</response>
+    /// <response code="428"><see cref="Series"/> is not linked to <see cref="API.Connectors.SeriesSource"/> yet. Search for <see cref="Series"/> on <see cref="API.Connectors.SeriesSource"/> first (to create a <see cref="DTOs.SourceId{T}"/>).</response>
     /// <response code="500">Error during Database Operation</response>
     [HttpPatch("{MangaId}/DownloadFrom/{MangaConnectorName}/{IsRequested}")]
     [ProducesResponseType(Status200OK)]
@@ -274,7 +279,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [ProducesResponseType<string>(Status412PreconditionFailed,  "text/plain")]
     [ProducesResponseType<string>(Status428PreconditionRequired,  "text/plain")]
     [ProducesResponseType<string>(Status500InternalServerError,  "text/plain")]
-    public async Task<Results<Ok, NotFound<string>, StatusCodeHttpResult, InternalServerError<string>>> MarkAsRequested(string MangaId, string MangaConnectorName, bool IsRequested)
+    public async Task<Results<Ok, NotFound<string>, StatusCodeHttpResult, InternalServerError<string>>> MarkAsRequested(string MangaId, string MangaConnectorName, bool IsRequested, [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock)
     {
         if (await context.Series
                 .Include(m => m.Chapters)
@@ -309,21 +314,28 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
         if(await context.Sync(HttpContext.RequestAborted, GetType(), "Update download from SeriesSource.") is { success: false } result)
             return TypedResults.InternalServerError(result.exceptionMessage);
 
-        DownloadCoverFromSourceWorker downloadCover = new(mcId, connectors);
-        RetrieveChaptersFromSourceWorker retrieveChapters = new(mcId, settings.DownloadLanguage, connectors);
-        workerQueue.AddWorkers([downloadCover, retrieveChapters]);
-        
+        await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
+            API.JobRuntime.Handlers.DownloadCoverHandler.Type,
+            API.JobRuntime.Handlers.DownloadCoverHandler.PayloadFor(mcId.Key), clock.UtcNow,
+            resourceKey: mcId.ObjId, dedupKey: API.JobRuntime.Reconcilers.CoverRefreshReconciler.DedupKey(mcId.Key)),
+            HttpContext.RequestAborted);
+        await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
+            API.JobRuntime.Handlers.SyncSeriesChaptersHandler.Type,
+            API.JobRuntime.Handlers.SyncSeriesChaptersHandler.PayloadFor(mcId.Key, settings.DownloadLanguage), clock.UtcNow,
+            resourceKey: mcId.ObjId, dedupKey: API.JobRuntime.Reconcilers.SeriesChapterSyncReconciler.DedupKey(mcId.Key)),
+            HttpContext.RequestAborted);
+
         return TypedResults.Ok();
     }
     
     /// <summary>
-    /// Initiate a search for <see cref="API.Schema.SeriesContext.Series"/> on a different <see cref="API.MangaConnectors.SeriesSource"/>
+    /// Initiate a search for <see cref="API.Schema.SeriesContext.Series"/> on a different <see cref="API.Connectors.SeriesSource"/>
     /// </summary>
     /// <param name="MangaId"><see cref="API.Schema.SeriesContext.Series"/> with <paramref name="MangaId"/></param>
-    /// <param name="MangaConnectorName"><see cref="API.MangaConnectors.SeriesSource"/>.Name</param>
+    /// <param name="MangaConnectorName"><see cref="API.Connectors.SeriesSource"/>.Name</param>
     /// <response code="200"><see cref="MinimalSeries"/> exert of <see cref="Schema.SeriesContext.Series"/></response>
-    /// <response code="404"><see cref="API.MangaConnectors.SeriesSource"/> with Name not found</response>
-    /// <response code="412"><see cref="API.MangaConnectors.SeriesSource"/> with Name is disabled</response>
+    /// <response code="404"><see cref="API.Connectors.SeriesSource"/> with Name not found</response>
+    /// <response code="412"><see cref="API.Connectors.SeriesSource"/> with Name is disabled</response>
     [HttpGet("{MangaId}/OnMangaConnector/{MangaConnectorName}")]
     [ProducesResponseType<List<MinimalSeries>>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
@@ -333,7 +345,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
         if (await context.Series.FirstOrDefaultAsync(m => m.Key == MangaId, HttpContext.RequestAborted) is not { } manga)
             return TypedResults.NotFound(nameof(MangaId));
 
-        return await new SearchController(context, connectors, workerQueue).SearchManga(MangaConnectorName, manga.Name);
+        return await new SearchController(context, connectors).SearchManga(MangaConnectorName, manga.Name);
     }
     
     /// <summary>

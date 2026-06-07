@@ -1,7 +1,10 @@
+using API.JobRuntime.Reconcilers;
+using API.JobRuntime.Interfaces;
+using API.JobRuntime;
+using API.JobRuntime.Handlers;
+using API.Services;
 using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;
-using API.Workers;
-using API.Workers.MaintenanceWorkers;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -56,52 +59,50 @@ public class MaintenanceController(SeriesContext mangaContext, ActionsContext ac
     }
 
     /// <summary>
-    /// Queues a <see cref="CleanupOrphanedFilesWorker"/> to remove files from the library that are not tracked in the database.
+    /// Enqueues a Cleanup (OrphanedFiles) job to remove files from the library that are not tracked in the database.
     /// </summary>
-    /// <param name="workerQueue"></param>
     /// <param name="dryRun">If true, only log what would be deleted without actually deleting it.</param>
     /// <param name="force">If true, bypass the safety guards that skip wiping an untracked library or
     /// deleting a majority of a library's archives. Use only for a deliberate bulk cleanup.</param>
-    /// <response code="202">Cleanup worker queued</response>
+    /// <response code="200">Cleanup job enqueued</response>
     [HttpPost("CleanupOrphanedFiles")]
-    [ProducesResponseType(Status202Accepted)]
-    public Ok CleanupOrphanedFiles([FromServices] IWorkerQueue workerQueue, bool dryRun = false, bool force = false)
+    [ProducesResponseType(Status200OK)]
+    public async Task<Ok> CleanupOrphanedFiles([FromServices] IJobStore jobStore, [FromServices] IClock clock, bool dryRun = false, bool force = false)
     {
-        workerQueue.AddWorker(new CleanupOrphanedFilesWorker(dryRun, force));
+        await jobStore.EnqueueAsync(new Schema.JobsContext.Job(
+            CleanupHandler.Type, CleanupHandler.PayloadFor(CleanupKind.OrphanedFiles, dryRun, force), clock.UtcNow),
+            HttpContext.RequestAborted);
         return TypedResults.Ok();
     }
 
     /// <summary>
-    /// Queues a <see cref="ResolveMissingVolumesWorker"/> to guess or resolve volume numbers for downloaded chapters.
+    /// Enqueues a ResolveSeriesVolumes job for each series with unresolved chapter volumes.
     /// </summary>
-    /// <param name="workerQueue"></param>
-    /// <param name="settings"></param>
-    /// <param name="mangaDexVolumeResolver"></param>
-    /// <response code="202">Resolve worker queued</response>
+    /// <response code="200">Resolve jobs enqueued</response>
     [HttpPost("ResolveMissingVolumes")]
-    [ProducesResponseType(Status202Accepted)]
-    public Ok ResolveMissingVolumes([FromServices] IWorkerQueue workerQueue, [FromServices] KenkuSettings settings, [FromServices] IBatchWorkerFactory<string> factory)
+    [ProducesResponseType(Status200OK)]
+    public async Task<Ok> ResolveMissingVolumes([FromServices] IJobStore jobStore, [FromServices] KenkuSettings settings,
+        [FromServices] IClock clock)
     {
-        workerQueue.AddWorker(new ResolveMissingVolumesWorker(settings, factory));
+        await VolumeResolutionReconciler.ScanAndEnqueueAsync(mangaContext, jobStore, settings, clock.UtcNow, HttpContext.RequestAborted);
         return TypedResults.Ok();
     }
 
     /// <summary>
-    /// Queues a <see cref="SyncChapterFileNamesWorker"/> to rename chapter files where the stored filename no longer matches the current naming scheme.
+    /// Enqueues a PlaceChapterFile job for each chapter whose stored filename no longer matches the current naming scheme.
     /// </summary>
-    /// <param name="workerQueue"></param>
-    /// <param name="settings"></param>
-    /// <response code="200">Sync worker queued</response>
+    /// <response code="200">Placement jobs enqueued</response>
     [HttpPost("SyncChapterFileNames")]
     [ProducesResponseType(Status200OK)]
-    public Ok SyncChapterFileNames([FromServices] IWorkerQueue workerQueue, [FromServices] KenkuSettings settings)
+    public async Task<Ok> SyncChapterFileNames([FromServices] IJobStore jobStore, [FromServices] KenkuSettings settings,
+        [FromServices] IClock clock)
     {
-        workerQueue.AddWorker(new SyncChapterFileNamesWorker(settings));
+        await ChapterFilePlacementReconciler.ScanAndEnqueueAsync(mangaContext, jobStore, settings, clock.UtcNow, HttpContext.RequestAborted);
         return TypedResults.Ok();
     }
 
     /// <summary>
-    /// Clears all chapter volume numbers and queues a <see cref="ResolveMissingVolumesWorker"/> to re-resolve them from scratch.
+    /// Clears all chapter volume numbers and enqueues ResolveSeriesVolumes jobs to re-resolve them from scratch.
     /// </summary>
     /// <param name="workerQueue"></param>
     /// <param name="settings"></param>
@@ -112,9 +113,9 @@ public class MaintenanceController(SeriesContext mangaContext, ActionsContext ac
     [ProducesResponseType(Status200OK)]
     [ProducesResponseType<string>(Status500InternalServerError, "text/plain")]
     public async Task<Results<Ok, InternalServerError<string>>> ResetAndResolveVolumes(
-        [FromServices] IWorkerQueue workerQueue,
+        [FromServices] IJobStore jobStore,
         [FromServices] KenkuSettings settings,
-        [FromServices] IBatchWorkerFactory<string> factory)
+        [FromServices] IClock clock)
     {
         var chapters = await mangaContext.Chapters.ToListAsync(HttpContext.RequestAborted);
         foreach (var chapter in chapters)
@@ -123,7 +124,7 @@ public class MaintenanceController(SeriesContext mangaContext, ActionsContext ac
         if (await mangaContext.Sync(HttpContext.RequestAborted, GetType(), nameof(ResetAndResolveVolumes)) is { success: false } result)
             return TypedResults.InternalServerError(result.exceptionMessage);
 
-        workerQueue.AddWorker(new ResolveMissingVolumesWorker(settings, factory));
+        await VolumeResolutionReconciler.ScanAndEnqueueAsync(mangaContext, jobStore, settings, clock.UtcNow, HttpContext.RequestAborted);
         return TypedResults.Ok();
     }
 }

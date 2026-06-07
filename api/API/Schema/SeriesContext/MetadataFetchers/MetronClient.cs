@@ -1,3 +1,4 @@
+using API.Schema.SeriesContext.MetadataFetchers.Interfaces;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;

@@ -25,7 +25,7 @@ namespace API.Migrations.Manga
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("API.MangaConnectors.MangaConnector", b =>
+            modelBuilder.Entity("API.Connectors.MangaConnector", b =>
                 {
                     b.Property<string>("Name")
                         .HasMaxLength(32)
@@ -340,37 +340,37 @@ namespace API.Migrations.Manga
                     b.ToTable("MangaTagToManga");
                 });
 
-            modelBuilder.Entity("API.MangaConnectors.AsuraComic", b =>
+            modelBuilder.Entity("API.Connectors.AsuraComic", b =>
                 {
-                    b.HasBaseType("API.MangaConnectors.MangaConnector");
+                    b.HasBaseType("API.Connectors.MangaConnector");
 
                     b.HasDiscriminator().HasValue("AsuraComic");
                 });
 
-            modelBuilder.Entity("API.MangaConnectors.Global", b =>
+            modelBuilder.Entity("API.Connectors.Global", b =>
                 {
-                    b.HasBaseType("API.MangaConnectors.MangaConnector");
+                    b.HasBaseType("API.Connectors.MangaConnector");
 
                     b.HasDiscriminator().HasValue("Global");
                 });
 
-            modelBuilder.Entity("API.MangaConnectors.MangaDex", b =>
+            modelBuilder.Entity("API.Connectors.MangaDex", b =>
                 {
-                    b.HasBaseType("API.MangaConnectors.MangaConnector");
+                    b.HasBaseType("API.Connectors.MangaConnector");
 
                     b.HasDiscriminator().HasValue("MangaDex");
                 });
 
-            modelBuilder.Entity("API.MangaConnectors.Mangaworld", b =>
+            modelBuilder.Entity("API.Connectors.Mangaworld", b =>
                 {
-                    b.HasBaseType("API.MangaConnectors.MangaConnector");
+                    b.HasBaseType("API.Connectors.MangaConnector");
 
                     b.HasDiscriminator().HasValue("Mangaworld");
                 });
 
-            modelBuilder.Entity("API.MangaConnectors.WeebCentral", b =>
+            modelBuilder.Entity("API.Connectors.WeebCentral", b =>
                 {
-                    b.HasBaseType("API.MangaConnectors.MangaConnector");
+                    b.HasBaseType("API.Connectors.MangaConnector");
 
                     b.HasDiscriminator().HasValue("WeebCentral");
                 });

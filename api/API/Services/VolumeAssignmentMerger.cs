@@ -1,3 +1,4 @@
+using API.Services.Interfaces;
 using API.Schema.SeriesContext;
 
 namespace API.Services;

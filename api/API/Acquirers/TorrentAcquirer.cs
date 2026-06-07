@@ -1,5 +1,8 @@
+using API.DownloadClients.Interfaces;
+using API.Indexers.Interfaces;
+using API.Acquirers.Interfaces;
 using API.Indexers;
-using API.MangaConnectors;
+using API.Connectors;
 using API.Schema.SeriesContext;
 using API.DownloadClients;
 using log4net;
