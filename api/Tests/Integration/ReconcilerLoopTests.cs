@@ -21,7 +21,6 @@ public class ReconcilerLoopTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        if (!await _postgres.IsReachableAsync()) return;
         _dbName = await _postgres.CreateDatabaseAsync();
         string cs = _postgres.GetConnectionString(_dbName);
         Directory.CreateDirectory(_libDir);
@@ -70,8 +69,6 @@ public class ReconcilerLoopTests : IAsyncLifetime
     [Fact]
     public async Task DownloadReconciler_OnFirstTick_EnqueuesDownloadJobForRequestedChapter()
     {
-        if (_app is null) return; // skip: Postgres not available
-
         bool appeared = false;
         var deadline = DateTime.UtcNow.AddSeconds(10);
         while (DateTime.UtcNow < deadline)

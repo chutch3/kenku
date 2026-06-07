@@ -26,7 +26,7 @@ public class DownloadChapterJobTests : IAsyncLifetime
     private readonly WireMockServer _server = WireMockServer.Start();
     private readonly string _libDir = Path.Combine(Path.GetTempPath(), "kenku-dl-" + Guid.NewGuid().ToString("N"));
     private readonly PostgresFixture _postgres = new();
-    private string? _dbName;
+    private string _dbName = null!;
     private KenkuApplicationFactory _app = null!;
 
     private static byte[] Jpeg()
@@ -39,12 +39,7 @@ public class DownloadChapterJobTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        string? pgCs = null;
-        if (await _postgres.IsReachableAsync())
-        {
-            _dbName = await _postgres.CreateDatabaseAsync();
-            pgCs = _postgres.GetConnectionString(_dbName);
-        }
+        _dbName = await _postgres.CreateDatabaseAsync();
         var settings = new KenkuSettings { AppData = _libDir };
         var connector = new Mock<SeriesSource>("StubConnector", new[] { "en" }, new[] { "stub.test" }, "icon", settings);
         connector.Setup(c => c.GetChapterImageUrls(It.IsAny<SourceId<Chapter>>())).ReturnsAsync(["u1", "u2"]);
@@ -55,7 +50,7 @@ public class DownloadChapterJobTests : IAsyncLifetime
         {
             OutboundHttpTarget = _server.Url!,
             ExtraConnectors = [connector.Object],
-            PostgresConnectionString = pgCs,
+            PostgresConnectionString = _postgres.GetConnectionString(_dbName),
         };
         Directory.CreateDirectory(_libDir);
     }
@@ -65,8 +60,7 @@ public class DownloadChapterJobTests : IAsyncLifetime
         _app.Dispose();
         _server.Stop();
         try { Directory.Delete(_libDir, recursive: true); } catch { }
-        if (_dbName is not null)
-            await _postgres.DropDatabaseAsync(_dbName);
+        await _postgres.DropDatabaseAsync(_dbName);
     }
 
     [Fact]
@@ -110,7 +104,7 @@ public class DownloadChapterJobRetryTests : IAsyncLifetime
     private readonly string _libDir = Path.Combine(Path.GetTempPath(), "kenku-dl-retry-" + Guid.NewGuid().ToString("N"));
     private readonly FakeClock _clock = new();
     private readonly PostgresFixture _postgres = new();
-    private string? _dbName;
+    private string _dbName = null!;
     private KenkuApplicationFactory _app = null!;
 
     private static byte[] Jpeg()
@@ -123,12 +117,7 @@ public class DownloadChapterJobRetryTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        string? pgCs = null;
-        if (await _postgres.IsReachableAsync())
-        {
-            _dbName = await _postgres.CreateDatabaseAsync();
-            pgCs = _postgres.GetConnectionString(_dbName);
-        }
+        _dbName = await _postgres.CreateDatabaseAsync();
         bool failedOnce = false;
         var settings = new KenkuSettings { AppData = _libDir };
         var connector = new Mock<SeriesSource>("StubConnector", new[] { "en" }, new[] { "stub.test" }, "icon", settings);
@@ -153,7 +142,7 @@ public class DownloadChapterJobRetryTests : IAsyncLifetime
             OutboundHttpTarget = _server.Url!,
             Clock = _clock,
             ExtraConnectors = [connector.Object],
-            PostgresConnectionString = pgCs,
+            PostgresConnectionString = _postgres.GetConnectionString(_dbName),
         };
     }
 
@@ -162,8 +151,7 @@ public class DownloadChapterJobRetryTests : IAsyncLifetime
         _app.Dispose();
         _server.Stop();
         try { Directory.Delete(_libDir, recursive: true); } catch { }
-        if (_dbName is not null)
-            await _postgres.DropDatabaseAsync(_dbName);
+        await _postgres.DropDatabaseAsync(_dbName);
     }
 
     [Fact]

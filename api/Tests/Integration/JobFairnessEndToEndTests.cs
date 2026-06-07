@@ -29,19 +29,13 @@ public class JobFairnessEndToEndTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        string? pgCs = null;
-        if (await _postgres.IsReachableAsync())
-        {
-            _dbName = await _postgres.CreateDatabaseAsync();
-            pgCs = _postgres.GetConnectionString(_dbName);
-        }
+        _dbName = await _postgres.CreateDatabaseAsync();
         _app = new KenkuApplicationFactory
         {
             OutboundHttpTarget = _server.Url!,
             ExtraJobHandlers = [_gate],
-            // Plenty of global slots, but only ONE in-flight per resource — so fairness is observable.
             DispatcherCaps = (GlobalCap: 8, PerResourceCap: 1),
-            PostgresConnectionString = pgCs,
+            PostgresConnectionString = _postgres.GetConnectionString(_dbName),
         };
     }
 

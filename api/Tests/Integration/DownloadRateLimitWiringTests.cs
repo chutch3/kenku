@@ -17,23 +17,18 @@ public class DownloadRateLimitWiringTests : IAsyncLifetime
 {
     private readonly WireMockServer _server = WireMockServer.Start();
     private readonly PostgresFixture _postgres = new();
-    private string? _dbName;
+    private string _dbName = null!;
     private KenkuApplicationFactory _app = null!;
 
     public async Task InitializeAsync()
     {
-        string? pgCs = null;
-        if (await _postgres.IsReachableAsync())
-        {
-            _dbName = await _postgres.CreateDatabaseAsync();
-            pgCs = _postgres.GetConnectionString(_dbName);
-        }
+        _dbName = await _postgres.CreateDatabaseAsync();
         var inner = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));
         _app = new KenkuApplicationFactory
         {
             OutboundHttpTarget = _server.Url!,
             RateLimit = (inner, RequestsPerMinute: 1, QueueLimit: 10, RequestTimeout: TimeSpan.FromMilliseconds(300)),
-            PostgresConnectionString = pgCs,
+            PostgresConnectionString = _postgres.GetConnectionString(_dbName),
         };
     }
 
@@ -41,8 +36,7 @@ public class DownloadRateLimitWiringTests : IAsyncLifetime
     {
         _app.Dispose();
         _server.Stop();
-        if (_dbName is not null)
-            await _postgres.DropDatabaseAsync(_dbName);
+        await _postgres.DropDatabaseAsync(_dbName);
     }
 
     [Fact]

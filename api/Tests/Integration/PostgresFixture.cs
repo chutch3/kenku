@@ -16,17 +16,6 @@ public sealed class PostgresFixture : IAsyncLifetime
     public Task InitializeAsync() => Task.CompletedTask;
     public Task DisposeAsync() => Task.CompletedTask;
 
-    public async Task<bool> IsReachableAsync()
-    {
-        try
-        {
-            await using var conn = new NpgsqlConnection(AdminConnectionString);
-            await conn.OpenAsync(new CancellationTokenSource(TimeSpan.FromSeconds(3)).Token);
-            return true;
-        }
-        catch { return false; }
-    }
-
     public async Task<string> CreateDatabaseAsync()
     {
         string name = $"kenku_test_{Guid.NewGuid():N}";

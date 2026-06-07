@@ -33,17 +33,12 @@ public abstract class OutboundHttpIntegrationTest : IAsyncLifetime
 
     public virtual async Task InitializeAsync()
     {
-        string? pgCs = null;
-        if (await _postgres.IsReachableAsync())
-        {
-            _dbName = await _postgres.CreateDatabaseAsync();
-            pgCs = _postgres.GetConnectionString(_dbName);
-        }
+        _dbName = await _postgres.CreateDatabaseAsync();
         App = new KenkuApplicationFactory
         {
             OutboundHttpTarget = Server.Url!,
             ConnectorHttpRequester = _connectorHttp,
-            PostgresConnectionString = pgCs,
+            PostgresConnectionString = _postgres.GetConnectionString(_dbName),
         };
     }
 

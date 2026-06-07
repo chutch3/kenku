@@ -25,23 +25,18 @@ public class JobQueueSummaryTests : IAsyncLifetime
     private readonly BoomHandler _boom = new();
     private readonly NetworkTimeoutHandler _timeout = new();
     private readonly PostgresFixture _postgres = new();
-    private string? _dbName;
+    private string _dbName = null!;
     private KenkuApplicationFactory _app = null!;
 
     public async Task InitializeAsync()
     {
-        string? pgCs = null;
-        if (await _postgres.IsReachableAsync())
-        {
-            _dbName = await _postgres.CreateDatabaseAsync();
-            pgCs = _postgres.GetConnectionString(_dbName);
-        }
+        _dbName = await _postgres.CreateDatabaseAsync();
         _app = new KenkuApplicationFactory
         {
             OutboundHttpTarget = _server.Url!,
             Clock = _clock,
             ExtraJobHandlers = [_boom, _timeout],
-            PostgresConnectionString = pgCs,
+            PostgresConnectionString = _postgres.GetConnectionString(_dbName),
         };
     }
 
@@ -49,8 +44,7 @@ public class JobQueueSummaryTests : IAsyncLifetime
     {
         _app.Dispose();
         _server.Stop();
-        if (_dbName is not null)
-            await _postgres.DropDatabaseAsync(_dbName);
+        await _postgres.DropDatabaseAsync(_dbName);
     }
 
     /// <summary>Always throws — drives failed/retryable path.</summary>

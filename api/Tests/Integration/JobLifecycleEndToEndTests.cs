@@ -31,18 +31,13 @@ public class JobLifecycleEndToEndTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        string? pgCs = null;
-        if (await _postgres.IsReachableAsync())
-        {
-            _dbName = await _postgres.CreateDatabaseAsync();
-            pgCs = _postgres.GetConnectionString(_dbName);
-        }
+        _dbName = await _postgres.CreateDatabaseAsync();
         _app = new KenkuApplicationFactory
         {
             OutboundHttpTarget = _server.Url!,
             Clock = _clock,
             ExtraJobHandlers = [_boom, _block],
-            PostgresConnectionString = pgCs,
+            PostgresConnectionString = _postgres.GetConnectionString(_dbName),
         };
     }
 

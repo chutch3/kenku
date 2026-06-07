@@ -32,21 +32,16 @@ public class IndexerSearchEndToEndTests : IAsyncLifetime
 
     private readonly WireMockServer _server = WireMockServer.Start();
     private readonly PostgresFixture _postgres = new();
-    private string? _dbName;
+    private string _dbName = null!;
     private KenkuApplicationFactory _app = null!;
 
     public async Task InitializeAsync()
     {
-        string? pgCs = null;
-        if (await _postgres.IsReachableAsync())
-        {
-            _dbName = await _postgres.CreateDatabaseAsync();
-            pgCs = _postgres.GetConnectionString(_dbName);
-        }
+        _dbName = await _postgres.CreateDatabaseAsync();
         _app = new KenkuApplicationFactory
         {
             OutboundHttpTarget = _server.Url!,
-            PostgresConnectionString = pgCs,
+            PostgresConnectionString = _postgres.GetConnectionString(_dbName),
         };
     }
 
@@ -54,8 +49,7 @@ public class IndexerSearchEndToEndTests : IAsyncLifetime
     {
         _app.Dispose();
         _server.Stop();
-        if (_dbName is not null)
-            await _postgres.DropDatabaseAsync(_dbName);
+        await _postgres.DropDatabaseAsync(_dbName);
     }
 
     private const string TheBoysTorznab = """
