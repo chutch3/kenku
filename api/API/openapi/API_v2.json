@@ -6119,7 +6119,7 @@
           },
           "refreshLibraryWhileDownloadingEveryMinutes": {
             "type": "integer",
-            "description": "When API.Workers.LibraryRefreshSetting.WhileDownloading is selected, update the time between refreshes",
+            "description": "When API.LibraryRefreshSetting.WhileDownloading is selected, update the time between refreshes",
             "format": "int32",
             "nullable": true
           }
