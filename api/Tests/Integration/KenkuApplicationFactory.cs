@@ -82,11 +82,14 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
         {
             if (PostgresConnectionString is not null)
             {
+                // All five contexts go to Postgres: the production startup block (RunStartup=true) calls
+                // MigrateAsync on every context, which an InMemory provider would reject — silently aborting
+                // startup and the reconcilers with it.
                 UseNpgsql<SeriesContext>(services, PostgresConnectionString);
                 UseNpgsql<global::API.Schema.JobsContext.JobsContext>(services, PostgresConnectionString);
                 UseNpgsql<ActionsContext>(services, PostgresConnectionString);
-                UseInMemory<NotificationsContext>(services);
-                UseInMemory<LibraryContext>(services);
+                UseNpgsql<NotificationsContext>(services, PostgresConnectionString);
+                UseNpgsql<LibraryContext>(services, PostgresConnectionString);
             }
             else
             {
@@ -149,6 +152,8 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
             sp.GetRequiredService<SeriesContext>().Database.MigrateAsync().GetAwaiter().GetResult();
             sp.GetRequiredService<global::API.Schema.JobsContext.JobsContext>().Database.MigrateAsync().GetAwaiter().GetResult();
             sp.GetRequiredService<ActionsContext>().Database.MigrateAsync().GetAwaiter().GetResult();
+            sp.GetRequiredService<NotificationsContext>().Database.MigrateAsync().GetAwaiter().GetResult();
+            sp.GetRequiredService<LibraryContext>().Database.MigrateAsync().GetAwaiter().GetResult();
         }
         return host;
     }
