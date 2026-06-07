@@ -1,92 +1,67 @@
-using System.Collections.Concurrent;
-using API;
 using API.Schema.SeriesContext;
-using API.Services;
-using API.Workers.MaintenanceWorkers;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using WireMock.Matchers;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
-using WireMock.Server;
 using Xunit;
 
 namespace API.Tests.Integration;
 
 /// <summary>
-/// The Dandadan fix end-to-end over WireMock: the REAL search service, MangaDex resolver, Wikipedia
-/// resolver, scoring and merger run through the worker; only the HTTP server is simulated (responses are
-/// the captured real bodies in Fixtures/Dandadan). Unlike the hand-rolled handler, WireMock matches exact
-/// requests, verifies them, and lets us simulate faults (500s, malformed bodies) to prove resilience.
+/// The Dandadan fix end-to-end through the booted app: the real search service, MangaDex resolver,
+/// Wikipedia resolver, scoring and merger run via the real <c>POST /v2/Maintenance/ResolveMissingVolumes</c>
+/// endpoint + dispatcher; only the HTTP server is simulated (WireMock, with the captured real bodies in
+/// Fixtures/Dandadan), so faults (500s, malformed bodies) can prove resilience.
 /// </summary>
 [Trait("Category", "Integration")]
-public class VolumeResolutionIntegrationTests : IDisposable
+public class VolumeResolutionIntegrationTests : OutboundHttpIntegrationTest
 {
     private const string DandadanId = "68112dc1-2b80-4f20-beb8-2f2a8716a430";
-    private readonly WireMockServer _server = WireMockServer.Start();
-    private readonly IntegrationHarness _harness = new();
-
-    public VolumeResolutionIntegrationTests() =>
-        _harness.Settings.VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess;
-
-    public void Dispose() { _server.Stop(); _harness.Dispose(); }
 
     private static string Fixture(string name) =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Dandadan", name));
 
-    private static IResponseBuilder Ok(string body) => Response.Create().WithStatusCode(200).WithBody(body);
-
     private void StubSearch(IResponseBuilder resp) =>
-        _server.Given(Request.Create().WithPath("/manga").WithParam("title").UsingGet()).RespondWith(resp);
+        Server.Given(Request.Create().WithPath("/manga").WithParam("title").UsingGet()).RespondWith(resp);
 
     private void StubAggregate(IResponseBuilder resp) =>
-        _server.Given(Request.Create().WithPath(new WildcardMatcher("/manga/*/aggregate")).UsingGet()).RespondWith(resp);
+        Server.Given(Request.Create().WithPath(new WildcardMatcher("/manga/*/aggregate")).UsingGet()).RespondWith(resp);
 
     private void StubWikipedia(IResponseBuilder resp) =>
-        _server.Given(Request.Create().WithPath("/w/api.php").UsingGet()).RespondWith(resp);
+        Server.Given(Request.Create().WithPath("/w/api.php").UsingGet()).RespondWith(resp);
 
-    // The en-first MangaDex merge yields the same vols 1–10 whether or not we split en/all (that nuance is
-    // unit-tested in MangaDexVolumeResolverTests), so one aggregate stub keeps the integration test focused.
+    private static IResponseBuilder Ok(string body) => Response.Create().WithStatusCode(200).WithBody(body);
+
     private void StubMangaDexOk()
     {
         StubSearch(Ok(Fixture("search.json")));
         StubAggregate(Ok(Fixture("aggregate-all.json")));
     }
 
-    private async Task ResolveAsync(string mangaKey)
+    private Task<string> SeedDandadan(Action<Series, SeriesContext> addChapters) => App.WithSeriesContext(async ctx =>
     {
-        var http = new HttpClient(new HostRewritingHandler(_server.Url!));
-        var service = new VolumeResolutionService(_harness.Settings,
-            new MangaDexVolumeResolver(http), new MangaDexSearchService(http),
-            new IVolumeResolver[] { new WikipediaVolumeResolver(http) });
-        using var scope = _harness.CreateScope();
-        var ctx = scope.ServiceProvider.GetRequiredService<SeriesContext>();
-        await service.ResolveAsync(ctx, mangaKey, CancellationToken.None);
-    }
-
-    private async Task<string> SeedDandadan(Action<Series, SeriesContext> addChapters)
-    {
-        string key = null!;
-        await _harness.Seed(ctx =>
-        {
-            var library = new FileLibrary(_harness.TempDir, "Lib");
-            ctx.FileLibraries.Add(library);
-            var manga = new Series("Dandadan", "d", "u", SeriesReleaseStatus.Continuing, [], [], [], [], library);
-            manga.MetadataSource!.Status = MetadataSourceStatus.Unlinked;
-            ctx.Series.Add(manga);
-            addChapters(manga, ctx);
-            key = manga.Key;
-            return Task.CompletedTask;
-        });
-        return key;
-    }
+        var library = new FileLibrary(Path.Combine(Path.GetTempPath(), "kenku-it-" + Guid.NewGuid().ToString("N")), "Lib");
+        ctx.FileLibraries.Add(library);
+        var manga = new Series("Dandadan", "d", "u", SeriesReleaseStatus.Continuing, [], [], [], [], library);
+        manga.MetadataSource!.Status = MetadataSourceStatus.Unlinked;
+        ctx.Series.Add(manga);
+        addChapters(manga, ctx);
+        await ctx.SaveChangesAsync();
+        return manga.Key;
+    });
 
     private static void AddChapter(Series manga, SeriesContext ctx, string number, int? volume = null, MetadataConfidence? confidence = null) =>
         ctx.Chapters.Add(new Chapter(manga, number, volume, null)
             { Downloaded = true, FileName = $"Ch.{number}.cbz", MetadataConfidence = confidence });
 
+    private async Task Resolve()
+    {
+        (await App.CreateClient().PostAsync("/v2/Maintenance/ResolveMissingVolumes", null)).EnsureSuccessStatusCode();
+        await DrainJobsAsync();
+    }
+
     private Task<Dictionary<string, Chapter>> ChaptersByNumber() =>
-        _harness.Query(ctx => ctx.Chapters.ToDictionaryAsync(c => c.ChapterNumber, c => c));
+        App.WithSeriesContext(c => c.Chapters.ToDictionaryAsync(x => x.ChapterNumber, x => x));
 
     [Fact]
     public async Task ResolvesVolumesFromAllSources_HonorsManualAssignments_AndLeavesUncollectedChaptersLoose()
@@ -105,10 +80,10 @@ public class VolumeResolutionIntegrationTests : IDisposable
             AddChapter(m, ctx, "235");                                        // past last volume → stays loose
         });
 
-        await ResolveAsync(key);
+        await Resolve();
 
         var ch = await ChaptersByNumber();
-        var source = await _harness.Query(c => c.Set<MetadataSource>().FirstAsync(s => s.MangaId == key));
+        var source = await App.WithSeriesContext(c => c.Set<MetadataSource>().FirstAsync(s => s.MangaId == key));
         Assert.Equal(MetadataSourceStatus.AutoMatched, source.Status);   // scoring fix: matched despite empty lastChapter
         Assert.Equal(DandadanId, source.ExternalId);
         Assert.Equal(1, ch["1"].VolumeNumber);
@@ -128,9 +103,9 @@ public class VolumeResolutionIntegrationTests : IDisposable
         StubAggregate(Response.Create().WithStatusCode(500)); // MangaDex aggregate is down
         StubWikipedia(Ok(Fixture("wikitext.json")));
 
-        string key = await SeedDandadan((m, ctx) => { AddChapter(m, ctx, "1"); AddChapter(m, ctx, "86"); AddChapter(m, ctx, "201"); });
+        await SeedDandadan((m, ctx) => { AddChapter(m, ctx, "1"); AddChapter(m, ctx, "86"); AddChapter(m, ctx, "201"); });
 
-        await ResolveAsync(key);
+        await Resolve();
 
         var ch = await ChaptersByNumber();
         Assert.Equal(1, ch["1"].VolumeNumber);    // Wikipedia covers these
@@ -141,16 +116,15 @@ public class VolumeResolutionIntegrationTests : IDisposable
     [Fact]
     public async Task WhenAMetadataSourceReturnsInvalidData_StaysHealthy_AndResolvesFromTheRemainingSources()
     {
-        // MangaDexVolumeResolver has no try/catch around JObject.Parse; the worker must absorb the throw
+        // MangaDexVolumeResolver has no try/catch around JObject.Parse; the pipeline must absorb the throw
         // and still resolve via the other source.
         StubSearch(Ok(Fixture("search.json")));
         StubAggregate(Response.Create().WithStatusCode(200).WithBody("{ this is not valid json"));
         StubWikipedia(Ok(Fixture("wikitext.json")));
 
-        string key = await SeedDandadan((m, ctx) => { AddChapter(m, ctx, "1"); AddChapter(m, ctx, "86"); });
+        await SeedDandadan((m, ctx) => { AddChapter(m, ctx, "1"); AddChapter(m, ctx, "86"); });
 
-        var ex = await Record.ExceptionAsync(() => ResolveAsync(key));
-        Assert.Null(ex); // pipeline did not crash
+        await Resolve();
 
         var ch = await ChaptersByNumber();
         Assert.Equal(1, ch["1"].VolumeNumber);
@@ -163,9 +137,9 @@ public class VolumeResolutionIntegrationTests : IDisposable
         StubMangaDexOk();
         StubWikipedia(Response.Create().WithStatusCode(500)); // Wikipedia is down
 
-        string key = await SeedDandadan((m, ctx) => { AddChapter(m, ctx, "1"); AddChapter(m, ctx, "85"); AddChapter(m, ctx, "86"); AddChapter(m, ctx, "201"); });
+        await SeedDandadan((m, ctx) => { AddChapter(m, ctx, "1"); AddChapter(m, ctx, "85"); AddChapter(m, ctx, "86"); AddChapter(m, ctx, "201"); });
 
-        await ResolveAsync(key);
+        await Resolve();
 
         var ch = await ChaptersByNumber();
         Assert.Equal(1, ch["1"].VolumeNumber);    // MangaDex still covers 1–85

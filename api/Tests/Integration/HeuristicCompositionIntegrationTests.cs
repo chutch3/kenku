@@ -1,42 +1,28 @@
-using System.Collections.Concurrent;
 using System.IO.Compression;
-using API;
 using API.Schema.SeriesContext;
-using API.Services;
-using API.Workers.MaintenanceWorkers;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using WireMock.Matchers;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
-using WireMock.Server;
 using Xunit;
 
 namespace API.Tests.Integration;
 
 /// <summary>
-/// Reproduces the original Dandadan failure end-to-end through the real worker, fresh scope, and real
-/// cover images: an exact source resolves the early chapters, the color heuristic handles the rest in
-/// the SAME run (the exact+heuristic composition), and a long black-and-white run does NOT get
-/// fabricated into a giant volume — those chapters are left loose. Only the MangaDex HTTP call is
-/// simulated (WireMock); the resolver, merger, and heuristic are all real.
+/// Reproduces the original Dandadan failure end-to-end through the booted app, fresh scopes, and real
+/// cover images: an exact source resolves the early chapters, the color heuristic handles the rest in the
+/// SAME run (the exact+heuristic composition), and a long black-and-white run is NOT fabricated into a
+/// giant volume — those chapters stay loose. Only the MangaDex HTTP call is simulated (WireMock); the
+/// resolver, merger, and heuristic are all real, driven via the resolve endpoint + dispatcher.
 /// </summary>
 [Trait("Category", "Integration")]
-public class HeuristicCompositionIntegrationTests : IDisposable
+public class HeuristicCompositionIntegrationTests : OutboundHttpIntegrationTest
 {
-    private readonly WireMockServer _server = WireMockServer.Start();
-    private readonly IntegrationHarness _harness = new();
-
-    public HeuristicCompositionIntegrationTests() =>
-        _harness.Settings.VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess;
-
-    public void Dispose() { _server.Stop(); _harness.Dispose(); }
-
     // Exact source: MangaDex aggregate that only covers chapters 1–3 (volume 1).
     private void StubAggregateCoveringChapters1To3() =>
-        _server.Given(Request.Create().WithPath(new WildcardMatcher("/manga/*/aggregate")).UsingGet())
+        Server.Given(Request.Create().WithPath(new WildcardMatcher("/manga/*/aggregate")).UsingGet())
             .RespondWith(Response.Create().WithStatusCode(200).WithBody(
                 """{ "volumes": { "1": { "volume": "1", "chapters": { "1": { "chapter": "1" }, "2": { "chapter": "2" }, "3": { "chapter": "3" } } } } }"""));
 
@@ -57,18 +43,19 @@ public class HeuristicCompositionIntegrationTests : IDisposable
     [Fact]
     public async Task ExactSourcesAndHeuristicResolveTogether_UnresolvableChaptersStayLoose()
     {
-        string mangaKey = null!;
-        string mangaDir = null!;
-        await _harness.Seed(ctx =>
+        StubAggregateCoveringChapters1To3();
+        StubWikipediaEmpty(); // the heuristic, not Wikipedia, must resolve 4–6
+
+        await App.WithSeriesContext(async ctx =>
         {
-            var library = new FileLibrary(_harness.TempDir, "Lib");
+            var library = new FileLibrary(Path.Combine(Path.GetTempPath(), "kenku-it-" + Guid.NewGuid().ToString("N")), "Lib");
             ctx.FileLibraries.Add(library);
             var manga = new Series("Heuristic Series", "d", "u", SeriesReleaseStatus.Continuing, [], [], [], [], library);
             manga.MetadataSource!.Status = MetadataSourceStatus.AutoMatched; // already linked → skip auto-match
             manga.MetadataSource.ExternalId = "linked-id";
             ctx.Series.Add(manga);
 
-            mangaDir = manga.FullDirectoryPath;
+            string mangaDir = manga.FullDirectoryPath;
             Directory.CreateDirectory(mangaDir);
 
             // 1–3: resolved by the exact source (no image needed — the heuristic won't touch them).
@@ -89,19 +76,14 @@ public class HeuristicCompositionIntegrationTests : IDisposable
             Add(7, color: true);
             for (int n = 8; n <= 50; n++) Add(n, color: false); // 44-chapter run > MaxPlausibleVolumeChapters
 
-            mangaKey = manga.Key;
-            return Task.CompletedTask;
+            await ctx.SaveChangesAsync();
+            return 0;
         });
 
-        var http = new HttpClient(new HostRewritingHandler(_server.Url!));
-        StubAggregateCoveringChapters1To3();
-        var service = new VolumeResolutionService(_harness.Settings,
-            new MangaDexVolumeResolver(http), new MangaDexSearchService(http), []);
+        (await App.CreateClient().PostAsync("/v2/Maintenance/ResolveMissingVolumes", null)).EnsureSuccessStatusCode();
+        await DrainJobsAsync();
 
-        using (var scope = _harness.CreateScope())
-            await service.ResolveAsync(scope.ServiceProvider.GetRequiredService<SeriesContext>(), mangaKey, CancellationToken.None);
-
-        var ch = await _harness.Query(c => c.Chapters.ToDictionaryAsync(x => x.ChapterNumber, x => x));
+        var ch = await App.WithSeriesContext(c => c.Chapters.ToDictionaryAsync(x => x.ChapterNumber, x => x));
 
         // Exact source resolved 1–3.
         foreach (var n in new[] { "1", "2", "3" })
