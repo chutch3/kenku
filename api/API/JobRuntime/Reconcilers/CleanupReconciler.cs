@@ -1,3 +1,4 @@
+using API.JobRuntime.Interfaces;
 using API.JobRuntime.Handlers;
 using API.Schema.JobsContext;
 using API.Services;
@@ -6,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace API.JobRuntime;
+namespace API.JobRuntime.Reconcilers;
 
 /// <summary>
 /// Periodically enqueues the parameterized <see cref="CleanupHandler"/> jobs (old notifications, stale

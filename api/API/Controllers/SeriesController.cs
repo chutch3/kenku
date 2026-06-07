@@ -132,7 +132,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [ProducesResponseType(Status200OK)]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     public async Task<Results<Ok, NotFound<string>>> MergeIntoManga (string MangaIdFrom, string MangaIdInto,
-        [FromServices] API.JobRuntime.IJobStore jobStore, [FromServices] API.JobRuntime.IClock clock)
+        [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock)
     {
         if (await context.MangaIncludeAll().FirstOrDefaultAsync(m => m.Key == MangaIdFrom, HttpContext.RequestAborted) is not { } from)
             return TypedResults.NotFound(nameof(MangaIdFrom));
@@ -208,7 +208,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [ProducesResponseType(Status200OK)]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType<string>(Status500InternalServerError,  "text/plain")]
-    public async Task<Results<Ok, NotFound<string>, InternalServerError<string>>> ChangeLibrary(string MangaId, string LibraryId, [FromServices] API.JobRuntime.IJobStore jobStore, [FromServices] API.JobRuntime.IClock clock, [FromQuery] string? connectorName = null, [FromQuery] string? connectorSeriesId = null)
+    public async Task<Results<Ok, NotFound<string>, InternalServerError<string>>> ChangeLibrary(string MangaId, string LibraryId, [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock, [FromQuery] string? connectorName = null, [FromQuery] string? connectorSeriesId = null)
     {
         if (await context.FileLibraries.FirstOrDefaultAsync(l => l.Key == LibraryId, HttpContext.RequestAborted) is not { } library)
             return TypedResults.NotFound(nameof(LibraryId));
@@ -279,7 +279,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [ProducesResponseType<string>(Status412PreconditionFailed,  "text/plain")]
     [ProducesResponseType<string>(Status428PreconditionRequired,  "text/plain")]
     [ProducesResponseType<string>(Status500InternalServerError,  "text/plain")]
-    public async Task<Results<Ok, NotFound<string>, StatusCodeHttpResult, InternalServerError<string>>> MarkAsRequested(string MangaId, string MangaConnectorName, bool IsRequested, [FromServices] API.JobRuntime.IJobStore jobStore, [FromServices] API.JobRuntime.IClock clock)
+    public async Task<Results<Ok, NotFound<string>, StatusCodeHttpResult, InternalServerError<string>>> MarkAsRequested(string MangaId, string MangaConnectorName, bool IsRequested, [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock)
     {
         if (await context.Series
                 .Include(m => m.Chapters)
@@ -317,12 +317,12 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
         await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
             API.JobRuntime.Handlers.DownloadCoverHandler.Type,
             API.JobRuntime.Handlers.DownloadCoverHandler.PayloadFor(mcId.Key), clock.UtcNow,
-            resourceKey: mcId.ObjId, dedupKey: API.JobRuntime.CoverRefreshReconciler.DedupKey(mcId.Key)),
+            resourceKey: mcId.ObjId, dedupKey: API.JobRuntime.Reconcilers.CoverRefreshReconciler.DedupKey(mcId.Key)),
             HttpContext.RequestAborted);
         await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
             API.JobRuntime.Handlers.SyncSeriesChaptersHandler.Type,
             API.JobRuntime.Handlers.SyncSeriesChaptersHandler.PayloadFor(mcId.Key, settings.DownloadLanguage), clock.UtcNow,
-            resourceKey: mcId.ObjId, dedupKey: API.JobRuntime.SeriesChapterSyncReconciler.DedupKey(mcId.Key)),
+            resourceKey: mcId.ObjId, dedupKey: API.JobRuntime.Reconcilers.SeriesChapterSyncReconciler.DedupKey(mcId.Key)),
             HttpContext.RequestAborted);
 
         return TypedResults.Ok();

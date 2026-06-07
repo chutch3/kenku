@@ -1,3 +1,4 @@
+using API.JobRuntime.Interfaces;
 using API.JobRuntime.Handlers;
 using API.Schema.JobsContext;
 using log4net;
@@ -5,7 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace API.JobRuntime;
+namespace API.JobRuntime.Reconcilers;
 
 /// <summary>
 /// Periodically (and once at startup) enqueues a single <see cref="VerifyDownloadStateHandler"/> job to

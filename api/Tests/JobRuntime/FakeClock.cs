@@ -1,3 +1,4 @@
+using API.JobRuntime.Interfaces;
 using API.JobRuntime;
 
 namespace API.Tests.JobRuntime;

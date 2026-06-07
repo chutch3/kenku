@@ -1,6 +1,6 @@
 using API.Schema.JobsContext;
 
-namespace API.JobRuntime;
+namespace API.JobRuntime.Interfaces;
 
 /// <summary>
 /// The domain logic for one job type. Handlers are pure units of work: they read the job's typed payload,

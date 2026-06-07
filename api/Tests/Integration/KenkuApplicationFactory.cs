@@ -45,7 +45,7 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
 
     /// <summary>Extra job handlers to register, so a test can enqueue and run a job through the real runtime
     /// without depending on a production handler existing yet.</summary>
-    public IReadOnlyList<API.JobRuntime.IJobHandler> ExtraJobHandlers { get; init; } = [];
+    public IReadOnlyList<API.JobRuntime.Interfaces.IJobHandler> ExtraJobHandlers { get; init; } = [];
 
     /// <summary>Extra connectors to register, so a download/sync job can be driven against a stubbed
     /// <see cref="API.MangaConnectors.SeriesSource"/> without real network.</summary>
@@ -53,8 +53,8 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
 
     /// <summary>Optional clock override so a test can control backoff/lease/scheduling windows without real
     /// waits — the time "edge", swapped like the DB and network edges. When set, replaces the singleton
-    /// <see cref="API.JobRuntime.IClock"/> the dispatcher resolves.</summary>
-    public API.JobRuntime.IClock? Clock { get; init; }
+    /// <see cref="API.JobRuntime.Interfaces.IClock"/> the dispatcher resolves.</summary>
+    public API.JobRuntime.Interfaces.IClock? Clock { get; init; }
 
     /// <summary>Optional dispatcher concurrency caps, so fairness/concurrency behaviour is deterministic
     /// rather than derived from the host's CPU count. When set, the production-registered
@@ -93,7 +93,7 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
 
             if (Clock is not null)
             {
-                services.RemoveAll<API.JobRuntime.IClock>();
+                services.RemoveAll<API.JobRuntime.Interfaces.IClock>();
                 services.AddSingleton(Clock);
             }
 
@@ -101,14 +101,14 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
             {
                 services.RemoveAll<API.JobRuntime.Dispatcher>();
                 services.AddScoped(sp => new API.JobRuntime.Dispatcher(
-                    sp.GetRequiredService<API.JobRuntime.IJobStore>(),
+                    sp.GetRequiredService<API.JobRuntime.Interfaces.IJobStore>(),
                     sp.GetRequiredService<API.JobRuntime.HandlerRegistry>(),
-                    sp.GetRequiredService<API.JobRuntime.IClock>(),
+                    sp.GetRequiredService<API.JobRuntime.Interfaces.IClock>(),
                     globalCap: caps.GlobalCap, perResourceCap: caps.PerResourceCap,
                     running: sp.GetRequiredService<API.JobRuntime.RunningJobRegistry>()));
             }
 
-            foreach (API.JobRuntime.IJobHandler handler in ExtraJobHandlers)
+            foreach (API.JobRuntime.Interfaces.IJobHandler handler in ExtraJobHandlers)
                 services.AddSingleton(handler);
 
             foreach (API.MangaConnectors.SeriesSource connector in ExtraConnectors)

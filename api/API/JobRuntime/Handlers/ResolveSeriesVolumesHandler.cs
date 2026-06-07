@@ -1,3 +1,4 @@
+using API.JobRuntime.Interfaces;
 using System.Text.Json;
 using API.Schema.JobsContext;
 using API.Schema.SeriesContext;

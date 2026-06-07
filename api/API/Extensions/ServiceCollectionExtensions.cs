@@ -82,7 +82,7 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredService<ReleaseSelector>(),
                 new TorrentAcquirerSettings(settings.TorrentStagingDirectory, settings.IndexerComicCategories)));
 
-        services.AddHostedService<API.JobRuntime.TorrentCompletionReconciler>();
+        services.AddHostedService<API.JobRuntime.Reconcilers.TorrentCompletionReconciler>();
 
         return services;
     }

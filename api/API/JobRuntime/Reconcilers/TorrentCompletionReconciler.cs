@@ -1,3 +1,4 @@
+using API.JobRuntime.Interfaces;
 using API.Acquirers;
 using API.DownloadClients;
 using API.JobRuntime.Handlers;
@@ -10,7 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace API.JobRuntime;
+namespace API.JobRuntime.Reconcilers;
 
 /// <summary>
 /// Polls the download client for every undownloaded torrent-kind chapter and enqueues a

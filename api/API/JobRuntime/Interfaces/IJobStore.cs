@@ -1,6 +1,6 @@
 using API.Schema.JobsContext;
 
-namespace API.JobRuntime;
+namespace API.JobRuntime.Interfaces;
 
 /// <summary>
 /// Persistence seam for the job queue. An in-memory implementation backs the dispatcher's unit tests

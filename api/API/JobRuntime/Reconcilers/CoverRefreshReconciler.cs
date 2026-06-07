@@ -1,3 +1,4 @@
+using API.JobRuntime.Interfaces;
 using API.JobRuntime.Handlers;
 using API.Schema.JobsContext;
 using API.Schema.SeriesContext;
@@ -7,7 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace API.JobRuntime;
+namespace API.JobRuntime.Reconcilers;
 
 /// <summary>
 /// Periodically enqueues a <see cref="DownloadCoverHandler"/> job for every wanted series source.

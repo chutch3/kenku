@@ -116,7 +116,7 @@ public class SearchController(
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType<string>(Status500InternalServerError, "text/plain")]
     public async Task<Results<Ok<MinimalSeries>, NotFound<string>, InternalServerError<string>>> GetMangaFromUrl(
-        [FromQuery] string url, [FromServices] API.JobRuntime.IJobStore jobStore, [FromServices] API.JobRuntime.IClock clock)
+        [FromQuery] string url, [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock)
     {
         url = url.Trim('"', '\'', ' '); // Trim extraneous values
         if (connectors.FirstOrDefault(c => c.Name.Equals("Global", StringComparison.InvariantCultureIgnoreCase)) is not { } connector)
@@ -135,7 +135,7 @@ public class SearchController(
         await jobStore.EnqueueAsync(new Schema.JobsContext.Job(
             API.JobRuntime.Handlers.DownloadCoverHandler.Type,
             API.JobRuntime.Handlers.DownloadCoverHandler.PayloadFor(added.id.Key), clock.UtcNow,
-            resourceKey: added.id.ObjId, dedupKey: API.JobRuntime.CoverRefreshReconciler.DedupKey(added.id.Key)),
+            resourceKey: added.id.ObjId, dedupKey: API.JobRuntime.Reconcilers.CoverRefreshReconciler.DedupKey(added.id.Key)),
             HttpContext.RequestAborted);
 
         IEnumerable<DTOs.SourceId<DTOs.Series>> ids = added.manga.SourceIds.Select(id =>

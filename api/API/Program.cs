@@ -158,43 +158,43 @@ builder.Services.AddSingleton<RateLimitHandler>();
 builder.Services.AddSingleton<IHttpRequester, HttpRequester>();
 
 // Job runtime (parallel to the legacy worker engine until handlers migrate onto it).
-builder.Services.AddSingleton<API.JobRuntime.IClock, API.JobRuntime.SystemClock>();
-builder.Services.AddSingleton(sp => new API.JobRuntime.HandlerRegistry(sp.GetServices<API.JobRuntime.IJobHandler>()));
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IClock, API.JobRuntime.SystemClock>();
+builder.Services.AddSingleton(sp => new API.JobRuntime.HandlerRegistry(sp.GetServices<API.JobRuntime.Interfaces.IJobHandler>()));
 builder.Services.AddSingleton<API.JobRuntime.RunningJobRegistry>();
-builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.ReconcileVolumeBundleHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.ReconcileVolumeBundleHandler>();
 builder.Services.AddScoped<API.Services.VolumeResolutionService>();
-builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.ResolveSeriesVolumesHandler>();
-builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.DownloadChapterHandler>();
-builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.RefreshLibrariesHandler>();
-builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.SyncSeriesChaptersHandler>();
-builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.CleanupHandler>();
-builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.RefreshExternalMetadataHandler>();
-builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.SendNotificationsHandler>();
-builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.PlaceChapterFileHandler>();
-builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.DownloadCoverHandler>();
-builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.FinalizeTorrentHandler>();
-builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.VerifyDownloadStateHandler>();
-builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.MoveDataHandler>();
-builder.Services.AddScoped<API.JobRuntime.IJobStore, API.JobRuntime.EfJobStore>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.ResolveSeriesVolumesHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.DownloadChapterHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.RefreshLibrariesHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.SyncSeriesChaptersHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.CleanupHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.RefreshExternalMetadataHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.SendNotificationsHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.PlaceChapterFileHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.DownloadCoverHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.FinalizeTorrentHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.VerifyDownloadStateHandler>();
+builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.MoveDataHandler>();
+builder.Services.AddScoped<API.JobRuntime.Interfaces.IJobStore, API.JobRuntime.EfJobStore>();
 // Overall download concurrency is bounded by MaxConcurrentDownloads (per-host rate limiting is separate,
 // in RateLimitHandler); per-series fairness comes from the dispatcher's per-resource cap.
 builder.Services.AddScoped(sp => new API.JobRuntime.Dispatcher(
-    sp.GetRequiredService<API.JobRuntime.IJobStore>(),
+    sp.GetRequiredService<API.JobRuntime.Interfaces.IJobStore>(),
     sp.GetRequiredService<API.JobRuntime.HandlerRegistry>(),
-    sp.GetRequiredService<API.JobRuntime.IClock>(),
+    sp.GetRequiredService<API.JobRuntime.Interfaces.IClock>(),
     globalCap: Math.Max(1, settings.MaxConcurrentDownloads),
     running: sp.GetRequiredService<API.JobRuntime.RunningJobRegistry>()));
 builder.Services.AddHostedService<API.JobRuntime.JobPoolService>();
-builder.Services.AddHostedService<API.JobRuntime.VolumeBundleReconciler>();
-builder.Services.AddHostedService<API.JobRuntime.VolumeResolutionReconciler>();
-builder.Services.AddHostedService<API.JobRuntime.DownloadReconciler>();
-builder.Services.AddHostedService<API.JobRuntime.SeriesChapterSyncReconciler>();
-builder.Services.AddHostedService<API.JobRuntime.CleanupReconciler>();
-builder.Services.AddHostedService<API.JobRuntime.MetadataRefreshReconciler>();
-builder.Services.AddHostedService<API.JobRuntime.NotificationReconciler>();
-builder.Services.AddHostedService<API.JobRuntime.ChapterFilePlacementReconciler>();
-builder.Services.AddHostedService<API.JobRuntime.CoverRefreshReconciler>();
-builder.Services.AddHostedService<API.JobRuntime.DownloadStateReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.Reconcilers.VolumeBundleReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.Reconcilers.VolumeResolutionReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.Reconcilers.DownloadReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.Reconcilers.SeriesChapterSyncReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.Reconcilers.CleanupReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.Reconcilers.MetadataRefreshReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.Reconcilers.NotificationReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.Reconcilers.ChapterFilePlacementReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.Reconcilers.CoverRefreshReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.Reconcilers.DownloadStateReconciler>();
 builder.Services.AddSingleton<Kenku>();
 
 builder.Services.AddTorrentAcquisitionPath(settings, log);

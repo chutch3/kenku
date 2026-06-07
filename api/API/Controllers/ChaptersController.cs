@@ -189,7 +189,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
     /// <response code="500">Error during Database Operation</response>
     [HttpPatch("{ChapterId}")]
     public async Task<Results<Ok, NotFound<string>, InternalServerError<string>>> UpdateChapter(string ChapterId, [FromBody] PatchChapterRecord patch,
-        [FromServices] API.JobRuntime.IJobStore jobStore, [FromServices] API.JobRuntime.IClock clock)
+        [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock)
     {
         if (await context.Chapters.FirstOrDefaultAsync(c => c.Key == ChapterId, HttpContext.RequestAborted) is not { } chapter)
             return TypedResults.NotFound(nameof(ChapterId));
@@ -282,7 +282,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
     [ProducesResponseType<string>(Status404NotFound,  "text/plain")]
     [ProducesResponseType<string>(Status428PreconditionRequired,  "text/plain")]
     [ProducesResponseType<string>(Status500InternalServerError,  "text/plain")]
-    public async Task<Results<Ok, NotFound<string>, StatusCodeHttpResult, InternalServerError<string>>> MarkAsRequested(string ChapterId, string MangaConnectorName, bool IsRequested, [FromServices] API.JobRuntime.IJobStore jobStore, [FromServices] API.JobRuntime.IClock clock)
+    public async Task<Results<Ok, NotFound<string>, StatusCodeHttpResult, InternalServerError<string>>> MarkAsRequested(string ChapterId, string MangaConnectorName, bool IsRequested, [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock)
     {
         if (await context.Chapters.FirstOrDefaultAsync(ch => ch.Key == ChapterId, HttpContext.RequestAborted) is not { } chapter)
             return TypedResults.NotFound(nameof(ChapterId));
@@ -304,7 +304,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
             await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
                 API.JobRuntime.Handlers.DownloadChapterHandler.Type,
                 API.JobRuntime.Handlers.DownloadChapterHandler.PayloadFor(chId.Key), clock.UtcNow,
-                resourceKey: chapter.ParentMangaId, dedupKey: API.JobRuntime.DownloadReconciler.DedupKey(chId.Key)),
+                resourceKey: chapter.ParentMangaId, dedupKey: API.JobRuntime.Reconcilers.DownloadReconciler.DedupKey(chId.Key)),
                 HttpContext.RequestAborted);
 
         return TypedResults.Ok();

@@ -46,8 +46,8 @@ public class KenkuTests
         services.AddDbContext<NotificationsContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
 
         // AddMangaToContext enqueues a cover-download job through the runtime store.
-        services.AddSingleton<API.JobRuntime.IJobStore, API.JobRuntime.InMemoryJobStore>();
-        services.AddSingleton<API.JobRuntime.IClock, API.JobRuntime.SystemClock>();
+        services.AddSingleton<API.JobRuntime.Interfaces.IJobStore, API.JobRuntime.InMemoryJobStore>();
+        services.AddSingleton<API.JobRuntime.Interfaces.IClock, API.JobRuntime.SystemClock>();
 
         // 5. Register the Manager itself
         services.AddSingleton<Kenku>();
