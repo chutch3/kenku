@@ -3,12 +3,10 @@ using API.Controllers;
 using API.Controllers.DTOs;
 using API.JobRuntime;
 using API.Schema.SeriesContext;
-using API.Workers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Moq;
 using SchemaManga = API.Schema.SeriesContext.Series;
 using SchemaFileLibrary = API.Schema.SeriesContext.FileLibrary;
 using SchemaChapter = API.Schema.SeriesContext.Chapter;
@@ -43,7 +41,7 @@ public class VolumeControllerBundleTests : IDisposable
     {
         var settings = new KenkuSettings { AppData = _tempDir };
         var jobStore = new InMemoryJobStore();
-        var controller = new VolumeController(ctx, settings, new Mock<IWorkerQueue>().Object, jobStore, new SystemClock());
+        var controller = new VolumeController(ctx, settings, jobStore, new SystemClock());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()

@@ -3,8 +3,6 @@ using API.JobRuntime.Handlers;
 using API.Services;
 using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;
-using API.Workers;
-using API.Workers.MaintenanceWorkers;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -89,16 +87,15 @@ public class MaintenanceController(SeriesContext mangaContext, ActionsContext ac
     }
 
     /// <summary>
-    /// Queues a <see cref="SyncChapterFileNamesWorker"/> to rename chapter files where the stored filename no longer matches the current naming scheme.
+    /// Enqueues a PlaceChapterFile job for each chapter whose stored filename no longer matches the current naming scheme.
     /// </summary>
-    /// <param name="workerQueue"></param>
-    /// <param name="settings"></param>
-    /// <response code="200">Sync worker queued</response>
+    /// <response code="200">Placement jobs enqueued</response>
     [HttpPost("SyncChapterFileNames")]
     [ProducesResponseType(Status200OK)]
-    public Ok SyncChapterFileNames([FromServices] IWorkerQueue workerQueue, [FromServices] KenkuSettings settings)
+    public async Task<Ok> SyncChapterFileNames([FromServices] IJobStore jobStore, [FromServices] KenkuSettings settings,
+        [FromServices] IClock clock)
     {
-        workerQueue.AddWorker(new SyncChapterFileNamesWorker(settings));
+        await ChapterFilePlacementReconciler.ScanAndEnqueueAsync(mangaContext, jobStore, settings, clock.UtcNow, HttpContext.RequestAborted);
         return TypedResults.Ok();
     }
 

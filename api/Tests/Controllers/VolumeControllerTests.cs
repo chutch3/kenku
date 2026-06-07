@@ -1,15 +1,14 @@
 using API.JobRuntime;
+using API.JobRuntime.Handlers;
 using API;
 using API.Controllers;
 using API.Controllers.DTOs;
 using API.Schema.SeriesContext;
 using API.Services;
-using API.Workers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Moq;
 using SchemaManga = API.Schema.SeriesContext.Series;
 using SchemaFileLibrary = API.Schema.SeriesContext.FileLibrary;
 using SchemaChapter = API.Schema.SeriesContext.Chapter;
@@ -40,16 +39,16 @@ public class VolumeControllerTests : IDisposable
         return new SeriesContext(options);
     }
 
-    private (VolumeController controller, Mock<IWorkerQueue> workerQueueMock) CreateController(SeriesContext ctx)
+    private (VolumeController controller, InMemoryJobStore jobStore) CreateController(SeriesContext ctx)
     {
         var settings = new KenkuSettings { AppData = _tempDir };
-        var workerQueueMock = new Mock<IWorkerQueue>();
-        var controller = new VolumeController(ctx, settings, workerQueueMock.Object, new InMemoryJobStore(), new SystemClock());
+        var jobStore = new InMemoryJobStore();
+        var controller = new VolumeController(ctx, settings, jobStore, new SystemClock());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()
         };
-        return (controller, workerQueueMock);
+        return (controller, jobStore);
     }
 
     private SchemaFileLibrary MakeLibrary()
@@ -349,7 +348,7 @@ public class VolumeControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task PostReorganize_WhenFilesNeedMoving_QueuesRenameWorkers()
+    public async Task PostReorganize_WhenFilesNeedMoving_EnqueuesPlacementJobs()
     {
         using var ctx = CreateContext();
         var library = MakeLibrary();
@@ -364,13 +363,15 @@ public class VolumeControllerTests : IDisposable
         ctx.Chapters.AddRange(ch1, ch2);
         await ctx.SaveChangesAsync();
 
-        var (controller, workerQueueMock) = CreateController(ctx);
+        var (controller, jobStore) = CreateController(ctx);
         var result = await controller.PostReorganize(manga.Key);
 
         var accepted = Assert.IsType<Accepted<ReorganizeJobResult>>(result.Result);
         Assert.NotNull(accepted.Value);
         Assert.NotNull(accepted.Value!.JobId);
-        workerQueueMock.Verify(q => q.AddWorkers(It.IsAny<IEnumerable<BaseWorker>>()), Times.Once);
+        var jobs = await jobStore.GetAllAsync();
+        Assert.Equal(2, jobs.Count);
+        Assert.All(jobs, j => Assert.Equal(PlaceChapterFileHandler.Type, j.Type));
     }
 
     [Fact]
@@ -388,12 +389,12 @@ public class VolumeControllerTests : IDisposable
         ctx.Chapters.Add(ch);
         await ctx.SaveChangesAsync();
 
-        var (controller, workerQueueMock) = CreateController(ctx);
+        var (controller, jobStore) = CreateController(ctx);
         var result = await controller.PostReorganize(manga.Key);
 
         var ok = Assert.IsType<Ok<ReorganizeJobResult>>(result.Result);
         Assert.NotNull(ok.Value);
-        workerQueueMock.Verify(q => q.AddWorkers(It.IsAny<IEnumerable<BaseWorker>>()), Times.Never);
+        Assert.Empty(await jobStore.GetAllAsync());
     }
 
     // ──────────────────────────────────────────────────────
@@ -474,11 +475,11 @@ public class VolumeControllerTests : IDisposable
         ctx.Chapters.Add(ch);
         await ctx.SaveChangesAsync();
 
-        var (controller, workerQueueMock) = CreateController(ctx);
+        var (controller, jobStore) = CreateController(ctx);
         await controller.PutLibraryLayout(manga.Key, new API.Controllers.Requests.PutLibraryLayoutRecord(API.Schema.SeriesContext.LibraryLayout.VolumeFolder));
 
-        // No workers should be queued
-        workerQueueMock.Verify(q => q.AddWorkers(It.IsAny<IEnumerable<BaseWorker>>()), Times.Never);
+        // No placement jobs should be enqueued
+        Assert.Empty(await jobStore.GetAllAsync());
     }
 
     [Fact]

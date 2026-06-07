@@ -4,12 +4,10 @@ using API.Controllers;
 using API.Controllers.DTOs;
 using API.Controllers.Requests;
 using API.Schema.SeriesContext;
-using API.Workers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Moq;
 using SchemaManga = API.Schema.SeriesContext.Series;
 using SchemaFileLibrary = API.Schema.SeriesContext.FileLibrary;
 using SchemaChapter = API.Schema.SeriesContext.Chapter;
@@ -40,16 +38,16 @@ public class VolumeControllerAssignmentTests : IDisposable
         return new SeriesContext(options);
     }
 
-    private (VolumeController controller, Mock<IWorkerQueue> workerQueueMock) CreateController(SeriesContext ctx)
+    private (VolumeController controller, InMemoryJobStore jobStore) CreateController(SeriesContext ctx)
     {
         var settings = new KenkuSettings { AppData = _tempDir };
-        var workerQueueMock = new Mock<IWorkerQueue>();
-        var controller = new VolumeController(ctx, settings, workerQueueMock.Object, new InMemoryJobStore(), new SystemClock());
+        var jobStore = new InMemoryJobStore();
+        var controller = new VolumeController(ctx, settings, jobStore, new SystemClock());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()
         };
-        return (controller, workerQueueMock);
+        return (controller, jobStore);
     }
 
     private SchemaFileLibrary MakeLibrary()

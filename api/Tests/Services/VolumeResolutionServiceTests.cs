@@ -4,7 +4,6 @@ using API;
 using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;
 using API.Services;
-using API.Workers;
 using API.Workers.MaintenanceWorkers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -60,12 +59,11 @@ public class VolumeResolutionServiceTests : IDisposable
         _actionsContext.Dispose();
     }
 
-    private async Task<BaseWorker[]> Resolve(KenkuSettings settings, string mangaKey,
+    private async Task Resolve(KenkuSettings settings, string mangaKey,
         IMangaDexVolumeResolver? resolver = null, SeriesContext? context = null)
     {
         await new VolumeResolutionService(settings, resolver ?? _mockMangaDexResolver.Object, _mockSearchService.Object)
             .ResolveAsync(context ?? _mangaContext, mangaKey, CancellationToken.None);
-        return [];
     }
 
     private async Task ResolveAll(KenkuSettings settings, IEnumerable<string> mangaKeys)
@@ -348,7 +346,7 @@ public class VolumeResolutionServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task DoWork_WhenVolumesUpdated_ReturnsRenameWorkers()
+    public async Task Resolve_WhenVolumesUpdated_UpdatesVolumeNumber()
     {
         var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
         var library = new FileLibrary(_testRoot, "Test Library");
@@ -362,61 +360,10 @@ public class VolumeResolutionServiceTests : IDisposable
         Directory.CreateDirectory(mangaDir);
         CreateColorCbz(Path.Combine(mangaDir, "chap1.cbz"));
 
-        var result = await Resolve(settings, manga.Key);
+        await Resolve(settings, manga.Key);
 
-        // Resolution workers must NEVER queue file moves
-        Assert.DoesNotContain(result, w => w is RenameChapterFileWorker);
-        // But the DB update MUST still happen
+        // Resolution only updates the DB; the file move is the placement reconciler's job.
         Assert.NotNull((await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
-    }
-
-    [Fact]
-    public async Task DoWork_NeverQueuesRenameWorker_WhenVolumeAssigned()
-    {
-        var settings = new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess };
-        var library = new FileLibrary(_testRoot, "Test Library");
-        _mangaContext.FileLibraries.Add(library);
-        var manga = new Series("Test No Rename", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
-        _mangaContext.Series.Add(manga);
-        _mangaContext.Chapters.Add(new Chapter(manga, "1", null, "Title 1") { Downloaded = true, FileName = "chap1.cbz" });
-        await _mangaContext.SaveChangesAsync();
-
-        string mangaDir = Path.Combine(_testRoot, manga.DirectoryName);
-        Directory.CreateDirectory(mangaDir);
-        CreateColorCbz(Path.Combine(mangaDir, "chap1.cbz"));
-
-        var result = await Resolve(settings, manga.Key);
-
-        // Resolution workers must NEVER queue file moves
-        Assert.DoesNotContain(result, w => w is RenameChapterFileWorker);
-        // But the DB update MUST still happen
-        Assert.NotNull((await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
-    }
-
-    [Fact]
-    public async Task DoWork_WhenNamingSchemeHasNoVolume_NoRenameWorkerGenerated()
-    {
-        var settings = new KenkuSettings
-        {
-            VolumeResolutionStrategy = VolumeResolutionStrategy.ExactThenGuess,
-            ChapterNamingScheme = "%M - Ch.%C"
-        };
-        var library = new FileLibrary(_testRoot, "Test Library");
-        _mangaContext.FileLibraries.Add(library);
-        var manga = new Series("Test No Volume Scheme", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], [], library);
-        _mangaContext.Series.Add(manga);
-        var chapter = new Chapter(manga, "1", null, "Title 1") { Downloaded = true };
-        chapter.FileName = chapter.GetArchiveFileName(settings.ChapterNamingScheme);
-        _mangaContext.Chapters.Add(chapter);
-        await _mangaContext.SaveChangesAsync();
-
-        string mangaDir = Path.Combine(_testRoot, manga.DirectoryName);
-        Directory.CreateDirectory(mangaDir);
-        CreateColorCbz(Path.Combine(mangaDir, chapter.FileName!));
-
-        var result = await Resolve(settings, manga.Key);
-
-        Assert.DoesNotContain(result, w => w is RenameChapterFileWorker);
     }
 
     [Fact]

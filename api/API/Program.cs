@@ -156,7 +156,6 @@ builder.Services.AddHttpClient<MangaDexSearchService>();
 builder.Services.AddSingleton<IMangaDexSearchService>(sp => sp.GetRequiredService<MangaDexSearchService>());
 builder.Services.AddHttpClient<AniListSearchService>();
 builder.Services.AddSingleton<IAniListSearchService>(sp => sp.GetRequiredService<AniListSearchService>());
-builder.Services.AddSingleton<SyncChapterFileNamesWorker>();
 builder.Services.AddSingleton<IChapterThumbnailService, ChapterThumbnailService>();
 
 builder.Services.AddSingleton<RateLimitHandler>();
@@ -177,6 +176,7 @@ builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handler
 builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.CleanupHandler>();
 builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.RefreshExternalMetadataHandler>();
 builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.SendNotificationsHandler>();
+builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.PlaceChapterFileHandler>();
 builder.Services.AddScoped<API.JobRuntime.IJobStore, API.JobRuntime.EfJobStore>();
 // Overall download concurrency is bounded by MaxConcurrentDownloads (per-host rate limiting is separate,
 // in RateLimitHandler); per-series fairness comes from the dispatcher's per-resource cap.
@@ -194,6 +194,7 @@ builder.Services.AddHostedService<API.JobRuntime.SeriesChapterSyncReconciler>();
 builder.Services.AddHostedService<API.JobRuntime.CleanupReconciler>();
 builder.Services.AddHostedService<API.JobRuntime.MetadataRefreshReconciler>();
 builder.Services.AddHostedService<API.JobRuntime.NotificationReconciler>();
+builder.Services.AddHostedService<API.JobRuntime.ChapterFilePlacementReconciler>();
 builder.Services.AddSingleton<Kenku>();
 
 builder.Services.AddTorrentAcquisitionPath(settings, log);

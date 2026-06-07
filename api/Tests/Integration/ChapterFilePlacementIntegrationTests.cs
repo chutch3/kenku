@@ -1,18 +1,16 @@
 using API.Schema.SeriesContext;
-using API.Tests.Integration;
-using API.Workers.MaintenanceWorkers;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
-namespace API.Tests.Workers;
+namespace API.Tests.Integration;
 
 /// <summary>
 /// A chapter downloaded before its volume was known has a FileName with no volume prefix. Once the
-/// volume is known, the sync worker (and the rename jobs it spawns) must move the file into the volume
-/// subdirectory and update the DB. Runs the real worker chain in fresh scopes via the harness.
+/// volume is known, the placement reconciler (and the jobs it enqueues) must move the file into the
+/// volume subdirectory and update the DB. Runs the real reconcile→place path in fresh scopes via the harness.
 /// </summary>
 [Trait("Category", "Integration")]
-public class SyncChapterFileNamesWorkerIntegrationTests : IDisposable
+public class ChapterFilePlacementIntegrationTests : IDisposable
 {
     private readonly IntegrationHarness _harness = new("?V(%M Vol %V/)%M - Ch.%C");
 
@@ -37,7 +35,7 @@ public class SyncChapterFileNamesWorkerIntegrationTests : IDisposable
             return Task.CompletedTask;
         });
 
-        await _harness.Run(new SyncChapterFileNamesWorker(_harness.Settings));
+        await _harness.ReconcileChapterFilePlacement();
 
         var result = await _harness.Query(c => c.Chapters.FirstAsync(x => x.ChapterNumber == "1"));
         Assert.Equal("One-Punch Man Vol 5/One-Punch Man - Ch.1.cbz", result.FileName);

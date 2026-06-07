@@ -1,43 +1,26 @@
 using API;
-using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;
-using API.Workers.MaintenanceWorkers;
+using API.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Moq;
 using Xunit;
 
-namespace API.Tests.Workers;
+namespace API.Tests.Services;
 
-public class RenameChapterFileWorkerTests : IDisposable
+public class ChapterFilePlacementServiceTests : IDisposable
 {
     private readonly string _testRoot;
-    private readonly Mock<IServiceScope> _mockScope;
     private readonly SeriesContext _mangaContext;
-    private readonly ActionsContext _actionsContext;
     private const string NamingScheme = "?V(%M Vol %V/)%M - Ch.%C";
 
-    public RenameChapterFileWorkerTests()
+    public ChapterFilePlacementServiceTests()
     {
-        _testRoot = Path.Combine(Path.GetTempPath(), $"RenameChapterTest_{Guid.NewGuid()}");
+        _testRoot = Path.Combine(Path.GetTempPath(), $"PlaceChapterTest_{Guid.NewGuid()}");
         Directory.CreateDirectory(_testRoot);
 
         var mangaOptions = new DbContextOptionsBuilder<SeriesContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
         _mangaContext = new SeriesContext(mangaOptions);
-
-        var actionsOptions = new DbContextOptionsBuilder<ActionsContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-        _actionsContext = new ActionsContext(actionsOptions);
-
-        var serviceProvider = new Mock<IServiceProvider>();
-        serviceProvider.Setup(x => x.GetService(typeof(SeriesContext))).Returns(_mangaContext);
-        serviceProvider.Setup(x => x.GetService(typeof(ActionsContext))).Returns(_actionsContext);
-
-        _mockScope = new Mock<IServiceScope>();
-        _mockScope.Setup(x => x.ServiceProvider).Returns(serviceProvider.Object);
     }
 
     public void Dispose()
@@ -45,7 +28,6 @@ public class RenameChapterFileWorkerTests : IDisposable
         if (Directory.Exists(_testRoot))
             Directory.Delete(_testRoot, true);
         _mangaContext.Dispose();
-        _actionsContext.Dispose();
     }
 
     private async Task<(Series manga, Chapter chapter)> SetupAsync(
@@ -63,8 +45,11 @@ public class RenameChapterFileWorkerTests : IDisposable
         return (manga, chapter);
     }
 
+    private ChapterFilePlacementService CreateService() =>
+        new(new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme });
+
     [Fact]
-    public async Task DoWork_WhenFileExistsAtOldPath_MovesFileAndUpdatesDatabaseFileName()
+    public async Task Place_WhenFileExistsAtOldPath_MovesFileAndUpdatesDatabaseFileName()
     {
         var (manga, chapter) = await SetupAsync();
         string mangaDir = Path.Combine(_testRoot, manga.DirectoryName);
@@ -72,9 +57,7 @@ public class RenameChapterFileWorkerTests : IDisposable
         File.WriteAllText(Path.Combine(mangaDir, "One-Punch Man - Ch.1.cbz"), "fake content");
 
         const string newFileName = "One-Punch Man Vol 5/One-Punch Man - Ch.1.cbz";
-        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
-        var worker = new RenameChapterFileWorker(chapter.Key, newFileName, settings);
-        await worker.DoWork(_mockScope.Object);
+        await CreateService().PlaceAsync(_mangaContext, chapter.Key, newFileName, CancellationToken.None);
 
         Assert.False(File.Exists(Path.Combine(mangaDir, "One-Punch Man - Ch.1.cbz")));
         Assert.True(File.Exists(Path.Combine(mangaDir, "One-Punch Man Vol 5", "One-Punch Man - Ch.1.cbz")));
@@ -84,53 +67,70 @@ public class RenameChapterFileWorkerTests : IDisposable
     }
 
     [Fact]
-    public async Task DoWork_WhenFileDoesNotExistAtOldPath_UpdatesDatabaseFilenameWithoutError()
+    public async Task Place_WhenFileDoesNotExistAtOldPath_UpdatesDatabaseFilenameWithoutError()
     {
         var (_, chapter) = await SetupAsync();
 
         const string newFileName = "One-Punch Man Vol 5/One-Punch Man - Ch.1.cbz";
-        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
-        var worker = new RenameChapterFileWorker(chapter.Key, newFileName, settings);
-        await worker.DoWork(_mockScope.Object);
+        await CreateService().PlaceAsync(_mangaContext, chapter.Key, newFileName, CancellationToken.None);
 
         var updated = await _mangaContext.Chapters.FirstAsync(c => c.Key == chapter.Key);
         Assert.Equal(newFileName, updated.FileName);
     }
 
     [Fact]
-    public async Task DoWork_WhenDestinationAlreadyExists_DoesNotThrowAndUpdatesDatabaseFileName()
+    public async Task Place_WhenDestinationAlreadyExists_DoesNotThrowAndUpdatesDatabaseFileName()
     {
         var (manga, chapter) = await SetupAsync(fileName: "One-Punch Man - Ch.1.cbz");
         string mangaDir = Path.Combine(_testRoot, manga.DirectoryName);
         Directory.CreateDirectory(mangaDir);
-
-        // Source file exists at old path
         File.WriteAllText(Path.Combine(mangaDir, "One-Punch Man - Ch.1.cbz"), "fake content");
 
-        // A file already exists at the destination path (simulating a partial previous run or collision)
         string destDir = Path.Combine(mangaDir, "One-Punch Man Vol 5");
         Directory.CreateDirectory(destDir);
         File.WriteAllText(Path.Combine(destDir, "One-Punch Man - Ch.1.cbz"), "existing content");
 
         const string newFileName = "One-Punch Man Vol 5/One-Punch Man - Ch.1.cbz";
-        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
-        var worker = new RenameChapterFileWorker(chapter.Key, newFileName, settings);
+        var ex = await Record.ExceptionAsync(() =>
+            CreateService().PlaceAsync(_mangaContext, chapter.Key, newFileName, CancellationToken.None));
 
-        var ex = await Record.ExceptionAsync(() => worker.DoWork(_mockScope.Object));
-
-        // Should not throw even though destination exists
         Assert.Null(ex);
-        // DB is still updated to the intended filename
         var updated = await _mangaContext.Chapters.FirstAsync(c => c.Key == chapter.Key);
         Assert.Equal(newFileName, updated.FileName);
     }
 
     [Fact]
-    public async Task DoWork_WhenChapterKeyNotFound_CompletesWithoutError()
+    public async Task Place_WhenChapterKeyNotFound_CompletesWithoutError()
     {
-        var settings = new KenkuSettings { AppData = _testRoot, ChapterNamingScheme = NamingScheme };
-        var worker = new RenameChapterFileWorker("nonexistent-key", "anything.cbz", settings);
-        var ex = await Record.ExceptionAsync(() => worker.DoWork(_mockScope.Object));
+        var ex = await Record.ExceptionAsync(() =>
+            CreateService().PlaceAsync(_mangaContext, "nonexistent-key", "anything.cbz", CancellationToken.None));
         Assert.Null(ex);
+    }
+
+    [Fact]
+    public async Task Place_WhenAlreadyAtTarget_LeavesFileAlone()
+    {
+        var (manga, chapter) = await SetupAsync(fileName: "One-Punch Man Vol 5/One-Punch Man - Ch.1.cbz");
+        string destDir = Path.Combine(_testRoot, manga.DirectoryName, "One-Punch Man Vol 5");
+        Directory.CreateDirectory(destDir);
+        File.WriteAllText(Path.Combine(destDir, "One-Punch Man - Ch.1.cbz"), "content");
+
+        await CreateService().PlaceAsync(_mangaContext, chapter.Key, chapter.FileName, CancellationToken.None);
+
+        Assert.True(File.Exists(Path.Combine(destDir, "One-Punch Man - Ch.1.cbz")));
+    }
+
+    [Fact]
+    public async Task Place_WithNullTarget_ComputesLayoutCorrectName()
+    {
+        var (manga, chapter) = await SetupAsync();
+        string mangaDir = Path.Combine(_testRoot, manga.DirectoryName);
+        Directory.CreateDirectory(mangaDir);
+        File.WriteAllText(Path.Combine(mangaDir, "One-Punch Man - Ch.1.cbz"), "fake content");
+
+        await CreateService().PlaceAsync(_mangaContext, chapter.Key, null, CancellationToken.None);
+
+        var updated = await _mangaContext.Chapters.FirstAsync(c => c.Key == chapter.Key);
+        Assert.Equal("One-Punch Man Vol 5/One-Punch Man - Ch.1.cbz", updated.FileName);
     }
 }

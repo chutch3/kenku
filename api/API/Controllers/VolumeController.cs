@@ -4,8 +4,6 @@ using API.JobRuntime;
 using API.JobRuntime.Handlers;
 using API.Schema.SeriesContext;
 using API.Services;
-using API.Workers;
-using API.Workers.MaintenanceWorkers;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -21,8 +19,7 @@ namespace API.Controllers;
 [ApiVersion(2)]
 [ApiController]
 [Route("v{v:apiVersion}/Series/{MangaId}")]
-public class VolumeController(SeriesContext context, KenkuSettings settings, IWorkerQueue workerQueue,
-    IJobStore jobStore, IClock clock)
+public class VolumeController(SeriesContext context, KenkuSettings settings, IJobStore jobStore, IClock clock)
     : ControllerBase
 {
     /// <summary>
@@ -159,10 +156,10 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IWo
     }
 
     /// <summary>
-    /// Queues RenameChapterFileWorker instances for each file that needs moving.
+    /// Enqueues a PlaceChapterFile job for each file that needs moving.
     /// </summary>
     /// <param name="MangaId"><see cref="Series"/>.Key</param>
-    /// <response code="202">Workers queued; returns first worker key as jobId</response>
+    /// <response code="202">Jobs enqueued; returns first job key as jobId</response>
     /// <response code="200">Nothing to reorganize</response>
     /// <response code="404">Series not found</response>
     [HttpPost("reorganize")]
@@ -187,29 +184,31 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IWo
         if (preview.Moves.Count == 0)
             return TypedResults.Ok(new ReorganizeJobResult(string.Empty));
 
-        // Build workers: one RenameChapterFileWorker per move
+        // Enqueue one PlaceChapterFile job per move.
         var chaptersByPath = manga.Chapters
             .Where(c => !c.IsBundled && c.FullArchiveFilePath != null)
             .ToDictionary(c => c.FullArchiveFilePath!, c => c);
 
-        var workers = preview.Moves
+        var jobs = preview.Moves
             .Where(m => chaptersByPath.ContainsKey(m.From))
             .Select(m =>
             {
                 var chapter = chaptersByPath[m.From];
                 string newFileName = Path.GetRelativePath(manga.FullDirectoryPath, m.To);
-                return new RenameChapterFileWorker(chapter.Key, newFileName, settings);
+                return new JobEntity(PlaceChapterFileHandler.Type,
+                    PlaceChapterFileHandler.PayloadFor(chapter.Key, newFileName), clock.UtcNow,
+                    resourceKey: manga.Key, dedupKey: ChapterFilePlacementReconciler.DedupKey(chapter.Key));
             })
-            .Cast<BaseWorker>()
             .ToList();
 
-        if (workers.Count == 0)
+        if (jobs.Count == 0)
             return TypedResults.Ok(new ReorganizeJobResult(string.Empty));
 
-        workerQueue.AddWorkers(workers);
+        foreach (var job in jobs)
+            await jobStore.EnqueueAsync(job, HttpContext.RequestAborted);
 
-        // Use the key of the first queued worker as the job ID
-        string jobId = workers[0].Key;
+        // Use the key of the first enqueued job as the job ID
+        string jobId = jobs[0].Key;
         return TypedResults.Accepted<ReorganizeJobResult>((string?)null, new ReorganizeJobResult(jobId));
     }
 

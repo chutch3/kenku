@@ -1,5 +1,4 @@
 using API.Schema.SeriesContext;
-using API.Workers.MaintenanceWorkers;
 using Microsoft.EntityFrameworkCore;
 
 namespace API.Tests.Integration;
@@ -40,8 +39,8 @@ public class VolumeReconciliationIntegrationTests
             await File.WriteAllBytesAsync(Path.Combine(mangaDir, "Dandadan - Ch.1.cbz"), new byte[] { 1, 2, 3 });
         });
 
-        // The reconciler runs and spawns a RenameChapterFileWorker, which the harness then runs.
-        await harness.Run(new SyncChapterFileNamesWorker(harness.Settings));
+        // The reconciler enqueues a PlaceChapterFile job, which the harness then runs.
+        await harness.ReconcileChapterFilePlacement();
 
         string expectedRelative = Path.Combine("Vol 1", "Dandadan - Vol.1 Ch.1.cbz");
         string expectedFull = Path.Combine(mangaDir, "Vol 1", "Dandadan - Vol.1 Ch.1.cbz");
@@ -70,8 +69,8 @@ public class VolumeReconciliationIntegrationTests
             await Task.CompletedTask;
         });
 
-        var ran = await harness.Run(new SyncChapterFileNamesWorker(harness.Settings));
+        var jobs = await harness.ReconcileChapterFilePlacement();
 
-        Assert.DoesNotContain(ran, w => w is RenameChapterFileWorker);
+        Assert.Empty(jobs);
     }
 }
