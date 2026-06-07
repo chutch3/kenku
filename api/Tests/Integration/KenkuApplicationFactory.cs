@@ -51,6 +51,11 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
     /// <see cref="API.MangaConnectors.SeriesSource"/> without real network.</summary>
     public IReadOnlyList<API.MangaConnectors.SeriesSource> ExtraConnectors { get; init; } = [];
 
+    /// <summary>Optional clock override so a test can control backoff/lease/scheduling windows without real
+    /// waits — the time "edge", swapped like the DB and network edges. When set, replaces the singleton
+    /// <see cref="API.JobRuntime.IClock"/> the dispatcher resolves.</summary>
+    public API.JobRuntime.IClock? Clock { get; init; }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("Kenku:RunStartup", "false");
@@ -79,6 +84,12 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
                 services.RemoveAll<RateLimitHandler>();
                 services.AddSingleton(sp => new RateLimitHandler(
                     sp.GetRequiredService<KenkuSettings>(), rl.Inner, rl.RequestsPerMinute, rl.QueueLimit, rl.RequestTimeout));
+            }
+
+            if (Clock is not null)
+            {
+                services.RemoveAll<API.JobRuntime.IClock>();
+                services.AddSingleton(Clock);
             }
 
             foreach (API.JobRuntime.IJobHandler handler in ExtraJobHandlers)
