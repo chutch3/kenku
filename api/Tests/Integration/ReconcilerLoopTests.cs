@@ -1,4 +1,5 @@
 using API.JobRuntime.Handlers;
+using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -22,13 +23,40 @@ public class ReconcilerLoopTests : IAsyncLifetime
     {
         if (!await _postgres.IsReachableAsync()) return;
         _dbName = await _postgres.CreateDatabaseAsync();
+        string cs = _postgres.GetConnectionString(_dbName);
+        Directory.CreateDirectory(_libDir);
+
+        await MigrateAsync<SeriesContext>(cs);
+        await MigrateAsync<global::API.Schema.JobsContext.JobsContext>(cs);
+        await MigrateAsync<ActionsContext>(cs);
+
+        var opts = new DbContextOptionsBuilder<SeriesContext>().UseNpgsql(cs).Options;
+        await using (var ctx = new SeriesContext(opts))
+        {
+            var library = new FileLibrary(_libDir, "Lib");
+            ctx.FileLibraries.Add(library);
+            var manga = new Series("Test", "", "http://x/c.jpg", SeriesReleaseStatus.Continuing, [], [], [], [], library);
+            ctx.Series.Add(manga);
+            var chapter = new Chapter(manga, "1", null, null);
+            ctx.Chapters.Add(chapter);
+            var sourceId = new SourceId<Chapter>(chapter, "StubConnector", "site-id-1", "http://stub.test/1", true);
+            ctx.MangaConnectorToChapter.Add(sourceId);
+            await ctx.SaveChangesAsync();
+        }
+
         _app = new KenkuApplicationFactory
         {
-            PostgresConnectionString = _postgres.GetConnectionString(_dbName),
+            PostgresConnectionString = cs,
             RunStartup = true,
             DispatcherCaps = (0, 0),
         };
-        Directory.CreateDirectory(_libDir);
+    }
+
+    private static async Task MigrateAsync<TContext>(string cs) where TContext : DbContext
+    {
+        var opts = new DbContextOptionsBuilder<TContext>().UseNpgsql(cs).Options;
+        await using var ctx = (TContext)Activator.CreateInstance(typeof(TContext), opts)!;
+        await ctx.Database.MigrateAsync();
     }
 
     public async Task DisposeAsync()
@@ -43,20 +71,6 @@ public class ReconcilerLoopTests : IAsyncLifetime
     public async Task DownloadReconciler_OnFirstTick_EnqueuesDownloadJobForRequestedChapter()
     {
         if (_app is null) return; // skip: Postgres not available
-
-        await _app.WithSeriesContext(async ctx =>
-        {
-            var library = new FileLibrary(_libDir, "Lib");
-            ctx.FileLibraries.Add(library);
-            var manga = new Series("Test", "", "http://x/c.jpg", SeriesReleaseStatus.Continuing, [], [], [], [], library);
-            ctx.Series.Add(manga);
-            var chapter = new Chapter(manga, "1", null, null);
-            ctx.Chapters.Add(chapter);
-            var sourceId = new SourceId<Chapter>(chapter, "StubConnector", "site-id-1", "http://stub.test/1", true);
-            ctx.MangaConnectorToChapter.Add(sourceId);
-            await ctx.SaveChangesAsync();
-            return 0;
-        });
 
         bool appeared = false;
         var deadline = DateTime.UtcNow.AddSeconds(10);

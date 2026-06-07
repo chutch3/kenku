@@ -29,45 +29,51 @@ public class EfJobStore(JobsContext context) : IJobStore
     public async Task<Job?> ClaimNextReadyAsync(DateTime now, TimeSpan leaseDuration, int globalCap, int perResourceCap,
         CancellationToken ct = default)
     {
-        bool isRelational = context.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory";
+        if (context.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory")
+            return await ClaimRelationalAsync(now, leaseDuration, globalCap, perResourceCap, ct);
 
         List<Job> active = await context.JobQueue
             .Where(j => j.Status == JobStatus.Queued || j.Status == JobStatus.Running)
-            .AsNoTracking()
             .ToListAsync(ct);
 
         if (JobReadySelection.PickClaimable(active, now, globalCap, perResourceCap) is not { } candidate)
             return null;
 
-        DateTime claimedUntil = now.Add(leaseDuration);
+        JobReadySelection.MarkClaimed(candidate, now, leaseDuration);
+        await context.SaveChangesAsync(ct);
+        return candidate;
+    }
 
-        if (isRelational)
+    private async Task<Job?> ClaimRelationalAsync(DateTime now, TimeSpan leaseDuration, int globalCap, int perResourceCap,
+        CancellationToken ct)
+    {
+        await using var txn = await context.Database.BeginTransactionAsync(ct);
+        try
         {
-            int updated = await context.JobQueue
-                .Where(j => j.Key == candidate.Key && j.Status == JobStatus.Queued)
-                .ExecuteUpdateAsync(s => s
-                    .SetProperty(j => j.Status, JobStatus.Running)
-                    .SetProperty(j => j.ScheduledFor, claimedUntil), ct);
+            List<Job> active = await context.JobQueue
+                .FromSqlRaw("""
+                    SELECT * FROM "JobQueue"
+                    WHERE "Status" IN (0, 1)
+                    FOR UPDATE SKIP LOCKED
+                    """)
+                .ToListAsync(ct);
 
-            if (updated == 0)
+            if (JobReadySelection.PickClaimable(active, now, globalCap, perResourceCap) is not { } candidate)
+            {
+                await txn.RollbackAsync(ct);
                 return null;
+            }
 
-            candidate.Status = JobStatus.Running;
-            candidate.ScheduledFor = claimedUntil;
+            JobReadySelection.MarkClaimed(candidate, now, leaseDuration);
+            await context.SaveChangesAsync(ct);
+            await txn.CommitAsync(ct);
             return candidate;
         }
-
-        // InMemory provider (tests): reload as tracked and mutate via SaveChanges.
-        Job? tracked = await context.JobQueue
-            .Where(j => j.Key == candidate.Key && j.Status == JobStatus.Queued)
-            .FirstOrDefaultAsync(ct);
-
-        if (tracked is null)
-            return null;
-
-        JobReadySelection.MarkClaimed(tracked, now, leaseDuration);
-        await context.SaveChangesAsync(ct);
-        return tracked;
+        catch
+        {
+            await txn.RollbackAsync(ct);
+            throw;
+        }
     }
 
     public async Task UpdateAsync(Job job, CancellationToken ct = default)
