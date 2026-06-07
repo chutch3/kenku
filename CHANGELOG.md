@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v0.9.0 (2026-06-07)
+
+### Chores
+
+- Remove rearch plan from gitignore
+  ([`92e2427`](https://github.com/chutch3/kenku/commit/92e242751520a840c9559144b41c5bf42a5bf5d5))
+
+- Stop tracking the rearch plan
+  ([`a5c2028`](https://github.com/chutch3/kenku/commit/a5c202868ef2af4d83d609dba60d9483453ab92d))
+
+### Features
+
+- Migrate all background work to the job runtime
+  ([`5ac33c2`](https://github.com/chutch3/kenku/commit/5ac33c2fb0cb7d0be79777030d60ee6432aeb078))
+
+
 ## v0.8.1 (2026-06-06)
 
 ### Bug Fixes
