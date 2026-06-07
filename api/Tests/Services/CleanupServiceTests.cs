@@ -1,6 +1,5 @@
 using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;
-using API.Workers;
 using API.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

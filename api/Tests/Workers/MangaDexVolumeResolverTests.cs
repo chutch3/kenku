@@ -1,7 +1,8 @@
 using System.Net;
 using System.Net.Http;
 using API.Schema.SeriesContext;
-using API.Workers.MaintenanceWorkers;
+using API.MetadataResolvers;
+using API.MetadataResolvers.Interfaces;
 using Xunit;
 
 namespace API.Tests.Workers;

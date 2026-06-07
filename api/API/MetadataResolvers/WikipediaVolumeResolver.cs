@@ -4,7 +4,7 @@ using API.Schema.SeriesContext;
 using API.Services;
 using Newtonsoft.Json.Linq;
 
-namespace API.Workers.MaintenanceWorkers;
+namespace API.MetadataResolvers;
 
 /// <summary>
 /// Resolves volumes from a Wikipedia "List of &lt;series&gt; chapters" article. These pages use the

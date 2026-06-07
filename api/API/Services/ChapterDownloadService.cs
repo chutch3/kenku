@@ -12,7 +12,6 @@ using API.Schema.ActionsContext;
 using API.Schema.ActionsContext.Actions;
 using API.Schema.JobsContext;
 using API.Schema.SeriesContext;
-using API.Workers;
 using log4net;
 using Microsoft.EntityFrameworkCore;
 

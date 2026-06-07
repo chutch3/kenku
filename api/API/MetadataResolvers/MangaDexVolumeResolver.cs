@@ -1,3 +1,4 @@
+using API.MetadataResolvers.Interfaces;
 using API.Services;
 using System;
 using System.Collections.Generic;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 using API.Schema.SeriesContext;
 using Newtonsoft.Json.Linq;
 
-namespace API.Workers.MaintenanceWorkers;
+namespace API.MetadataResolvers;
 
 public class MangaDexVolumeResolver(HttpClient httpClient) : IMangaDexVolumeResolver
 {

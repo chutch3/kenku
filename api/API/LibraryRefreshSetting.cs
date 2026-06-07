@@ -1,4 +1,4 @@
-namespace API.Workers;
+namespace API;
 
 /// <summary>When to trigger an external library (Kavita/Komga) rescan relative to downloads.</summary>
 public enum LibraryRefreshSetting

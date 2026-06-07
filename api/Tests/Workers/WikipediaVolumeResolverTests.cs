@@ -1,6 +1,7 @@
 using System.Net;
 using API.Schema.SeriesContext;
-using API.Workers.MaintenanceWorkers;
+using API.MetadataResolvers;
+using API.MetadataResolvers.Interfaces;
 using Newtonsoft.Json.Linq;
 using Xunit;
 

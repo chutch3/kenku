@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using API.Schema.SeriesContext;
 
-namespace API.Workers.MaintenanceWorkers;
+namespace API.MetadataResolvers.Interfaces;
 
 public interface IMangaDexVolumeResolver
 {
