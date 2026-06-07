@@ -13,7 +13,6 @@ namespace API.Controllers;
 
 /// <summary>
 /// The runtime job queue: enqueue (registry-validated), observe, retry, and cancel first-class jobs.
-/// Distinct from <see cref="JobsController"/>, which logs executions of the legacy worker engine.
 /// </summary>
 [ApiVersion(2)]
 [ApiController]

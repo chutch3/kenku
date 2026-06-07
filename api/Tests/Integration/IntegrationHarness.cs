@@ -13,9 +13,9 @@ using Microsoft.Extensions.DependencyInjection;
 namespace API.Tests.Integration;
 
 /// <summary>
-/// Runs real worker chains end-to-end against shared in-memory databases, seeding only what a user
-/// would provide and asserting the real outcome (files on disk, DB state). Each worker gets a FRESH
-/// DI scope/context — so navigations come from the worker's own query (its Includes), not in-memory
+/// Runs real reconcile→job flows end-to-end against shared in-memory databases, seeding only what a user
+/// would provide and asserting the real outcome (files on disk, DB state). Each job runs in a FRESH
+/// DI scope/context — so navigations come from the job's own query (its Includes), not in-memory
 /// references — which is what isolated unit tests miss. See issue #19.
 /// </summary>
 public sealed class IntegrationHarness : IDisposable
@@ -46,7 +46,7 @@ public sealed class IntegrationHarness : IDisposable
     /// <summary>A fresh DI scope with its own context instances (sharing the same in-memory store).</summary>
     public IServiceScope CreateScope() => _root.CreateScope();
 
-    /// <summary>The root provider, for components (e.g. the real WorkerQueue) that create their own scopes.</summary>
+    /// <summary>The root provider, for components that create their own scopes.</summary>
     public IServiceProvider Services => _root;
 
     /// <summary>Run an action against a fresh SeriesContext and persist it (seeding user input).</summary>

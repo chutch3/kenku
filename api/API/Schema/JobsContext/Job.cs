@@ -17,7 +17,7 @@ public enum JobStatus
 /// a recorded outcome (<see cref="Status"/>/<see cref="Error"/>), bounded retries (<see cref="Attempts"/>),
 /// and the scheduling metadata the dispatcher needs (<see cref="ScheduledFor"/>, <see cref="ResourceKey"/>
 /// for fairness/rate-limit, <see cref="DedupKey"/> for coalescing, <see cref="LeasedUntil"/> for crash
-/// recovery). Distinct from <see cref="JobRecord"/>, which logs executions of the legacy worker engine.
+/// recovery).
 /// </summary>
 public class Job : Identifiable
 {
