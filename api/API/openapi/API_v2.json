@@ -1316,76 +1316,6 @@
         }
       }
     },
-    "/v2/Jobs": {
-      "get": {
-        "tags": [
-          "Jobs"
-        ],
-        "summary": "Most recent persisted job executions.",
-        "responses": {
-          "200": {
-            "description": "API.Controllers.DTOs.Job",
-            "content": {
-              "application/json; x-version=2.0": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Job"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v2/Jobs/Summary": {
-      "get": {
-        "tags": [
-          "Jobs"
-        ],
-        "summary": "Counts of persisted jobs grouped by execution state.",
-        "responses": {
-          "200": {
-            "description": "Map of API.Workers.WorkerExecutionState to count.",
-            "content": {
-              "application/json; x-version=2.0": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "Failed": {
-                      "type": "integer",
-                      "format": "int32"
-                    },
-                    "Cancelled": {
-                      "type": "integer",
-                      "format": "int32"
-                    },
-                    "Created": {
-                      "type": "integer",
-                      "format": "int32"
-                    },
-                    "Waiting": {
-                      "type": "integer",
-                      "format": "int32"
-                    },
-                    "Running": {
-                      "type": "integer",
-                      "format": "int32"
-                    },
-                    "Completed": {
-                      "type": "integer",
-                      "format": "int32"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v2/Library/unresolved": {
       "get": {
         "tags": [
@@ -5033,161 +4963,6 @@
           }
         }
       }
-    },
-    "/v2/Worker": {
-      "get": {
-        "tags": [
-          "Worker"
-        ],
-        "summary": "Returns all API.Workers.BaseWorker",
-        "responses": {
-          "200": {
-            "description": "API.Controllers.DTOs.Worker",
-            "content": {
-              "application/json; x-version=2.0": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Worker"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v2/Worker/State/{State}": {
-      "get": {
-        "tags": [
-          "Worker"
-        ],
-        "summary": "Get all API.Workers.BaseWorker in requested API.Workers.WorkerExecutionState",
-        "parameters": [
-          {
-            "name": "State",
-            "in": "path",
-            "description": "Requested API.Workers.WorkerExecutionState",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/WorkerExecutionState"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json; x-version=2.0": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Worker"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v2/Worker/{WorkerId}": {
-      "get": {
-        "tags": [
-          "Worker"
-        ],
-        "summary": "Return API.Workers.BaseWorker with WorkerId",
-        "parameters": [
-          {
-            "name": "WorkerId",
-            "in": "path",
-            "description": "API.Workers.BaseWorker.Key",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json; x-version=2.0": {
-                "schema": {
-                  "$ref": "#/components/schemas/Worker"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "API.Workers.BaseWorker with WorkerId could not be found",
-            "content": {
-              "text/plain; x-version=2.0": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v2/Worker/{WorkerId}/Stop": {
-      "post": {
-        "tags": [
-          "Worker"
-        ],
-        "summary": "Stops API.Workers.BaseWorker with WorkerId",
-        "parameters": [
-          {
-            "name": "WorkerId",
-            "in": "path",
-            "description": "API.Workers.BaseWorker.Key",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          },
-          "404": {
-            "description": "API.Workers.BaseWorker with WorkerId could not be found",
-            "content": {
-              "text/plain; x-version=2.0": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "202": {
-            "description": "Accepted"
-          },
-          "412": {
-            "description": "API.Workers.BaseWorker was already not running",
-            "content": {
-              "text/plain; x-version=2.0": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "application/json; x-version=2.0": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "text/json; x-version=2.0": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
@@ -5955,61 +5730,6 @@
         "additionalProperties": false,
         "description": "Represents a single file move operation in a reorganize preview."
       },
-      "Job": {
-        "required": [
-          "createdAt",
-          "key",
-          "name",
-          "state",
-          "type"
-        ],
-        "type": "object",
-        "properties": {
-          "type": {
-            "minLength": 1,
-            "type": "string",
-            "description": "Worker type that ran."
-          },
-          "name": {
-            "minLength": 1,
-            "type": "string",
-            "description": "Human-readable label for the execution."
-          },
-          "state": {
-            "$ref": "#/components/schemas/WorkerExecutionState"
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "UTC time the record was created.",
-            "format": "date-time"
-          },
-          "startedAt": {
-            "type": "string",
-            "description": "UTC time the execution started, if it has.",
-            "format": "date-time",
-            "nullable": true
-          },
-          "finishedAt": {
-            "type": "string",
-            "description": "UTC time the execution finished, if it has.",
-            "format": "date-time",
-            "nullable": true
-          },
-          "error": {
-            "type": "string",
-            "description": "Failure message, if the execution failed.",
-            "nullable": true
-          },
-          "key": {
-            "maxLength": 64,
-            "minLength": 16,
-            "type": "string",
-            "description": "Unique Identifier of the DTO"
-          }
-        },
-        "additionalProperties": false,
-        "description": "API.Schema.JobsContext.JobRecord DTO — a persisted worker execution."
-      },
       "JobStatus": {
         "enum": [
           "Queued",
@@ -6517,7 +6237,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "A API.Controllers.DTOs.Job in the runtime queue."
+        "description": "A API.Schema.JobsContext.Job in the runtime queue."
       },
       "ReorganizeJobResult": {
         "type": "object",
@@ -7049,58 +6769,6 @@
         },
         "additionalProperties": false,
         "description": "Top-level response for GET /api/v2/Series/{mangaId}/volumes."
-      },
-      "Worker": {
-        "required": [
-          "dependencies",
-          "dependenciesFulfilled",
-          "key",
-          "missingDependencies",
-          "state"
-        ],
-        "type": "object",
-        "properties": {
-          "dependencies": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Workers this worker depends on having ran."
-          },
-          "missingDependencies": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Workers that have not yet ran, that need to run for this Worker to run."
-          },
-          "dependenciesFulfilled": {
-            "type": "boolean",
-            "description": "Worker can run."
-          },
-          "state": {
-            "$ref": "#/components/schemas/WorkerExecutionState"
-          },
-          "key": {
-            "maxLength": 64,
-            "minLength": 16,
-            "type": "string",
-            "description": "Unique Identifier of the DTO"
-          }
-        },
-        "additionalProperties": false,
-        "description": "API.Workers.BaseWorker DTO"
-      },
-      "WorkerExecutionState": {
-        "enum": [
-          "Failed",
-          "Cancelled",
-          "Created",
-          "Waiting",
-          "Running",
-          "Completed"
-        ],
-        "type": "string"
       }
     }
   },
@@ -7116,9 +6784,6 @@
     },
     {
       "name": "JobQueue"
-    },
-    {
-      "name": "Jobs"
     },
     {
       "name": "Library"
@@ -7155,9 +6820,6 @@
     },
     {
       "name": "Volume"
-    },
-    {
-      "name": "Worker"
     }
   ]
 }

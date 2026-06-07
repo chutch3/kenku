@@ -156,8 +156,6 @@ builder.Services.AddSingleton<IChapterThumbnailService, ChapterThumbnailService>
 
 builder.Services.AddSingleton<RateLimitHandler>();
 builder.Services.AddSingleton<IHttpRequester, HttpRequester>();
-builder.Services.AddSingleton<API.Workers.IJobRecorder, API.Workers.JobRecorder>();
-builder.Services.AddSingleton<IWorkerQueue, WorkerQueue>();
 
 // Job runtime (parallel to the legacy worker engine until handlers migrate onto it).
 builder.Services.AddSingleton<API.JobRuntime.IClock, API.JobRuntime.SystemClock>();
@@ -341,15 +339,11 @@ catch (Exception e)
 }
 
 log.Info("Starting Kenku.");
-var kenkuManager = app.Services.GetRequiredService<Kenku>();
 
 // Apply persisted connector enable/disable state from settings
 var kenkuSettings = app.Services.GetRequiredService<KenkuSettings>();
 var mangaConnectors = app.Services.GetRequiredService<IEnumerable<SeriesSource>>();
 kenkuSettings.ApplyDisabledConnectors(mangaConnectors);
-
-await kenkuManager.StartupTasks();
-kenkuManager.AddDefaultWorkers();
 }
 
 log.Info("Running app.");

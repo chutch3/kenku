@@ -4,7 +4,6 @@ using API.Controllers.Requests;
 using API.JobRuntime;
 using API.Schema.SeriesContext;
 using API.Services;
-using API.Workers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -26,8 +25,7 @@ public class MetadataSourceControllerTests
     private MetadataSourceController CreateController(SeriesContext ctx, IMangaDexSearchService? searchService = null)
     {
         var mockSearchService = searchService ?? new Mock<IMangaDexSearchService>().Object;
-        var mockWorkerQueue = new Mock<IWorkerQueue>();
-        var controller = new MetadataSourceController(ctx, mockSearchService, mockWorkerQueue.Object);
+        var controller = new MetadataSourceController(ctx, mockSearchService);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()

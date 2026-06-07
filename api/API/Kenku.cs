@@ -4,8 +4,6 @@ using API.MangaConnectors;
 using API.HttpRequesters;
 using API.Schema.SeriesContext;
 using API.Schema.SeriesContext.MetadataFetchers;
-using API.Workers;
-using API.Workers.MaintenanceWorkers;
 using log4net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection; // Required for GetRequiredService
@@ -20,7 +18,6 @@ public class Kenku
     private readonly IServiceProvider _serviceProvider;
     private readonly RateLimitHandler _rateLimitHandler;
     private readonly KenkuSettings _settings;
-    private readonly IWorkerQueue _workerQueue;
 
     public IEnumerable<SeriesSource> Connectors { get; }
     public IEnumerable<MetadataFetcher> MetadataFetchers { get; }
@@ -30,38 +27,13 @@ public class Kenku
         IEnumerable<SeriesSource> connectors,
         IEnumerable<MetadataFetcher> fetchers,
         RateLimitHandler rateLimitHandler,
-        KenkuSettings settings,
-        IWorkerQueue workerQueue)
+        KenkuSettings settings)
     {
         _serviceProvider = serviceProvider;
         _settings = settings;
         _rateLimitHandler = rateLimitHandler;
-        _workerQueue = workerQueue;
         Connectors = connectors;
         MetadataFetchers = fetchers;
-    }
-
-    // Helper to keep the startup lists clean
-    private T GetWorker<T>() where T : BaseWorker => _serviceProvider.GetRequiredService<T>();
-
-    public async Task StartupTasks()
-    {
-        // 3. Pulling workers directly from the DI container
-
-        // Moved to AddDefaultWorkers
-
-        Log.Info("Waiting for startup to complete...");
-        while (_workerQueue.GetRunningWorkers().Any(w => w.State < WorkerExecutionState.Completed))
-            await Task.Delay(1000);
-        Log.Info("Start complete!");
-    }
-
-    internal void AddDefaultWorkers()
-    {
-        // All recurring background work — downloads, chapter sync, cover/metadata refresh, volume
-        // resolution + bundling, file placement, torrent completion, download-state verification, cleanup
-        // and notifications — is handled by the runtime's hosted reconcilers + jobs (see Program.cs). No
-        // legacy workers are scheduled by default.
     }
 
     internal bool TryGetSeriesSource(string name, [NotNullWhen(true)]out SeriesSource? seriesSource)

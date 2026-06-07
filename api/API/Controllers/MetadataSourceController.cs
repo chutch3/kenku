@@ -4,7 +4,6 @@ using API.JobRuntime;
 using API.JobRuntime.Handlers;
 using API.Schema.SeriesContext;
 using API.Services;
-using API.Workers;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -24,18 +23,15 @@ public class MetadataSourceController : ControllerBase
     private readonly SeriesContext context;
     private readonly IMangaDexSearchService mangaDexSearchService;
     private readonly IAniListSearchService aniListSearchService;
-    private readonly IWorkerQueue workerQueue;
 
     public MetadataSourceController(
         SeriesContext context,
         IMangaDexSearchService mangaDexSearchService,
-        IAniListSearchService aniListSearchService,
-        IWorkerQueue workerQueue)
+        IAniListSearchService aniListSearchService)
     {
         this.context = context;
         this.mangaDexSearchService = mangaDexSearchService;
         this.aniListSearchService = aniListSearchService;
-        this.workerQueue = workerQueue;
     }
 
     /// <summary>
@@ -43,9 +39,8 @@ public class MetadataSourceController : ControllerBase
     /// </summary>
     public MetadataSourceController(
         SeriesContext context,
-        IMangaDexSearchService mangaDexSearchService,
-        IWorkerQueue workerQueue)
-        : this(context, mangaDexSearchService, new NullAniListSearchService(), workerQueue)
+        IMangaDexSearchService mangaDexSearchService)
+        : this(context, mangaDexSearchService, new NullAniListSearchService())
     {
     }
 

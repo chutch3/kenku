@@ -5,8 +5,6 @@ using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;
 using API.Schema.NotificationsContext;
 using API.Schema.SeriesContext.MetadataFetchers;
-using API.Workers;
-using API.Workers.MaintenanceWorkers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -19,8 +17,7 @@ public class KenkuTests
     // Helper to build our Fake Dependency Injection Container
     private IServiceProvider BuildMockServiceProvider(
         List<SeriesSource>? connectors = null,
-        KenkuSettings? settings = null,
-        Mock<IWorkerQueue>? workerQueueMock = null)
+        KenkuSettings? settings = null)
     {
         var testSettings = settings ?? new KenkuSettings { AppData = "./test_data" };
         var services = new ServiceCollection();
@@ -40,12 +37,10 @@ public class KenkuTests
             connectors ?? new List<SeriesSource>());
 
         var emptyFetchers = new List<MetadataFetcher>();
-        var mockWorkerQueue = workerQueueMock?.Object ?? new Mock<IWorkerQueue>().Object;
 
-        // Inject empty fetchers, rate limiter, worker queue, and SeriesContext
+        // Inject empty fetchers, rate limiter, and contexts
         services.AddSingleton<IEnumerable<MetadataFetcher>>(emptyFetchers);
         services.AddSingleton(new RateLimitHandler(testSettings));
-        services.AddSingleton(mockWorkerQueue);
         services.AddDbContext<SeriesContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
         services.AddDbContext<ActionsContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
         services.AddDbContext<NotificationsContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));

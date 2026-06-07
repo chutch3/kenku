@@ -2,7 +2,6 @@ using API.Controllers;
 using API.Controllers.DTOs;
 using API.Schema.SeriesContext;
 using API.Services;
-using API.Workers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -28,8 +27,7 @@ public class MetadataSourceControllerAniListTests
     {
         var mockMangaDex = mangaDexService ?? new Mock<IMangaDexSearchService>().Object;
         var mockAniList = aniListService ?? new Mock<IAniListSearchService>().Object;
-        var mockWorkerQueue = new Mock<IWorkerQueue>();
-        var controller = new MetadataSourceController(ctx, mockMangaDex, mockAniList, mockWorkerQueue.Object);
+        var controller = new MetadataSourceController(ctx, mockMangaDex, mockAniList);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()

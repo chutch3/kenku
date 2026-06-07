@@ -7,7 +7,6 @@ using API.Schema.JobsContext;
 using API.Schema.NotificationsContext;
 using API.Schema.SeriesContext;
 using API.Services;
-using API.Workers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -64,28 +63,6 @@ public sealed class IntegrationHarness : IDisposable
     {
         using var scope = _root.CreateScope();
         return await query(scope.ServiceProvider.GetRequiredService<SeriesContext>());
-    }
-
-    /// <summary>
-    /// Run <paramref name="root"/> and, like the real WorkerQueue, recursively run every worker it
-    /// spawns — each in its own fresh scope. Returns every worker that ran (root first).
-    /// </summary>
-    public async Task<List<BaseWorker>> Run(BaseWorker root)
-    {
-        var ran = new List<BaseWorker>();
-        var pending = new Queue<BaseWorker>();
-        pending.Enqueue(root);
-        while (pending.Count > 0)
-        {
-            BaseWorker worker = pending.Dequeue();
-            ran.Add(worker);
-            BaseWorker[] spawned = worker is BaseWorkerWithContexts withContexts
-                ? await withContexts.DoWork(CreateScope())
-                : await worker.DoWork();
-            foreach (BaseWorker s in spawned)
-                pending.Enqueue(s);
-        }
-        return ran;
     }
 
     /// <summary>

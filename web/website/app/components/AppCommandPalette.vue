@@ -34,7 +34,6 @@ const navItems: CommandPaletteItem[] = [
     { label: 'Library', icon: 'i-lucide-library', onSelect: () => go('/') },
     { label: 'Add series', icon: 'i-lucide-plus', onSelect: () => go('/search') },
     { label: 'Activity', icon: 'i-lucide-scroll-text', onSelect: () => go('/actions') },
-    { label: 'Jobs', icon: 'i-lucide-list-checks', onSelect: () => go('/jobs') },
     { label: 'Queue', icon: 'i-lucide-layers', onSelect: () => go('/queue') },
     { label: 'Settings', icon: 'i-lucide-settings', onSelect: () => go('/settings') },
 ];
