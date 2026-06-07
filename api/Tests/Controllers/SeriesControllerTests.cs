@@ -1,6 +1,7 @@
 using API;
 using API.Controllers;
 using API.Controllers.DTOs;
+using API.JobRuntime;
 using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;
 using Microsoft.AspNetCore.Http;
@@ -33,8 +34,7 @@ public class MangaControllerTests
     {
         var settings = new KenkuSettings { AppData = Path.GetTempPath() };
         var connectorsList = connectors ?? Enumerable.Empty<API.MangaConnectors.SeriesSource>();
-        var workerQueue = new Mock<API.Workers.IWorkerQueue>().Object;
-        var controller = new SeriesController(ctx, actionsCtx, settings, connectorsList, workerQueue);
+        var controller = new SeriesController(ctx, actionsCtx, settings, connectorsList);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()
@@ -74,7 +74,7 @@ public class MangaControllerTests
 
         var controller = CreateController(ctx, actionsCtx, [mockConnector.Object]);
         
-        var result = await controller.ChangeLibrary(manga.Key, library.Key, "MangaDex", "ext-id");
+        var result = await controller.ChangeLibrary(manga.Key, library.Key, new InMemoryJobStore(), new SystemClock(), "MangaDex", "ext-id");
 
         Assert.IsType<Ok>(result.Result);
         var mangaInDb = await ctx.Series.FirstOrDefaultAsync(m => m.Key == manga.Key);

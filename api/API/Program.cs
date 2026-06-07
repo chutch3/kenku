@@ -176,6 +176,7 @@ builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handler
 builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.DownloadCoverHandler>();
 builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.FinalizeTorrentHandler>();
 builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.VerifyDownloadStateHandler>();
+builder.Services.AddSingleton<API.JobRuntime.IJobHandler, API.JobRuntime.Handlers.MoveDataHandler>();
 builder.Services.AddScoped<API.JobRuntime.IJobStore, API.JobRuntime.EfJobStore>();
 // Overall download concurrency is bounded by MaxConcurrentDownloads (per-host rate limiting is separate,
 // in RateLimitHandler); per-series fairness comes from the dispatcher's per-resource cap.

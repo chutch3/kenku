@@ -2,7 +2,7 @@ using API.Controllers;
 using API.Controllers.Requests;
 using API.Controllers.DTOs;
 using API.Schema.SeriesContext;
-using API.Workers;
+using API.JobRuntime;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -35,11 +35,10 @@ public class ChaptersControllerTests: IDisposable
     {
         var testSettings = new API.KenkuSettings { AppData = Path.GetTempPath() };
 
-        var mockWorkerQueue = new Mock<IWorkerQueue>();
         var connectors = Enumerable.Empty<API.MangaConnectors.SeriesSource>();
         var mockThumbnailService = new Mock<API.Services.IChapterThumbnailService>();
 
-        var controller = new ChaptersController(ctx, testSettings, connectors, mockWorkerQueue.Object, mockThumbnailService.Object);
+        var controller = new ChaptersController(ctx, testSettings, connectors, mockThumbnailService.Object);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()
@@ -73,7 +72,7 @@ public class ChaptersControllerTests: IDisposable
         await ctx.SaveChangesAsync();
 
         var request = new PatchChapterRecord("Berserk Vol 7/Berserk - Ch.23.cbz", 7);
-        var result = await CreateController(ctx).UpdateChapter(chapter.Key, request);
+        var result = await CreateController(ctx).UpdateChapter(chapter.Key, request, new InMemoryJobStore(), new SystemClock());
 
         Assert.IsType<Ok>(result.Result);
         var updated = await ctx.Chapters.FirstAsync(c => c.Key == chapter.Key);
@@ -87,7 +86,7 @@ public class ChaptersControllerTests: IDisposable
         using var ctx = CreateContext();
 
         var request = new PatchChapterRecord("Berserk Vol 1/Berserk - Ch.1.cbz", 1);
-        var result = await CreateController(ctx).UpdateChapter("nonexistent-id", request);
+        var result = await CreateController(ctx).UpdateChapter("nonexistent-id", request, new InMemoryJobStore(), new SystemClock());
 
         Assert.IsType<NotFound<string>>(result.Result);
     }
@@ -103,7 +102,7 @@ public class ChaptersControllerTests: IDisposable
         await ctx.SaveChangesAsync();
 
         var request = new PatchChapterRecord("Berserk - Ch.1.cbz", null);
-        var result = await CreateController(ctx).UpdateChapter(chapter.Key, request);
+        var result = await CreateController(ctx).UpdateChapter(chapter.Key, request, new InMemoryJobStore(), new SystemClock());
 
         Assert.IsType<Ok>(result.Result);
         var updated = await ctx.Chapters.FirstAsync(c => c.Key == chapter.Key);

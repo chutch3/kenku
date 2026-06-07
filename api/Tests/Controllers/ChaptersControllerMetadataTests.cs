@@ -2,7 +2,6 @@ using API.Controllers;
 using API.Controllers.DTOs;
 using API.Controllers.Requests;
 using API.Schema.SeriesContext;
-using API.Workers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -28,10 +27,9 @@ public class ChaptersControllerMetadataTests
     private static ChaptersController CreateController(SeriesContext ctx)
     {
         var testSettings = new API.KenkuSettings { AppData = Path.GetTempPath() };
-        var mockWorkerQueue = new Mock<IWorkerQueue>();
         var connectors = Enumerable.Empty<API.MangaConnectors.SeriesSource>();
         var mockThumbnailService = new Mock<API.Services.IChapterThumbnailService>();
-        var controller = new ChaptersController(ctx, testSettings, connectors, mockWorkerQueue.Object, mockThumbnailService.Object);
+        var controller = new ChaptersController(ctx, testSettings, connectors, mockThumbnailService.Object);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()

@@ -3,7 +3,6 @@ using API.MangaConnectors;
 using API.Schema.ActionsContext;
 using API.Schema.ActionsContext.Actions;
 using API.Schema.SeriesContext;
-using API.Workers;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -25,7 +24,7 @@ namespace API.Controllers;
 [ApiVersion(2)]
 [ApiController]
 [Route("v{v:apiVersion}/[controller]")]
-public class SeriesController(SeriesContext context, ActionsContext actionsContext, KenkuSettings settings, IEnumerable<MangaConnectorImpl> connectors, IWorkerQueue workerQueue) : ControllerBase
+public class SeriesController(SeriesContext context, ActionsContext actionsContext, KenkuSettings settings, IEnumerable<MangaConnectorImpl> connectors) : ControllerBase
 {
     
     /// <summary>
@@ -132,16 +131,20 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [HttpPost("{MangaIdFrom}/MergeInto/{MangaIdInto}")]
     [ProducesResponseType(Status200OK)]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
-    public async Task<Results<Ok, NotFound<string>>> MergeIntoManga (string MangaIdFrom, string MangaIdInto)
+    public async Task<Results<Ok, NotFound<string>>> MergeIntoManga (string MangaIdFrom, string MangaIdInto,
+        [FromServices] API.JobRuntime.IJobStore jobStore, [FromServices] API.JobRuntime.IClock clock)
     {
         if (await context.MangaIncludeAll().FirstOrDefaultAsync(m => m.Key == MangaIdFrom, HttpContext.RequestAborted) is not { } from)
             return TypedResults.NotFound(nameof(MangaIdFrom));
         if (await context.MangaIncludeAll().FirstOrDefaultAsync(m => m.Key == MangaIdInto, HttpContext.RequestAborted) is not { } into)
             return TypedResults.NotFound(nameof(MangaIdInto));
-        
-        BaseWorker[] newJobs = into.MergeFrom(from, context);
-        workerQueue.AddWorkers(newJobs);
-        
+
+        foreach ((string from_, string to) in into.MergeFrom(from, context))
+            await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
+                API.JobRuntime.Handlers.MoveDataHandler.Type,
+                API.JobRuntime.Handlers.MoveDataHandler.PayloadFor(from_, to), clock.UtcNow,
+                dedupKey: API.JobRuntime.Handlers.MoveDataHandler.DedupKey(to)), HttpContext.RequestAborted);
+
         return TypedResults.Ok();
     }
 
@@ -205,7 +208,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [ProducesResponseType(Status200OK)]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType<string>(Status500InternalServerError,  "text/plain")]
-    public async Task<Results<Ok, NotFound<string>, InternalServerError<string>>> ChangeLibrary(string MangaId, string LibraryId, [FromQuery] string? connectorName = null, [FromQuery] string? connectorSeriesId = null)
+    public async Task<Results<Ok, NotFound<string>, InternalServerError<string>>> ChangeLibrary(string MangaId, string LibraryId, [FromServices] API.JobRuntime.IJobStore jobStore, [FromServices] API.JobRuntime.IClock clock, [FromQuery] string? connectorName = null, [FromQuery] string? connectorSeriesId = null)
     {
         if (await context.FileLibraries.FirstOrDefaultAsync(l => l.Key == LibraryId, HttpContext.RequestAborted) is not { } library)
             return TypedResults.NotFound(nameof(LibraryId));
@@ -243,9 +246,12 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
         Dictionary<Chapter, string?> oldPaths = manga.Chapters.Where(ch => ch.Downloaded).ToDictionary(ch => ch, ch => ch.FullArchiveFilePath);
         manga.Library = library;
         Dictionary<Chapter, string?> newPaths = oldPaths.ToDictionary(kv => kv.Key, kv => kv.Key.FullArchiveFilePath);
-        IEnumerable<MoveFileOrFolderWorker> workers = oldPaths.Select(kv => new MoveFileOrFolderWorker(newPaths[kv.Key]!, kv.Value!));
-        workerQueue.AddWorkers(workers);
-        
+        foreach (var kv in oldPaths)
+            await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
+                API.JobRuntime.Handlers.MoveDataHandler.Type,
+                API.JobRuntime.Handlers.MoveDataHandler.PayloadFor(kv.Value!, newPaths[kv.Key]!), clock.UtcNow,
+                dedupKey: API.JobRuntime.Handlers.MoveDataHandler.DedupKey(newPaths[kv.Key]!)), HttpContext.RequestAborted);
+
         if(await context.Sync(HttpContext.RequestAborted, GetType(), "Move Series") is { success: false } mangaContextResult)
             return TypedResults.InternalServerError(mangaContextResult.exceptionMessage);
         

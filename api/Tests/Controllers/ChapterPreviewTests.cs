@@ -3,7 +3,6 @@ using API;
 using API.Controllers;
 using API.Schema.SeriesContext;
 using API.Services;
-using API.Workers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -52,11 +51,10 @@ public class ChapterPreviewTests : IDisposable
 
     private ChaptersController CreateController(SeriesContext ctx, IChapterThumbnailService? thumbnailService = null)
     {
-        var mockWorkerQueue = new Mock<IWorkerQueue>();
         var connectors = Enumerable.Empty<API.MangaConnectors.SeriesSource>();
         thumbnailService ??= new ChapterThumbnailService();
 
-        var controller = new ChaptersController(ctx, _settings, connectors, mockWorkerQueue.Object, thumbnailService);
+        var controller = new ChaptersController(ctx, _settings, connectors, thumbnailService);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()
@@ -190,8 +188,7 @@ public class ChapterPreviewTests : IDisposable
         var service = new ChapterThumbnailService();
 
         var controller = new ChaptersController(ctx, _settings,
-            Enumerable.Empty<API.MangaConnectors.SeriesSource>(),
-            new Mock<IWorkerQueue>().Object, service);
+            Enumerable.Empty<API.MangaConnectors.SeriesSource>(), service);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
 
         string cachePath = Path.Combine(_previewsDir, $"{chapter.Key}.jpg");

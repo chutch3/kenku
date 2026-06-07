@@ -3,7 +3,6 @@ using API.Controllers.Requests;
 using API.MangaConnectors;
 using API.Schema.SeriesContext;
 using API.Services;
-using API.Workers;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -21,7 +20,7 @@ namespace API.Controllers;
 [ApiVersion(2)]
 [ApiController]
 [Route("v{v:apiVersion}/[controller]")]
-public class ChaptersController(SeriesContext context, KenkuSettings settings, IEnumerable<MangaConnectorImpl> connectors, IWorkerQueue workerQueue, IChapterThumbnailService chapterThumbnailService) : ControllerBase
+public class ChaptersController(SeriesContext context, KenkuSettings settings, IEnumerable<MangaConnectorImpl> connectors, IChapterThumbnailService chapterThumbnailService) : ControllerBase
 {
     /// <summary>
     /// Returns all <see cref="Schema.SeriesContext.Chapter"/> of <see cref="Schema.SeriesContext.Series"/> with <paramref name="MangaId"/>
@@ -189,7 +188,8 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
     /// <response code="404"><see cref="Chapter"/> with <paramref name="ChapterId"/> not found</response>
     /// <response code="500">Error during Database Operation</response>
     [HttpPatch("{ChapterId}")]
-    public async Task<Results<Ok, NotFound<string>, InternalServerError<string>>> UpdateChapter(string ChapterId, [FromBody] PatchChapterRecord patch)
+    public async Task<Results<Ok, NotFound<string>, InternalServerError<string>>> UpdateChapter(string ChapterId, [FromBody] PatchChapterRecord patch,
+        [FromServices] API.JobRuntime.IJobStore jobStore, [FromServices] API.JobRuntime.IClock clock)
     {
         if (await context.Chapters.FirstOrDefaultAsync(c => c.Key == ChapterId, HttpContext.RequestAborted) is not { } chapter)
             return TypedResults.NotFound(nameof(ChapterId));
@@ -197,13 +197,12 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
         string? oldFileName = chapter.FileName;
         bool fileNameChanged = patch.FileName != oldFileName;
 
-        // Trigger the worker we built!
+        // Move the file on disk via a background MoveData job.
         if (fileNameChanged && oldFileName is not null && patch.FileName is not null)
-        {
-            // Add the file move to your background queue
-            var moveWorker = new MoveFileOrFolderWorker(toLocation: patch.FileName, fromLocation: oldFileName);
-            workerQueue.AddWorker(moveWorker);
-        }
+            await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
+                API.JobRuntime.Handlers.MoveDataHandler.Type,
+                API.JobRuntime.Handlers.MoveDataHandler.PayloadFor(oldFileName, patch.FileName), clock.UtcNow,
+                dedupKey: API.JobRuntime.Handlers.MoveDataHandler.DedupKey(patch.FileName)), HttpContext.RequestAborted);
 
         chapter.FileName = patch.FileName;
         chapter.VolumeNumber = patch.VolumeNumber;
