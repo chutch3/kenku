@@ -1,7 +1,11 @@
 using System.Reflection;
 using API;
+using API.Acquirers;
+using API.Connectors;
 using API.Controllers;
 using API.Controllers.DTOs;
+using API.JobRuntime;
+using API.JobRuntime.Handlers;
 using API.Schema.SeriesContext;
 using Moq;
 using MangaDto = API.Controllers.DTOs.Series;
@@ -42,6 +46,37 @@ public class SearchControllerTests
 
     private static SchemaConnectorId MakeConnectorId(SchemaManga manga, string connectorName, string idOnSite)
         => new(manga, connectorName, idOnSite, null, false);
+
+    /// <summary>A "Global" connector that resolves a URL to a fixed series — enough to drive GetMangaFromUrl.</summary>
+    private sealed class FakeGlobalConnector(KenkuSettings settings, (SchemaManga, SchemaConnectorId)? result)
+        : API.Connectors.SeriesSource("Global", ["en"], ["x.com"], "icon", settings)
+    {
+        public override AcquisitionKind Kind => AcquisitionKind.ImageList;
+        public override Task<(SchemaManga, SchemaConnectorId)[]> SearchManga(string mangaSearchName) => throw new NotSupportedException();
+        public override Task<(SchemaManga, SchemaConnectorId)?> GetMangaFromUrl(string url) => Task.FromResult(result);
+        public override Task<(SchemaManga, SchemaConnectorId)?> GetMangaFromId(string mangaIdOnSite) => throw new NotSupportedException();
+        public override Task<(API.Schema.SeriesContext.Chapter, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>)[]> GetChapters(SchemaConnectorId mangaId, string? language = null) => throw new NotSupportedException();
+        internal override Task<string[]> GetChapterImageUrls(API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter> chapterId) => throw new NotSupportedException();
+    }
+
+    [Fact]
+    public async Task GetMangaFromUrl_EnqueuesChapterSync_SoAddedSeriesGetChaptersImmediately()
+    {
+        using var ctx = CreateContext();
+        var manga = MakeTestManga("I Am a Hero");
+        var connectorId = MakeConnectorId(manga, "MangaDex", "ff5ef336");
+        var settings = new KenkuSettings { AppData = Path.Combine(Path.GetTempPath(), "kenku-search-" + Guid.NewGuid().ToString("N")) };
+        var controller = new SearchController(ctx, [new FakeGlobalConnector(settings, (manga, connectorId))])
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
+        };
+        var store = new InMemoryJobStore();
+
+        await controller.GetMangaFromUrl("http://mangadex.org/title/ff5ef336", store, new SystemClock(), settings);
+
+        var jobs = await store.GetAllAsync();
+        Assert.Contains(jobs, j => j.Type == SyncSeriesChaptersHandler.Type);
+    }
 
     [Fact]
     public async Task GetMangaFromConnector_KnownConnectorAndId_ReturnsMangaDto()

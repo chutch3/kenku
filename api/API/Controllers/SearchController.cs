@@ -116,7 +116,8 @@ public class SearchController(
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType<string>(Status500InternalServerError, "text/plain")]
     public async Task<Results<Ok<MinimalSeries>, NotFound<string>, InternalServerError<string>>> GetMangaFromUrl(
-        [FromQuery] string url, [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock)
+        [FromQuery] string url, [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore,
+        [FromServices] API.JobRuntime.Interfaces.IClock clock, [FromServices] KenkuSettings settings)
     {
         url = url.Trim('"', '\'', ' '); // Trim extraneous values
         if (connectors.FirstOrDefault(c => c.Name.Equals("Global", StringComparison.InvariantCultureIgnoreCase)) is not { } connector)
@@ -136,6 +137,14 @@ public class SearchController(
             API.JobRuntime.Handlers.DownloadCoverHandler.Type,
             API.JobRuntime.Handlers.DownloadCoverHandler.PayloadFor(added.id.Key), clock.UtcNow,
             resourceKey: added.id.ObjId, dedupKey: API.JobRuntime.Reconcilers.CoverRefreshReconciler.DedupKey(added.id.Key)),
+            HttpContext.RequestAborted);
+
+        // ...and an immediate chapter sync, so a newly-added series is populated now instead of waiting
+        // for the periodic reconciler tick (which left freshly-added series showing zero chapters).
+        await jobStore.EnqueueAsync(new Schema.JobsContext.Job(
+            API.JobRuntime.Handlers.SyncSeriesChaptersHandler.Type,
+            API.JobRuntime.Handlers.SyncSeriesChaptersHandler.PayloadFor(added.id.Key, settings.DownloadLanguage), clock.UtcNow,
+            resourceKey: added.id.ObjId, dedupKey: API.JobRuntime.Reconcilers.SeriesChapterSyncReconciler.DedupKey(added.id.Key)),
             HttpContext.RequestAborted);
 
         IEnumerable<DTOs.SourceId<DTOs.Series>> ids = added.manga.SourceIds.Select(id =>
