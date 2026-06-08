@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.10.0 (2026-06-08)
+
+### Features
+
+- Show job run duration and timing in the queue view
+  ([`9c16a3c`](https://github.com/chutch3/kenku/commit/9c16a3cd15f6a1aa4f93790c9f29bc29c5ef3d72))
+
+
 ## v0.9.3 (2026-06-08)
 
 ### Bug Fixes
