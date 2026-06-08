@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.9.3 (2026-06-08)
+
+### Bug Fixes
+
+- Reuse existing Author rows on metadata refresh to stop duplicate-key violations
+  ([`e6bc970`](https://github.com/chutch3/kenku/commit/e6bc97027227737cb7922c0049a9dfedf519b66b))
+
+
 ## v0.9.2 (2026-06-08)
 
 ### Bug Fixes
