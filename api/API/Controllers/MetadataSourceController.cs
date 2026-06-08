@@ -38,26 +38,6 @@ public class MetadataSourceController : ControllerBase
     }
 
     /// <summary>
-    /// Backward-compatible constructor for tests that do not inject <see cref="IAniListSearchService"/>.
-    /// </summary>
-    public MetadataSourceController(
-        SeriesContext context,
-        IMangaDexSearchService mangaDexSearchService)
-        : this(context, mangaDexSearchService, new NullAniListSearchService())
-    {
-    }
-
-    /// <summary>
-    /// No-op AniList service used when none is registered (test compat shim).
-    /// </summary>
-    private sealed class NullAniListSearchService : IAniListSearchService
-    {
-        public Task<List<AniListSearchResult>> SearchAsync(string title, CancellationToken cancellationToken = default)
-            => Task.FromResult(new List<AniListSearchResult>());
-    }
-
-
-    /// <summary>
     /// Returns the <see cref="MetadataSource"/> for a given <see cref="Schema.SeriesContext.Series"/>.
     /// </summary>
     /// <param name="MangaId"><see cref="Schema.SeriesContext.Series"/>.Key</param>
