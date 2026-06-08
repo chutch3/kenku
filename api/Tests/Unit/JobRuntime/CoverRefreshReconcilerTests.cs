@@ -24,12 +24,12 @@ public class CoverRefreshReconcilerTests : IDisposable
         new(new DbContextOptionsBuilder<SeriesContext>()
             .UseInMemoryDatabase("cover-rec-" + Guid.NewGuid().ToString("N")).Options);
 
-    private async Task<(SeriesContext ctx, Series manga)> SeedSeries()
+    private async Task<(SeriesContext ctx, Series manga)> SeedSeries(string coverUrl = "u")
     {
         var ctx = NewContext();
         var library = new FileLibrary(_root, "Lib");
         ctx.FileLibraries.Add(library);
-        var manga = new Series("Test Series", "", "u", SeriesReleaseStatus.Continuing, [], [], [], [], library);
+        var manga = new Series("Test Series", "", coverUrl, SeriesReleaseStatus.Continuing, [], [], [], [], library);
         ctx.Series.Add(manga);
         await ctx.SaveChangesAsync();
         return (ctx, manga);
@@ -56,6 +56,20 @@ public class CoverRefreshReconcilerTests : IDisposable
     {
         var (ctx, manga) = await SeedSeries();
         ctx.MangaConnectorToManga.Add(new SourceId<Series>(manga, "MangaDex", "id1", "url1", false));
+        await ctx.SaveChangesAsync();
+
+        var store = new InMemoryJobStore();
+        await CoverRefreshReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow, default);
+
+        Assert.Empty(await store.GetAllAsync());
+    }
+
+    [Fact]
+    public async Task Scan_SkipsSourcesWhoseSeriesHasNoCoverUrl()
+    {
+        // Indexer/torrent-sourced series have no cover URL — enqueuing would only create doomed jobs.
+        var (ctx, manga) = await SeedSeries(coverUrl: "");
+        ctx.MangaConnectorToManga.Add(new SourceId<Series>(manga, "Indexers", "id1", "url1", true));
         await ctx.SaveChangesAsync();
 
         var store = new InMemoryJobStore();

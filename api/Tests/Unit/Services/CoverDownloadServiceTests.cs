@@ -73,11 +73,11 @@ public class CoverDownloadServiceTests : IDisposable
         return new FakeConnector(_settings, new HttpRequester(rateLimit, _settings));
     }
 
-    private async Task<SourceId<Series>> SeedSource(bool useForDownload = true)
+    private async Task<SourceId<Series>> SeedSource(bool useForDownload = true, string coverUrl = "https://example.com/img/cover.png")
     {
         var library = new FileLibrary(Path.Combine(_root, "lib"), "Lib");
         _seriesContext.FileLibraries.Add(library);
-        var manga = new Series("Cover Series", "Desc", "https://example.com/img/cover.png", SeriesReleaseStatus.Continuing,
+        var manga = new Series("Cover Series", "Desc", coverUrl, SeriesReleaseStatus.Continuing,
             [], [], [], [], library);
         _seriesContext.Series.Add(manga);
         var mcId = new SourceId<Series>(manga, "Fake:Conn", "site-id", "https://fake.com/x", useForDownload);
@@ -107,6 +107,19 @@ public class CoverDownloadServiceTests : IDisposable
 
         await new CoverDownloadService([connector]).DownloadAsync(_seriesContext, _actionsContext, "missing-key", CancellationToken.None);
 
+        Assert.Empty(await _actionsContext.Actions.ToListAsync());
+    }
+
+    [Fact]
+    public async Task Download_WhenCoverUrlEmpty_DoesNothing()
+    {
+        // Indexer/torrent-sourced series have no cover URL — the job must skip cleanly, not throw an NRE.
+        var mcId = await SeedSource(coverUrl: "");
+        var connector = ConnectorServingJpeg();
+
+        await new CoverDownloadService([connector]).DownloadAsync(_seriesContext, _actionsContext, mcId.Key, CancellationToken.None);
+
+        Assert.Null((await _seriesContext.Series.FirstAsync()).CoverFileNameInCache);
         Assert.Empty(await _actionsContext.Actions.ToListAsync());
     }
 
