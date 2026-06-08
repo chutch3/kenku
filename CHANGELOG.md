@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.10.1 (2026-06-08)
+
+### Bug Fixes
+
+- Skip cover download for series with no cover URL to stop null-reference failures
+  ([`80681d8`](https://github.com/chutch3/kenku/commit/80681d88acab6cbf5e228c75737fe97fef2700ef))
+
+
 ## v0.10.0 (2026-06-08)
 
 ### Features
