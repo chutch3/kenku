@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.9.1 (2026-06-08)
+
+### Bug Fixes
+
+- Split MangaIncludeAll collection query to stop cartesian-explosion timeout
+  ([`6cb81e1`](https://github.com/chutch3/kenku/commit/6cb81e1227604aec3a21bcbcbc2c60e10c2758c7))
+
+
 ## v0.9.0 (2026-06-07)
 
 ### Chores
