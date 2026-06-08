@@ -14,14 +14,17 @@ interface QueuedJob {
     error: string | null;
     createdAt: string;
     scheduledFor: string;
+    startedAt: string | null;
     finishedAt: string | null;
+    progress: string | null;
 }
 
 function job(overrides: Partial<QueuedJob>): QueuedJob {
     return {
         key: 'k1', type: 'DownloadChapter', status: 'Queued', attempts: 1, maxAttempts: 5,
         resourceKey: 'series-1', error: null,
-        createdAt: '2026-06-06T00:00:00Z', scheduledFor: '2026-06-06T00:00:00Z', finishedAt: null,
+        createdAt: '2026-06-06T00:00:00Z', scheduledFor: '2026-06-06T00:00:00Z',
+        startedAt: null, finishedAt: null, progress: null,
         ...overrides,
     };
 }
@@ -55,6 +58,17 @@ describe('QueueList', () => {
         await flushPromises();
 
         expect(retried).toBe(true);
+    });
+
+    it('shows how long a finished job took to run', async () => {
+        registerEndpoint('/v2/JobQueue', () => [job({
+            key: 'done', status: 'Succeeded',
+            startedAt: '2026-06-06T00:00:00Z', finishedAt: '2026-06-06T00:00:01.5Z',
+        })]);
+
+        const wrapper = await mountSuspended(QueueList);
+
+        expect(wrapper.text()).toContain('1.5s');
     });
 
     it('shows an empty state when the queue is empty', async () => {
