@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.9.2 (2026-06-08)
+
+### Bug Fixes
+
+- Default SeriesContext to split queries to stop cartesian-explosion timeouts
+  ([`3056216`](https://github.com/chutch3/kenku/commit/30562160e9251354357c06306e5175eee9f55e44))
+
+
 ## v0.9.1 (2026-06-08)
 
 ### Bug Fixes
