@@ -26,6 +26,14 @@ public class CoverDownloadService(IEnumerable<SeriesSource> connectors)
             return;
         }
 
+        // Indexer/torrent-sourced series arrive with no cover URL; there is nothing to fetch and the
+        // download path would dereference the empty URL. Skip cleanly instead of failing the job.
+        if (string.IsNullOrWhiteSpace(mangaConnectorId.Obj.CoverUrl))
+        {
+            Log.DebugFormat("No cover URL for {0}; skipping cover download.", sourceIdKey);
+            return;
+        }
+
         SeriesSource? seriesSource = connectors.FirstOrDefault(c =>
             c.Name.Equals(mangaConnectorId.MangaConnectorName, StringComparison.InvariantCultureIgnoreCase));
         if (seriesSource is null)
