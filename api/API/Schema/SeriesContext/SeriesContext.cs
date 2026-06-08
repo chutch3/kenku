@@ -175,6 +175,25 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
             .Include(m => m.SourceIds);
 
     /// <summary>
+    /// Resolves author names to entities, reusing rows that already exist. Authors share a name-derived
+    /// key across series, so handing EF fresh <see cref="Author"/> instances makes it INSERT them and
+    /// violate PK_Authors when the author is already in the DB (e.g. shared between series). Find reuses
+    /// the tracked/persisted row; the incoming set is de-duped so the same name can't be added twice.
+    /// </summary>
+    public async Task<List<Author>> ResolveAuthorsAsync(IEnumerable<string> authorNames, CancellationToken token)
+    {
+        List<Author> resolved = [];
+        HashSet<string> seen = [];
+        foreach (string name in authorNames)
+        {
+            Author candidate = new(name);
+            if (seen.Add(candidate.Key))
+                resolved.Add(await Authors.FindAsync([candidate.Key], token) ?? candidate);
+        }
+        return resolved;
+    }
+
+    /// <summary>
     /// Upserts a Series into the database: finds an existing match or inserts a new one,
     /// merges tags/authors, and syncs. Does NOT kick off any background workers.
     /// </summary>
