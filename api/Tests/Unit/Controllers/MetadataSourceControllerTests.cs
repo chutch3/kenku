@@ -15,6 +15,15 @@ namespace API.Tests.Unit.Controllers;
 
 public class MetadataSourceControllerTests
 {
+    [Fact]
+    public void HasExactlyOneConstructor_SoDiCanActivateIt()
+    {
+        // ASP.NET Core's controller activator requires a single applicable constructor. A second
+        // (test-only) ctor made every endpoint 500 with "Multiple constructors accepting all given
+        // argument types" once IAniListSearchService was registered in DI.
+        Assert.Single(typeof(MetadataSourceController).GetConstructors());
+    }
+
     private SeriesContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<SeriesContext>()
@@ -26,7 +35,7 @@ public class MetadataSourceControllerTests
     private MetadataSourceController CreateController(SeriesContext ctx, IMangaDexSearchService? searchService = null)
     {
         var mockSearchService = searchService ?? new Mock<IMangaDexSearchService>().Object;
-        var controller = new MetadataSourceController(ctx, mockSearchService);
+        var controller = new MetadataSourceController(ctx, mockSearchService, new Mock<IAniListSearchService>().Object);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()
