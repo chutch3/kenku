@@ -1,4 +1,5 @@
 using API.Connectors;
+using API.Schema.JobsContext;
 using API.Schema.NotificationsContext;
 using API.Schema.SeriesContext;
 using log4net;
@@ -16,7 +17,9 @@ public enum CleanupKind
     /// <summary>Delete source-ids whose connector no longer exists (orphans).</summary>
     OrphanSourceIds,
     /// <summary>Delete library archive files not tracked as downloaded chapters.</summary>
-    OrphanedFiles
+    OrphanedFiles,
+    /// <summary>Delete completed (Succeeded/Cancelled) jobs older than the retention window.</summary>
+    CompletedJobs
 }
 
 /// <summary>
@@ -35,6 +38,19 @@ public class CleanupService
         Log.DebugFormat("Removed {0} old notifications...", removed);
         if (await context.Sync(ct, typeof(CleanupService), nameof(RemoveOldNotificationsAsync)) is { success: false } e)
             Log.ErrorFormat("Failed to save database changes: {0}", e.exceptionMessage);
+    }
+
+    /// <summary>Prunes completed (Succeeded/Cancelled) jobs whose FinishedAt is older than the retention
+    /// window — they are history nobody revisits. Failed/NeedsAttention are kept regardless of age so they
+    /// stay visible for action.</summary>
+    public async Task CleanupCompletedJobsAsync(JobsContext context, DateTime now, TimeSpan retention, CancellationToken ct)
+    {
+        DateTime cutoff = now - retention;
+        int removed = await context.JobQueue
+            .Where(j => (j.Status == JobStatus.Succeeded || j.Status == JobStatus.Cancelled)
+                        && j.FinishedAt != null && j.FinishedAt < cutoff)
+            .ExecuteDeleteAsync(ct);
+        Log.DebugFormat("Removed {0} completed jobs finished before {1:o}.", removed, cutoff);
     }
 
     public void CleanupMangaCovers(SeriesContext context, KenkuSettings settings, CancellationToken ct)
