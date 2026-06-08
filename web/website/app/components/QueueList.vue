@@ -1,5 +1,10 @@
 <template>
     <div class="flex flex-col gap-2">
+        <UAlert
+            v-if="needsAttentionCount"
+            color="error" variant="subtle" icon="i-lucide-triangle-alert"
+            :title="`${needsAttentionCount} ${needsAttentionCount === 1 ? 'job needs' : 'jobs need'} attention`"
+            description="Review the error, then retry or dismiss." />
         <p v-if="!jobs.length" class="text-sm text-muted">No jobs in the queue.</p>
         <ul v-else class="flex flex-col gap-1">
             <li v-for="job in sortedJobs" :key="job.key" class="flex items-center gap-2 text-sm">
@@ -19,6 +24,11 @@
                     v-if="job.status === 'NeedsAttention'"
                     size="xs" color="primary" :loading="busy === job.key" @click="retry(job.key)">
                     Retry
+                </UButton>
+                <UButton
+                    v-if="job.status === 'NeedsAttention'"
+                    size="xs" variant="soft" color="neutral" :loading="busy === job.key" @click="dismiss(job.key)">
+                    Dismiss
                 </UButton>
                 <UButton
                     v-if="job.status === 'Queued' || job.status === 'Running'"
@@ -56,8 +66,15 @@ onBeforeUnmount(() => {
 const ms = (iso?: string | null) => (iso ? Date.parse(iso) : undefined);
 const activityMs = (job: QueuedJob) => ms(job.finishedAt) ?? ms(job.startedAt) ?? ms(job.createdAt) ?? 0;
 
-// Most-recent activity first, so what just ran (or is running) is at the top of a long queue.
-const sortedJobs = computed(() => [...jobs.value].sort((a, b) => activityMs(b) - activityMs(a)));
+// NeedsAttention pinned to the top (it needs action and is easily lost in a long queue), then the rest
+// most-recent-activity first.
+const sortedJobs = computed(() => [...jobs.value].sort((a, b) => {
+    const an = a.status === 'NeedsAttention' ? 1 : 0;
+    const bn = b.status === 'NeedsAttention' ? 1 : 0;
+    return bn - an || activityMs(b) - activityMs(a);
+}));
+
+const needsAttentionCount = computed(() => jobs.value.filter(j => j.status === 'NeedsAttention').length);
 
 // Run time: finished − started for completed jobs, or live elapsed since start for a running one.
 const durationLabel = (job: QueuedJob) => {
@@ -109,6 +126,16 @@ const cancel = async (jobId: string) => {
     busy.value = jobId;
     try {
         await $api('/v2/JobQueue/{JobId}/Cancel', { method: 'POST', path: { JobId: jobId } });
+        await refresh();
+    } finally {
+        busy.value = null;
+    }
+};
+
+const dismiss = async (jobId: string) => {
+    busy.value = jobId;
+    try {
+        await $api('/v2/JobQueue/{JobId}/Dismiss', { method: 'POST', path: { JobId: jobId } });
         await refresh();
     } finally {
         busy.value = null;

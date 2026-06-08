@@ -1316,6 +1316,59 @@
         }
       }
     },
+    "/v2/JobQueue/{JobId}/Dismiss": {
+      "post": {
+        "tags": [
+          "JobQueue"
+        ],
+        "summary": "Dismisses (deletes) a job the user has acknowledged — e.g. clearing a NeedsAttention job. An active (Queued/Running) job must be cancelled first.",
+        "parameters": [
+          {
+            "name": "JobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The job is still active; cancel it instead.",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/Library/unresolved": {
       "get": {
         "tags": [

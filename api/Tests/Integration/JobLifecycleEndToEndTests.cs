@@ -133,6 +133,38 @@ public class JobLifecycleEndToEndTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task DismissNeedsAttentionJob_RemovesItFromTheQueue()
+    {
+        using var client = _app.CreateClient();
+        var job = await Enqueue(client, "boom");
+
+        for (int i = 0; i < 20; i++)
+        {
+            if (!await RunOnce()) break;
+            if ((await Get(client, job.Key)).Status != JobStatus.Queued) break;
+            _clock.Advance(TimeSpan.FromHours(1));
+        }
+        Assert.Equal(JobStatus.NeedsAttention, (await Get(client, job.Key)).Status);
+
+        var dismissed = await client.PostAsync($"/v2/JobQueue/{job.Key}/Dismiss", null);
+        Assert.Equal(HttpStatusCode.NoContent, dismissed.StatusCode);
+
+        var lookup = await client.GetAsync($"/v2/JobQueue/{job.Key}");
+        Assert.Equal(HttpStatusCode.NotFound, lookup.StatusCode);
+    }
+
+    [Fact]
+    public async Task DismissActiveJob_IsRejected_SoCancelIsUsedInstead()
+    {
+        using var client = _app.CreateClient();
+        var job = await Enqueue(client, "block"); // stays Queued (never run here)
+
+        var dismissed = await client.PostAsync($"/v2/JobQueue/{job.Key}/Dismiss", null);
+        Assert.Equal(HttpStatusCode.PreconditionFailed, dismissed.StatusCode);
+        Assert.Equal(JobStatus.Queued, (await Get(client, job.Key)).Status); // still there
+    }
+
+    [Fact]
     public async Task CancelQueuedJob_TransitionsToCancelled_WithoutRunning()
     {
         using var client = _app.CreateClient();

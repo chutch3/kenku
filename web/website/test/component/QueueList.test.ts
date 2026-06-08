@@ -60,6 +60,31 @@ describe('QueueList', () => {
         expect(retried).toBe(true);
     });
 
+    it('surfaces a banner when jobs need attention', async () => {
+        registerEndpoint('/v2/JobQueue', () => [
+            job({ key: 'a', status: 'Succeeded' }),
+            job({ key: 'b', status: 'NeedsAttention', error: 'boom' }),
+        ]);
+
+        const wrapper = await mountSuspended(QueueList);
+
+        // The banner is the surfaced affordance — assert its unique copy, not the status badge text.
+        expect(wrapper.text().toLowerCase()).toContain('review the error');
+    });
+
+    it('dismisses a NeedsAttention job via the runtime', async () => {
+        registerEndpoint('/v2/JobQueue', () => [job({ key: 'needs', status: 'NeedsAttention' })]);
+        let dismissed = false;
+        registerEndpoint('/v2/JobQueue/needs/Dismiss', { method: 'POST', handler: () => { dismissed = true; return {}; } });
+
+        const wrapper = await mountSuspended(QueueList);
+        const dismissBtn = wrapper.findAll('button').find(b => b.text() === 'Dismiss');
+        await dismissBtn!.trigger('click');
+        await flushPromises();
+
+        expect(dismissed).toBe(true);
+    });
+
     it('shows how long a finished job took to run', async () => {
         registerEndpoint('/v2/JobQueue', () => [job({
             key: 'done', status: 'Succeeded',

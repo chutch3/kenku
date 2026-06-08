@@ -113,4 +113,22 @@ public class JobQueueController(IJobStore store, HandlerRegistry registry, ICloc
 
         return TypedResults.StatusCode(Status412PreconditionFailed);
     }
+
+    /// <summary>Dismisses (deletes) a job the user has acknowledged — e.g. clearing a NeedsAttention job.
+    /// An active (Queued/Running) job must be cancelled first.</summary>
+    /// <response code="412">The job is still active; cancel it instead.</response>
+    [HttpPost("{JobId}/Dismiss")]
+    [ProducesResponseType(Status204NoContent)]
+    [ProducesResponseType<string>(Status404NotFound, "text/plain")]
+    [ProducesResponseType(Status412PreconditionFailed)]
+    public async Task<Results<NoContent, NotFound<string>, StatusCodeHttpResult>> Dismiss(string JobId)
+    {
+        if (await store.GetAsync(JobId) is not { } job)
+            return TypedResults.NotFound(nameof(JobId));
+        if (job.Status is JobStatus.Queued or JobStatus.Running)
+            return TypedResults.StatusCode(Status412PreconditionFailed);
+
+        await store.DeleteAsync(job.Key);
+        return TypedResults.NoContent();
+    }
 }
