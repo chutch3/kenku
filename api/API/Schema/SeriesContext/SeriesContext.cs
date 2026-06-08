@@ -159,18 +159,15 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
         return null;
     }
 
-    // AsSplitQuery: this eager-loads several collections (authors, tags, links, alt-titles — plus
-    // chapters/sourceIds in MangaIncludeAll). As one JOINed query the result fans out to the product
-    // of every collection, which timed out the 60s command on large series. Split keeps it one query
-    // per collection. Propagates to every query built on this method.
+    // Eager-loads several collections at once; the SplitQuery default on SeriesContext (see Program.cs)
+    // keeps this from fanning out to the product of every collection and timing out on large series.
     public IQueryable<Series> MangaWithMetadata() =>
         Series
             .Include(m => m.Library)
             .Include(m => m.Authors)
             .Include(m => m.MangaTags)
             .Include(m => m.Links)
-            .Include(m => m.AltTitles)
-            .AsSplitQuery();
+            .Include(m => m.AltTitles);
 
     public IIncludableQueryable<Series, ICollection<SourceId<Series>>> MangaIncludeAll() =>
         MangaWithMetadata()

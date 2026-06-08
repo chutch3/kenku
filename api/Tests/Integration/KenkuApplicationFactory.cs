@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
 
 namespace API.Tests.Integration;
 
@@ -85,7 +86,7 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
                 // All five contexts go to Postgres: the production startup block (RunStartup=true) calls
                 // MigrateAsync on every context, which an InMemory provider would reject — silently aborting
                 // startup and the reconcilers with it.
-                UseNpgsql<SeriesContext>(services, PostgresConnectionString);
+                UseNpgsql<SeriesContext>(services, PostgresConnectionString, SeriesContextOptions.Configure);
                 UseNpgsql<global::API.Schema.JobsContext.JobsContext>(services, PostgresConnectionString);
                 UseNpgsql<ActionsContext>(services, PostgresConnectionString);
                 UseNpgsql<NotificationsContext>(services, PostgresConnectionString);
@@ -167,11 +168,12 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
             .UseInternalServiceProvider(_efProvider));
     }
 
-    private static void UseNpgsql<TContext>(IServiceCollection services, string connectionString) where TContext : DbContext
+    private static void UseNpgsql<TContext>(IServiceCollection services, string connectionString,
+        Action<NpgsqlDbContextOptionsBuilder>? configure = null) where TContext : DbContext
     {
         services.RemoveAll<DbContextOptions<TContext>>();
         services.RemoveAll<TContext>();
-        services.AddDbContext<TContext>(o => o.UseNpgsql(connectionString));
+        services.AddDbContext<TContext>(o => o.UseNpgsql(connectionString, npgsql => configure?.Invoke(npgsql)));
     }
 
     // Replaces the typed client's primary handler so its (absolute) requests are redirected to the

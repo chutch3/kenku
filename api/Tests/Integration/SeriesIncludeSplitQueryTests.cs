@@ -7,11 +7,12 @@ using Xunit;
 namespace API.Tests.Integration;
 
 /// <summary>
-/// Regression guard for the cartesian-explosion that timed out large series in prod (v0.9.0):
-/// MangaIncludeAll() eager-loads six collections (chapters, sourceIds, authors, tags, alt-titles,
-/// links). As ONE JOINed query the result fans out to the product of every collection's rows, so a
-/// series with hundreds of chapters blew past the 60s command timeout. AsSplitQuery() must keep it as
-/// one query per collection — proven here by asserting no single command returns the cartesian product.
+/// Regression guard for the cartesian-explosion that timed out large series in prod (v0.9.0/v0.9.1):
+/// several queries eager-load multiple collections of a series (chapters, sourceIds, authors, tags,
+/// alt-titles, links). As ONE JOINed query the result fans out to the product of every collection's
+/// rows, so a series with hundreds of chapters blew past the 60s command timeout. SeriesContext is
+/// registered with QuerySplittingBehavior.SplitQuery (see Program.cs), which must keep these as one
+/// query per collection — proven here by asserting no single command returns the cartesian product.
 /// Relational-only (the bug cannot exist on InMemory), so this needs the Postgres fixture.
 /// </summary>
 public class SeriesIncludeSplitQueryTests : IAsyncLifetime
@@ -41,6 +42,7 @@ public class SeriesIncludeSplitQueryTests : IAsyncLifetime
         ctx.Series.Add(series);
         ctx.Chapters.Add(new Chapter(series, "1", null, null));
         ctx.Chapters.Add(new Chapter(series, "2", null, null));
+        ctx.MangaConnectorToManga.Add(new SourceId<Series>(series, "StubConnector", "site-id-1", "http://stub.test/1", true));
         await ctx.SaveChangesAsync();
     }
 
@@ -50,11 +52,7 @@ public class SeriesIncludeSplitQueryTests : IAsyncLifetime
     public async Task MangaIncludeAll_SplitsCollections_AndLoadsThemCorrectly()
     {
         var counter = new SelectCommandCounter();
-        var opts = new DbContextOptionsBuilder<SeriesContext>()
-            .UseNpgsql(_cs)
-            .AddInterceptors(counter)
-            .Options;
-        await using var ctx = new SeriesContext(opts);
+        await using var ctx = new SeriesContext(SplitOptions(counter));
 
         var series = await ctx.MangaIncludeAll().FirstAsync();
 
@@ -66,11 +64,36 @@ public class SeriesIncludeSplitQueryTests : IAsyncLifetime
         Assert.Equal(2, series.AltTitles.Count);
         Assert.Equal(2, series.Links.Count);
 
-        // The actual guard: one cartesian query would be a single SELECT; AsSplitQuery issues a
+        // The actual guard: one cartesian query would be a single SELECT; SplitQuery issues a
         // separate SELECT per collection. More than one SELECT proves the JOIN fan-out is gone.
         Assert.True(counter.SelectCommands > 1,
-            $"MangaIncludeAll ran as a single cartesian query ({counter.SelectCommands} SELECT). Use AsSplitQuery().");
+            $"MangaIncludeAll ran as a single cartesian query ({counter.SelectCommands} SELECT). SplitQuery default lost.");
     }
+
+    [Fact]
+    public async Task SeriesChapterSyncQuery_SplitsCollections()
+    {
+        // The SeriesChapterSyncService.SyncAsync query: from a source-id, load the series with its
+        // chapters and each chapter's source-ids. This is the path that timed out after v0.9.1.
+        var counter = new SelectCommandCounter();
+        await using var ctx = new SeriesContext(SplitOptions(counter));
+
+        var sourceId = await ctx.MangaConnectorToManga
+            .Include(id => id.Obj)
+            .ThenInclude(m => m.Chapters)
+            .ThenInclude(ch => ch.SourceIds)
+            .FirstAsync();
+
+        Assert.Equal(2, sourceId.Obj.Chapters.Count);
+        Assert.True(counter.SelectCommands > 1,
+            $"SeriesChapterSync query ran as a single cartesian query ({counter.SelectCommands} SELECT). SplitQuery default lost.");
+    }
+
+    private DbContextOptions<SeriesContext> SplitOptions(SelectCommandCounter counter) =>
+        new DbContextOptionsBuilder<SeriesContext>()
+            .UseNpgsql(_cs, o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
+            .AddInterceptors(counter)
+            .Options;
 
     private sealed class SelectCommandCounter : DbCommandInterceptor
     {
