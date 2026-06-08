@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v0.12.1 (2026-06-08)
+
+### Bug Fixes
+
+- Remove duplicate MetadataSourceController constructor that 500'd every endpoint
+  ([`38cc244`](https://github.com/chutch3/kenku/commit/38cc244017f88a29d31895f9132354b2b6558fd6))
+
+- Sync chapters immediately when a series is added so it is not left empty
+  ([`420d2aa`](https://github.com/chutch3/kenku/commit/420d2aa391643592fe800f6a044f85c8d76f2df1))
+
+
 ## v0.12.0 (2026-06-08)
 
 ### Features
