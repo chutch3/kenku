@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.11.0 (2026-06-08)
+
+### Features
+
+- Surface needs-attention jobs with dismiss and stop SendNotifications no-op churn
+  ([`fd8d580`](https://github.com/chutch3/kenku/commit/fd8d5802441b48c3db65a95bb51cfff05414455e))
+
+
 ## v0.10.1 (2026-06-08)
 
 ### Bug Fixes
