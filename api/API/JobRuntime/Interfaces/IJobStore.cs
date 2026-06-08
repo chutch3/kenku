@@ -29,4 +29,7 @@ public interface IJobStore
     Task<Job?> GetAsync(string key, CancellationToken ct = default);
 
     Task<IReadOnlyList<Job>> GetAllAsync(CancellationToken ct = default);
+
+    /// <summary>Removes a job from the queue — used to dismiss a job the user has acknowledged.</summary>
+    Task DeleteAsync(string key, CancellationToken ct = default);
 }

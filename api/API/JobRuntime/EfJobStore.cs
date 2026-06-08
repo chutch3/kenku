@@ -87,4 +87,7 @@ public class EfJobStore(JobsContext context) : IJobStore
 
     public async Task<IReadOnlyList<Job>> GetAllAsync(CancellationToken ct = default) =>
         await context.JobQueue.AsNoTracking().ToListAsync(ct);
+
+    public async Task DeleteAsync(string key, CancellationToken ct = default) =>
+        await context.JobQueue.Where(j => j.Key == key).ExecuteDeleteAsync(ct);
 }

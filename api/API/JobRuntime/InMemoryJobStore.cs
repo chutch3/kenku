@@ -51,4 +51,11 @@ public class InMemoryJobStore : IJobStore
         lock (_lock)
             return Task.FromResult<IReadOnlyList<Job>>(_jobs.ToList());
     }
+
+    public Task DeleteAsync(string key, CancellationToken ct = default)
+    {
+        lock (_lock)
+            _jobs.RemoveAll(j => j.Key == key);
+        return Task.CompletedTask;
+    }
 }
