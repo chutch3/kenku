@@ -89,7 +89,7 @@ public class MyAnimeList : MetadataFetcher
         dbManga.AltTitles.Clear();
         dbManga.AltTitles = resultData.Titles.Select(t => new AltTitle(t.Type, t.Title)).ToList();
         dbManga.Authors.Clear();
-        dbManga.Authors = resultData.Authors.Select(a => new Author(a.Name)).ToList();
+        dbManga.Authors = await dbContext.ResolveAuthorsAsync(resultData.Authors.Select(a => a.Name), token);
 
         if (await dbContext.Sync(token, GetType(), "Update metadata") is { success: true })
         {
