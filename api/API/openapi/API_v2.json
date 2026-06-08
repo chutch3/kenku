@@ -6224,9 +6224,20 @@
             "type": "string",
             "format": "date-time"
           },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the dispatcher began executing the job; null until it starts.",
+            "nullable": true
+          },
           "finishedAt": {
             "type": "string",
             "format": "date-time",
+            "nullable": true
+          },
+          "progress": {
+            "type": "string",
+            "description": "Latest progress message from a running job.",
             "nullable": true
           },
           "key": {

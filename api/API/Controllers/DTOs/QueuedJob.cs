@@ -7,7 +7,8 @@ namespace API.Controllers.DTOs;
 
 /// <summary>A <see cref="Job"/> in the runtime queue.</summary>
 public record QueuedJob(string Key, string Type, JobStatus Status, int Attempts, int MaxAttempts,
-    string? ResourceKey, string? Error, DateTime CreatedAt, DateTime ScheduledFor, DateTime? FinishedAt)
+    string? ResourceKey, string? Error, DateTime CreatedAt, DateTime ScheduledFor, DateTime? StartedAt,
+    DateTime? FinishedAt, string? Progress)
     : Identifiable(Key)
 {
     [Required] [Description("Registered job type.")] public string Type { get; init; } = Type;
@@ -18,8 +19,11 @@ public record QueuedJob(string Key, string Type, JobStatus Status, int Attempts,
     [Description("Last failure message.")] public string? Error { get; init; } = Error;
     [Required] public DateTime CreatedAt { get; init; } = CreatedAt;
     [Required] public DateTime ScheduledFor { get; init; } = ScheduledFor;
+    [Description("When the dispatcher began executing the job; null until it starts.")]
+    public DateTime? StartedAt { get; init; } = StartedAt;
     public DateTime? FinishedAt { get; init; } = FinishedAt;
+    [Description("Latest progress message from a running job.")] public string? Progress { get; init; } = Progress;
 
     public static QueuedJob From(JobEntity job) => new(job.Key, job.Type, job.Status, job.Attempts, job.MaxAttempts,
-        job.ResourceKey, job.Error, job.CreatedAt, job.ScheduledFor, job.FinishedAt);
+        job.ResourceKey, job.Error, job.CreatedAt, job.ScheduledFor, job.StartedAt, job.FinishedAt, job.Progress);
 }
