@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.12.0 (2026-06-08)
+
+### Features
+
+- Prune completed jobs after a retention window and bound the queue view
+  ([`f683b51`](https://github.com/chutch3/kenku/commit/f683b51ca9928b39dbf8e70a1b08e4dcbbbc3e08))
+
+
 ## v0.11.0 (2026-06-08)
 
 ### Features
