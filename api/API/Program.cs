@@ -202,7 +202,7 @@ builder.Services.AddSingleton<Kenku>();
 builder.Services.AddTorrentAcquisitionPath(settings, log);
 
 builder.Services.AddDbContext<SeriesContext>(options =>
-    options.UseNpgsql(connectionStringBuilder.ConnectionString));
+    options.UseNpgsql(connectionStringBuilder.ConnectionString, SeriesContextOptions.Configure));
 builder.Services.AddDbContext<NotificationsContext>(options =>
     options.UseNpgsql(connectionStringBuilder.ConnectionString));
 builder.Services.AddDbContext<LibraryContext>(options =>
