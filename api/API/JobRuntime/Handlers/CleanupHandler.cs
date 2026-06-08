@@ -50,6 +50,10 @@ public class CleanupHandler(IServiceScopeFactory scopeFactory) : IJobHandler
                 await service.CleanupOrphanedFilesAsync(provider.GetRequiredService<SeriesContext>(),
                     payload.DryRun, payload.Force, ct);
                 break;
+            case CleanupKind.CompletedJobs:
+                await service.CleanupCompletedJobsAsync(provider.GetRequiredService<JobsContext>(),
+                    provider.GetRequiredService<Interfaces.IClock>().UtcNow, Constants.CompletedJobRetention, ct);
+                break;
         }
     }
 }

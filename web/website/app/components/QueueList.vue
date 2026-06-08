@@ -7,7 +7,7 @@
             description="Review the error, then retry or dismiss." />
         <p v-if="!jobs.length" class="text-sm text-muted">No jobs in the queue.</p>
         <ul v-else class="flex flex-col gap-1">
-            <li v-for="job in sortedJobs" :key="job.key" class="flex items-center gap-2 text-sm">
+            <li v-for="job in displayedJobs" :key="job.key" class="flex items-center gap-2 text-sm">
                 <UBadge :color="statusColor(job.status)" variant="subtle" class="w-32 justify-center">{{ job.status }}</UBadge>
                 <span class="grow truncate" :title="job.type">{{ job.type }}</span>
                 <span v-if="job.attempts > 1" class="text-dimmed">×{{ job.attempts }}</span>
@@ -37,6 +37,9 @@
                 </UButton>
             </li>
         </ul>
+        <p v-if="jobs.length > DISPLAY_LIMIT" class="text-xs text-muted">
+            Showing {{ DISPLAY_LIMIT }} of {{ jobs.length }} most recent jobs.
+        </p>
     </div>
 </template>
 
@@ -75,6 +78,11 @@ const sortedJobs = computed(() => [...jobs.value].sort((a, b) => {
 }));
 
 const needsAttentionCount = computed(() => jobs.value.filter(j => j.status === 'NeedsAttention').length);
+
+// Cap the rendered list: retention bounds the table to a few days, but that can still be hundreds of rows.
+// NeedsAttention sorts first so it's always within the cap.
+const DISPLAY_LIMIT = 100;
+const displayedJobs = computed(() => sortedJobs.value.slice(0, DISPLAY_LIMIT));
 
 // Run time: finished − started for completed jobs, or live elapsed since start for a running one.
 const durationLabel = (job: QueuedJob) => {

@@ -96,6 +96,16 @@ describe('QueueList', () => {
         expect(wrapper.text()).toContain('1.5s');
     });
 
+    it('caps the list to the most recent jobs and notes the total', async () => {
+        const many = Array.from({ length: 120 }, (_, i) => job({ key: `k${i}`, status: 'Succeeded' }));
+        registerEndpoint('/v2/JobQueue', () => many);
+
+        const wrapper = await mountSuspended(QueueList);
+
+        expect(wrapper.findAll('li')).toHaveLength(100);
+        expect(wrapper.text()).toContain('120');
+    });
+
     it('shows an empty state when the queue is empty', async () => {
         registerEndpoint('/v2/JobQueue', () => []);
 
