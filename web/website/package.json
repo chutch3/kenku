@@ -13,7 +13,8 @@
         "prettier": "prettier . --write",
         "lint": "eslint . --fix",
         "clean": "eslint . --fix && prettier . --write",
-        "test:component": "vitest run"
+        "test:component": "vitest run",
+        "test:e2e": "playwright test"
     },
     "dependencies": {
         "@nuxt/content": "^3.7.1",
@@ -29,6 +30,7 @@
     "devDependencies": {
         "@iconify-json/lucide": "^1.2.68",
         "@nuxt/test-utils": "^4.0.3",
+        "@playwright/test": "^1.60.0",
         "@vue/test-utils": "^2.4.10",
         "eslint": "^9.36.0",
         "happy-dom": "^20.9.0",
