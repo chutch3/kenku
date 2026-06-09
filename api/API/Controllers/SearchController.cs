@@ -168,19 +168,9 @@ public class SearchController(
         await context.SaveChangesAsync(HttpContext.RequestAborted);
 
         // Kick off cover download job
-        await jobStore.EnqueueAsync(new Schema.JobsContext.Job(
-            API.JobRuntime.Handlers.DownloadCoverHandler.Type,
-            API.JobRuntime.Handlers.DownloadCoverHandler.PayloadFor(added.id.Key), clock.UtcNow,
-            resourceKey: added.id.ObjId, dedupKey: API.JobRuntime.Reconcilers.CoverRefreshReconciler.DedupKey(added.id.Key)),
-            HttpContext.RequestAborted);
-
-        // ...and an immediate chapter sync, so a newly-added series is populated now instead of waiting
-        // for the periodic reconciler tick (which left freshly-added series showing zero chapters).
-        await jobStore.EnqueueAsync(new Schema.JobsContext.Job(
-            API.JobRuntime.Handlers.SyncSeriesChaptersHandler.Type,
-            API.JobRuntime.Handlers.SyncSeriesChaptersHandler.PayloadFor(added.id.Key, settings.DownloadLanguage), clock.UtcNow,
-            resourceKey: added.id.ObjId, dedupKey: API.JobRuntime.Reconcilers.SeriesChapterSyncReconciler.DedupKey(added.id.Key)),
-            HttpContext.RequestAborted);
+        // Cover + an immediate chapter sync, so a newly-added series is populated now instead of
+        // waiting for the periodic reconciler tick (which left freshly-added series showing zero chapters).
+        await API.JobRuntime.SeriesJobs.EnqueueCoverAndSync(jobStore, clock, added.id, settings.DownloadLanguage, HttpContext.RequestAborted);
 
         IEnumerable<DTOs.SourceId<DTOs.Series>> ids = added.manga.SourceIds.Select(id =>
             new DTOs.SourceId<DTOs.Series>(id.Key, id.MangaConnectorName, id.ObjId, id.IdOnConnectorSite, id.WebsiteUrl, id.UseForDownload));

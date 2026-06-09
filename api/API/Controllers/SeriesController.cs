@@ -301,18 +301,8 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
 
         async Task EnqueueAddJobs()
         {
-            if (addedFrom is null)
-                return;
-            await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
-                API.JobRuntime.Handlers.DownloadCoverHandler.Type,
-                API.JobRuntime.Handlers.DownloadCoverHandler.PayloadFor(addedFrom.Key), clock.UtcNow,
-                resourceKey: addedFrom.ObjId, dedupKey: API.JobRuntime.Reconcilers.CoverRefreshReconciler.DedupKey(addedFrom.Key)),
-                HttpContext.RequestAborted);
-            await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
-                API.JobRuntime.Handlers.SyncSeriesChaptersHandler.Type,
-                API.JobRuntime.Handlers.SyncSeriesChaptersHandler.PayloadFor(addedFrom.Key, settings.DownloadLanguage), clock.UtcNow,
-                resourceKey: addedFrom.ObjId, dedupKey: API.JobRuntime.Reconcilers.SeriesChapterSyncReconciler.DedupKey(addedFrom.Key)),
-                HttpContext.RequestAborted);
+            if (addedFrom is not null)
+                await API.JobRuntime.SeriesJobs.EnqueueCoverAndSync(jobStore, clock, addedFrom, settings.DownloadLanguage, HttpContext.RequestAborted);
         }
 
         if(manga.LibraryId == library.Key)
@@ -368,18 +358,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
             return TypedResults.StatusCode(Status412PreconditionFailed);
 
         foreach (var source in sources)
-        {
-            await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
-                API.JobRuntime.Handlers.SyncSeriesChaptersHandler.Type,
-                API.JobRuntime.Handlers.SyncSeriesChaptersHandler.PayloadFor(source.Key, settings.DownloadLanguage), clock.UtcNow,
-                resourceKey: source.ObjId, dedupKey: API.JobRuntime.Reconcilers.SeriesChapterSyncReconciler.DedupKey(source.Key)),
-                HttpContext.RequestAborted);
-            await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
-                API.JobRuntime.Handlers.DownloadCoverHandler.Type,
-                API.JobRuntime.Handlers.DownloadCoverHandler.PayloadFor(source.Key), clock.UtcNow,
-                resourceKey: source.ObjId, dedupKey: API.JobRuntime.Reconcilers.CoverRefreshReconciler.DedupKey(source.Key)),
-                HttpContext.RequestAborted);
-        }
+            await API.JobRuntime.SeriesJobs.EnqueueCoverAndSync(jobStore, clock, source, settings.DownloadLanguage, HttpContext.RequestAborted);
         return TypedResults.Ok();
     }
 
@@ -416,16 +395,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
         if (await context.Sync(HttpContext.RequestAborted, GetType(), "Rematch source") is { success: false } result)
             return TypedResults.NotFound(result.exceptionMessage);
 
-        await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
-            API.JobRuntime.Handlers.SyncSeriesChaptersHandler.Type,
-            API.JobRuntime.Handlers.SyncSeriesChaptersHandler.PayloadFor(replacement.Key, settings.DownloadLanguage), clock.UtcNow,
-            resourceKey: replacement.ObjId, dedupKey: API.JobRuntime.Reconcilers.SeriesChapterSyncReconciler.DedupKey(replacement.Key)),
-            HttpContext.RequestAborted);
-        await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
-            API.JobRuntime.Handlers.DownloadCoverHandler.Type,
-            API.JobRuntime.Handlers.DownloadCoverHandler.PayloadFor(replacement.Key), clock.UtcNow,
-            resourceKey: replacement.ObjId, dedupKey: API.JobRuntime.Reconcilers.CoverRefreshReconciler.DedupKey(replacement.Key)),
-            HttpContext.RequestAborted);
+        await API.JobRuntime.SeriesJobs.EnqueueCoverAndSync(jobStore, clock, replacement, settings.DownloadLanguage, HttpContext.RequestAborted);
 
         return TypedResults.Ok(new DTOs.SourceId<Series>(replacement.Key, replacement.MangaConnectorName,
             replacement.ObjId, replacement.IdOnConnectorSite, replacement.WebsiteUrl, replacement.UseForDownload));
@@ -483,16 +453,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
         if(await context.Sync(HttpContext.RequestAborted, GetType(), "Update download from SeriesSource.") is { success: false } result)
             return TypedResults.InternalServerError(result.exceptionMessage);
 
-        await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
-            API.JobRuntime.Handlers.DownloadCoverHandler.Type,
-            API.JobRuntime.Handlers.DownloadCoverHandler.PayloadFor(mcId.Key), clock.UtcNow,
-            resourceKey: mcId.ObjId, dedupKey: API.JobRuntime.Reconcilers.CoverRefreshReconciler.DedupKey(mcId.Key)),
-            HttpContext.RequestAborted);
-        await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
-            API.JobRuntime.Handlers.SyncSeriesChaptersHandler.Type,
-            API.JobRuntime.Handlers.SyncSeriesChaptersHandler.PayloadFor(mcId.Key, settings.DownloadLanguage), clock.UtcNow,
-            resourceKey: mcId.ObjId, dedupKey: API.JobRuntime.Reconcilers.SeriesChapterSyncReconciler.DedupKey(mcId.Key)),
-            HttpContext.RequestAborted);
+        await API.JobRuntime.SeriesJobs.EnqueueCoverAndSync(jobStore, clock, mcId, settings.DownloadLanguage, HttpContext.RequestAborted);
 
         return TypedResults.Ok();
     }

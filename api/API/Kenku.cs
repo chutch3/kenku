@@ -111,11 +111,7 @@ public class Kenku
         {
             var jobStore = scope.ServiceProvider.GetRequiredService<JobRuntime.Interfaces.IJobStore>();
             var clock = scope.ServiceProvider.GetRequiredService<JobRuntime.Interfaces.IClock>();
-            await jobStore.EnqueueAsync(new Schema.JobsContext.Job(
-                JobRuntime.Handlers.DownloadCoverHandler.Type,
-                JobRuntime.Handlers.DownloadCoverHandler.PayloadFor(result.Value.Item2.Key), clock.UtcNow,
-                resourceKey: result.Value.Item2.ObjId,
-                dedupKey: JobRuntime.Reconcilers.CoverRefreshReconciler.DedupKey(result.Value.Item2.Key)), token);
+            await JobRuntime.SeriesJobs.EnqueueCover(jobStore, clock, result.Value.Item2, token);
         }
 
         return result;
