@@ -309,6 +309,14 @@ public class KenkuSettings
         Save();
     }
 
+    public void SetReleaseSelection(int minSeeders, string[] preferredTokens, string[] blockedTokens)
+    {
+        this.ReleaseMinSeeders = minSeeders;
+        this.ReleasePreferredTokens = preferredTokens;
+        this.ReleaseBlockedTokens = blockedTokens;
+        Save();
+    }
+
     public void SetMaxConcurrentDownloads(int value)
     {
         this.MaxConcurrentDownloads = value;

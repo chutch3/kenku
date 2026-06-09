@@ -1,5 +1,5 @@
 <template>
-    <SeriesDetailPage :series="series" :rollup="rollup">
+    <SeriesDetailPage :series="series" :rollup="rollup" :kind="kind">
         <div class="grid gap-3 max-xl:grid-flow-row-dense min-2xl:grid-cols-[70%_auto] min-xl:grid-cols-[60%_auto] relative min-xl:h-full">
             <ChaptersList :manga-id="mangaId" class="min-xl:h-full min-xl:overflow-y-scroll" />
             <div class="flex flex-col gap-3">
@@ -52,9 +52,9 @@
                     </div>
                 </UCard>
 
-                <!-- Metadata: link to the canonical MangaDex entry. -->
-                <MetadataSourceLink :manga-id="mangaId" :series-name="series?.name" />
-                <SeriesMetadataFetcherTable :manga-id="mangaId" />
+                <!-- Metadata: volume mapping is a manga concept; comics enrich via Metron instead. -->
+                <MetadataSourceLink v-if="kind === 'manga'" :manga-id="mangaId" :series-name="series?.name" />
+                <SeriesMetadataFetcherTable :manga-id="mangaId" :kind="kind" />
             </div>
         </div>
         <template #actions>
@@ -92,6 +92,9 @@ const { data: rollups, refresh: refreshRollups } = await useApi('/v2/Series/Roll
 });
 onMounted(() => refreshRollups());
 const rollup = computed(() => (rollups.value ?? []).find((r) => r.mangaId === mangaId) ?? null);
+
+const { data: connectors } = await useApi('/v2/SeriesSource', { key: FetchKeys.MangaConnector.All, lazy: true, server: false });
+const kind = computed(() => (series.value ? seriesKind(series.value, connectors.value) : 'manga'));
 
 if (import.meta.client) {
     const { data } = await useApi('/v2/Series/{MangaId}', {

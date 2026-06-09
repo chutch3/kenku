@@ -1,5 +1,7 @@
 using API;
 using API.Controllers;
+using API.Controllers.Requests;
+using API.Controllers.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -309,5 +311,38 @@ public class SettingsControllerTests : IDisposable
         string onDisk = File.ReadAllText(_settings.SettingsFilePath);
 
         Assert.Contains("s3cret", onDisk); // persistence must retain the secret
+    }
+
+    [Fact]
+    public void GetReleaseSelection_ReturnsCurrentValues()
+    {
+        var result = CreateController().GetReleaseSelection();
+
+        var ok = Assert.IsType<Ok<ReleaseSelectionRecord>>(result);
+        Assert.Equal(2, ok.Value!.MinSeeders);
+        Assert.Equal(["cbz"], ok.Value.PreferredTokens);
+        Assert.Equal(["cbr", "pdf"], ok.Value.BlockedTokens);
+    }
+
+    [Fact]
+    public void SetReleaseSelection_UpdatesAndPersists()
+    {
+        Directory.CreateDirectory(_settings.WorkingDirectory);
+
+        var result = CreateController().SetReleaseSelection(new ReleaseSelectionRecord(5, ["cbz", "zip"], ["pdf"]));
+
+        Assert.IsType<Ok>(result.Result);
+        Assert.Equal(5, _settings.ReleaseMinSeeders);
+        Assert.Equal(["cbz", "zip"], _settings.ReleasePreferredTokens);
+        Assert.Equal(["pdf"], _settings.ReleaseBlockedTokens);
+        Assert.Contains("zip", File.ReadAllText(_settings.SettingsFilePath));
+    }
+
+    [Fact]
+    public void SetReleaseSelection_NegativeSeeders_IsRejected()
+    {
+        var result = CreateController().SetReleaseSelection(new ReleaseSelectionRecord(-1, [], []));
+
+        Assert.IsType<BadRequest<string>>(result.Result);
     }
 }

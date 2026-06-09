@@ -154,6 +154,30 @@
 
                         <UCard>
                             <template #header>
+                                <SettingsHeader
+                                    title="Release selection"
+                                    subtitle="How a torrent release is picked for a comic chapter." />
+                            </template>
+                            <div class="flex flex-col gap-3 max-w-md">
+                                <UFormField label="Minimum seeders" help="Releases with fewer seeders are never picked.">
+                                    <UInputNumber v-model="releaseSelection.minSeeders" :min="0" class="w-32" />
+                                </UFormField>
+                                <UFormField label="Preferred tokens" help="Filename tokens that rank a release higher.">
+                                    <UInputTags v-model="releaseSelection.preferredTokens" placeholder="cbz" />
+                                </UFormField>
+                                <UFormField label="Blocked tokens" help="Filename tokens that exclude a release outright.">
+                                    <UInputTags v-model="releaseSelection.blockedTokens" placeholder="cbr, pdf" />
+                                </UFormField>
+                            </div>
+                            <template #footer>
+                                <UButton icon="i-lucide-save" color="primary" class="w-fit" loading-auto @click="saveReleaseSelection">
+                                    Save release selection
+                                </UButton>
+                            </template>
+                        </UCard>
+
+                        <UCard>
+                            <template #header>
                                 <SettingsHeader title="Comic metadata (Metron)" subtitle="Optional source for richer comic metadata.">
                                     <UBadge :color="metronConnected ? 'success' : 'neutral'" variant="subtle">
                                         {{ metronConnected ? 'Connected' : 'Not connected' }}
@@ -303,6 +327,28 @@ const copy = async (value: string) => {
 const regenerateApiKey = async () => {
     await $api('/v2/Settings/ApiKey/Regenerate', { method: 'POST' });
     await refreshNuxtData(FetchKeys.Settings.All);
+};
+
+const toast = useToast();
+const releaseSelection = reactive({ minSeeders: 2, preferredTokens: ['cbz'] as string[], blockedTokens: ['cbr', 'pdf'] as string[] });
+const { data: releaseSelectionData } = useApi('/v2/Settings/ReleaseSelection', { key: 'Settings/ReleaseSelection', server: false });
+watch(releaseSelectionData, (v) => {
+    if (!v) return;
+    releaseSelection.minSeeders = v.minSeeders;
+    releaseSelection.preferredTokens = [...v.preferredTokens];
+    releaseSelection.blockedTokens = [...v.blockedTokens];
+});
+
+const saveReleaseSelection = async () => {
+    await $api('/v2/Settings/ReleaseSelection', {
+        method: 'PATCH',
+        body: {
+            minSeeders: releaseSelection.minSeeders,
+            preferredTokens: releaseSelection.preferredTokens,
+            blockedTokens: releaseSelection.blockedTokens,
+        },
+    });
+    toast.add({ title: 'Release selection saved', icon: 'i-lucide-check', color: 'success' });
 };
 
 const openDownloadClient = (client?: DownloadClientResponse | null) => {

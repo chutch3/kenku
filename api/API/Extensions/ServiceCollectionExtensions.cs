@@ -51,7 +51,8 @@ public static class ServiceCollectionExtensions
         // The user-facing torrent-backed series source. Registering it as a SeriesSource makes it
         // appear in search + chapter discovery; its Kind=Torrent routes chapters through the acquirer.
         services.AddSingleton<SeriesSource>(sp =>
-            new IndexerBackedSeriesSource(sp.GetRequiredService<IIndexerClient>(), settings));
+            new IndexerBackedSeriesSource(sp.GetRequiredService<IIndexerClient>(), settings,
+                sp.GetRequiredService<API.HttpRequesters.Interfaces.IHttpRequester>()));
 
         // ---- Acquisition path (gated on a configured download client) ----
 
@@ -71,14 +72,16 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<IDownloadClientFactory>().SelectActive(settings)
             ?? throw new InvalidOperationException("No enabled download client is configured."));
 
-        services.AddSingleton(_ => new ReleaseSelector
+        // Transient, so each download job sees the release-selection settings as they are now —
+        // a PATCH from the settings page takes effect without a restart.
+        services.AddTransient(_ => new ReleaseSelector
         {
             MinSeeders = settings.ReleaseMinSeeders,
             PreferredTokens = settings.ReleasePreferredTokens,
             BlockedTokens = settings.ReleaseBlockedTokens
         });
 
-        services.AddSingleton<IChapterAcquirer>(sp =>
+        services.AddTransient<IChapterAcquirer>(sp =>
             new TorrentAcquirer(
                 sp.GetRequiredService<IIndexerClient>(),
                 sp.GetRequiredService<IDownloadClient>(),

@@ -245,6 +245,31 @@ public class SettingsController(KenkuSettings settings) : ControllerBase
     }
 
     /// <summary>
+    /// How torrent releases are picked for comics: seeder floor, preferred and blocked filename tokens.
+    /// </summary>
+    /// <response code="200"></response>
+    [HttpGet("ReleaseSelection")]
+    [ProducesResponseType<ReleaseSelectionRecord>(Status200OK, "application/json")]
+    public Ok<ReleaseSelectionRecord> GetReleaseSelection() =>
+        TypedResults.Ok(new ReleaseSelectionRecord(settings.ReleaseMinSeeders, settings.ReleasePreferredTokens, settings.ReleaseBlockedTokens));
+
+    /// <summary>
+    /// Updates the torrent release-selection rules.
+    /// </summary>
+    /// <response code="200"></response>
+    /// <response code="400">MinSeeders must not be negative</response>
+    [HttpPatch("ReleaseSelection")]
+    [ProducesResponseType(Status200OK)]
+    [ProducesResponseType<string>(Status400BadRequest, "text/plain")]
+    public Results<Ok, BadRequest<string>> SetReleaseSelection([FromBody] ReleaseSelectionRecord requestData)
+    {
+        if (requestData.MinSeeders < 0)
+            return TypedResults.BadRequest("MinSeeders must not be negative.");
+        settings.SetReleaseSelection(requestData.MinSeeders, requestData.PreferredTokens, requestData.BlockedTokens);
+        return TypedResults.Ok();
+    }
+
+    /// <summary>
     /// Sets Metron (metron.cloud) metadata credentials
     /// </summary>
     /// <response code="200"></response>

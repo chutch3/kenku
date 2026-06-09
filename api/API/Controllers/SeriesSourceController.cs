@@ -25,7 +25,7 @@ public class SeriesSourceController(SeriesContext context, IEnumerable<MangaConn
     public Ok<List<DTOs.SeriesSource>> GetConnectors()
     {
         return TypedResults.Ok(connectors
-            .Select(c => new DTOs.SeriesSource(c.Name, c.Enabled, c.IconUrl, c.SupportedLanguages))
+            .Select(c => new DTOs.SeriesSource(c.Name, c.Enabled, c.IconUrl, c.SupportedLanguages, c.Kind))
             .ToList());
     }
 
@@ -43,7 +43,7 @@ public class SeriesSourceController(SeriesContext context, IEnumerable<MangaConn
         if (connectors.FirstOrDefault(c => c.Name.Equals(MangaConnectorName, StringComparison.InvariantCultureIgnoreCase)) is not { } connector)
             return TypedResults.NotFound(nameof(MangaConnectorName));
         
-        return TypedResults.Ok(new DTOs.SeriesSource(connector.Name, connector.Enabled, connector.IconUrl, connector.SupportedLanguages));
+        return TypedResults.Ok(new DTOs.SeriesSource(connector.Name, connector.Enabled, connector.IconUrl, connector.SupportedLanguages, connector.Kind));
     }
     
     /// <summary>
@@ -56,7 +56,7 @@ public class SeriesSourceController(SeriesContext context, IEnumerable<MangaConn
     {
         return TypedResults.Ok(connectors
             .Where(c => c.Enabled == Enabled)
-            .Select(c => new DTOs.SeriesSource(c.Name, c.Enabled, c.IconUrl, c.SupportedLanguages))
+            .Select(c => new DTOs.SeriesSource(c.Name, c.Enabled, c.IconUrl, c.SupportedLanguages, c.Kind))
             .ToList());
     }
 

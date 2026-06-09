@@ -11,6 +11,7 @@
                 <div v-if="series" class="flex flex-wrap items-center gap-2">
                     <SeriesStatusBadge :series="series" type="track" :rollup="rollup" />
                     <SeriesStatusBadge :series="series" type="release" />
+                    <UBadge v-if="kind === 'comic'" color="neutral" variant="subtle" icon="i-lucide-zap">Comic</UBadge>
                 </div>
                 <UAlert
                     v-if="rollup?.lastError"
@@ -54,6 +55,7 @@ type SeriesRollup = components['schemas']['SeriesRollup'];
 export interface SeriesDetailPageProps extends PageProps {
     series?: Series | null;
     rollup?: SeriesRollup | null;
+    kind?: SeriesKind;
 }
 
 defineProps<SeriesDetailPageProps>();

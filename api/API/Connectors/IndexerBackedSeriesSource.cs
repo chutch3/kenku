@@ -1,3 +1,4 @@
+using API.HttpRequesters.Interfaces;
 using API.Indexers.Interfaces;
 using API.Acquirers;
 using API.Indexers;
@@ -18,7 +19,7 @@ public sealed class IndexerBackedSeriesSource : SeriesSource
     private readonly IIndexerClient _indexers;
     private readonly int[] _categories;
 
-    public IndexerBackedSeriesSource(IIndexerClient indexers, KenkuSettings settings)
+    public IndexerBackedSeriesSource(IIndexerClient indexers, KenkuSettings settings, IHttpRequester? httpRequester = null)
         : base("Indexers", ["en"], [], "", settings)
     {
         _indexers = indexers;
@@ -26,7 +27,10 @@ public sealed class IndexerBackedSeriesSource : SeriesSource
         // manually-configured categories (see TorznabIndexer), falling back to this global default
         // only when the indexer carries no categories of its own.
         _categories = settings.IndexerComicCategories;
-        // No downloadClient: this source never scrapes images.
+        // This source never scrapes page images, but it must still be able to fetch a cover once a
+        // metadata fetcher (Metron) backfills CoverUrl — without it comics never get past the logo.
+        if (httpRequester is not null)
+            this.downloadClient = httpRequester;
     }
 
     public override AcquisitionKind Kind => AcquisitionKind.Torrent;

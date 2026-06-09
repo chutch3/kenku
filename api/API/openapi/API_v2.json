@@ -4433,6 +4433,71 @@
         }
       }
     },
+    "/v2/Settings/ReleaseSelection": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "How torrent releases are picked for comics: seeder floor, preferred and blocked filename tokens.",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseSelectionRecord"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Updates the torrent release-selection rules.",
+        "requestBody": {
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseSelectionRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseSelectionRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseSelectionRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseSelectionRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "400": {
+            "description": "MinSeeders must not be negative",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/Settings/Metron": {
       "patch": {
         "tags": [
@@ -5113,6 +5178,15 @@
   },
   "components": {
     "schemas": {
+      "AcquisitionKind": {
+        "enum": [
+          "ImageList",
+          "DirectArchive",
+          "Torrent"
+        ],
+        "type": "string",
+        "description": "How a connector turns a Chapter into a .cbz on disk. Each SeriesSource declares one kind;\nChapterDownloadService uses the kind to dispatch to the matching IChapterAcquirer."
+      },
       "ActionRecord": {
         "required": [
           "action",
@@ -6426,6 +6500,37 @@
         "additionalProperties": false,
         "description": "A API.Schema.JobsContext.Job in the runtime queue."
       },
+      "ReleaseSelectionRecord": {
+        "required": [
+          "blockedTokens",
+          "minSeeders",
+          "preferredTokens"
+        ],
+        "type": "object",
+        "properties": {
+          "minSeeders": {
+            "type": "integer",
+            "description": "Releases with fewer seeders are never picked.",
+            "format": "int32"
+          },
+          "preferredTokens": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filename tokens that rank a release higher (e.g. cbz)."
+          },
+          "blockedTokens": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filename tokens that exclude a release outright (e.g. cbr, pdf)."
+          }
+        },
+        "additionalProperties": false,
+        "description": "How torrent releases are picked for comics (v1 scoring — not arr-style profiles)."
+      },
       "ReorganizeJobResult": {
         "type": "object",
         "properties": {
@@ -6642,6 +6747,7 @@
           "enabled",
           "iconUrl",
           "key",
+          "kind",
           "supportedLanguages"
         ],
         "type": "object",
@@ -6665,6 +6771,9 @@
             "minLength": 1,
             "type": "string",
             "description": "Url of the Website Icon"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/AcquisitionKind"
           },
           "key": {
             "maxLength": 64,

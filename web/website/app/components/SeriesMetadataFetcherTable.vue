@@ -3,12 +3,14 @@
         <template #header>
             <div>
                 <h2 class="font-display text-lg font-semibold text-highlighted">Series details</h2>
-                <p class="text-xs text-muted">Pull title, description &amp; cover from MyAnimeList or Metron.</p>
+                <p class="text-xs text-muted">
+                    Pull title, description &amp; cover from {{ kind === 'comic' ? 'Metron' : 'MyAnimeList' }}.
+                </p>
             </div>
         </template>
         <UTable
             v-if="metadataFetchers && metadata"
-            :data="metadataFetchers"
+            :data="visibleFetchers"
             :columns="[
                 { header: 'Name', id: 'name' },
                 { header: '', id: 'link' },
@@ -40,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ mangaId: string }>();
+const props = defineProps<{ mangaId: string; kind?: SeriesKind }>();
 const mangaId = props.mangaId;
 
 const { $api } = useNuxtApp();
@@ -52,6 +54,16 @@ const { data: metadata } = await useApi('/v2/MetadataFetcher/Links/{MangaId}', {
     lazy: true,
     server: false,
 });
+
+// Metron is the comic enrichment source, MyAnimeList the manga one — offering the wrong one is the
+// "metadata feels duplicated" confusion. Anything already linked stays visible regardless.
+const visibleFetchers = computed(() =>
+    (metadataFetchers.value ?? []).filter((f) => {
+        if (metadata.value?.some((me) => me.metadataFetcherName === f)) return true;
+        if (!props.kind) return true;
+        return props.kind === 'comic' ? f === 'Metron' : f !== 'Metron';
+    })
+);
 
 const unlinkMetadataFetcher = async (metadataFetcherName: string) => {
     await $api('/v2/MetadataFetcher/{MetadataFetcherName}/Unlink/{MangaId}', {

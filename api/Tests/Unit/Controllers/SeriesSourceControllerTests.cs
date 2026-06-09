@@ -58,6 +58,21 @@ public class MangaConnectorControllerTests
     }
 
     [Fact]
+    public void GetConnectors_ExposesTheAcquisitionKind_SoTheUiCanTellComicsFromManga()
+    {
+        using var ctx = CreateContext();
+        var manga = MakeConnector("MangaDex");
+        var comics = MakeConnector("Indexers");
+        comics.Setup(c => c.Kind).Returns(API.Acquirers.AcquisitionKind.Torrent);
+
+        var result = CreateController(ctx, [manga.Object, comics.Object], _settings).GetConnectors();
+
+        var ok = Assert.IsType<Ok<List<ConnectorDto>>>(result);
+        Assert.Equal(API.Acquirers.AcquisitionKind.ImageList, ok.Value!.Single(c => c.Name == "MangaDex").Kind);
+        Assert.Equal(API.Acquirers.AcquisitionKind.Torrent, ok.Value!.Single(c => c.Name == "Indexers").Kind);
+    }
+
+    [Fact]
     public void GetConnectors_WhenEmpty_ReturnsEmptyList()
     {
         using var ctx = CreateContext();
