@@ -122,6 +122,7 @@ builder.Services.AddSingleton<SeriesSource, Mangaworld>();
 builder.Services.AddSingleton<SeriesSource, WeebCentral>();
 
 // 3. Register your Metadata Fetchers
+builder.Services.AddSingleton<JikanDotNet.IJikan>(new JikanDotNet.Jikan());
 builder.Services.AddSingleton<MetadataFetcher, MyAnimeList>();
 // Metron comic metadata: client reads creds from settings; the fetcher always appears in the list
 // and degrades gracefully (returns nothing) when unconfigured.

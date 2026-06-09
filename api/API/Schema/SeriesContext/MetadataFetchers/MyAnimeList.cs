@@ -7,8 +7,19 @@ namespace API.Schema.SeriesContext.MetadataFetchers;
 
 public class MyAnimeList : MetadataFetcher
 {
-    private static readonly Jikan Jikan = new ();
+    private readonly IJikan _jikan;
     private static readonly Regex GetIdFromUrl = new(@"https?:\/\/myanimelist\.net\/manga\/([0-9]+)\/?.*");
+
+    public MyAnimeList(IJikan jikan) : base()
+    {
+        _jikan = jikan;
+    }
+
+    /// <summary>EF ONLY!!! Materialised instances never call the API (only DI instances do).</summary>
+    internal MyAnimeList() : base()
+    {
+        _jikan = null!;
+    }
     
     public override async Task<MetadataSearchResult[]> SearchMetadataEntry(Series manga)
     {
@@ -19,7 +30,7 @@ public class MyAnimeList : MetadataFetcher
             if (m.Success && m.Groups[1].Success)
             {
                 long id = long.Parse(m.Groups[1].Value);
-                JikanDotNet.Manga data = (await Jikan.GetMangaAsync(id)).Data;
+                JikanDotNet.Manga data = (await _jikan.GetMangaAsync(id)).Data;
                 return [new MetadataSearchResult(id.ToString(), data.Titles.First().Title, data.Url, data.Synopsis)];
             }
         }
@@ -30,7 +41,7 @@ public class MyAnimeList : MetadataFetcher
     public override async Task<MetadataSearchResult[]> SearchMetadataEntry(string searchTerm)
     {
         Log.DebugFormat("Searching '{0}'...", searchTerm);
-        ICollection<JikanDotNet.Manga> resultData = (await Jikan.SearchMangaAsync(searchTerm)).Data;
+        ICollection<JikanDotNet.Manga> resultData = (await _jikan.SearchMangaAsync(searchTerm)).Data;
         Log.DebugFormat("Found {0} results.", resultData.Count);
         if (resultData.Count < 1)
             return [];
@@ -71,7 +82,7 @@ public class MyAnimeList : MetadataFetcher
         try
         {
             long id = long.Parse(metadataEntry.Identifier);
-            if (await Jikan.GetMangaFullDataAsync(id, token) is not { } response)
+            if (await _jikan.GetMangaFullDataAsync(id, token) is not { } response)
             {
                 Log.ErrorFormat("Series Data not found: {0}", metadataEntry.MangaId);
                 return;
@@ -90,6 +101,11 @@ public class MyAnimeList : MetadataFetcher
         dbManga.AltTitles = resultData.Titles.Select(t => new AltTitle(t.Type, t.Title)).ToList();
         dbManga.Authors.Clear();
         dbManga.Authors = await dbContext.ResolveAuthorsAsync(resultData.Authors.Select(a => a.Name), token);
+        // Fallback only — a connector cover always wins. This is what rescues series whose connector
+        // page yields no cover URL (the Chainsaw Man / Berserk case): once backfilled, the cover
+        // refresh path fetches it like any other cover.
+        if (string.IsNullOrWhiteSpace(dbManga.CoverUrl) && resultData.Images?.JPG?.ImageUrl is { Length: > 0 } imageUrl)
+            dbManga.CoverUrl = imageUrl;
 
         if (await dbContext.Sync(token, GetType(), "Update metadata") is { success: true })
         {

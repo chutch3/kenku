@@ -32,7 +32,15 @@ public class DownloadCoverHandler(IServiceScopeFactory scopeFactory) : IJobHandl
         using IServiceScope scope = scopeFactory.CreateScope();
         var provider = scope.ServiceProvider;
         var service = new CoverDownloadService(provider.GetServices<SeriesSource>());
-        await service.DownloadAsync(provider.GetRequiredService<SeriesContext>(),
+        CoverOutcome outcome = await service.DownloadAsync(provider.GetRequiredService<SeriesContext>(),
             provider.GetRequiredService<ActionsContext>(), payload.SourceIdKey, ct);
+        job.Progress = outcome switch
+        {
+            CoverOutcome.Cached => "cover cached",
+            CoverOutcome.NoCoverUrl => "this source provides no cover URL — link MyAnimeList or Metron to backfill one",
+            CoverOutcome.SourceMissing => "the source link no longer exists",
+            CoverOutcome.FetchFailed => "the cover could not be fetched from its URL",
+            _ => job.Progress
+        };
     }
 }
