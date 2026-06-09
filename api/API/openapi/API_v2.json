@@ -2997,6 +2997,68 @@
         }
       }
     },
+    "/v2/Search/{MangaConnectorName}/Chapters": {
+      "get": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Live chapter list from a API.Connectors.SeriesSource, without saving anything — lets the add flow\nshow what a source will actually yield before the user commits to it.",
+        "parameters": [
+          {
+            "name": "MangaConnectorName",
+            "in": "path",
+            "description": "API.Connectors.SeriesSource.Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ConnectorSeriesId",
+            "in": "query",
+            "description": "The manga's ID on the connector site",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chapters the connector reports, possibly empty",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChapterPreview"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Connector or series not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The connector failed to deliver a chapter list — surfaced so the user sees a broken source before adding",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/Search": {
       "get": {
         "tags": [
@@ -3364,6 +3426,14 @@
             "description": "(Optional) ID of the manga on the connector site",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "download",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
             }
           }
         ],
@@ -5407,6 +5477,30 @@
           }
         },
         "additionalProperties": false
+      },
+      "ChapterPreview": {
+        "required": [
+          "chapterNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "chapterNumber": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "volumeNumber": {
+            "type": "integer",
+            "description": "Volume the connector assigns this chapter to, if any.",
+            "format": "int32",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A chapter as reported live by a connector, before anything is saved — what the add flow\n            shows so 'this source yields 0 chapters' is visible while a different source can still be picked."
       },
       "ChapterSourceId": {
         "required": [

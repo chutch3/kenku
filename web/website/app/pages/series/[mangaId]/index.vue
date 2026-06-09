@@ -1,19 +1,10 @@
 <template>
     <SeriesDetailPage :series="series" :rollup="rollup">
         <div class="grid gap-3 max-xl:grid-flow-row-dense min-2xl:grid-cols-[70%_auto] min-xl:grid-cols-[60%_auto] relative min-xl:h-full">
-            <ChaptersList
-                v-if="!isSearchResult || (series && series.fileLibraryId)"
-                :manga-id="mangaId"
-                class="min-xl:h-full min-xl:overflow-y-scroll" />
+            <ChaptersList :manga-id="mangaId" class="min-xl:h-full min-xl:overflow-y-scroll" />
             <div class="flex flex-col gap-3">
-                <!-- Untracked preview: make "add it" the obvious primary action. -->
-                <TrackSeriesPanel
-                    v-if="isSearchResult && !series?.fileLibraryId"
-                    :manga-id="mangaId"
-                    @tracked="refreshNuxtData(FetchKeys.Series.Id(mangaId))" />
-
                 <!-- Storage: where files land. -->
-                <UCard v-if="!isSearchResult || series?.fileLibraryId" :class="[flashDownloading ? 'animate-[flash_0.75s_ease_0.5s]' : '']">
+                <UCard>
                     <template #header>
                         <div>
                             <h2 class="font-display text-lg font-semibold text-highlighted">Storage</h2>
@@ -34,7 +25,7 @@
                 </UCard>
 
                 <!-- Download sources: which sites to pull from. -->
-                <UCard v-if="series && (!isSearchResult || series.fileLibraryId)">
+                <UCard v-if="series">
                     <template #header>
                         <div>
                             <h2 class="font-display text-lg font-semibold text-highlighted">Download sources</h2>
@@ -62,15 +53,12 @@
                 </UCard>
 
                 <!-- Metadata: link to the canonical MangaDex entry. -->
-                <MetadataSourceLink
-                    v-if="!isSearchResult || (series && series.fileLibraryId)"
-                    :manga-id="mangaId"
-                    :series-name="series?.name" />
-                <SeriesMetadataFetcherTable v-if="!isSearchResult || (series && series.fileLibraryId)" :manga-id="mangaId" />
+                <MetadataSourceLink :manga-id="mangaId" :series-name="series?.name" />
+                <SeriesMetadataFetcherTable :manga-id="mangaId" />
             </div>
         </div>
         <template #actions>
-            <template v-if="!isSearchResult || (series && series.fileLibraryId)">
+            <template v-if="series">
                 <UButton
                     icon="i-lucide-brick-wall-shield"
                     :to="`/actions?mangaId=${mangaId}&return=${$route.fullPath}`"
@@ -94,12 +82,6 @@ import type { components } from '#open-fetch-schemas/api';
 const { $api } = useNuxtApp();
 const route = useRoute();
 const mangaId = route.params.mangaId as string;
-const connectorName = route.query.connectorName as string | undefined;
-const connectorSeriesId = route.query.connectorSeriesId as string | undefined;
-
-const flashDownloading = route.hash.substring(1) == 'download';
-
-const isSearchResult = !!(connectorName && connectorSeriesId);
 
 const series = ref<components['schemas']['Series'] | null>(null);
 
@@ -112,29 +94,16 @@ onMounted(() => refreshRollups());
 const rollup = computed(() => (rollups.value ?? []).find((r) => r.mangaId === mangaId) ?? null);
 
 if (import.meta.client) {
-    const fetcher = isSearchResult
-        ? useApi('/v2/Search/{MangaConnectorName}/Series', {
-              path: { MangaConnectorName: connectorName! },
-              query: { ConnectorSeriesId: connectorSeriesId! },
-              key: FetchKeys.Series.Id(mangaId),
-              onResponseError: (e) => {
-                  console.error(e);
-                  navigateTo('/');
-              },
-              lazy: true,
-              server: false,
-          })
-        : useApi('/v2/Series/{MangaId}', {
-              path: { MangaId: mangaId },
-              key: FetchKeys.Series.Id(mangaId),
-              onResponseError: (e) => {
-                  console.error(e);
-                  navigateTo('/');
-              },
-              lazy: true,
-              server: false,
-          });
-    const { data } = await fetcher;
+    const { data } = await useApi('/v2/Series/{MangaId}', {
+        path: { MangaId: mangaId },
+        key: FetchKeys.Series.Id(mangaId),
+        onResponseError: (e) => {
+            console.error(e);
+            navigateTo('/');
+        },
+        lazy: true,
+        server: false,
+    });
     watch(
         data,
         (v) => {

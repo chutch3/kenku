@@ -255,14 +255,16 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [ProducesResponseType(Status200OK)]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType<string>(Status500InternalServerError,  "text/plain")]
-    public async Task<Results<Ok, NotFound<string>, InternalServerError<string>>> ChangeLibrary(string MangaId, string LibraryId, [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock, [FromQuery] string? connectorName = null, [FromQuery] string? connectorSeriesId = null)
+    public async Task<Results<Ok, NotFound<string>, InternalServerError<string>>> ChangeLibrary(string MangaId, string LibraryId, [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock, [FromQuery] string? connectorName = null, [FromQuery] string? connectorSeriesId = null, [FromQuery] bool download = false)
     {
         if (await context.FileLibraries.FirstOrDefaultAsync(l => l.Key == LibraryId, HttpContext.RequestAborted) is not { } library)
             return TypedResults.NotFound(nameof(LibraryId));
 
         var manga = await context.Series
             .Include(m => m.Library)
+            .Include(m => m.SourceIds)
             .Include(m => m.Chapters)
+            .ThenInclude(c => c.SourceIds)
             .FirstOrDefaultAsync(m => m.Key == MangaId, HttpContext.RequestAborted);
 
         if (manga is null)
@@ -278,15 +280,45 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
 
             if (await context.UpsertManga(m, id, HttpContext.RequestAborted) is not { } added)
                 return TypedResults.InternalServerError("Could not add Series to context");
-            
+
             manga = added.manga;
         }
 
         manga.IsTracked = true;
-        
+
+        // Adding from a search result is one decision: with download=true the originating source is
+        // enabled here and now (the source toggle remains the per-source control afterwards); either
+        // way cover + chapter sync queue immediately so the series is never an empty shell.
+        Schema.SeriesContext.SourceId<Schema.SeriesContext.Series>? addedFrom = connectorName is null ? null
+            : manga.SourceIds.FirstOrDefault(id => id.MangaConnectorName.Equals(connectorName, StringComparison.InvariantCultureIgnoreCase));
+        if (download && addedFrom is not null)
+        {
+            addedFrom.UseForDownload = true;
+            foreach (Schema.SeriesContext.SourceId<Chapter> chId in manga.Chapters.SelectMany(ch =>
+                         ch.SourceIds.Where(chId => chId.MangaConnectorName.Equals(connectorName, StringComparison.InvariantCultureIgnoreCase))))
+                chId.UseForDownload = true;
+        }
+
+        async Task EnqueueAddJobs()
+        {
+            if (addedFrom is null)
+                return;
+            await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
+                API.JobRuntime.Handlers.DownloadCoverHandler.Type,
+                API.JobRuntime.Handlers.DownloadCoverHandler.PayloadFor(addedFrom.Key), clock.UtcNow,
+                resourceKey: addedFrom.ObjId, dedupKey: API.JobRuntime.Reconcilers.CoverRefreshReconciler.DedupKey(addedFrom.Key)),
+                HttpContext.RequestAborted);
+            await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
+                API.JobRuntime.Handlers.SyncSeriesChaptersHandler.Type,
+                API.JobRuntime.Handlers.SyncSeriesChaptersHandler.PayloadFor(addedFrom.Key, settings.DownloadLanguage), clock.UtcNow,
+                resourceKey: addedFrom.ObjId, dedupKey: API.JobRuntime.Reconcilers.SeriesChapterSyncReconciler.DedupKey(addedFrom.Key)),
+                HttpContext.RequestAborted);
+        }
+
         if(manga.LibraryId == library.Key)
         {
              await context.Sync(HttpContext.RequestAborted, GetType(), "Track Series");
+             await EnqueueAddJobs();
              return TypedResults.Ok();
         }
 
@@ -301,7 +333,9 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
 
         if(await context.Sync(HttpContext.RequestAborted, GetType(), "Move Series") is { success: false } mangaContextResult)
             return TypedResults.InternalServerError(mangaContextResult.exceptionMessage);
-        
+
+        await EnqueueAddJobs();
+
         actionsContext.Actions.Add(new LibraryMovedActionRecord(manga, library));
         if(await actionsContext.Sync(HttpContext.RequestAborted, GetType(), "Move Series") is { success: false } actionsContextResult)
             return TypedResults.InternalServerError(actionsContextResult.exceptionMessage);

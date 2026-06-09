@@ -233,4 +233,65 @@ public class SearchControllerTests
         Assert.Equal("en", searchResult.Language);
         Assert.Equal(manga.Key, searchResult.Key);
     }
+
+    private static SearchController ConnectorController(SeriesContext ctx, API.Connectors.SeriesSource connector) =>
+        new(ctx, [connector]) { ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() } };
+
+    [Fact]
+    public async Task GetChaptersFromConnector_PreviewsTheLiveChapterList_WithoutSaving()
+    {
+        using var ctx = CreateContext();
+        var manga = MakeTestManga("Saga");
+        var connectorId = MakeConnectorId(manga, "MangaDex", "saga-1");
+        var ch1 = new API.Schema.SeriesContext.Chapter(manga, "1", 1, "Begins");
+        var ch2 = new API.Schema.SeriesContext.Chapter(manga, "2", null, null);
+        var mockConnector = new Mock<API.Connectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
+        mockConnector.Setup(c => c.GetMangaFromId("saga-1")).ReturnsAsync((manga, connectorId));
+        mockConnector.Setup(c => c.GetChapters(It.IsAny<SchemaConnectorId>(), It.IsAny<string?>()))
+            .ReturnsAsync([
+                (ch1, new API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>(ch1, "MangaDex", "c1", null)),
+                (ch2, new API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>(ch2, "MangaDex", "c2", null)),
+            ]);
+
+        var result = await ConnectorController(ctx, mockConnector.Object)
+            .GetChaptersFromConnector("MangaDex", "saga-1", new KenkuSettings());
+
+        var ok = Assert.IsType<Ok<List<ChapterPreview>>>(result.Result);
+        Assert.Equal(2, ok.Value!.Count);
+        Assert.Equal("1", ok.Value[0].ChapterNumber);
+        Assert.Equal(1, ok.Value[0].VolumeNumber);
+        Assert.Equal("Begins", ok.Value[0].Title);
+        Assert.Empty(ctx.Chapters); // preview must not persist anything
+    }
+
+    [Fact]
+    public async Task GetChaptersFromConnector_SurfacesAFailingSource_InsteadOfPretendingItIsEmpty()
+    {
+        using var ctx = CreateContext();
+        var manga = MakeTestManga("Saga");
+        var connectorId = MakeConnectorId(manga, "MangaDex", "saga-1");
+        var mockConnector = new Mock<API.Connectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
+        mockConnector.Setup(c => c.GetMangaFromId("saga-1")).ReturnsAsync((manga, connectorId));
+        mockConnector.Setup(c => c.GetChapters(It.IsAny<SchemaConnectorId>(), It.IsAny<string?>()))
+            .ThrowsAsync(new HttpRequestException("chapter list request failed: HTTP 404"));
+
+        var result = await ConnectorController(ctx, mockConnector.Object)
+            .GetChaptersFromConnector("MangaDex", "saga-1", new KenkuSettings());
+
+        var error = Assert.IsType<InternalServerError<string>>(result.Result);
+        Assert.Contains("404", error.Value);
+    }
+
+    [Fact]
+    public async Task GetChaptersFromConnector_UnknownSeries_IsNotFound()
+    {
+        using var ctx = CreateContext();
+        var mockConnector = new Mock<API.Connectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
+        mockConnector.Setup(c => c.GetMangaFromId(It.IsAny<string>())).ReturnsAsync((ValueTuple<SchemaManga, SchemaConnectorId>?)null);
+
+        var result = await ConnectorController(ctx, mockConnector.Object)
+            .GetChaptersFromConnector("MangaDex", "nope", new KenkuSettings());
+
+        Assert.IsType<NotFound<string>>(result.Result);
+    }
 }

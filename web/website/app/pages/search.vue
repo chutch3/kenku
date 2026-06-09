@@ -79,6 +79,8 @@
                     Search across your connectors by title, or paste a series URL and Kenku will detect the source automatically.
                 </p>
             </div>
+
+            <AddSeriesModal v-if="pendingAdd" v-model:open="addModalOpen" :series="pendingAdd" @added="onAdded" />
         </div>
     </KenkuPage>
 </template>
@@ -150,10 +152,32 @@ const search = async (q: string): Promise<MinimalSeries[]> => {
     return data ?? [];
 };
 
+const pendingAdd = ref<MinimalSeries | null>(null);
+const addModalOpen = ref(false);
+const toast = useToast();
+
 const openResult = (m: MinimalSeries) => {
-    navigateTo(
-        `/series/${m.key}?return=${useRoute().fullPath}&connectorName=${m.sourceIds[0]?.mangaConnectorName}&connectorSeriesId=${m.sourceIds[0]?.objId}#download`
-    );
+    if (m.fileLibraryId) {
+        navigateTo(`/series/${m.key}?return=${useRoute().fullPath}`);
+        return;
+    }
+    pendingAdd.value = m;
+    addModalOpen.value = true;
+};
+
+const onAdded = ({ libraryId, download }: { libraryId: string; download: boolean }) => {
+    const added = pendingAdd.value;
+    if (!added) return;
+    // Flip the card in place so the result shows its real tracked state without leaving the page.
+    added.fileLibraryId = libraryId;
+    if (added.sourceIds[0]) added.sourceIds[0].useForDownload = download;
+    refreshNuxtData([FetchKeys.Series.All, FetchKeys.Series.Rollup]);
+    toast.add({
+        title: download ? `Added ${added.name} — downloading` : `Added ${added.name}`,
+        icon: download ? 'i-lucide-cloud-download' : 'i-lucide-bookmark-plus',
+        color: 'success',
+        actions: [{ label: 'Open series', onClick: () => void navigateTo(`/series/${added.key}`) }],
+    });
 };
 
 useHead({ title: 'Search Series' });

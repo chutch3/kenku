@@ -105,6 +105,41 @@ public class SearchController(
     }
 
     /// <summary>
+    /// Live chapter list from a <see cref="SeriesSource"/>, without saving anything — lets the add flow
+    /// show what a source will actually yield before the user commits to it.
+    /// </summary>
+    /// <param name="MangaConnectorName"><see cref="SeriesSource"/>.Name</param>
+    /// <param name="ConnectorSeriesId">The manga's ID on the connector site</param>
+    /// <param name="settings"></param>
+    /// <response code="200">Chapters the connector reports, possibly empty</response>
+    /// <response code="404">Connector or series not found</response>
+    /// <response code="500">The connector failed to deliver a chapter list — surfaced so the user sees a broken source before adding</response>
+    [HttpGet("{MangaConnectorName}/Chapters")]
+    [ProducesResponseType<List<ChapterPreview>>(Status200OK, "application/json")]
+    [ProducesResponseType<string>(Status404NotFound, "text/plain")]
+    [ProducesResponseType<string>(Status500InternalServerError, "text/plain")]
+    public async Task<Results<Ok<List<ChapterPreview>>, NotFound<string>, InternalServerError<string>>> GetChaptersFromConnector(
+        string MangaConnectorName, [FromQuery] string ConnectorSeriesId, [FromServices] KenkuSettings settings)
+    {
+        if (connectors.FirstOrDefault(c => c.Name.Equals(MangaConnectorName, StringComparison.InvariantCultureIgnoreCase)) is not { } connector)
+            return TypedResults.NotFound(nameof(MangaConnectorName));
+        if (await LookupFromConnector(MangaConnectorName, ConnectorSeriesId) is not ({ } _, { } id))
+            return TypedResults.NotFound(nameof(ConnectorSeriesId));
+
+        try
+        {
+            var chapters = await connector.GetChapters(id, settings.DownloadLanguage);
+            return TypedResults.Ok(chapters
+                .Select(c => new ChapterPreview(c.Item1.ChapterNumber, c.Item1.VolumeNumber, c.Item1.Title))
+                .ToList());
+        }
+        catch (Exception e)
+        {
+            return TypedResults.InternalServerError(e.Message);
+        }
+    }
+
+    /// <summary>
     /// Returns <see cref="Schema.SeriesContext.Series"/> from the <see cref="SeriesSource"/> associated with <paramref name="url"/>
     /// </summary>
     /// <param name="url"></param>
