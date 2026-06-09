@@ -1,3 +1,5 @@
+using API.Acquirers.Interfaces;
+using API.Acquirers;
 using API.JobRuntime.Interfaces;
 using API.JobRuntime.Reconcilers;
 using System.Text.Json;
@@ -379,5 +381,74 @@ public class ChapterDownloadServiceTests
         {
             try { Directory.Delete(tempRoot, recursive: true); } catch { /* best effort */ }
         }
+    }
+
+    private sealed class StubAcquirer(AcquireResult result) : IChapterAcquirer
+    {
+        public AcquisitionKind Kind => AcquisitionKind.ImageList;
+        public Task<AcquireResult> AcquireAsync(SourceId<Chapter> c, SeriesSource s, string p, CancellationToken ct)
+            => Task.FromResult(result);
+    }
+
+    private static (ServiceProvider provider, SeriesContext context, SourceId<Chapter> connectorId, Mock<SeriesSource> connector, KenkuSettings settings)
+        BuildAcquirerFixture(AcquireResult result, string dbName)
+    {
+        var options = new DbContextOptionsBuilder<SeriesContext>().UseInMemoryDatabase(dbName).Options;
+        var context = new SeriesContext(options);
+        var library = new FileLibrary("/tmp/manga", "Test Lib");
+        context.FileLibraries.Add(library);
+        var manga = new Series("Test Series", "Desc", "http://cover.com", SeriesReleaseStatus.Continuing,
+            new List<Author>(), new List<SeriesTag>(), new List<Link>(), new List<AltTitle>(),
+            library, 0f, 2024, "en");
+        context.Series.Add(manga);
+        var chapter = new Chapter(manga, "1", null, "Title");
+        context.Chapters.Add(chapter);
+        var connectorId = new SourceId<Chapter>(chapter, "MockConnector", "site1", "url1", true);
+        context.MangaConnectorToChapter.Add(connectorId);
+        context.SaveChanges();
+
+        var settings = new KenkuSettings { AppData = "/tmp", ChapterNamingScheme = "%M - %C" };
+        var connector = new Mock<SeriesSource>("MockConnector", new[] { "en" }, new[] { "mock.com" }, "icon", settings);
+
+        var services = new ServiceCollection();
+        services.AddSingleton(context);
+        services.AddDbContext<API.Schema.ActionsContext.ActionsContext>(o => o.UseInMemoryDatabase("Actions-" + dbName));
+        services.AddSingleton<IClock, SystemClock>();
+        services.AddSingleton<IJobStore, InMemoryJobStore>();
+        return (services.BuildServiceProvider(), context, connectorId, connector, settings);
+    }
+
+    [Fact]
+    public async Task DownloadAsync_DeferredAcquisition_ReturnsFalse_WithoutMarkingDownloadedOrThrowing()
+    {
+        var (provider, context, connectorId, connector, settings) =
+            BuildAcquirerFixture(new AcquireResult.Deferred(), "DownloadDeferred");
+        using var scope = provider.CreateScope();
+        var p = scope.ServiceProvider;
+        var service = new ChapterDownloadService(settings, [connector.Object], p.GetRequiredService<IJobStore>(),
+            p.GetRequiredService<IClock>(), [new StubAcquirer(new AcquireResult.Deferred())], new LibraryLayoutResolver());
+
+        bool downloaded = await service.DownloadAsync(context,
+            p.GetRequiredService<API.Schema.ActionsContext.ActionsContext>(), connectorId.Key, CancellationToken.None);
+
+        Assert.False(downloaded);
+        var chapter = await context.Chapters.FirstAsync(c => c.Key == connectorId.ObjId);
+        Assert.False(chapter.Downloaded, "a deferred acquisition must not mark the chapter Downloaded");
+    }
+
+    [Fact]
+    public async Task DownloadAsync_FailedAcquisition_ThrowsWithTheAcquirersReason()
+    {
+        var (provider, context, connectorId, connector, settings) =
+            BuildAcquirerFixture(new AcquireResult.Failed("no seeders to be found"), "DownloadFailedReason");
+        using var scope = provider.CreateScope();
+        var p = scope.ServiceProvider;
+        var service = new ChapterDownloadService(settings, [connector.Object], p.GetRequiredService<IJobStore>(),
+            p.GetRequiredService<IClock>(), [new StubAcquirer(new AcquireResult.Failed("no seeders to be found"))], new LibraryLayoutResolver());
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.DownloadAsync(context,
+            p.GetRequiredService<API.Schema.ActionsContext.ActionsContext>(), connectorId.Key, CancellationToken.None));
+
+        Assert.Contains("no seeders to be found", ex.Message);
     }
 }

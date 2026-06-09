@@ -48,6 +48,6 @@ public class DownloadChapterHandler(IServiceScopeFactory scopeFactory) : IJobHan
                 provider.GetRequiredService<SeriesContext>(),
                 provider.GetRequiredService<ActionsContext>(),
                 payload.ChapterKey, ct))
-            return; // already downloaded — idempotent success
+            return; // already downloaded or deferred to an external client — idempotent success
     }
 }

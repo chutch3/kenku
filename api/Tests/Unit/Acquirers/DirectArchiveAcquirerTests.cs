@@ -1,5 +1,6 @@
 using System.Net;
 using API;
+using API.Acquirers.Interfaces;
 using API.Acquirers;
 using API.Connectors;
 using API.HttpRequesters;
@@ -60,9 +61,9 @@ public class DirectArchiveAcquirerTests
             using var http = new HttpClient(inner);
             var acquirer = new DirectArchiveAcquirer(http);
 
-            string? result = await acquirer.AcquireAsync(sourceId, source, saveTo, CancellationToken.None);
+            AcquireResult result = await acquirer.AcquireAsync(sourceId, source, saveTo, CancellationToken.None);
 
-            Assert.Equal(saveTo, result);
+            Assert.Equal(saveTo, Assert.IsType<AcquireResult.Acquired>(result).Path);
             Assert.Equal(archiveUrl, capturedUrl);
             Assert.True(File.Exists(saveTo), "Acquirer must write the archive to disk.");
             Assert.Equal(archiveBytes, await File.ReadAllBytesAsync(saveTo));
@@ -74,7 +75,7 @@ public class DirectArchiveAcquirerTests
     }
 
     [Fact]
-    public async Task AcquireAsync_ReturnsNull_WhenServerReturnsNonSuccess()
+    public async Task AcquireAsync_Fails_WhenServerReturnsNonSuccess()
     {
         var (_, _, sourceId, source, settings, tempRoot) = BuildFixture("https://fake.test/missing.cbz");
         try
@@ -84,9 +85,9 @@ public class DirectArchiveAcquirerTests
             var acquirer = new DirectArchiveAcquirer(http);
             string saveTo = Path.Combine(tempRoot, "out.cbz");
 
-            string? result = await acquirer.AcquireAsync(sourceId, source, saveTo, CancellationToken.None);
+            AcquireResult result = await acquirer.AcquireAsync(sourceId, source, saveTo, CancellationToken.None);
 
-            Assert.Null(result);
+            Assert.IsType<AcquireResult.Failed>(result);
             Assert.False(File.Exists(saveTo), "No file should be written on failure.");
         }
         finally
@@ -96,7 +97,7 @@ public class DirectArchiveAcquirerTests
     }
 
     [Fact]
-    public async Task AcquireAsync_ReturnsNull_WhenChapterHasNoWebsiteUrl()
+    public async Task AcquireAsync_Fails_WhenChapterHasNoWebsiteUrl()
     {
         var (_, _, _, source, settings, tempRoot) = BuildFixture("");
         try
@@ -110,9 +111,9 @@ public class DirectArchiveAcquirerTests
             var http = new HttpClient(new FakeHttpMessageHandler(_ => throw new InvalidOperationException("must not be called")));
             var acquirer = new DirectArchiveAcquirer(http);
 
-            string? result = await acquirer.AcquireAsync(emptyId, source, Path.Combine(tempRoot, "x.cbz"), CancellationToken.None);
+            AcquireResult result = await acquirer.AcquireAsync(emptyId, source, Path.Combine(tempRoot, "x.cbz"), CancellationToken.None);
 
-            Assert.Null(result);
+            Assert.IsType<AcquireResult.Failed>(result);
         }
         finally
         {

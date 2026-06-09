@@ -23,7 +23,7 @@ public class ImageListAcquirer(KenkuSettings settings) : IChapterAcquirer
 
     public AcquisitionKind Kind => AcquisitionKind.ImageList;
 
-    public async Task<string?> AcquireAsync(
+    public async Task<AcquireResult> AcquireAsync(
         SourceId<Chapter> chapter,
         SeriesSource source,
         string saveArchiveFilePath,
@@ -37,7 +37,7 @@ public class ImageListAcquirer(KenkuSettings settings) : IChapterAcquirer
         catch (Exception ex)
         {
             Log.ErrorFormat("Failed to resolve image URLs for chapter {0}: {1}", chapter.Obj, ex);
-            return null;
+            return new AcquireResult.Failed($"could not resolve the chapter's page images: {ex.Message}");
         }
 
         if (imageUrls.Length == 0)
@@ -45,7 +45,7 @@ public class ImageListAcquirer(KenkuSettings settings) : IChapterAcquirer
             // No pages resolved (e.g. connector returned nothing). Fail instead of writing an
             // empty .cbz that would be marked Downloaded and never retried.
             Log.Warn($"No image URLs for chapter {chapter.Obj}; not writing an archive.");
-            return null;
+            return new AcquireResult.Failed("the connector returned no page images for this chapter");
         }
 
         // Build the archive at a sibling temp path and move it into place only once it is complete, so a
@@ -81,17 +81,17 @@ public class ImageListAcquirer(KenkuSettings settings) : IChapterAcquirer
             {
                 Log.Warn($"None of the {imageUrls.Length} page image(s) for chapter {chapter.Obj} could be downloaded; not writing an archive.");
                 TryDelete(tempPath);
-                return null;
+                return new AcquireResult.Failed($"none of the {imageUrls.Length} page image(s) could be downloaded");
             }
 
             File.Move(tempPath, saveArchiveFilePath, overwrite: true);
-            return saveArchiveFilePath;
+            return new AcquireResult.Acquired(saveArchiveFilePath);
         }
         catch (Exception ex)
         {
             Log.ErrorFormat("Failed to download chapter {0}: {1}", chapter.Obj, ex);
             TryDelete(tempPath);
-            return null;
+            return new AcquireResult.Failed($"chapter download failed: {ex.Message}");
         }
     }
 

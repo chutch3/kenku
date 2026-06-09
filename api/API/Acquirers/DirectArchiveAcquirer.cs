@@ -17,7 +17,7 @@ public class DirectArchiveAcquirer(HttpClient http) : IChapterAcquirer
 
     public AcquisitionKind Kind => AcquisitionKind.DirectArchive;
 
-    public async Task<string?> AcquireAsync(
+    public async Task<AcquireResult> AcquireAsync(
         SourceId<Chapter> chapter,
         SeriesSource source,
         string saveArchiveFilePath,
@@ -26,7 +26,7 @@ public class DirectArchiveAcquirer(HttpClient http) : IChapterAcquirer
         if (string.IsNullOrWhiteSpace(chapter.WebsiteUrl))
         {
             Log.ErrorFormat("Cannot acquire chapter {0}: WebsiteUrl is empty (a DirectArchive connector must populate it with the archive URL).", chapter);
-            return null;
+            return new AcquireResult.Failed("the connector did not provide an archive URL for this chapter");
         }
 
         try
@@ -35,19 +35,19 @@ public class DirectArchiveAcquirer(HttpClient http) : IChapterAcquirer
             if (!response.IsSuccessStatusCode)
             {
                 Log.ErrorFormat("Failed to download archive {0}: HTTP {1}", chapter.WebsiteUrl, (int)response.StatusCode);
-                return null;
+                return new AcquireResult.Failed($"archive download failed: HTTP {(int)response.StatusCode}");
             }
 
             await using FileStream fs = File.Create(saveArchiveFilePath);
             await response.Content.CopyToAsync(fs, ct);
-            return saveArchiveFilePath;
+            return new AcquireResult.Acquired(saveArchiveFilePath);
         }
         catch (Exception ex)
         {
             Log.ErrorFormat("Failed to acquire archive {0}: {1}", chapter.WebsiteUrl, ex);
             // Best effort cleanup of any partial file
             try { if (File.Exists(saveArchiveFilePath)) File.Delete(saveArchiveFilePath); } catch { /* swallow */ }
-            return null;
+            return new AcquireResult.Failed($"archive download failed: {ex.Message}");
         }
     }
 }

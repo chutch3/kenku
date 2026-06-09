@@ -36,7 +36,8 @@ public class ChapterDownloadService(
 
     private static readonly ILog Log = LogManager.GetLogger(typeof(ChapterDownloadService));
 
-    /// <summary>Returns true if the chapter was downloaded; false only when already downloaded (idempotent no-op).</summary>
+    /// <summary>Returns true if the chapter was downloaded; false when already downloaded (idempotent
+    /// no-op) or when acquisition was deferred to an external client (the completion path finishes it).</summary>
     public async Task<bool> DownloadAsync(SeriesContext seriesContext, ActionsContext actionsContext, string chapterKey, CancellationToken ct)
     {
         Log.Debug($"Downloading chapter for SourceId {chapterKey}...");
@@ -78,10 +79,21 @@ public class ChapterDownloadService(
         // Pick the acquirer matching the source's delivery Kind; fall back to the historical image-list path.
         IChapterAcquirer acquirer = _acquirers.FirstOrDefault(a => a.Kind == seriesSource.Kind) ?? new ImageListAcquirer(settings);
 
-        // Delegate the actual fetch + package step. Acquirer returns null on failure.
-        string? acquiredPath = await acquirer.AcquireAsync(mangaConnectorId, seriesSource, saveArchiveFilePath, ct);
-        if (acquiredPath is null)
-            throw new InvalidOperationException($"Acquirer returned null for chapter {chapter} — download failed.");
+        string acquiredPath;
+        switch (await acquirer.AcquireAsync(mangaConnectorId, seriesSource, saveArchiveFilePath, ct))
+        {
+            case AcquireResult.Acquired acquired:
+                acquiredPath = acquired.Path;
+                break;
+            case AcquireResult.Deferred:
+                // Handed off to an external client; the completion path marks Downloaded later.
+                Log.InfoFormat("Chapter {0} handed off to an external client; deferring completion.", chapter);
+                return false;
+            case AcquireResult.Failed failed:
+                throw new InvalidOperationException($"Download failed for chapter {chapter}: {failed.Reason}");
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
 
         try
         {

@@ -1,5 +1,7 @@
+using API.DownloadClients.Interfaces;
 using API.JobRuntime.Interfaces;
 using API.JobRuntime.Handlers;
+using API.Connectors;
 using API.Schema.JobsContext;
 using API.Schema.SeriesContext;
 using API.Services;
@@ -38,7 +40,10 @@ public class DownloadReconciler(IServiceScopeFactory scopeFactory, IClock clock,
                 await ScanAndEnqueueAsync(
                     scope.ServiceProvider.GetRequiredService<SeriesContext>(),
                     scope.ServiceProvider.GetRequiredService<IJobStore>(),
-                    clock.UtcNow, stoppingToken);
+                    clock.UtcNow,
+                    scope.ServiceProvider.GetService<IDownloadClient>(),
+                    scope.ServiceProvider.GetServices<SeriesSource>(),
+                    stoppingToken);
             }
             catch (OperationCanceledException) { break; }
             catch (Exception e) { Log.Error("Download reconciler error", e); }
@@ -47,16 +52,48 @@ public class DownloadReconciler(IServiceScopeFactory scopeFactory, IClock clock,
         }
     }
 
-    /// <summary>Enqueues a download job for each missing chapter, deduped per source-id, keyed on its series.</summary>
-    public static async Task<int> ScanAndEnqueueAsync(SeriesContext series, IJobStore store, DateTime now, CancellationToken ct)
+    /// <summary>
+    /// Enqueues a download job for each missing chapter, deduped per source-id, keyed on its series.
+    /// Torrent-kind chapters whose torrent is already in the download client are skipped — they are not
+    /// missing, they are in flight, and <see cref="TorrentCompletionReconciler"/> owns their completion.
+    /// </summary>
+    public static async Task<int> ScanAndEnqueueAsync(SeriesContext series, IJobStore store, DateTime now,
+        IDownloadClient? downloadClient, IEnumerable<SeriesSource> connectors, CancellationToken ct)
     {
         List<SourceId<Chapter>> missing = await ChapterDownloadService.GetMissingChapters(series, ct);
 
+        var torrentSourceNames = connectors
+            .Where(c => c.Kind == Acquirers.AcquisitionKind.Torrent)
+            .Select(c => c.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        int enqueued = 0;
         foreach (SourceId<Chapter> chapterSourceId in missing)
+        {
+            if (downloadClient is not null && await TorrentInFlight(chapterSourceId))
+                continue;
+
             await store.EnqueueAsync(new Job(DownloadChapterHandler.Type,
                 DownloadChapterHandler.PayloadFor(chapterSourceId.Key), now,
                 resourceKey: chapterSourceId.Obj.ParentMangaId, dedupKey: DedupKey(chapterSourceId.Key)), ct);
+            enqueued++;
+        }
+        return enqueued;
 
-        return missing.Count;
+        async Task<bool> TorrentInFlight(SourceId<Chapter> chId)
+        {
+            if (!torrentSourceNames.Contains(chId.MangaConnectorName))
+                return false;
+            try
+            {
+                return await downloadClient.GetStatus(chId.Key, ct) is DownloadStatus.Downloading or DownloadStatus.Completed;
+            }
+            catch (Exception e)
+            {
+                // Client unreachable: enqueue anyway — the download job surfaces the error, bounded.
+                Log.Warn($"Could not query download client for {chId.Key}: {e.Message}");
+                return false;
+            }
+        }
     }
 }

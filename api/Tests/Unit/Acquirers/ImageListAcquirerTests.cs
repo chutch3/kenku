@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using API.Acquirers.Interfaces;
 using API.Acquirers;
 using API.Connectors;
 using API.Schema.SeriesContext;
@@ -64,9 +65,9 @@ public class ImageListAcquirerTests
                 .ReturnsAsync(() => new MemoryStream(CreateJpegBytes()));
 
             var acquirer = new ImageListAcquirer(settings);
-            string? result = await acquirer.AcquireAsync(chapter, source.Object, finalPath, CancellationToken.None);
+            AcquireResult result = await acquirer.AcquireAsync(chapter, source.Object, finalPath, CancellationToken.None);
 
-            Assert.Equal(finalPath, result);
+            Assert.Equal(finalPath, Assert.IsType<AcquireResult.Acquired>(result).Path);
             Assert.True(File.Exists(finalPath));
             Assert.False(File.Exists(finalPath + ".part"), "the temp file must be moved into place, not left behind");
 
@@ -98,9 +99,9 @@ public class ImageListAcquirerTests
                 .ReturnsAsync(() => new ThrowingStream());
 
             var acquirer = new ImageListAcquirer(settings);
-            string? result = await acquirer.AcquireAsync(chapter, source.Object, finalPath, CancellationToken.None);
+            AcquireResult result = await acquirer.AcquireAsync(chapter, source.Object, finalPath, CancellationToken.None);
 
-            Assert.Null(result);
+            Assert.IsType<AcquireResult.Failed>(result);
             Assert.False(File.Exists(finalPath), "a mid-write failure must never leave a partial .cbz at the final path");
             Assert.False(File.Exists(finalPath + ".part"), "the temp file must be cleaned up on failure");
         }

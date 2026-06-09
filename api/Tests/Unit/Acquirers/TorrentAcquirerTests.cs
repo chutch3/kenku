@@ -1,3 +1,4 @@
+using API.Acquirers.Interfaces;
 using API.DownloadClients.Interfaces;
 using API.Indexers.Interfaces;
 using API;
@@ -39,7 +40,7 @@ public class TorrentAcquirerTests
     }
 
     [Fact]
-    public async Task AcquireAsync_HandsOffSelectedReleaseToTorrentClient_AndReturnsNull()
+    public async Task AcquireAsync_HandsOffSelectedReleaseToTorrentClient_AndDefers()
     {
         var (chapterId, source, tempRoot) = BuildFixture();
         try
@@ -59,10 +60,10 @@ public class TorrentAcquirerTests
             var acquirer = new TorrentAcquirer(indexer.Object, torrent.Object, selector,
                 new TorrentAcquirerSettings(Path.Combine(tempRoot, "staging"), [8000]));
 
-            string? result = await acquirer.AcquireAsync(chapterId, source, Path.Combine(tempRoot, "x.cbz"), CancellationToken.None);
+            AcquireResult result = await acquirer.AcquireAsync(chapterId, source, Path.Combine(tempRoot, "x.cbz"), CancellationToken.None);
 
-            // Null because the file isn't ready synchronously — completion worker handles it later.
-            Assert.Null(result);
+            // Deferred because the file isn't ready synchronously — the completion reconciler finishes it.
+            Assert.IsType<AcquireResult.Deferred>(result);
             Assert.Equal("magnet:?xt=urn:btih:abc", capturedUrl);
             Assert.Equal(chapterId.Key, capturedTag);
             Assert.StartsWith(Path.Combine(tempRoot, "staging"), capturedDir!);
@@ -74,7 +75,7 @@ public class TorrentAcquirerTests
     }
 
     [Fact]
-    public async Task AcquireAsync_ReturnsNull_WhenIndexerHasNoResults()
+    public async Task AcquireAsync_Fails_WhenIndexerHasNoResults()
     {
         var (chapterId, source, tempRoot) = BuildFixture();
         try
@@ -86,16 +87,16 @@ public class TorrentAcquirerTests
             var acquirer = new TorrentAcquirer(indexer.Object, torrent.Object, new ReleaseSelector(),
                 new TorrentAcquirerSettings(Path.Combine(tempRoot, "staging"), [8000]));
 
-            string? result = await acquirer.AcquireAsync(chapterId, source, Path.Combine(tempRoot, "x.cbz"), CancellationToken.None);
+            AcquireResult result = await acquirer.AcquireAsync(chapterId, source, Path.Combine(tempRoot, "x.cbz"), CancellationToken.None);
 
-            Assert.Null(result);
+            Assert.Contains("no torrent releases found", Assert.IsType<AcquireResult.Failed>(result).Reason);
             torrent.Verify(t => t.Add(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         }
         finally { try { Directory.Delete(tempRoot, recursive: true); } catch { } }
     }
 
     [Fact]
-    public async Task AcquireAsync_ReturnsNull_WhenSelectorRejectsAllReleases()
+    public async Task AcquireAsync_Fails_WhenSelectorRejectsAllReleases()
     {
         var (chapterId, source, tempRoot) = BuildFixture();
         try
@@ -109,9 +110,52 @@ public class TorrentAcquirerTests
             var acquirer = new TorrentAcquirer(indexer.Object, torrent.Object, selector,
                 new TorrentAcquirerSettings(Path.Combine(tempRoot, "staging"), [8000]));
 
-            string? result = await acquirer.AcquireAsync(chapterId, source, Path.Combine(tempRoot, "x.cbz"), CancellationToken.None);
+            AcquireResult result = await acquirer.AcquireAsync(chapterId, source, Path.Combine(tempRoot, "x.cbz"), CancellationToken.None);
 
-            Assert.Null(result);
+            Assert.Contains("no release passed selection", Assert.IsType<AcquireResult.Failed>(result).Reason);
+            torrent.Verify(t => t.Add(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+        finally { try { Directory.Delete(tempRoot, recursive: true); } catch { } }
+    }
+
+    [Fact]
+    public async Task AcquireAsync_Defers_WithoutSearchingOrReAdding_WhenTorrentAlreadyInClient()
+    {
+        var (chapterId, source, tempRoot) = BuildFixture();
+        try
+        {
+            var indexer = new Mock<IIndexerClient>();
+            var torrent = new Mock<IDownloadClient>();
+            torrent.Setup(t => t.GetStatus(chapterId.Key, It.IsAny<CancellationToken>()))
+                   .ReturnsAsync(new DownloadStatus.Downloading(0.4));
+            var acquirer = new TorrentAcquirer(indexer.Object, torrent.Object, new ReleaseSelector(),
+                new TorrentAcquirerSettings(Path.Combine(tempRoot, "staging"), [8000]));
+
+            AcquireResult result = await acquirer.AcquireAsync(chapterId, source, Path.Combine(tempRoot, "x.cbz"), CancellationToken.None);
+
+            Assert.IsType<AcquireResult.Deferred>(result);
+            indexer.Verify(i => i.Search(It.IsAny<IndexerQuery>(), It.IsAny<CancellationToken>()), Times.Never);
+            torrent.Verify(t => t.Add(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+        finally { try { Directory.Delete(tempRoot, recursive: true); } catch { } }
+    }
+
+    [Fact]
+    public async Task AcquireAsync_Fails_WhenTorrentErroredInClient()
+    {
+        var (chapterId, source, tempRoot) = BuildFixture();
+        try
+        {
+            var indexer = new Mock<IIndexerClient>();
+            var torrent = new Mock<IDownloadClient>();
+            torrent.Setup(t => t.GetStatus(chapterId.Key, It.IsAny<CancellationToken>()))
+                   .ReturnsAsync(new DownloadStatus.Errored("disk full"));
+            var acquirer = new TorrentAcquirer(indexer.Object, torrent.Object, new ReleaseSelector(),
+                new TorrentAcquirerSettings(Path.Combine(tempRoot, "staging"), [8000]));
+
+            AcquireResult result = await acquirer.AcquireAsync(chapterId, source, Path.Combine(tempRoot, "x.cbz"), CancellationToken.None);
+
+            Assert.Contains("disk full", Assert.IsType<AcquireResult.Failed>(result).Reason);
             torrent.Verify(t => t.Add(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         }
         finally { try { Directory.Delete(tempRoot, recursive: true); } catch { } }

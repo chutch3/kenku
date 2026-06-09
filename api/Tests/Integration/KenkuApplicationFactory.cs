@@ -74,6 +74,11 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
     /// hermetic — call DrainJobsAsync() manually to drive the dispatcher.</summary>
     public bool RunStartup { get; init; } = false;
 
+    /// <summary>Last-applied service overrides for anything without a dedicated hook (e.g. a stub
+    /// <c>IDownloadClient</c> + acquirer for the torrent path, which production only registers when a
+    /// download client is configured).</summary>
+    public Action<IServiceCollection>? ExtraServices { get; init; }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("Kenku:RunStartup", RunStartup ? "true" : "false");
@@ -140,6 +145,8 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
 
             foreach (API.Connectors.SeriesSource connector in ExtraConnectors)
                 services.AddSingleton(connector);
+
+            ExtraServices?.Invoke(services);
         });
     }
 

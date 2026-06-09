@@ -1,8 +1,13 @@
+using API.DownloadClients.Interfaces;
 using API.JobRuntime.Reconcilers;
+using API.Acquirers;
 using API.JobRuntime;
 using API.JobRuntime.Handlers;
+using API.Connectors;
+using API.DownloadClients;
 using API.Schema.SeriesContext;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using Xunit;
 
 namespace API.Tests.Unit.JobRuntime;
@@ -59,7 +64,7 @@ public class DownloadReconcilerTests : IDisposable
         await ctx.SaveChangesAsync();
         var store = new InMemoryJobStore();
 
-        int enqueued = await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow, default);
+        int enqueued = await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow, null, [], default);
 
         Assert.Equal(2, enqueued);
         var jobs = await store.GetAllAsync();
@@ -76,9 +81,55 @@ public class DownloadReconcilerTests : IDisposable
         await ctx.SaveChangesAsync();
         var store = new InMemoryJobStore();
 
-        await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow, default);
-        await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow, default);
+        await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow, null, [], default);
+        await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow, null, [], default);
 
         Assert.Single(await store.GetAllAsync()); // second tick coalesced on dedup key — no re-queue loop
+    }
+
+    private sealed class FakeTorrentSource : SeriesSource
+    {
+        public FakeTorrentSource() : base("MockConnector", ["en"], ["fake.test"], "i", new KenkuSettings { AppData = "/tmp" }) { }
+        public override AcquisitionKind Kind => AcquisitionKind.Torrent;
+        public override Task<(Series, SourceId<Series>)[]> SearchManga(string s) => throw new NotSupportedException();
+        public override Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string u) => throw new NotSupportedException();
+        public override Task<(Series, SourceId<Series>)?> GetMangaFromId(string i) => throw new NotSupportedException();
+        public override Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> m, string? l = null) => throw new NotSupportedException();
+        internal override Task<string[]> GetChapterImageUrls(SourceId<Chapter> c) => throw new NotSupportedException();
+    }
+
+    [Fact]
+    public async Task Scan_SkipsTorrentChaptersAlreadyInFlightAtTheClient()
+    {
+        var (ctx, manga) = await SeedSeries();
+        AddChapter(ctx, manga, "1");
+        await ctx.SaveChangesAsync();
+        var store = new InMemoryJobStore();
+        var client = new Mock<IDownloadClient>();
+        client.Setup(c => c.GetStatus(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+              .ReturnsAsync(new DownloadStatus.Downloading(0.5));
+
+        int enqueued = await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow,
+            client.Object, [new FakeTorrentSource()], default);
+
+        Assert.Equal(0, enqueued);
+        Assert.Empty(await store.GetAllAsync()); // in flight — the completion reconciler owns it
+    }
+
+    [Fact]
+    public async Task Scan_StillEnqueues_WhenTheClientIsUnreachable()
+    {
+        var (ctx, manga) = await SeedSeries();
+        AddChapter(ctx, manga, "1");
+        await ctx.SaveChangesAsync();
+        var store = new InMemoryJobStore();
+        var client = new Mock<IDownloadClient>();
+        client.Setup(c => c.GetStatus(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+              .ThrowsAsync(new HttpRequestException("connection refused"));
+
+        int enqueued = await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow,
+            client.Object, [new FakeTorrentSource()], default);
+
+        Assert.Equal(1, enqueued); // the download job surfaces the client error, bounded by attempts
     }
 }
