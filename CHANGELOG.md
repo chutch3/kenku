@@ -2,6 +2,46 @@
 
 <!-- version list -->
 
+## v0.13.0 (2026-06-09)
+
+### Bug Fixes
+
+- Coalesce duplicate enqueues onto NeedsAttention jobs so reconcilers stop spawning failed-job
+  pileups
+  ([`31a98fe`](https://github.com/chutch3/kenku/commit/31a98fe8e2a0088a062c3e272d679344cff64122))
+
+- Make chapter-sync failures loud and strip the WeebCentral title slug that 404d chapter lists
+  ([`60944fc`](https://github.com/chutch3/kenku/commit/60944fc690ecf7bc87ae3524562fdf71d3be4525))
+
+- Treat torrent hand-off as deferred success so comic downloads stop failing and re-adding
+  ([`6e339e5`](https://github.com/chutch3/kenku/commit/6e339e55b8cd66430c36e86ba97b9f2dbb16cd02))
+
+### Features
+
+- Acknowledge refresh actions with a brief toast so fast reloads are visible
+  ([`4366575`](https://github.com/chutch3/kenku/commit/4366575daf9ec46a49e162c44897419f0a530e80))
+
+- Add a per-series rollup so the library badge reflects real download state and failures
+  ([`55d6c58`](https://github.com/chutch3/kenku/commit/55d6c58738e34399845b17f92dc8bc4385534211))
+
+- Add Playwright golden-flow tests for the add modal and queue intervention
+  ([`11a3a56`](https://github.com/chutch3/kenku/commit/11a3a56f54e7948429b9a52af5f41b9b6d2178f6))
+
+- Add series from search via a modal with chapter preview and an add-only or add-and-download choice
+  ([`5c8fb48`](https://github.com/chutch3/kenku/commit/5c8fb480a66aec31a14e74779167073e99bae0e8))
+
+- Backfill missing covers from MyAnimeList and record why a cover refresh did nothing
+  ([`be931ac`](https://github.com/chutch3/kenku/commit/be931ac8bea5c9b16fd8a21576b0da1612753566))
+
+- Diverge the comic experience with source kinds, Metron covers for indexer series, and
+  release-selection settings
+  ([`ed1a494`](https://github.com/chutch3/kenku/commit/ed1a494fe44b445684445fe69e68a79aac3a9279))
+
+- Turn the queue into a readable operations view with human job rows, contextual sync triggers, and
+  source re-matching
+  ([`53646f2`](https://github.com/chutch3/kenku/commit/53646f2eb92b7586514bc5147445527a2a16c0ee))
+
+
 ## v0.12.1 (2026-06-08)
 
 ### Bug Fixes
