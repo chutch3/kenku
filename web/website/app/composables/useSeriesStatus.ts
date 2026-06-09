@@ -1,10 +1,12 @@
 import type { components } from '#open-fetch-schemas/api';
 
 type AnySeries = components['schemas']['Series'] | components['schemas']['MinimalSeries'];
+type SeriesRollup = components['schemas']['SeriesRollup'];
 type BadgeColor = 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'error' | 'neutral';
 
-/** How Kenku is handling this series, derived from data already on the list payload. */
-export type TrackState = 'untracked' | 'downloading' | 'paused';
+/** How Kenku is handling this series. With a rollup this reflects actual work — pending jobs and
+ * missing chapters — not merely whether a source is switched on. */
+export type TrackState = 'untracked' | 'attention' | 'downloading' | 'upToDate' | 'paused';
 
 export interface StatusMeta {
     label: string;
@@ -13,10 +15,13 @@ export interface StatusMeta {
     hint: string;
 }
 
-export function seriesTrackState(series: AnySeries): TrackState {
+export function seriesTrackState(series: AnySeries, rollup?: SeriesRollup | null): TrackState {
     if (!series.fileLibraryId) return 'untracked';
-    const downloading = (series.sourceIds ?? []).some((s) => s.useForDownload);
-    return downloading ? 'downloading' : 'paused';
+    if (!(series.sourceIds ?? []).some((s) => s.useForDownload)) return 'paused';
+    if (!rollup) return 'downloading';
+    if (rollup.needsAttentionJobs > 0) return 'attention';
+    if (rollup.queuedJobs + rollup.runningJobs > 0 || rollup.downloadedChapters < rollup.wantedChapters) return 'downloading';
+    return 'upToDate';
 }
 
 export const TRACK_STATE_META: Record<TrackState, StatusMeta> = {
@@ -26,11 +31,23 @@ export const TRACK_STATE_META: Record<TrackState, StatusMeta> = {
         icon: 'i-lucide-bookmark-plus',
         hint: 'Add this series to a library to start tracking it.',
     },
+    attention: {
+        label: 'Needs attention',
+        color: 'error',
+        icon: 'i-lucide-triangle-alert',
+        hint: 'A job for this series failed and is waiting on you — check the queue.',
+    },
     downloading: {
         label: 'Downloading',
         color: 'success',
         icon: 'i-lucide-cloud-download',
         hint: 'Kenku is pulling new chapters from your selected sources.',
+    },
+    upToDate: {
+        label: 'Up to date',
+        color: 'secondary',
+        icon: 'i-lucide-check',
+        hint: 'All wanted chapters are downloaded.',
     },
     paused: { label: 'Paused', color: 'neutral', icon: 'i-lucide-pause', hint: 'Tracked, but no download source is turned on.' },
 };
@@ -44,8 +61,8 @@ export const RELEASE_STATUS_META: Record<string, StatusMeta> = {
     Unreleased: { label: 'Unreleased', color: 'neutral', icon: 'i-lucide-circle-dashed', hint: 'Not yet released.' },
 };
 
-export function trackStateMeta(series: AnySeries): StatusMeta {
-    return TRACK_STATE_META[seriesTrackState(series)];
+export function trackStateMeta(series: AnySeries, rollup?: SeriesRollup | null): StatusMeta {
+    return TRACK_STATE_META[seriesTrackState(series, rollup)];
 }
 
 export function releaseStatusMeta(series: AnySeries): StatusMeta {

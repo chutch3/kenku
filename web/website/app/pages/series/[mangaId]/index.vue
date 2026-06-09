@@ -1,5 +1,5 @@
 <template>
-    <SeriesDetailPage :series="series">
+    <SeriesDetailPage :series="series" :rollup="rollup">
         <div class="grid gap-3 max-xl:grid-flow-row-dense min-2xl:grid-cols-[70%_auto] min-xl:grid-cols-[60%_auto] relative min-xl:h-full">
             <ChaptersList
                 v-if="!isSearchResult || (series && series.fileLibraryId)"
@@ -102,6 +102,14 @@ const flashDownloading = route.hash.substring(1) == 'download';
 const isSearchResult = !!(connectorName && connectorSeriesId);
 
 const series = ref<components['schemas']['Series'] | null>(null);
+
+const { data: rollups, refresh: refreshRollups } = await useApi('/v2/Series/Rollup', {
+    key: FetchKeys.Series.Rollup,
+    lazy: true,
+    server: false,
+});
+onMounted(() => refreshRollups());
+const rollup = computed(() => (rollups.value ?? []).find((r) => r.mangaId === mangaId) ?? null);
 
 if (import.meta.client) {
     const fetcher = isSearchResult

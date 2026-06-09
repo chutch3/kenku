@@ -75,6 +75,53 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     }
 
     /// <summary>
+    /// Per-series operational rollup: actual download progress, live job counts, and the most recent
+    /// failure — the data the library badge derives its state from.
+    /// </summary>
+    /// <response code="200">One <see cref="SeriesRollup"/> per series.</response>
+    [HttpGet("Rollup")]
+    [ProducesResponseType<List<SeriesRollup>>(Status200OK, "application/json")]
+    public async Task<Ok<List<SeriesRollup>>> GetSeriesRollup([FromServices] Schema.JobsContext.JobsContext jobsContext)
+    {
+        CancellationToken ct = HttpContext.RequestAborted;
+        List<string> seriesKeys = await context.Series.Select(s => s.Key).ToListAsync(ct);
+
+        var chapterStats = await context.Chapters
+            .Where(c => c.SourceIds.Any(s => s.UseForDownload))
+            .GroupBy(c => c.ParentMangaId)
+            .Select(g => new { MangaId = g.Key, Wanted = g.Count(), Downloaded = g.Count(c => c.Downloaded || c.IsBundled) })
+            .ToListAsync(ct);
+
+        // The queue is pruned to a retention window, so loading the live rows is bounded.
+        var jobs = await jobsContext.JobQueue
+            .Where(j => j.ResourceKey != null && j.Status != Schema.JobsContext.JobStatus.Succeeded
+                                              && j.Status != Schema.JobsContext.JobStatus.Cancelled)
+            .ToListAsync(ct);
+
+        var lastSyncs = await actionsContext.Actions.OfType<ChaptersRetrievedActionRecord>()
+            .GroupBy(r => r.MangaId)
+            .Select(g => g.OrderByDescending(r => r.PerformedAt).First())
+            .ToListAsync(ct);
+
+        return TypedResults.Ok(seriesKeys.Select(key =>
+        {
+            var chapters = chapterStats.FirstOrDefault(c => c.MangaId == key);
+            var seriesJobs = jobs.Where(j => j.ResourceKey == key).ToList();
+            var sync = lastSyncs.FirstOrDefault(r => r.MangaId == key);
+            string? lastError = seriesJobs
+                .Where(j => j.Error != null)
+                .OrderByDescending(j => j.FinishedAt ?? j.StartedAt ?? j.CreatedAt)
+                .Select(j => j.Error)
+                .FirstOrDefault();
+            return new SeriesRollup(key, chapters?.Wanted ?? 0, chapters?.Downloaded ?? 0,
+                seriesJobs.Count(j => j.Status == Schema.JobsContext.JobStatus.Queued),
+                seriesJobs.Count(j => j.Status == Schema.JobsContext.JobStatus.Running),
+                seriesJobs.Count(j => j.Status == Schema.JobsContext.JobStatus.NeedsAttention),
+                lastError, sync?.PerformedAt, sync?.ChapterCount);
+        }).ToList());
+    }
+
+    /// <summary>
     /// Return <see cref="Schema.SeriesContext.Series"/> with <paramref name="MangaId"/>
     /// </summary>
     /// <param name="MangaId"><see cref="Schema.SeriesContext.Series"/>.Key</param>

@@ -30,7 +30,7 @@
                         {{ filtered.length }}<span class="text-muted/60"> / {{ series.length }}</span> series
                     </p>
                 </div>
-                <SeriesCardList v-if="filtered.length" :series="filtered" @click="(m) => navigateTo(`/series/${m.key}`)" />
+                <SeriesCardList v-if="filtered.length" :series="filtered" :rollups="rollupsByKey" @click="(m) => navigateTo(`/series/${m.key}`)" />
                 <div v-else class="flex flex-col items-center gap-2 py-20 text-center">
                     <UIcon name="i-lucide-search-x" class="size-8 text-dimmed" />
                     <p class="text-muted">No series match your filters.</p>
@@ -46,7 +46,17 @@
 
 <script setup lang="ts">
 const { data: series, refresh, status } = await useApi('/v2/Series', { key: FetchKeys.Series.All, lazy: true, server: false });
-onMounted(() => refresh());
+const { data: rollups, refresh: refreshRollups } = await useApi('/v2/Series/Rollup', {
+    key: FetchKeys.Series.Rollup,
+    lazy: true,
+    server: false,
+});
+onMounted(() => {
+    refresh();
+    refreshRollups();
+});
+
+const rollupsByKey = computed(() => Object.fromEntries((rollups.value ?? []).map((r) => [r.mangaId, r])));
 
 const filterText = ref('');
 const statusFilter = ref<'all' | TrackState>('all');
@@ -54,7 +64,9 @@ const sortBy = ref<'name-asc' | 'name-desc'>('name-asc');
 
 const statusOptions = [
     { label: 'All series', value: 'all' },
+    { label: 'Needs attention', value: 'attention' },
     { label: 'Downloading', value: 'downloading' },
+    { label: 'Up to date', value: 'upToDate' },
     { label: 'Paused', value: 'paused' },
     { label: 'Not tracked', value: 'untracked' },
 ];
@@ -67,7 +79,7 @@ const filtered = computed(() => {
     let list = series.value ?? [];
     const q = filterText.value.trim().toLowerCase();
     if (q) list = list.filter((s) => s.name.toLowerCase().includes(q));
-    if (statusFilter.value !== 'all') list = list.filter((s) => seriesTrackState(s) === statusFilter.value);
+    if (statusFilter.value !== 'all') list = list.filter((s) => seriesTrackState(s, rollupsByKey.value[s.key]) === statusFilter.value);
     list = [...list].sort((a, b) => a.name.localeCompare(b.name));
     if (sortBy.value === 'name-desc') list.reverse();
     return list;

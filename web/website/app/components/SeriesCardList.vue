@@ -5,6 +5,7 @@
             v-for="(m, i) in series"
             :key="m.key"
             :series="m"
+            :rollup="rollups?.[m.key]"
             :expanded="i === expanded"
             :style="{ '--rev-i': Math.min(i, 24) }"
             class="reveal cursor-pointer"
@@ -16,9 +17,10 @@
 import type { components } from '#open-fetch-schemas/api';
 type Series = components['schemas']['Series'];
 type MinimalSeries = components['schemas']['MinimalSeries'];
+type SeriesRollup = components['schemas']['SeriesRollup'];
 
 const expanded = ref(-1);
 
 defineEmits<{ (e: 'click', series: MinimalSeries | Series): void }>();
-defineProps<{ series?: (MinimalSeries | Series)[] }>();
+defineProps<{ series?: (MinimalSeries | Series)[]; rollups?: Record<string, SeriesRollup> }>();
 </script>

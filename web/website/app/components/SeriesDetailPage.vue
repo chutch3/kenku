@@ -9,9 +9,17 @@
                     <SourceIcon v-for="m in series.sourceIds" v-bind="m" :key="m.key" />
                 </p>
                 <div v-if="series" class="flex flex-wrap items-center gap-2">
-                    <SeriesStatusBadge :series="series" type="track" />
+                    <SeriesStatusBadge :series="series" type="track" :rollup="rollup" />
                     <SeriesStatusBadge :series="series" type="release" />
                 </div>
+                <UAlert
+                    v-if="rollup?.lastError"
+                    color="error"
+                    variant="subtle"
+                    icon="i-lucide-triangle-alert"
+                    :description="rollup.lastError"
+                    :actions="[{ label: 'Open queue', to: '/queue', color: 'error', variant: 'outline' }]"
+                    class="mt-1" />
                 <SeriesProgress v-if="series?.fileLibraryId" :manga-id="series.key" class="mt-1" />
                 <USkeleton v-else-if="!series" as="p" class="h-20 w-full" />
                 <div v-if="series" class="flex flex-row gap-1 flex-wrap">
@@ -41,9 +49,11 @@
 import type { components } from '#open-fetch-schemas/api';
 import KenkuPage, { type PageProps } from '~/components/KenkuPage.vue';
 type Series = components['schemas']['Series'];
+type SeriesRollup = components['schemas']['SeriesRollup'];
 
 export interface SeriesDetailPageProps extends PageProps {
     series?: Series | null;
+    rollup?: SeriesRollup | null;
 }
 
 defineProps<SeriesDetailPageProps>();

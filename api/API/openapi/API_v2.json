@@ -3099,6 +3099,29 @@
         }
       }
     },
+    "/v2/Series/Rollup": {
+      "get": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Per-series operational rollup: actual download progress, live job counts, and the most recent\nfailure — the data the library badge derives its state from.",
+        "responses": {
+          "200": {
+            "description": "One API.Controllers.DTOs.SeriesRollup per series.",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SeriesRollup"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/Series/{MangaId}": {
       "get": {
         "tags": [
@@ -6461,6 +6484,64 @@
           "Unreleased"
         ],
         "type": "string"
+      },
+      "SeriesRollup": {
+        "required": [
+          "downloadedChapters",
+          "mangaId",
+          "needsAttentionJobs",
+          "queuedJobs",
+          "runningJobs",
+          "wantedChapters"
+        ],
+        "type": "object",
+        "properties": {
+          "mangaId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "wantedChapters": {
+            "type": "integer",
+            "description": "Chapters wanted for download (a source link is enabled).",
+            "format": "int32"
+          },
+          "downloadedChapters": {
+            "type": "integer",
+            "description": "Wanted chapters already on disk (downloaded or bundled).",
+            "format": "int32"
+          },
+          "queuedJobs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "runningJobs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "needsAttentionJobs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastError": {
+            "type": "string",
+            "description": "Most recent job failure message for this series, if any.",
+            "nullable": true
+          },
+          "lastSyncAt": {
+            "type": "string",
+            "description": "When chapters were last retrieved from a connector.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastSyncChapterCount": {
+            "type": "integer",
+            "description": "How many chapters the connector reported on the last sync — 0 means 'looked and found none'.",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Per-series operational rollup: actual download progress, live job counts, and the most recent\nfailure. This is what the library badge and series page derive their state from — 'Downloading'\nmeans work is actually pending, not merely 'a source is enabled'."
       },
       "SeriesSource": {
         "required": [

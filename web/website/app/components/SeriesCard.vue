@@ -2,7 +2,7 @@
     <div class="kenku-lift group relative max-sm:w-[var(--mangacover-width-sm)] w-(--mangacover-width) mt-4 mr-4 rounded-lg">
         <SeriesCover :series="series" blur />
         <div class="absolute top-2 left-2 z-10 max-sm:hidden">
-            <SeriesStatusBadge :series="series" />
+            <SeriesStatusBadge :series="series" :rollup="rollup" />
         </div>
         <div
             v-if="series.sourceIds.length"
@@ -18,10 +18,12 @@ import type { components } from '#open-fetch-schemas/api';
 import type { PageCardProps } from '#ui/components/PageCard.vue';
 type Series = components['schemas']['Series'];
 type MinimalSeries = components['schemas']['MinimalSeries'];
+type SeriesRollup = components['schemas']['SeriesRollup'];
 
 defineProps<SeriesCardProps>();
 
 export interface SeriesCardProps extends /* @vue-ignore */ PageCardProps {
     series: Series | MinimalSeries;
+    rollup?: SeriesRollup | null;
 }
 </script>
