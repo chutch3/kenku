@@ -67,6 +67,20 @@ public class EfJobStoreConcurrencyTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Enqueue_CoalescesOntoANeedsAttentionJob()
+    {
+        using var scope = _app1.Services.CreateScope();
+        var store = scope.ServiceProvider.GetRequiredService<IJobStore>();
+        var first = await store.EnqueueAsync(new JobEntity("CountingJob", "{}", DateTime.UtcNow, dedupKey: "d"));
+        first.Status = API.Schema.JobsContext.JobStatus.NeedsAttention;
+        await store.UpdateAsync(first);
+
+        var second = await store.EnqueueAsync(new JobEntity("CountingJob", "{}", DateTime.UtcNow, dedupKey: "d"));
+
+        Assert.Equal(first.Key, second.Key);
+    }
+
+    [Fact]
     public async Task MigrationsApplied_AllContextsHaveSchema()
     {
         using var scope = _app1.Services.CreateScope();

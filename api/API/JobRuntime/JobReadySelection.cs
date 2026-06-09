@@ -35,6 +35,9 @@ public static class JobReadySelection
         job.LeasedUntil = now + leaseDuration;
     }
 
-    /// <summary>An active (non-terminal) job that a new enqueue with the same dedup key should coalesce onto.</summary>
-    public static bool IsActive(JobStatus status) => status is JobStatus.Queued or JobStatus.Running;
+    /// <summary>A job that a new enqueue with the same dedup key should coalesce onto. NeedsAttention
+    /// counts: it means "stop and wait for the user", so automated re-enqueues must not pile up fresh
+    /// duplicates behind it — a new job only spawns once the user retries or dismisses it.</summary>
+    public static bool IsActive(JobStatus status) =>
+        status is JobStatus.Queued or JobStatus.Running or JobStatus.NeedsAttention;
 }

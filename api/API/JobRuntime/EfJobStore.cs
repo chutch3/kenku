@@ -15,7 +15,8 @@ public class EfJobStore(JobsContext context) : IJobStore
         if (job.DedupKey is { } dedup)
         {
             Job? existing = await context.JobQueue
-                .Where(j => j.DedupKey == dedup && (j.Status == JobStatus.Queued || j.Status == JobStatus.Running))
+                .Where(j => j.DedupKey == dedup && (j.Status == JobStatus.Queued || j.Status == JobStatus.Running
+                                                    || j.Status == JobStatus.NeedsAttention))
                 .FirstOrDefaultAsync(ct);
             if (existing is not null)
                 return existing;

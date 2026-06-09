@@ -24,6 +24,21 @@ public class JobStoreTests
     }
 
     [Fact]
+    public async Task Enqueue_CoalescesOntoANeedsAttentionJob_SoTicksCannotPileUpDuplicates()
+    {
+        var store = new InMemoryJobStore();
+        var first = await store.EnqueueAsync(NewJob(Now, dedupKey: "d"));
+        first.Status = JobStatus.NeedsAttention;
+
+        var second = await store.EnqueueAsync(NewJob(Now, dedupKey: "d"));
+
+        // NeedsAttention means "stop and wait for the user" — an automated re-enqueue must coalesce
+        // onto it (a new job only spawns after the user retries or dismisses it).
+        Assert.Same(first, second);
+        Assert.Single(await store.GetAllAsync());
+    }
+
+    [Fact]
     public async Task Enqueue_DoesNotCoalesce_OnceThePriorJobIsTerminal()
     {
         var store = new InMemoryJobStore();
