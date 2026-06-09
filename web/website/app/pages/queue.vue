@@ -11,6 +11,10 @@
 </template>
 
 <script setup lang="ts">
-const reload = () => refreshNuxtData(FetchKeys.JobQueue.All);
+const toast = useToast();
+const reload = async () => {
+    await refreshNuxtData(FetchKeys.JobQueue.All);
+    toast.add({ title: 'Queue refreshed', icon: 'i-lucide-check', color: 'neutral', duration: 1500 });
+};
 defineShortcuts({ meta_r: { usingInput: true, handler: reload } });
 </script>

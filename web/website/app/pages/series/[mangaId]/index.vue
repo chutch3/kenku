@@ -169,6 +169,7 @@ const refreshData = async () => {
         FetchKeys.Chapters.All,
     ]);
     refreshingData.value = false;
+    toast.add({ title: 'Series refreshed', icon: 'i-lucide-check', color: 'neutral', duration: 1500 });
 };
 
 defineShortcuts({ meta_r: { usingInput: true, handler: refreshData } });

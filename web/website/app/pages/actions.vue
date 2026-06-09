@@ -127,10 +127,12 @@ const noTimeLimit = async () => {
     await refreshData();
 };
 
+const toast = useToast();
 const refreshData = async (): Promise<void> => {
     if (!params.value.start || !params.value.end) return Promise.reject();
     pagination.value.pageIndex = 0;
     await refresh();
+    toast.add({ title: 'History refreshed', icon: 'i-lucide-check', color: 'neutral', duration: 1500 });
 };
 defineShortcuts({ meta_r: { usingInput: true, handler: refreshData } });
 </script>
