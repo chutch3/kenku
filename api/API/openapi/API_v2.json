@@ -3467,6 +3467,141 @@
         }
       }
     },
+    "/v2/Series/{MangaId}/Sync": {
+      "post": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Queues an immediate chapter sync + cover refresh for each of the series' sources (preferring the\nenabled ones) — the manual \"sync now\" trigger.",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "Series not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The series has no source links to sync from",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Series/{MangaId}/Source/{SourceIdKey}/Rematch": {
+      "post": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Re-matches a series' source link to a different entry on the same connector — the repair step\nwhen a stored id is wrong and syncs fail or yield nothing. The link is replaced (its key derives\nfrom the site id), the download preference carries over, and a fresh chapter sync is queued.",
+        "parameters": [
+          {
+            "name": "MangaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SourceIdKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/RematchSourceRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/RematchSourceRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/RematchSourceRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/RematchSourceRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The replacement API.Controllers.DTOs.SourceId`1",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeriesSourceId"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty idOnConnectorSite",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Series or source link not found, or the link belongs to another series",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/Series/{MangaId}/DownloadFrom/{MangaConnectorName}/{IsRequested}": {
       "patch": {
         "tags": [
@@ -6530,6 +6665,26 @@
         },
         "additionalProperties": false,
         "description": "How torrent releases are picked for comics (v1 scoring — not arr-style profiles)."
+      },
+      "RematchSourceRecord": {
+        "required": [
+          "idOnConnectorSite"
+        ],
+        "type": "object",
+        "properties": {
+          "idOnConnectorSite": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The series' id on the connector site (from a connector search result)."
+          },
+          "websiteUrl": {
+            "type": "string",
+            "description": "The series' page URL on the connector site, if known.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "The corrected connector entry a series' source link should point at."
       },
       "ReorganizeJobResult": {
         "type": "object",

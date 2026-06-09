@@ -140,6 +140,7 @@ public class TorrentDownloadEndToEndTests : IAsyncLifetime
         JobEntity downloadJob = await _app.WithJobsContext(c =>
             c.JobQueue.SingleAsync(j => j.Type == DownloadChapterHandler.Type));
         Assert.Equal(JobStatus.Succeeded, downloadJob.Status);
+        Assert.Contains("download client", downloadJob.Progress);
 
         var chapterMid = await _app.WithSeriesContext(c => c.Chapters.FirstAsync(x => x.Key == seeded.chapterKey));
         Assert.False(chapterMid.Downloaded, "hand-off must not mark the chapter Downloaded");

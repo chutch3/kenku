@@ -344,6 +344,94 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     }
 
     /// <summary>
+    /// Queues an immediate chapter sync + cover refresh for each of the series' sources (preferring the
+    /// enabled ones) — the manual "sync now" trigger.
+    /// </summary>
+    /// <response code="200"></response>
+    /// <response code="404">Series not found</response>
+    /// <response code="412">The series has no source links to sync from</response>
+    [HttpPost("{MangaId}/Sync")]
+    [ProducesResponseType(Status200OK)]
+    [ProducesResponseType<string>(Status404NotFound, "text/plain")]
+    [ProducesResponseType(Status412PreconditionFailed)]
+    public async Task<Results<Ok, NotFound<string>, StatusCodeHttpResult>> SyncNow(string MangaId,
+        [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock)
+    {
+        if (await context.Series.Include(m => m.SourceIds)
+                .FirstOrDefaultAsync(m => m.Key == MangaId, HttpContext.RequestAborted) is not { } manga)
+            return TypedResults.NotFound(nameof(MangaId));
+
+        var sources = manga.SourceIds.Where(id => id.UseForDownload).ToList();
+        if (sources.Count == 0)
+            sources = manga.SourceIds.ToList();
+        if (sources.Count == 0)
+            return TypedResults.StatusCode(Status412PreconditionFailed);
+
+        foreach (var source in sources)
+        {
+            await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
+                API.JobRuntime.Handlers.SyncSeriesChaptersHandler.Type,
+                API.JobRuntime.Handlers.SyncSeriesChaptersHandler.PayloadFor(source.Key, settings.DownloadLanguage), clock.UtcNow,
+                resourceKey: source.ObjId, dedupKey: API.JobRuntime.Reconcilers.SeriesChapterSyncReconciler.DedupKey(source.Key)),
+                HttpContext.RequestAborted);
+            await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
+                API.JobRuntime.Handlers.DownloadCoverHandler.Type,
+                API.JobRuntime.Handlers.DownloadCoverHandler.PayloadFor(source.Key), clock.UtcNow,
+                resourceKey: source.ObjId, dedupKey: API.JobRuntime.Reconcilers.CoverRefreshReconciler.DedupKey(source.Key)),
+                HttpContext.RequestAborted);
+        }
+        return TypedResults.Ok();
+    }
+
+    /// <summary>
+    /// Re-matches a series' source link to a different entry on the same connector — the repair step
+    /// when a stored id is wrong and syncs fail or yield nothing. The link is replaced (its key derives
+    /// from the site id), the download preference carries over, and a fresh chapter sync is queued.
+    /// </summary>
+    /// <response code="200">The replacement <see cref="DTOs.SourceId{T}"/></response>
+    /// <response code="400">Empty idOnConnectorSite</response>
+    /// <response code="404">Series or source link not found, or the link belongs to another series</response>
+    [HttpPost("{MangaId}/Source/{SourceIdKey}/Rematch")]
+    [ProducesResponseType<DTOs.SourceId<Series>>(Status200OK, "application/json")]
+    [ProducesResponseType<string>(Status400BadRequest, "text/plain")]
+    [ProducesResponseType<string>(Status404NotFound, "text/plain")]
+    public async Task<Results<Ok<DTOs.SourceId<Series>>, BadRequest<string>, NotFound<string>>> RematchSource(
+        string MangaId, string SourceIdKey, [FromBody] Requests.RematchSourceRecord requestData,
+        [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock)
+    {
+        if (string.IsNullOrWhiteSpace(requestData.IdOnConnectorSite))
+            return TypedResults.BadRequest("idOnConnectorSite must not be empty.");
+
+        if (await context.MangaConnectorToManga
+                .Include(id => id.Obj)
+                .FirstOrDefaultAsync(id => id.Key == SourceIdKey, HttpContext.RequestAborted) is not { } oldSource
+            || oldSource.ObjId != MangaId)
+            return TypedResults.NotFound(nameof(SourceIdKey));
+
+        var replacement = new Schema.SeriesContext.SourceId<Schema.SeriesContext.Series>(
+            oldSource.Obj, oldSource.MangaConnectorName, requestData.IdOnConnectorSite, requestData.WebsiteUrl,
+            oldSource.UseForDownload);
+        context.MangaConnectorToManga.Remove(oldSource);
+        context.MangaConnectorToManga.Add(replacement);
+        if (await context.Sync(HttpContext.RequestAborted, GetType(), "Rematch source") is { success: false } result)
+            return TypedResults.NotFound(result.exceptionMessage);
+
+        await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
+            API.JobRuntime.Handlers.SyncSeriesChaptersHandler.Type,
+            API.JobRuntime.Handlers.SyncSeriesChaptersHandler.PayloadFor(replacement.Key, settings.DownloadLanguage), clock.UtcNow,
+            resourceKey: replacement.ObjId, dedupKey: API.JobRuntime.Reconcilers.SeriesChapterSyncReconciler.DedupKey(replacement.Key)),
+            HttpContext.RequestAborted);
+        await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
+            API.JobRuntime.Handlers.DownloadCoverHandler.Type,
+            API.JobRuntime.Handlers.DownloadCoverHandler.PayloadFor(replacement.Key), clock.UtcNow,
+            resourceKey: replacement.ObjId, dedupKey: API.JobRuntime.Reconcilers.CoverRefreshReconciler.DedupKey(replacement.Key)),
+            HttpContext.RequestAborted);
+
+        return TypedResults.Ok(new DTOs.SourceId<Series>(replacement.Key, replacement.MangaConnectorName,
+            replacement.ObjId, replacement.IdOnConnectorSite, replacement.WebsiteUrl, replacement.UseForDownload));
+    }
+
+    /// <summary>
     /// (Un-)Marks <see cref="Series"/> as requested for Download from <see cref="API.Connectors.SeriesSource"/>
     /// </summary>
     /// <param name="MangaId"><see cref="Series"/> with <paramref name="MangaId"/></param>

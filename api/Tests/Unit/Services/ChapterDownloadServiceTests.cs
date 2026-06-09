@@ -428,10 +428,10 @@ public class ChapterDownloadServiceTests
         var service = new ChapterDownloadService(settings, [connector.Object], p.GetRequiredService<IJobStore>(),
             p.GetRequiredService<IClock>(), [new StubAcquirer(new AcquireResult.Deferred())], new LibraryLayoutResolver());
 
-        bool downloaded = await service.DownloadAsync(context,
+        DownloadOutcome outcome = await service.DownloadAsync(context,
             p.GetRequiredService<API.Schema.ActionsContext.ActionsContext>(), connectorId.Key, CancellationToken.None);
 
-        Assert.False(downloaded);
+        Assert.Equal(DownloadOutcome.Deferred, outcome);
         var chapter = await context.Chapters.FirstAsync(c => c.Key == connectorId.ObjId);
         Assert.False(chapter.Downloaded, "a deferred acquisition must not mark the chapter Downloaded");
     }

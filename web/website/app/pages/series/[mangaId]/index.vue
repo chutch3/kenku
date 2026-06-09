@@ -44,12 +44,23 @@
                                 :class="src.useForDownload ? 'text-success' : 'text-dimmed'">
                                 {{ src.useForDownload ? 'On' : 'Off' }}
                             </span>
+                            <UTooltip text="Re-match this link (fix a wrong entry)">
+                                <UButton size="xs" variant="ghost" color="neutral" icon="i-lucide-link-2" @click="rematchSource = src" />
+                            </UTooltip>
                             <USwitch
                                 :model-value="src.useForDownload"
                                 :disabled="!series?.fileLibraryId"
                                 @update:model-value="(v) => setRequestedFrom(src.mangaConnectorName, v)" />
                         </div>
                     </div>
+                    <RematchSourceModal
+                        v-if="rematchSource"
+                        :open="!!rematchSource"
+                        :manga-id="mangaId"
+                        :source="rematchSource"
+                        :series-name="series?.name"
+                        @update:open="(v) => { if (!v) rematchSource = null; }"
+                        @rematched="onRematched" />
                 </UCard>
 
                 <!-- Metadata: volume mapping is a manga concept; comics enrich via Metron instead. -->
@@ -67,6 +78,9 @@
                 <UButton trailing-icon="i-lucide-merge" :to="`/series/${series?.key}/merge?return=${$route.fullPath}`" color="secondary"
                     >Merge</UButton
                 >
+                <UTooltip text="Sync chapters & cover now">
+                    <UButton variant="soft" color="secondary" icon="i-lucide-cloud-download" loading-auto @click="syncNow" />
+                </UTooltip>
                 <UButton variant="soft" color="warning" icon="i-lucide-trash" @click="remove" />
                 <UTooltip text="Reload" :kbds="['meta', 'R']">
                     <UButton variant="soft" color="secondary" icon="i-lucide-refresh-ccw" :loading="refreshingData" @click="refreshData" />
@@ -128,6 +142,21 @@ const remove = async () => {
     await $api('/v2/Series/{MangaId}', { method: 'DELETE', path: { MangaId: mangaId } });
     await refreshNuxtData(FetchKeys.Series.All);
     navigateTo('/');
+};
+
+const toast = useToast();
+const syncNow = async () => {
+    await $api('/v2/Series/{MangaId}/Sync', { method: 'POST', path: { MangaId: mangaId } });
+    toast.add({ title: 'Sync queued', description: 'Chapters and cover refresh from your sources.', icon: 'i-lucide-cloud-download', color: 'success' });
+    await refreshRollups();
+};
+
+const rematchSource = ref<components['schemas']['SeriesSourceId'] | null>(null);
+const onRematched = async () => {
+    rematchSource.value = null;
+    toast.add({ title: 'Source re-matched', description: 'A fresh chapter sync is queued.', icon: 'i-lucide-link-2', color: 'success' });
+    await refreshData();
+    await refreshRollups();
 };
 
 const refreshingData = ref(false);

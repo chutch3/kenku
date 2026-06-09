@@ -17,7 +17,8 @@ public class SeriesChapterSyncService(IEnumerable<SeriesSource> connectors)
 {
     private static readonly ILog Log = LogManager.GetLogger(typeof(SeriesChapterSyncService));
 
-    public async Task SyncAsync(SeriesContext seriesContext, ActionsContext actionsContext, string sourceIdKey, string language, CancellationToken ct)
+    /// <summary>Returns (reported, added): how many chapters the connector listed, and how many were new.</summary>
+    public async Task<(int reported, int added)> SyncAsync(SeriesContext seriesContext, ActionsContext actionsContext, string sourceIdKey, string language, CancellationToken ct)
     {
         Log.DebugFormat("Getting Chapters for SourceId {0}...", sourceIdKey);
         // Hard failures throw so the dispatcher records them and bounded retry → NeedsAttention applies.
@@ -88,5 +89,7 @@ public class SeriesChapterSyncService(IEnumerable<SeriesSource> connectors)
         actionsContext.Actions.Add(new ChaptersRetrievedActionRecord(manga, allChapters.Length));
         if (await actionsContext.Sync(ct, typeof(SeriesChapterSyncService), "Chapters retrieved") is { success: false } actionsContextException)
             Log.ErrorFormat("Failed to save database changes: {0}", actionsContextException.exceptionMessage);
+
+        return (allChapters.Length, newChapters.Count);
     }
 }

@@ -17,11 +17,20 @@ using Microsoft.EntityFrameworkCore;
 
 namespace API.Services;
 
+/// <summary>How a download attempt ended; failures throw instead.</summary>
+public enum DownloadOutcome
+{
+    Downloaded,
+    AlreadyDownloaded,
+    /// <summary>Handed off to an external client; the torrent completion path marks Downloaded later.</summary>
+    Deferred
+}
+
 /// <summary>
 /// Downloads a single chapter: resolve it, fetch+package the .cbz via the <see cref="IChapterAcquirer"/>,
 /// mark it Downloaded, propagate the series cover, and enqueue any volume that just became ready to bundle.
-/// Idempotent: an already-downloaded chapter returns false without throwing. Any other failure throws so
-/// the caller (dispatcher) records the error and applies bounded retry.
+/// Idempotent: an already-downloaded chapter is a no-op. Any failure throws so the caller (dispatcher)
+/// records the error and applies bounded retry.
 /// </summary>
 public class ChapterDownloadService(
     KenkuSettings settings,
@@ -36,9 +45,7 @@ public class ChapterDownloadService(
 
     private static readonly ILog Log = LogManager.GetLogger(typeof(ChapterDownloadService));
 
-    /// <summary>Returns true if the chapter was downloaded; false when already downloaded (idempotent
-    /// no-op) or when acquisition was deferred to an external client (the completion path finishes it).</summary>
-    public async Task<bool> DownloadAsync(SeriesContext seriesContext, ActionsContext actionsContext, string chapterKey, CancellationToken ct)
+    public async Task<DownloadOutcome> DownloadAsync(SeriesContext seriesContext, ActionsContext actionsContext, string chapterKey, CancellationToken ct)
     {
         Log.Debug($"Downloading chapter for SourceId {chapterKey}...");
         if (await seriesContext.MangaConnectorToChapter
@@ -54,7 +61,7 @@ public class ChapterDownloadService(
         if (await mangaConnectorId.Obj.CheckDownloaded(seriesContext, settings.ChapterNamingScheme, token: ct))
         {
             Log.Warn("Chapter already exists!");
-            return false;
+            return DownloadOutcome.AlreadyDownloaded;
         }
 
         SeriesSource? seriesSource = connectors.FirstOrDefault(c => c.Name.Equals(mangaConnectorId.MangaConnectorName, StringComparison.InvariantCultureIgnoreCase));
@@ -88,7 +95,7 @@ public class ChapterDownloadService(
             case AcquireResult.Deferred:
                 // Handed off to an external client; the completion path marks Downloaded later.
                 Log.InfoFormat("Chapter {0} handed off to an external client; deferring completion.", chapter);
-                return false;
+                return DownloadOutcome.Deferred;
             case AcquireResult.Failed failed:
                 throw new InvalidOperationException($"Download failed for chapter {chapter}: {failed.Reason}");
             default:
@@ -149,7 +156,7 @@ public class ChapterDownloadService(
 
         await EnqueueReadyVolumeBundleJobs(seriesContext, chapter.ParentManga, ct);
         await MaybeEnqueueLibraryRefresh(seriesContext, ct);
-        return true;
+        return DownloadOutcome.Downloaded;
     }
 
     /// <summary>Chapters wanted for download that aren't downloaded yet (and aren't bundled).</summary>

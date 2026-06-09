@@ -44,10 +44,16 @@ public class DownloadChapterHandler(IServiceScopeFactory scopeFactory) : IJobHan
             new LibraryLayoutResolver(),
             provider.GetRequiredService<API.Notifications.Interfaces.INotificationDispatcher>());
 
-        if (!await service.DownloadAsync(
-                provider.GetRequiredService<SeriesContext>(),
-                provider.GetRequiredService<ActionsContext>(),
-                payload.ChapterKey, ct))
-            return; // already downloaded or deferred to an external client — idempotent success
+        DownloadOutcome outcome = await service.DownloadAsync(
+            provider.GetRequiredService<SeriesContext>(),
+            provider.GetRequiredService<ActionsContext>(),
+            payload.ChapterKey, ct);
+        job.Progress = outcome switch
+        {
+            DownloadOutcome.Downloaded => "chapter downloaded",
+            DownloadOutcome.AlreadyDownloaded => "already on disk — nothing to do",
+            DownloadOutcome.Deferred => "handed to the download client; finalised when the torrent completes",
+            _ => job.Progress
+        };
     }
 }

@@ -32,9 +32,10 @@ public class SyncSeriesChaptersHandler(IServiceScopeFactory scopeFactory) : IJob
         using IServiceScope scope = scopeFactory.CreateScope();
         var provider = scope.ServiceProvider;
         var service = new SeriesChapterSyncService(provider.GetServices<SeriesSource>());
-        await service.SyncAsync(
+        (int reported, int added) = await service.SyncAsync(
             provider.GetRequiredService<SeriesContext>(),
             provider.GetRequiredService<ActionsContext>(),
             payload.SourceIdKey, payload.Language, ct);
+        job.Progress = $"connector reported {reported} chapters ({added} new)";
     }
 }

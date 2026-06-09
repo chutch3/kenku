@@ -36,6 +36,24 @@ public class AddSeriesFlowEndToEndTests() : OutboundHttpIntegrationTest(Connecto
     }
 
     [Fact]
+    public async Task SyncNow_QueuesChapterSyncAndCover_ForTheSeriesSources()
+    {
+        string libraryKey = await SeedLibrary();
+        var add = await App.CreateClient().PostAsync(
+            $"/v2/Series/unknown/ChangeLibrary/{libraryKey}?connectorName=WeebCentral&connectorSeriesId=wc-1&download=true", null);
+        add.EnsureSuccessStatusCode();
+        string mangaId = (await FirePunchSource()).ObjId;
+        await App.WithJobsContext(async c => { c.JobQueue.RemoveRange(c.JobQueue); return await c.SaveChangesAsync(); });
+
+        var response = await App.CreateClient().PostAsync($"/v2/Series/{mangaId}/Sync", null);
+        response.EnsureSuccessStatusCode();
+
+        List<API.Schema.JobsContext.Job> jobs = await Jobs();
+        Assert.Contains(jobs, j => j.Type == SyncSeriesChaptersHandler.Type);
+        Assert.Contains(jobs, j => j.Type == DownloadCoverHandler.Type);
+    }
+
+    [Fact]
     public async Task AddOnly_TracksWithoutEnablingTheSource_ButStillSyncsTheChapterList()
     {
         string libraryKey = await SeedLibrary();

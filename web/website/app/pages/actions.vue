@@ -25,6 +25,7 @@
             </UTooltip>
         </template>
         <div class="w-full pt-2">
+            <ActivityTabs active="history" class="mb-2" />
             <div class="flex gap-2 justify-center items-center max-sm:flex-col">
                 <p class="text-dimmed basis-0 text-nowrap">{{ data?.totalCount }} Actions</p>
                 <UPagination

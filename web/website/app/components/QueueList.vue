@@ -9,7 +9,14 @@
         <ul v-else class="flex flex-col gap-1">
             <li v-for="job in displayedJobs" :key="job.key" class="flex items-center gap-2 text-sm">
                 <UBadge :color="statusColor(job.status)" variant="subtle" class="w-32 justify-center">{{ job.status }}</UBadge>
-                <span class="grow truncate" :title="job.type">{{ job.type }}</span>
+                <span class="grow truncate" :title="job.type">
+                    {{ jobLabel(job) }}
+                    <NuxtLink
+                        v-if="seriesName(job)"
+                        :to="`/series/${job.resourceKey}`"
+                        class="text-secondary hover:underline">{{ seriesName(job) }}</NuxtLink>
+                    <span v-if="job.progress" class="text-muted">— {{ job.progress }}</span>
+                </span>
                 <span v-if="job.attempts > 1" class="text-dimmed">×{{ job.attempts }}</span>
                 <span
                     v-if="durationLabel(job)"
@@ -51,6 +58,28 @@ const { $api } = useNuxtApp();
 const { data, refresh } = await useApi('/v2/JobQueue', { key: FetchKeys.JobQueue.All, server: false });
 const jobs = computed<QueuedJob[]>(() => data.value ?? []);
 const busy = ref<string | null>(null);
+
+// Make rows readable: a friendly verb instead of the handler type name, the series the job belongs
+// to (the resource key is the series for series-scoped jobs), and the recorded outcome.
+const JOB_LABELS: Record<string, string> = {
+    DownloadChapter: 'Download chapter',
+    SyncSeriesChapters: 'Sync chapters',
+    DownloadCover: 'Download cover',
+    ReconcileVolumeBundle: 'Bundle volume',
+    ResolveSeriesVolumes: 'Resolve volumes',
+    RefreshExternalMetadata: 'Refresh metadata',
+    SendNotifications: 'Send notifications',
+    Cleanup: 'Cleanup',
+    PlaceChapterFile: 'Place chapter file',
+    RefreshLibraries: 'Refresh libraries',
+    FinalizeTorrent: 'Finalize torrent',
+    VerifyDownloadState: 'Verify downloads',
+    MoveData: 'Move files',
+};
+const jobLabel = (job: QueuedJob) => JOB_LABELS[job.type] ?? job.type;
+
+const { data: seriesList } = await useApi('/v2/Series', { key: FetchKeys.Series.All, server: false });
+const seriesName = (job: QueuedJob) => seriesList.value?.find((s) => s.key === job.resourceKey)?.name;
 
 // A ticking clock so a Running job's elapsed time updates live, and a poll so jobs that flow through
 // quickly are actually visible instead of only appearing on manual reload.

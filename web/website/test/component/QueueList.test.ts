@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime';
 import { clearNuxtData } from '#imports';
 import { flushPromises } from '@vue/test-utils';
@@ -41,11 +41,30 @@ describe('QueueList', () => {
 
         const wrapper = await mountSuspended(QueueList);
 
-        expect(wrapper.text()).toContain('DownloadChapter');
+        expect(wrapper.text()).toContain('Download chapter');
         expect(wrapper.text()).toContain('Running');
-        expect(wrapper.text()).toContain('ResolveSeriesVolumes');
+        expect(wrapper.text()).toContain('Resolve volumes');
         expect(wrapper.text()).toContain('NeedsAttention');
         expect(wrapper.text()).toContain('boom');
+    });
+
+    it('shows the series and the recorded outcome on a job row', async () => {
+        registerEndpoint('/v2/JobQueue', () => [
+            job({ key: 's', type: 'SyncSeriesChapters', status: 'Succeeded', resourceKey: 'series-1',
+                  progress: 'connector reported 22 chapters (3 new)', finishedAt: '2026-06-06T00:01:00Z' }),
+        ]);
+        registerEndpoint('/v2/Series', () => [{
+            key: 'series-1', name: 'Berserk', description: '', releaseStatus: 'Continuing',
+            sourceIds: [], fileLibraryId: 'lib1', originalLanguage: 'en', coverUrl: '',
+        }]);
+
+        const wrapper = await mountSuspended(QueueList);
+
+        await vi.waitFor(() => {
+            expect(wrapper.text()).toContain('Sync chapters');
+            expect(wrapper.text()).toContain('Berserk');
+            expect(wrapper.text()).toContain('22 chapters');
+        });
     });
 
     it('retries a NeedsAttention job via the runtime', async () => {

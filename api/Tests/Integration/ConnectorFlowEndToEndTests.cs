@@ -98,6 +98,10 @@ public class ConnectorFlowEndToEndTests : IAsyncLifetime
         int count = await app.WithSeriesContext(ctx =>
             ctx.Chapters.CountAsync(c => c.ParentManga.Key == seriesKey));
         Assert.Equal(2, count);
+
+        // The job row carries its outcome, so the queue can say what happened — not just "Succeeded".
+        JobEntity syncJob = await app.WithJobsContext(c => c.JobQueue.SingleAsync(j => j.Type == SyncSeriesChaptersHandler.Type));
+        Assert.Contains("2 chapters", syncJob.Progress);
     }
 
     [Fact]
