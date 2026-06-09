@@ -1,10 +1,10 @@
-name: Unit Tests
+name: API Checks
 
 on:
   push:
     paths:
       - "api/**"
-      - ".github/workflows/run-tests.yml"
+      - ".github/workflows/api-tests.yml"
   workflow_dispatch:
 
 jobs:
@@ -31,7 +31,7 @@ jobs:
       - name: Build the solution
         run: dotnet build ./Kenku.sln --configuration Release --no-restore -p:DisableOpenApiGeneration=true -m:1
 
-      - name: Run unit tests with report
+      - name: Run tests with report
         run: dotnet test ./Tests/Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=TestResults.trx"
 
       - name: Upload test results

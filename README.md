@@ -50,7 +50,7 @@ component-specific details and configuration.
 │   └── Tests/           #   xUnit tests
 ├── web/website/         # Nuxt frontend (prerendered into the API image)
 ├── Dockerfile           # single image: builds web -> builds api -> bundles both
-├── .github/workflows/   # CI: build (image), run-tests
+├── .github/workflows/   # CI: build (image), api-tests, web-tests
 └── docker-compose.yaml  # app + Postgres
 ```
 
