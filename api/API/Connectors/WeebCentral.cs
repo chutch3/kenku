@@ -189,18 +189,23 @@ public class WeebCentral : SeriesSource
     {
         Log.InfoFormat("Fetching chapters for: {0}", manga.IdOnConnectorSite);
 
+        // The chapter-list endpoint only accepts the bare series id: with a title slug appended the
+        // site redirects to /404 (the series *page* tolerates the slug, so search/add still work —
+        // which is how a broken stored id hid as a silently empty series). Strip down to the id.
         string baseSlug = manga.IdOnConnectorSite;
         if (baseSlug.Contains("series/"))
             baseSlug = baseSlug.Substring(baseSlug.IndexOf("series/") + 7);
+        baseSlug = baseSlug.Split('/')[0];
 
         string websiteUrl = $"https://weebcentral.com/series/{baseSlug}/full-chapter-list";
 
         using HttpResponseMessage response = await downloadClient.MakeRequest(websiteUrl, RequestType.Default);
         if (!response.IsSuccessStatusCode)
-        {
-            Log.Error("Failed to load chapters page");
-            return [];
-        }
+            throw new HttpRequestException($"WeebCentral chapter list request failed: HTTP {(int)response.StatusCode} for {websiteUrl}");
+        // Redirects are followed, so a bad URL lands on the 404 page with HTTP 200 and zero chapter
+        // links — indistinguishable from an empty series unless the final URL is checked.
+        if (response.RequestMessage?.RequestUri?.AbsolutePath == "/404")
+            throw new HttpRequestException($"WeebCentral chapter list request for {websiteUrl} was redirected to /404 — the stored series id is wrong.");
 
         string html = await response.Content.ReadAsStringAsync();
         HtmlDocument doc = new();

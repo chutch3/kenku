@@ -1321,7 +1321,7 @@
         "tags": [
           "JobQueue"
         ],
-        "summary": "Dismisses (deletes) a job the user has acknowledged — e.g. clearing a NeedsAttention job. An active (Queued/Running) job must be cancelled first.",
+        "summary": "Dismisses (deletes) a job the user has acknowledged — e.g. clearing a NeedsAttention job.\n            An active (Queued/Running) job must be cancelled first.",
         "parameters": [
           {
             "name": "JobId",
@@ -5066,6 +5066,12 @@
             "description": "API.Schema.SeriesContext.MetadataFetchers.MetadataFetcher if Record is API.Schema.ActionsContext.Actions.MetadataUpdatedActionRecord",
             "nullable": true
           },
+          "chapterCount": {
+            "type": "integer",
+            "description": "Chapters the connector reported if Record is API.Schema.ActionsContext.Actions.ChaptersRetrievedActionRecord",
+            "format": "int32",
+            "nullable": true
+          },
           "key": {
             "maxLength": 64,
             "minLength": 16,
@@ -6279,8 +6285,8 @@
           },
           "startedAt": {
             "type": "string",
-            "format": "date-time",
             "description": "When the dispatcher began executing the job; null until it starts.",
+            "format": "date-time",
             "nullable": true
           },
           "finishedAt": {

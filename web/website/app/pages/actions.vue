@@ -64,6 +64,7 @@
                     <p v-if="row.original.to">To: {{ row.original.to }}</p>
                     <p v-if="row.original.filename">Filename: {{ row.original.filename }}</p>
                     <p v-if="row.original.metadataFetcher">Metadata Fetcher: {{ row.original.metadataFetcher }}</p>
+                    <p v-if="row.original.chapterCount !== undefined">Chapters found: {{ row.original.chapterCount }}</p>
                 </template>
             </UTable>
         </div>

@@ -18,6 +18,7 @@ public sealed record ActionRecord : Identifiable
         To = actionRecord is DataMovedActionRecord to ? to.To : null;
         Filename = actionRecord is CoverDownloadedActionRecord filename ? filename.Filename : null;
         MetadataFetcher = actionRecord is MetadataUpdatedActionRecord metadata ? metadata.MetadataFetcher : null;
+        ChapterCount = actionRecord is ChaptersRetrievedActionRecord retrieved ? retrieved.ChapterCount : null;
     }
     
     /// <summary>
@@ -67,4 +68,10 @@ public sealed record ActionRecord : Identifiable
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? MetadataFetcher { get; init; }
+
+    /// <summary>
+    /// Chapters the connector reported if Record is <see cref="Schema.ActionsContext.Actions.ChaptersRetrievedActionRecord"/>
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? ChapterCount { get; init; }
 }

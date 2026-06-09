@@ -62,6 +62,64 @@ public class WeebCentralTests
         Assert.Equal(expectedChapter, chapters[0].Item1.ChapterNumber);
     }
 
+    [Theory]
+    [InlineData("01ABC/I-Am-A-Hero")]
+    [InlineData("https://weebcentral.com/series/01ABC/I-Am-A-Hero")]
+    [InlineData("01ABC")]
+    public async Task GetChapters_RequestsTheIdOnlyChapterList_WhateverShapeTheStoredIdHas(string storedId)
+    {
+        // The site 404s the chapter list when the title slug is in the URL (the series *page* tolerates
+        // it) — so a slugged stored id must be stripped to the bare id, never passed through.
+        var html = """<html><body><a href="/chapters/c1"><span class="">Chapter 1</span></a></body></html>""";
+        string? requestedUrl = null;
+        var mockClient = new Mock<IHttpRequester>();
+        mockClient
+            .Setup(c => c.MakeRequest(It.IsAny<string>(), It.IsAny<RequestType>(), It.IsAny<string>(), It.IsAny<CancellationToken?>()))
+            .Callback<string, RequestType, string?, CancellationToken?>((url, _, _, _) => requestedUrl = url)
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(html, Encoding.UTF8, "text/html")
+            });
+        var weebCentral = new WeebCentral(CreateSettings(), mockClient.Object);
+        var manga = new Series("I Am A Hero", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], []);
+        var mangaId = new SourceId<Series>(manga, weebCentral, storedId, "https://example.com/test");
+
+        await weebCentral.GetChapters(mangaId);
+
+        Assert.Equal("https://weebcentral.com/series/01ABC/full-chapter-list", requestedUrl);
+    }
+
+    [Fact]
+    public async Task GetChapters_Throws_WhenTheChapterListRequestFails()
+    {
+        // A failed fetch must be loud: returning an empty list here is what made a sync job report
+        // "Succeeded" with 0 chapters while the series sat empty with no signal.
+        var weebCentral = new WeebCentral(CreateSettings(), CreateMockClient("", HttpStatusCode.NotFound).Object);
+        var mangaId = CreateDummyManga(weebCentral);
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => weebCentral.GetChapters(mangaId));
+    }
+
+    [Fact]
+    public async Task GetChapters_Throws_WhenRedirectedToTheNotFoundPage()
+    {
+        // With redirects followed, a bad chapter-list URL lands on /404 with HTTP 200 and zero chapter
+        // links — indistinguishable from an empty series unless the final URL is checked.
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("<html><body>not found</body></html>", Encoding.UTF8, "text/html"),
+            RequestMessage = new HttpRequestMessage(HttpMethod.Get, "https://weebcentral.com/404")
+        };
+        var mockClient = new Mock<IHttpRequester>();
+        mockClient
+            .Setup(c => c.MakeRequest(It.IsAny<string>(), It.IsAny<RequestType>(), It.IsAny<string>(), It.IsAny<CancellationToken?>()))
+            .ReturnsAsync(response);
+        var weebCentral = new WeebCentral(CreateSettings(), mockClient.Object);
+        var mangaId = CreateDummyManga(weebCentral);
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => weebCentral.GetChapters(mangaId));
+    }
+
     [Fact]
     public async Task GetMangaFromId_CapturesExternalTrackerLinks()
     {

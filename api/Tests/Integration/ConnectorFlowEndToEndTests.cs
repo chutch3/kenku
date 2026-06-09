@@ -8,6 +8,7 @@ using API.JobRuntime.Handlers;
 using API.Schema.SeriesContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using API.Tests.Unit.JobRuntime;
 using Moq;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -97,6 +98,54 @@ public class ConnectorFlowEndToEndTests : IAsyncLifetime
         int count = await app.WithSeriesContext(ctx =>
             ctx.Chapters.CountAsync(c => c.ParentManga.Key == seriesKey));
         Assert.Equal(2, count);
+    }
+
+    [Fact]
+    public async Task SyncChaptersJob_WhoseFetchFails_EndsNeedsAttention_NotSilentlySucceeded()
+    {
+        // The "I am a hero" incident: the chapter-list fetch failed, the sync swallowed it, and the job
+        // reported Succeeded with 0 chapters — invisible. A failed fetch must end NeedsAttention with
+        // the reason, after bounded retries.
+        var settings = new KenkuSettings { AppData = _libDir };
+        var connector = new Mock<SeriesSource>("ChapterSrc", new[] { "en" }, new[] { "chaptersrc.test" }, "icon", settings);
+        connector.Setup(c => c.GetChapters(It.IsAny<SourceId<Series>>(), It.IsAny<string?>()))
+            .ThrowsAsync(new HttpRequestException("chapter list request failed: HTTP 404"));
+
+        var clock = new FakeClock();
+        using var app = new KenkuApplicationFactory
+        {
+            OutboundHttpTarget = _server.Url!,
+            ExtraConnectors = [connector.Object],
+            PostgresConnectionString = _postgres.GetConnectionString(_dbName),
+            Clock = clock,
+        };
+        Directory.CreateDirectory(_libDir);
+
+        string sourceIdKey = await app.WithSeriesContext(async ctx =>
+        {
+            var manga = new Series("I Am A Hero", "", "", SeriesReleaseStatus.Continuing, [], [], [], []);
+            ctx.Series.Add(manga);
+            var sourceId = new SourceId<Series>(manga, "ChapterSrc", "01ABC/I-Am-A-Hero", "http://chaptersrc.test/s/1", true);
+            ctx.MangaConnectorToManga.Add(sourceId);
+            await ctx.SaveChangesAsync();
+            return sourceId.Key;
+        });
+
+        JobEntity job;
+        using (var scope = app.Services.CreateScope())
+            job = await scope.ServiceProvider.GetRequiredService<IJobStore>().EnqueueAsync(
+                new JobEntity(SyncSeriesChaptersHandler.Type, SyncSeriesChaptersHandler.PayloadFor(sourceIdKey, "en"), clock.UtcNow));
+
+        for (int i = 0; i < 20; i++)
+        {
+            using var scope = app.Services.CreateScope();
+            if (!await scope.ServiceProvider.GetRequiredService<Dispatcher>().RunOnceAsync()) break;
+            clock.Advance(TimeSpan.FromHours(1)); // past any backoff window
+        }
+
+        JobEntity finished = await app.WithJobsContext(c => c.JobQueue.SingleAsync(j => j.Key == job.Key));
+        Assert.Equal(API.Schema.JobsContext.JobStatus.NeedsAttention, finished.Status);
+        Assert.Contains("404", finished.Error);
     }
 
     [Fact]

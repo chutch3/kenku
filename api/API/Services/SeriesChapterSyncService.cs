@@ -20,21 +20,18 @@ public class SeriesChapterSyncService(IEnumerable<SeriesSource> connectors)
     public async Task SyncAsync(SeriesContext seriesContext, ActionsContext actionsContext, string sourceIdKey, string language, CancellationToken ct)
     {
         Log.DebugFormat("Getting Chapters for SourceId {0}...", sourceIdKey);
+        // Hard failures throw so the dispatcher records them and bounded retry → NeedsAttention applies.
+        // Swallowing them here left sync jobs "Succeeded" while the series sat empty with no signal.
         if (await seriesContext.MangaConnectorToManga
                 .Include(id => id.Obj)
                 .ThenInclude(m => m.Chapters)
                 .ThenInclude(ch => ch.SourceIds)
                 .FirstOrDefaultAsync(c => c.Key == sourceIdKey, ct) is not { } mangaConnectorId)
-        {
-            Log.Error("Could not get SourceId.");
-            return;
-        }
+            throw new InvalidOperationException($"SourceId '{sourceIdKey}' not found.");
+
         SeriesSource? seriesSource = connectors.FirstOrDefault(c => c.Name.Equals(mangaConnectorId.MangaConnectorName, StringComparison.InvariantCultureIgnoreCase));
         if (seriesSource is null)
-        {
-            Log.Error("Could not get SeriesSource.");
-            return;
-        }
+            throw new InvalidOperationException($"SeriesSource '{mangaConnectorId.MangaConnectorName}' is not registered.");
         Log.DebugFormat("Getting Chapters for SourceId {0}...", mangaConnectorId);
 
         Series manga = mangaConnectorId.Obj;
@@ -88,7 +85,7 @@ public class SeriesChapterSyncService(IEnumerable<SeriesSource> connectors)
         if (await seriesContext.Sync(ct, typeof(SeriesChapterSyncService), "Chapters retrieved") is { success: false } mangaContextException)
             Log.ErrorFormat("Failed to save database changes: {0}", mangaContextException.exceptionMessage);
 
-        actionsContext.Actions.Add(new ChaptersRetrievedActionRecord(manga));
+        actionsContext.Actions.Add(new ChaptersRetrievedActionRecord(manga, allChapters.Length));
         if (await actionsContext.Sync(ct, typeof(SeriesChapterSyncService), "Chapters retrieved") is { success: false } actionsContextException)
             Log.ErrorFormat("Failed to save database changes: {0}", actionsContextException.exceptionMessage);
     }
