@@ -43,7 +43,7 @@ public class ReconcileVolumeBundleHandler(IServiceScopeFactory scopeFactory, Ken
 
         using IServiceScope scope = scopeFactory.CreateScope();
         SeriesContext context = scope.ServiceProvider.GetRequiredService<SeriesContext>();
-        var bundler = new VolumeBundler(settings);
+        var bundler = scope.ServiceProvider.GetRequiredService<VolumeBundler>();
 
         Task work = payload.Action switch
         {

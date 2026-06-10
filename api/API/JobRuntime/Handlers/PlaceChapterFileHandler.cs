@@ -33,7 +33,7 @@ public class PlaceChapterFileHandler(IServiceScopeFactory scopeFactory) : IJobHa
 
         using IServiceScope scope = scopeFactory.CreateScope();
         var provider = scope.ServiceProvider;
-        var service = new ChapterFilePlacementService(provider.GetRequiredService<KenkuSettings>());
+        var service = provider.GetRequiredService<ChapterFilePlacementService>();
         await service.PlaceAsync(provider.GetRequiredService<SeriesContext>(), payload.ChapterKey, payload.TargetFileName, ct);
     }
 }

@@ -165,7 +165,7 @@ builder.Services.AddSingleton<API.JobRuntime.Interfaces.IClock, API.JobRuntime.S
 builder.Services.AddSingleton(sp => new API.JobRuntime.HandlerRegistry(sp.GetServices<API.JobRuntime.Interfaces.IJobHandler>()));
 builder.Services.AddSingleton<API.JobRuntime.RunningJobRegistry>();
 builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.ReconcileVolumeBundleHandler>();
-builder.Services.AddScoped<API.Services.VolumeResolutionService>();
+builder.Services.AddKenkuServices();
 builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.ResolveSeriesVolumesHandler>();
 builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.DownloadChapterHandler>();
 builder.Services.AddSingleton<API.JobRuntime.Interfaces.IJobHandler, API.JobRuntime.Handlers.RefreshLibrariesHandler>();

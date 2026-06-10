@@ -32,7 +32,7 @@ public class CleanupHandler(IServiceScopeFactory scopeFactory) : IJobHandler
 
         using IServiceScope scope = scopeFactory.CreateScope();
         var provider = scope.ServiceProvider;
-        var service = new CleanupService();
+        var service = provider.GetRequiredService<CleanupService>();
 
         switch (payload.Kind)
         {

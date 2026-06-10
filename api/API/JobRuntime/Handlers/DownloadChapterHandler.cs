@@ -1,8 +1,5 @@
-using API.Acquirers.Interfaces;
 using API.JobRuntime.Interfaces;
 using System.Text.Json;
-using API.Acquirers;
-using API.Connectors;
 using API.Schema.ActionsContext;
 using API.Schema.JobsContext;
 using API.Schema.SeriesContext;
@@ -35,14 +32,7 @@ public class DownloadChapterHandler(IServiceScopeFactory scopeFactory) : IJobHan
 
         using IServiceScope scope = scopeFactory.CreateScope();
         var provider = scope.ServiceProvider;
-        var service = new ChapterDownloadService(
-            provider.GetRequiredService<KenkuSettings>(),
-            provider.GetServices<SeriesSource>(),
-            provider.GetRequiredService<IJobStore>(),
-            provider.GetRequiredService<IClock>(),
-            provider.GetServices<IChapterAcquirer>(),
-            new LibraryLayoutResolver(),
-            provider.GetRequiredService<API.Notifications.Interfaces.INotificationDispatcher>());
+        var service = provider.GetRequiredService<ChapterDownloadService>();
 
         DownloadOutcome outcome = await service.DownloadAsync(
             provider.GetRequiredService<SeriesContext>(),

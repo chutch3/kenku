@@ -34,7 +34,7 @@ public class FinalizeTorrentHandler(IServiceScopeFactory scopeFactory) : IJobHan
 
         using IServiceScope scope = scopeFactory.CreateScope();
         var provider = scope.ServiceProvider;
-        await new TorrentFinalizationService().FinalizeAsync(
+        await provider.GetRequiredService<TorrentFinalizationService>().FinalizeAsync(
             provider.GetRequiredService<SeriesContext>(),
             provider.GetRequiredService<ActionsContext>(),
             provider.GetRequiredService<IDownloadClient>(),

@@ -1,6 +1,5 @@
 using API.JobRuntime.Interfaces;
 using System.Text.Json;
-using API.Connectors;
 using API.Schema.ActionsContext;
 using API.Schema.JobsContext;
 using API.Schema.SeriesContext;
@@ -31,7 +30,7 @@ public class DownloadCoverHandler(IServiceScopeFactory scopeFactory) : IJobHandl
 
         using IServiceScope scope = scopeFactory.CreateScope();
         var provider = scope.ServiceProvider;
-        var service = new CoverDownloadService(provider.GetServices<SeriesSource>());
+        var service = provider.GetRequiredService<CoverDownloadService>();
         CoverOutcome outcome = await service.DownloadAsync(provider.GetRequiredService<SeriesContext>(),
             provider.GetRequiredService<ActionsContext>(), payload.SourceIdKey, ct);
         job.Progress = outcome switch

@@ -22,7 +22,7 @@ public class VerifyDownloadStateHandler(IServiceScopeFactory scopeFactory) : IJo
     {
         using IServiceScope scope = scopeFactory.CreateScope();
         var provider = scope.ServiceProvider;
-        await new DownloadStateService().VerifyAllAsync(
+        await provider.GetRequiredService<DownloadStateService>().VerifyAllAsync(
             provider.GetRequiredService<SeriesContext>(), provider.GetRequiredService<KenkuSettings>(), ct);
     }
 }

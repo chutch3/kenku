@@ -1,6 +1,5 @@
 using API.JobRuntime.Interfaces;
 using System.Text.Json;
-using API.Connectors;
 using API.Schema.ActionsContext;
 using API.Schema.JobsContext;
 using API.Schema.SeriesContext;
@@ -31,7 +30,7 @@ public class SyncSeriesChaptersHandler(IServiceScopeFactory scopeFactory) : IJob
 
         using IServiceScope scope = scopeFactory.CreateScope();
         var provider = scope.ServiceProvider;
-        var service = new SeriesChapterSyncService(provider.GetServices<SeriesSource>());
+        var service = provider.GetRequiredService<SeriesChapterSyncService>();
         (int reported, int added) = await service.SyncAsync(
             provider.GetRequiredService<SeriesContext>(),
             provider.GetRequiredService<ActionsContext>(),

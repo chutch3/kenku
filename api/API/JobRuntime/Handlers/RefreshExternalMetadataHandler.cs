@@ -30,7 +30,7 @@ public class RefreshExternalMetadataHandler(IServiceScopeFactory scopeFactory) :
 
         using IServiceScope scope = scopeFactory.CreateScope();
         var provider = scope.ServiceProvider;
-        var service = new MetadataRefreshService(provider.GetServices<MetadataFetcher>());
+        var service = provider.GetRequiredService<MetadataRefreshService>();
         await service.RefreshAsync(
             provider.GetRequiredService<SeriesContext>(),
             provider.GetRequiredService<ActionsContext>(),

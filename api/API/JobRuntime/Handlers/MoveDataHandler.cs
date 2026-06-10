@@ -30,7 +30,7 @@ public class MoveDataHandler(IServiceScopeFactory scopeFactory) : IJobHandler
             ?? throw new InvalidOperationException($"Invalid {Type} payload: {job.Payload}");
 
         using IServiceScope scope = scopeFactory.CreateScope();
-        await new DataMoveService().MoveAsync(
+        await scope.ServiceProvider.GetRequiredService<DataMoveService>().MoveAsync(
             scope.ServiceProvider.GetRequiredService<ActionsContext>(), payload.From, payload.To, ct);
     }
 }
