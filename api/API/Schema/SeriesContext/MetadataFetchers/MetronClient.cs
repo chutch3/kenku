@@ -11,12 +11,14 @@ namespace API.Schema.SeriesContext.MetadataFetchers;
 /// username + password. Returns empty/null (never throws) when unconfigured or on error so the
 /// fetcher degrades gracefully — it still shows in the UI, it just yields nothing without creds.
 /// </summary>
-public class MetronClient(HttpClient http, string username, string password) : IMetronClient
+public class MetronClient(HttpClient http, KenkuSettings settings) : IMetronClient
 {
     private static readonly ILog Log = LogManager.GetLogger(typeof(MetronClient));
     private const string BaseUrl = "https://metron.cloud/api";
 
-    private bool Configured => !string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password);
+    // Read from settings at call time, never captured: the user links Metron while the app runs,
+    // and a boot-time snapshot left the client unconfigured until the next restart.
+    private bool Configured => !string.IsNullOrWhiteSpace(settings.MetronUsername) && !string.IsNullOrWhiteSpace(settings.MetronPassword);
 
     public async Task<MetronSeries[]> SearchSeries(string name, CancellationToken ct)
     {
@@ -83,7 +85,7 @@ public class MetronClient(HttpClient http, string username, string password) : I
 
     private void AddAuth(HttpRequestMessage request)
     {
-        string token = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
+        string token = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{settings.MetronUsername}:{settings.MetronPassword}"));
         request.Headers.Authorization = new AuthenticationHeaderValue("Basic", token);
     }
 

@@ -78,7 +78,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddSingleton<IMetronClient>(sp =>
         {
             var rl = sp.GetRequiredService<RateLimitHandler>();
-            return new MetronClient(new HttpClient(rl, disposeHandler: false), settings.MetronUsername, settings.MetronPassword);
+            return new MetronClient(new HttpClient(rl, disposeHandler: false), settings);
         });
         services.AddSingleton<MetadataFetcher>(sp => new Metron(sp.GetRequiredService<IMetronClient>()));
         return services;
