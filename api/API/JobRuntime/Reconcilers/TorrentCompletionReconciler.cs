@@ -6,11 +6,9 @@ using API.JobRuntime.Handlers;
 using API.Connectors;
 using API.Schema.JobsContext;
 using API.Schema.SeriesContext;
-using log4net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 namespace API.JobRuntime.Reconcilers;
 
@@ -22,35 +20,18 @@ namespace API.JobRuntime.Reconcilers;
 /// </summary>
 public class TorrentCompletionReconciler(IServiceScopeFactory scopeFactory, IClock clock,
     IConfiguration configuration, IDownloadClient downloadClient, IEnumerable<SeriesSource> connectors)
-    : BackgroundService
+    : Reconciler(scopeFactory, configuration)
 {
-    private static readonly ILog Log = LogManager.GetLogger(typeof(TorrentCompletionReconciler));
-    private static readonly TimeSpan Interval = TimeSpan.FromSeconds(30);
+    protected override TimeSpan Interval => TimeSpan.FromSeconds(30);
 
     public static string DedupKey(string sourceIdKey) => $"finalize-torrent:{sourceIdKey}";
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        if (!configuration.GetValue("Kenku:RunStartup", true))
-            return;
-
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                using IServiceScope scope = scopeFactory.CreateScope();
-                await ScanAndEnqueueAsync(
-                    scope.ServiceProvider.GetRequiredService<SeriesContext>(),
-                    downloadClient, connectors,
-                    scope.ServiceProvider.GetRequiredService<IJobStore>(),
-                    clock.UtcNow, stoppingToken);
-            }
-            catch (OperationCanceledException) { break; }
-            catch (Exception e) { Log.Error("Torrent completion reconciler error", e); }
-
-            await Task.Delay(Interval, stoppingToken);
-        }
-    }
+    protected override Task TickAsync(IServiceProvider scope, CancellationToken ct) =>
+        ScanAndEnqueueAsync(
+            scope.GetRequiredService<SeriesContext>(),
+            downloadClient, connectors,
+            scope.GetRequiredService<IJobStore>(),
+            clock.UtcNow, ct);
 
     /// <summary>Enqueues a finalise job for each completed torrent-kind chapter, deduped per source.</summary>
     public static async Task<int> ScanAndEnqueueAsync(SeriesContext series, IDownloadClient downloadClient,

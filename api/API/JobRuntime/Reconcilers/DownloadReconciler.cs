@@ -8,7 +8,6 @@ using API.Services;
 using log4net;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 namespace API.JobRuntime.Reconcilers;
 
@@ -20,37 +19,21 @@ namespace API.JobRuntime.Reconcilers;
 /// rate limiter — no more blind re-queue loop (#31).
 /// </summary>
 public class DownloadReconciler(IServiceScopeFactory scopeFactory, IClock clock, IConfiguration configuration)
-    : BackgroundService
+    : Reconciler(scopeFactory, configuration)
 {
     private static readonly ILog Log = LogManager.GetLogger(typeof(DownloadReconciler));
-    private static readonly TimeSpan Interval = TimeSpan.FromSeconds(10);
+    protected override TimeSpan Interval => TimeSpan.FromSeconds(10);
 
     public static string DedupKey(string sourceIdKey) => $"download:{sourceIdKey}";
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        if (!configuration.GetValue("Kenku:RunStartup", true))
-            return;
-
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                using IServiceScope scope = scopeFactory.CreateScope();
-                await ScanAndEnqueueAsync(
-                    scope.ServiceProvider.GetRequiredService<SeriesContext>(),
-                    scope.ServiceProvider.GetRequiredService<IJobStore>(),
-                    clock.UtcNow,
-                    scope.ServiceProvider.GetService<IDownloadClient>(),
-                    scope.ServiceProvider.GetServices<SeriesSource>(),
-                    stoppingToken);
-            }
-            catch (OperationCanceledException) { break; }
-            catch (Exception e) { Log.Error("Download reconciler error", e); }
-
-            await Task.Delay(Interval, stoppingToken);
-        }
-    }
+    protected override Task TickAsync(IServiceProvider scope, CancellationToken ct) =>
+        ScanAndEnqueueAsync(
+            scope.GetRequiredService<SeriesContext>(),
+            scope.GetRequiredService<IJobStore>(),
+            clock.UtcNow,
+            scope.GetService<IDownloadClient>(),
+            scope.GetServices<SeriesSource>(),
+            ct);
 
     /// <summary>
     /// Enqueues a download job for each missing chapter, deduped per source-id, keyed on its series.

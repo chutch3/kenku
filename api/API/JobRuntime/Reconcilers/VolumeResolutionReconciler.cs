@@ -2,11 +2,9 @@ using API.JobRuntime.Interfaces;
 using API.JobRuntime.Handlers;
 using API.Schema.JobsContext;
 using API.Schema.SeriesContext;
-using log4net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 namespace API.JobRuntime.Reconcilers;
 
@@ -18,35 +16,18 @@ namespace API.JobRuntime.Reconcilers;
 /// </summary>
 public class VolumeResolutionReconciler(
     IServiceScopeFactory scopeFactory, IClock clock, KenkuSettings settings, IConfiguration configuration)
-    : BackgroundService
+    : Reconciler(scopeFactory, configuration)
 {
-    private static readonly ILog Log = LogManager.GetLogger(typeof(VolumeResolutionReconciler));
-    private static readonly TimeSpan Interval = TimeSpan.FromDays(1);
+    protected override TimeSpan Interval => TimeSpan.FromDays(1);
 
     public const string ResourceKey = "mangadex";
     public static string DedupKey(string seriesKey) => $"resolve-volumes:{seriesKey}";
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        if (!configuration.GetValue("Kenku:RunStartup", true))
-            return;
-
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                using IServiceScope scope = scopeFactory.CreateScope();
-                await ScanAndEnqueueAsync(
-                    scope.ServiceProvider.GetRequiredService<SeriesContext>(),
-                    scope.ServiceProvider.GetRequiredService<IJobStore>(),
-                    settings, clock.UtcNow, stoppingToken);
-            }
-            catch (OperationCanceledException) { break; }
-            catch (Exception e) { Log.Error("Volume resolution reconciler error", e); }
-
-            await Task.Delay(Interval, stoppingToken);
-        }
-    }
+    protected override Task TickAsync(IServiceProvider scope, CancellationToken ct) =>
+        ScanAndEnqueueAsync(
+            scope.GetRequiredService<SeriesContext>(),
+            scope.GetRequiredService<IJobStore>(),
+            settings, clock.UtcNow, ct);
 
     /// <summary>Enqueues a resolve job per series with an unresolved chapter. No-op when resolution is disabled.</summary>
     public static async Task<int> ScanAndEnqueueAsync(SeriesContext series, IJobStore store, KenkuSettings settings,
