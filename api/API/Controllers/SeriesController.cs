@@ -114,14 +114,11 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [ProducesResponseType(Status200OK)]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType<string>(Status500InternalServerError, "text/plain")]
-    public async Task<Results<Ok, NotFound<string>, InternalServerError<string>>> DeleteManga (string MangaId)
+    public async Task<Results<Ok, NotFound<string>, InternalServerError<string>>> DeleteManga (string MangaId,
+        [FromServices] API.Services.SeriesLibraryService libraryService, [FromServices] Schema.JobsContext.JobsContext jobsContext)
     {
-        if(await context.Series.FirstOrDefaultAsync(m => m.Key == MangaId, HttpContext.RequestAborted) is not { } manga)
+        if (!await libraryService.DeleteAsync(context, jobsContext, MangaId, HttpContext.RequestAborted))
             return TypedResults.NotFound(nameof(MangaId));
-        context.Remove(manga);
-        
-        if(await context.Sync(HttpContext.RequestAborted, GetType(), System.Reflection.MethodBase.GetCurrentMethod()?.Name) is { success: false } result)
-            return TypedResults.InternalServerError(result.exceptionMessage);
         return TypedResults.Ok();
     }
 

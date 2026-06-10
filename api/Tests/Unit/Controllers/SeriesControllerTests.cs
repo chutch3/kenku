@@ -74,7 +74,7 @@ public class MangaControllerTests
 
         var controller = CreateController(ctx, actionsCtx, [mockConnector.Object]);
         var libraryService = new API.Services.SeriesLibraryService(
-            new KenkuSettings(), [mockConnector.Object], new InMemoryJobStore(), new SystemClock());
+            new KenkuSettings(), [mockConnector.Object], new InMemoryJobStore(), new SystemClock(), new RunningJobRegistry());
 
         var result = await controller.ChangeLibrary(manga.Key, library.Key, libraryService, "MangaDex", "ext-id");
 

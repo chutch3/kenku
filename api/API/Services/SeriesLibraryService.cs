@@ -1,3 +1,4 @@
+using API.DownloadClients.Interfaces;
 using API.JobRuntime.Interfaces;
 using API.JobRuntime;
 using API.JobRuntime.Handlers;
@@ -24,10 +25,49 @@ public enum ChangeLibraryStatus
 /// The add/move-to-library workflow: import the series from its connector when it isn't known yet,
 /// track it, optionally enable the originating source (the one-decision add flow), queue moves for
 /// already-downloaded files when the library changes, and queue cover + chapter sync so a freshly
-/// added series is never an empty shell.
+/// added series is never an empty shell. Deletion is the mirror: the series goes, and so does its
+/// operational residue (outstanding jobs, tagged torrents).
 /// </summary>
-public class SeriesLibraryService(KenkuSettings settings, IEnumerable<SeriesSource> connectors, IJobStore jobStore, IClock clock)
+public class SeriesLibraryService(KenkuSettings settings, IEnumerable<SeriesSource> connectors, IJobStore jobStore, IClock clock,
+    JobRuntime.RunningJobRegistry running, IDownloadClient? downloadClient = null)
 {
+    private static readonly log4net.ILog Log = log4net.LogManager.GetLogger(typeof(SeriesLibraryService));
+
+    /// <summary>
+    /// Deletes the series and sweeps what would otherwise outlive it: jobs keyed on the series are
+    /// cancelled/removed (a leftover job retries against vanished SourceIds into a ghost
+    /// NeedsAttention row), and torrents tagged with its chapter source-ids are released from the
+    /// download client (best-effort — the client may be down or the torrent already gone).
+    /// </summary>
+    public async Task<bool> DeleteAsync(SeriesContext context, Schema.JobsContext.JobsContext jobsContext,
+        string mangaId, CancellationToken ct)
+    {
+        if (await context.Series.FirstOrDefaultAsync(m => m.Key == mangaId, ct) is not { } manga)
+            return false;
+
+        List<string> chapterSourceKeys = await context.MangaConnectorToChapter
+            .Where(id => id.Obj.ParentMangaId == mangaId)
+            .Select(id => id.Key)
+            .ToListAsync(ct);
+
+        List<Job> jobs = await jobsContext.JobQueue.Where(j => j.ResourceKey == mangaId).ToListAsync(ct);
+        foreach (Job job in jobs.Where(j => j.Status == JobStatus.Running))
+            running.Cancel(job.Key);
+        jobsContext.JobQueue.RemoveRange(jobs.Where(j => j.Status != JobStatus.Running));
+        await jobsContext.SaveChangesAsync(ct);
+
+        if (downloadClient is not null)
+            foreach (string tag in chapterSourceKeys)
+            {
+                try { await downloadClient.Remove(tag, deleteData: false, ct); }
+                catch (Exception e) { Log.Warn($"Could not release torrent '{tag}': {e.Message}"); }
+            }
+
+        context.Remove(manga);
+        await context.Sync(ct, GetType(), "Delete Series");
+        return true;
+    }
+
     public async Task<(ChangeLibraryStatus status, string? error)> ChangeLibraryAsync(
         SeriesContext context, ActionsContext actionsContext, string mangaId, string libraryId,
         string? connectorName, string? connectorSeriesId, bool download, CancellationToken ct)
