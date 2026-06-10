@@ -32,11 +32,12 @@ public class ChaptersControllerTests: IDisposable
         return new SeriesContext(options);
     }
 
-    private static ChaptersController CreateController(SeriesContext ctx)
+    private static ChaptersController CreateController(SeriesContext ctx, API.KenkuSettings? settings = null,
+        IEnumerable<API.Connectors.SeriesSource>? connectors = null)
     {
-        var testSettings = new API.KenkuSettings { AppData = Path.GetTempPath() };
+        var testSettings = settings ?? new API.KenkuSettings { AppData = Path.GetTempPath() };
 
-        var connectors = Enumerable.Empty<API.Connectors.SeriesSource>();
+        connectors ??= Enumerable.Empty<API.Connectors.SeriesSource>();
         var mockThumbnailService = new Mock<API.Services.Interfaces.IChapterThumbnailService>();
 
         var controller = new ChaptersController(ctx, testSettings, connectors, mockThumbnailService.Object);
@@ -58,6 +59,29 @@ public class ChaptersControllerTests: IDisposable
 
     private static API.Schema.SeriesContext.Series MakeTestManga(string name)
         => new(name, "", "http://example.com/img.jpg", SeriesReleaseStatus.Continuing, [], [], [], []);
+
+    [Fact]
+    public async Task MarkAsRequested_StampsTheConfiguredAttemptBudget_OnTheDownloadJob()
+    {
+        using var ctx = CreateContext();
+        var manga = MakeTestManga("Berserk");
+        var chapter = new API.Schema.SeriesContext.Chapter(manga, "1", null);
+        var chId = new API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>(chapter, "Src", "c1", null, false);
+        chapter.SourceIds.Add(chId);
+        ctx.Series.Add(manga);
+        ctx.Chapters.Add(chapter);
+        ctx.MangaConnectorToChapter.Add(chId);
+        await ctx.SaveChangesAsync();
+
+        var settings = new API.KenkuSettings { AppData = Path.GetTempPath(), DownloadMaxAttempts = 9 };
+        var store = new InMemoryJobStore();
+        var connector = new API.Tests.FakeSeriesSource("Src", settings);
+
+        await CreateController(ctx, settings, [connector]).MarkAsRequested(chapter.Key, "Src", true, store, new SystemClock());
+
+        var job = Assert.Single(await store.GetAllAsync());
+        Assert.Equal(9, job.MaxAttempts);
+    }
 
     [Fact]
     public async Task UpdateChapter_KnownChapter_UpdatesFileNameAndVolumeNumber()

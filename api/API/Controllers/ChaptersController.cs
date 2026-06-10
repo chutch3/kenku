@@ -305,7 +305,8 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
             await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
                 API.JobRuntime.Handlers.DownloadChapterHandler.Type,
                 API.JobRuntime.Handlers.DownloadChapterHandler.PayloadFor(chId.Key), clock.UtcNow,
-                resourceKey: chapter.ParentMangaId, dedupKey: API.JobRuntime.Reconcilers.DownloadReconciler.DedupKey(chId.Key)),
+                resourceKey: chapter.ParentMangaId, dedupKey: API.JobRuntime.Reconcilers.DownloadReconciler.DedupKey(chId.Key),
+                maxAttempts: settings.DownloadMaxAttempts),
                 HttpContext.RequestAborted);
 
         return TypedResults.Ok();

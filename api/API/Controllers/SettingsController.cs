@@ -245,6 +245,30 @@ public class SettingsController(KenkuSettings settings) : ControllerBase
     }
 
     /// <summary>
+    /// How many times a chapter download is attempted before it parks in NeedsAttention (the retry budget).
+    /// </summary>
+    /// <response code="200"></response>
+    [HttpGet("DownloadMaxAttempts")]
+    [ProducesResponseType<int>(Status200OK, "application/json")]
+    public Ok<int> GetDownloadMaxAttempts() => TypedResults.Ok(settings.DownloadMaxAttempts);
+
+    /// <summary>
+    /// Sets the chapter-download retry budget.
+    /// </summary>
+    /// <response code="200"></response>
+    /// <response code="400">Must be at least 1</response>
+    [HttpPatch("DownloadMaxAttempts/{attempts}")]
+    [ProducesResponseType(Status200OK)]
+    [ProducesResponseType<string>(Status400BadRequest, "text/plain")]
+    public Results<Ok, BadRequest<string>> SetDownloadMaxAttempts(int attempts)
+    {
+        if (attempts < 1)
+            return TypedResults.BadRequest("Retry attempts must be at least 1.");
+        settings.SetDownloadMaxAttempts(attempts);
+        return TypedResults.Ok();
+    }
+
+    /// <summary>
     /// How torrent releases are picked for comics: seeder floor, preferred and blocked filename tokens.
     /// </summary>
     /// <response code="200"></response>

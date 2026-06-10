@@ -141,7 +141,7 @@ public class TorrentDownloadEndToEndTests : IAsyncLifetime
             using var scope = _app.Services.CreateScope();
             var store = scope.ServiceProvider.GetRequiredService<IJobStore>();
             return await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow,
-                _client, [_source], CancellationToken.None);
+                _client, [_source], 5, CancellationToken.None);
         });
         await DrainAsync();
         Assert.Equal(1, _client.Added.Count);

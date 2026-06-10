@@ -58,6 +58,9 @@ public class KenkuSettings
 
     public int MaxConcurrentWorkers { get; set; } = Math.Max(Environment.ProcessorCount, 4); // Minimum of 4 Tasks, maximum of 1 per Core
 
+    /// <summary>How many times a chapter download is attempted before it parks in NeedsAttention.</summary>
+    public int DownloadMaxAttempts { get; set; } = 5;
+
     public VolumeResolutionStrategy VolumeResolutionStrategy { get; set; } = VolumeResolutionStrategy.ExactThenGuess;
 
     public int VolumeResolutionParallelism { get; set; } = 3;
@@ -320,6 +323,12 @@ public class KenkuSettings
     public void SetMaxConcurrentDownloads(int value)
     {
         this.MaxConcurrentDownloads = value;
+        Save();
+    }
+
+    public void SetDownloadMaxAttempts(int value)
+    {
+        this.DownloadMaxAttempts = value;
         Save();
     }
 

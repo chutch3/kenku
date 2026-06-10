@@ -154,6 +154,15 @@
 
                         <UCard>
                             <template #header>
+                                <SettingsHeader title="Downloads" subtitle="How chapter downloads behave." />
+                            </template>
+                            <UFormField label="Retry attempts" help="How many times a chapter download is tried before it parks in Needs attention.">
+                                <UInputNumber v-model="downloadMaxAttempts" :min="1" class="w-32" @blur="saveDownloadMaxAttempts" />
+                            </UFormField>
+                        </UCard>
+
+                        <UCard>
+                            <template #header>
                                 <SettingsHeader
                                     title="Release selection"
                                     subtitle="How a torrent release is picked for a comic chapter." />
@@ -330,13 +339,24 @@ const regenerateApiKey = async () => {
 };
 
 const toast = useToast();
+
+const downloadMaxAttempts = ref(5);
+const { data: downloadMaxAttemptsData } = useApi('/v2/Settings/DownloadMaxAttempts', { key: 'Settings/DownloadMaxAttempts', server: false });
+watch(downloadMaxAttemptsData, (v) => {
+    if (v != null) downloadMaxAttempts.value = v;
+});
+const saveDownloadMaxAttempts = async () => {
+    await $api('/v2/Settings/DownloadMaxAttempts/{attempts}', { method: 'PATCH', path: { attempts: downloadMaxAttempts.value } });
+    toast.add({ title: 'Retry attempts saved', icon: 'i-lucide-check', color: 'success', duration: 1500 });
+};
+
 const releaseSelection = reactive({ minSeeders: 2, preferredTokens: ['cbz'] as string[], blockedTokens: ['cbr', 'pdf'] as string[] });
 const { data: releaseSelectionData } = useApi('/v2/Settings/ReleaseSelection', { key: 'Settings/ReleaseSelection', server: false });
 watch(releaseSelectionData, (v) => {
     if (!v) return;
-    releaseSelection.minSeeders = v.minSeeders;
-    releaseSelection.preferredTokens = [...v.preferredTokens];
-    releaseSelection.blockedTokens = [...v.blockedTokens];
+    releaseSelection.minSeeders = v.minSeeders ?? 2;
+    releaseSelection.preferredTokens = [...(v.preferredTokens ?? [])];
+    releaseSelection.blockedTokens = [...(v.blockedTokens ?? [])];
 });
 
 const saveReleaseSelection = async () => {

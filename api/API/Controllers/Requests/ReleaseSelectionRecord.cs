@@ -4,8 +4,8 @@ namespace API.Controllers.Requests;
 
 /// <summary>
 /// How torrent releases are picked for comics (v1 scoring — not arr-style profiles). Descriptions sit
-/// on the constructor parameters, not redefined properties: ASP.NET model validation rejects a record
-/// that carries validation/binding metadata on a property that is also a primary-ctor parameter.
+/// on the constructor parameters via [property:], never as redefined properties: ASP.NET model
+/// validation throws if it finds metadata on a property that is also a primary-ctor parameter.
 /// </summary>
 public record ReleaseSelectionRecord(
     [property: Description("Releases with fewer seeders are never picked.")] int MinSeeders,

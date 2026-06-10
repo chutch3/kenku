@@ -33,15 +33,17 @@ public class DownloadReconciler(IServiceScopeFactory scopeFactory, IClock clock,
             clock.UtcNow,
             scope.GetService<IDownloadClient>(),
             scope.GetServices<SeriesSource>(),
+            scope.GetRequiredService<KenkuSettings>().DownloadMaxAttempts,
             ct);
 
     /// <summary>
     /// Enqueues a download job for each missing chapter, deduped per source-id, keyed on its series.
     /// Torrent-kind chapters whose torrent is already in the download client are skipped — they are not
     /// missing, they are in flight, and <see cref="TorrentCompletionReconciler"/> owns their completion.
+    /// Each job carries the user-configured retry budget (<paramref name="maxAttempts"/>).
     /// </summary>
     public static async Task<int> ScanAndEnqueueAsync(SeriesContext series, IJobStore store, DateTime now,
-        IDownloadClient? downloadClient, IEnumerable<SeriesSource> connectors, CancellationToken ct)
+        IDownloadClient? downloadClient, IEnumerable<SeriesSource> connectors, int maxAttempts, CancellationToken ct)
     {
         List<SourceId<Chapter>> missing = await ChapterDownloadService.GetMissingChapters(series, ct);
 
@@ -58,7 +60,8 @@ public class DownloadReconciler(IServiceScopeFactory scopeFactory, IClock clock,
 
             await store.EnqueueAsync(new Job(DownloadChapterHandler.Type,
                 DownloadChapterHandler.PayloadFor(chapterSourceId.Key), now,
-                resourceKey: chapterSourceId.Obj.ParentMangaId, dedupKey: DedupKey(chapterSourceId.Key)), ct);
+                resourceKey: chapterSourceId.Obj.ParentMangaId, dedupKey: DedupKey(chapterSourceId.Key),
+                maxAttempts: maxAttempts), ct);
             enqueued++;
         }
         return enqueued;

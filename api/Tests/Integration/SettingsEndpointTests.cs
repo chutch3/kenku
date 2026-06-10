@@ -30,6 +30,29 @@ public class SettingsEndpointTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task PatchDownloadMaxAttempts_PersistsAndReadsBack()
+    {
+        using var client = _app.CreateClient();
+
+        var response = await client.PatchAsync("/v2/Settings/DownloadMaxAttempts/8", null);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(8, _app.Services.GetRequiredService<KenkuSettings>().DownloadMaxAttempts);
+
+        var read = await client.GetFromJsonAsync<int>("/v2/Settings/DownloadMaxAttempts");
+        Assert.Equal(8, read);
+    }
+
+    [Fact]
+    public async Task PatchDownloadMaxAttempts_RejectsZero()
+    {
+        using var client = _app.CreateClient();
+
+        var response = await client.PatchAsync("/v2/Settings/DownloadMaxAttempts/0", null);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task PatchReleaseSelection_PersistsThroughTheRealBindingPipeline()
     {
         using var client = _app.CreateClient();

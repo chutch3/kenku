@@ -1653,7 +1653,7 @@
         "tags": [
           "Maintenance"
         ],
-        "summary": "Removes all API.Schema.SeriesContext.Series not marked for Download on any !:SeriesSource",
+        "summary": "Removes leftover API.Schema.SeriesContext.Series rows: untracked AND not marked for download on any\n!:SeriesSource. Tracked series are never touched — \"Add only\" (watchlist) and\nPaused series have every source off by design and are not junk.",
         "responses": {
           "200": {
             "description": ""
@@ -4568,6 +4568,61 @@
         }
       }
     },
+    "/v2/Settings/DownloadMaxAttempts": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "How many times a chapter download is attempted before it parks in NeedsAttention (the retry budget).",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Settings/DownloadMaxAttempts/{attempts}": {
+      "patch": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Sets the chapter-download retry budget.",
+        "parameters": [
+          {
+            "name": "attempts",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "400": {
+            "description": "Must be at least 1",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/Settings/ReleaseSelection": {
       "get": {
         "tags": [
@@ -6636,11 +6691,6 @@
         "description": "A API.Schema.JobsContext.Job in the runtime queue."
       },
       "ReleaseSelectionRecord": {
-        "required": [
-          "blockedTokens",
-          "minSeeders",
-          "preferredTokens"
-        ],
         "type": "object",
         "properties": {
           "minSeeders": {
@@ -6653,18 +6703,20 @@
             "items": {
               "type": "string"
             },
-            "description": "Filename tokens that rank a release higher (e.g. cbz)."
+            "description": "Filename tokens that rank a release higher (e.g. cbz).",
+            "nullable": true
           },
           "blockedTokens": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Filename tokens that exclude a release outright (e.g. cbr, pdf)."
+            "description": "Filename tokens that exclude a release outright (e.g. cbr, pdf).",
+            "nullable": true
           }
         },
         "additionalProperties": false,
-        "description": "How torrent releases are picked for comics (v1 scoring — not arr-style profiles)."
+        "description": "How torrent releases are picked for comics (v1 scoring — not arr-style profiles). Descriptions sit\non the constructor parameters via [property:], never as redefined properties: ASP.NET model\nvalidation throws if it finds metadata on a property that is also a primary-ctor parameter."
       },
       "RematchSourceRecord": {
         "required": [

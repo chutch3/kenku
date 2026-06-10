@@ -65,13 +65,27 @@ public class DownloadReconcilerTests : IDisposable
         await ctx.SaveChangesAsync();
         var store = new InMemoryJobStore();
 
-        int enqueued = await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow, null, [], default);
+        int enqueued = await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow, null, [], 5, default);
 
         Assert.Equal(2, enqueued);
         var jobs = await store.GetAllAsync();
         Assert.Equal(2, jobs.Count);
         Assert.All(jobs, j => Assert.Equal(DownloadChapterHandler.Type, j.Type));
         Assert.All(jobs, j => Assert.Equal(manga.Key, j.ResourceKey));
+    }
+
+    [Fact]
+    public async Task Scan_StampsTheConfiguredAttemptBudget_OnEachDownloadJob()
+    {
+        var (ctx, manga) = await SeedSeries();
+        AddChapter(ctx, manga, "1");
+        await ctx.SaveChangesAsync();
+        var store = new InMemoryJobStore();
+
+        await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow, null, [], maxAttempts: 9, default);
+
+        var job = Assert.Single(await store.GetAllAsync());
+        Assert.Equal(9, job.MaxAttempts); // the user-configured retry budget, not the hardcoded 5
     }
 
     [Fact]
@@ -82,8 +96,8 @@ public class DownloadReconcilerTests : IDisposable
         await ctx.SaveChangesAsync();
         var store = new InMemoryJobStore();
 
-        await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow, null, [], default);
-        await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow, null, [], default);
+        await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow, null, [], 5, default);
+        await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow, null, [], 5, default);
 
         Assert.Single(await store.GetAllAsync()); // second tick coalesced on dedup key — no re-queue loop
     }
@@ -100,7 +114,7 @@ public class DownloadReconcilerTests : IDisposable
               .ReturnsAsync(new DownloadStatus.Downloading(0.5));
 
         int enqueued = await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow,
-            client.Object, [new FakeSeriesSource("MockConnector", new KenkuSettings { AppData = "/tmp" }, AcquisitionKind.Torrent)], default);
+            client.Object, [new FakeSeriesSource("MockConnector", new KenkuSettings { AppData = "/tmp" }, AcquisitionKind.Torrent)], 5, default);
 
         Assert.Equal(0, enqueued);
         Assert.Empty(await store.GetAllAsync()); // in flight — the completion reconciler owns it
@@ -118,7 +132,7 @@ public class DownloadReconcilerTests : IDisposable
               .ThrowsAsync(new HttpRequestException("connection refused"));
 
         int enqueued = await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow,
-            client.Object, [new FakeSeriesSource("MockConnector", new KenkuSettings { AppData = "/tmp" }, AcquisitionKind.Torrent)], default);
+            client.Object, [new FakeSeriesSource("MockConnector", new KenkuSettings { AppData = "/tmp" }, AcquisitionKind.Torrent)], 5, default);
 
         Assert.Equal(1, enqueued); // the download job surfaces the client error, bounded by attempts
     }
