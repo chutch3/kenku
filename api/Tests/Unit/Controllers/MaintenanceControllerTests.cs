@@ -68,6 +68,25 @@ public class MaintenanceControllerTests
     }
 
     [Fact]
+    public async Task CleanupNoDownloadManga_SparesTrackedSeries_WatchlistAndPausedAreNotJunk()
+    {
+        // "Add only" (watchlist) and Paused series legitimately have every source toggled off; the
+        // cleanup button must not delete a series the user deliberately put in a library.
+        var (mangaCtx, actionsCtx) = CreateContexts();
+        var watchlisted = new Series("Watchlisted", "Desc", "c", SeriesReleaseStatus.Continuing, [], [], [], [])
+            { IsTracked = true };
+        var untracked = new Series("Untracked", "Desc", "c", SeriesReleaseStatus.Continuing, [], [], [], []);
+        mangaCtx.Series.AddRange(watchlisted, untracked);
+        await mangaCtx.SaveChangesAsync();
+
+        var result = await CreateController(mangaCtx, actionsCtx).CleanupNoDownloadManga();
+
+        Assert.IsType<Ok>(result.Result);
+        var survivor = Assert.Single(await mangaCtx.Series.ToListAsync());
+        Assert.Equal("Watchlisted", survivor.Name);
+    }
+
+    [Fact]
     public async Task CleanupOrphanedFiles_EnqueuesADryRunCleanupJob()
     {
         var (mangaCtx, actionsCtx) = CreateContexts();

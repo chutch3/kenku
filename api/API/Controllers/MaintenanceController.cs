@@ -20,7 +20,9 @@ public class MaintenanceController(SeriesContext mangaContext, ActionsContext ac
 {
     
     /// <summary>
-    /// Removes all <see cref="Series"/> not marked for Download on any <see cref="SeriesSource"/>
+    /// Removes leftover <see cref="Series"/> rows: untracked AND not marked for download on any
+    /// <see cref="SeriesSource"/>. Tracked series are never touched — "Add only" (watchlist) and
+    /// Paused series have every source off by design and are not junk.
     /// </summary>
     /// <response code="200"></response>
     /// <response code="500">Error during Database Operation</response>
@@ -31,7 +33,7 @@ public class MaintenanceController(SeriesContext mangaContext, ActionsContext ac
     {
         if (await mangaContext.Series
                 .Include(m => m.SourceIds)
-                .Where(m => !m.SourceIds.Any(id => id.UseForDownload))
+                .Where(m => !m.IsTracked && !m.SourceIds.Any(id => id.UseForDownload))
                 .ToListAsync(HttpContext.RequestAborted) is not { } remove)
             return TypedResults.InternalServerError("Database error");
         
