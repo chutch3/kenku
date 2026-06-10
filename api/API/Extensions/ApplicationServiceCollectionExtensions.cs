@@ -128,6 +128,8 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<DownloadStateService>();
         services.AddScoped<MetadataRefreshService>();
         services.AddScoped<SeriesChapterSyncService>();
+        services.AddScoped<SeriesLibraryService>();
+        services.AddScoped<SeriesRollupService>();
         services.AddScoped<TorrentFinalizationService>();
         services.AddScoped<VolumeBundler>();
         services.AddScoped<VolumeResolutionService>();

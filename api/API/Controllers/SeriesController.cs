@@ -73,44 +73,10 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     /// <response code="200">One <see cref="SeriesRollup"/> per series.</response>
     [HttpGet("Rollup")]
     [ProducesResponseType<List<SeriesRollup>>(Status200OK, "application/json")]
-    public async Task<Ok<List<SeriesRollup>>> GetSeriesRollup([FromServices] Schema.JobsContext.JobsContext jobsContext)
+    public async Task<Ok<List<SeriesRollup>>> GetSeriesRollup(
+        [FromServices] Schema.JobsContext.JobsContext jobsContext, [FromServices] API.Services.SeriesRollupService rollups)
     {
-        CancellationToken ct = HttpContext.RequestAborted;
-        List<string> seriesKeys = await context.Series.Select(s => s.Key).ToListAsync(ct);
-
-        var chapterStats = await context.Chapters
-            .Where(c => c.SourceIds.Any(s => s.UseForDownload))
-            .GroupBy(c => c.ParentMangaId)
-            .Select(g => new { MangaId = g.Key, Wanted = g.Count(), Downloaded = g.Count(c => c.Downloaded || c.IsBundled) })
-            .ToListAsync(ct);
-
-        // The queue is pruned to a retention window, so loading the live rows is bounded.
-        var jobs = await jobsContext.JobQueue
-            .Where(j => j.ResourceKey != null && j.Status != Schema.JobsContext.JobStatus.Succeeded
-                                              && j.Status != Schema.JobsContext.JobStatus.Cancelled)
-            .ToListAsync(ct);
-
-        var lastSyncs = await actionsContext.Actions.OfType<ChaptersRetrievedActionRecord>()
-            .GroupBy(r => r.MangaId)
-            .Select(g => g.OrderByDescending(r => r.PerformedAt).First())
-            .ToListAsync(ct);
-
-        return TypedResults.Ok(seriesKeys.Select(key =>
-        {
-            var chapters = chapterStats.FirstOrDefault(c => c.MangaId == key);
-            var seriesJobs = jobs.Where(j => j.ResourceKey == key).ToList();
-            var sync = lastSyncs.FirstOrDefault(r => r.MangaId == key);
-            string? lastError = seriesJobs
-                .Where(j => j.Error != null)
-                .OrderByDescending(j => j.FinishedAt ?? j.StartedAt ?? j.CreatedAt)
-                .Select(j => j.Error)
-                .FirstOrDefault();
-            return new SeriesRollup(key, chapters?.Wanted ?? 0, chapters?.Downloaded ?? 0,
-                seriesJobs.Count(j => j.Status == Schema.JobsContext.JobStatus.Queued),
-                seriesJobs.Count(j => j.Status == Schema.JobsContext.JobStatus.Running),
-                seriesJobs.Count(j => j.Status == Schema.JobsContext.JobStatus.NeedsAttention),
-                lastError, sync?.PerformedAt, sync?.ChapterCount);
-        }).ToList());
+        return TypedResults.Ok(await rollups.GetAsync(context, jobsContext, actionsContext, HttpContext.RequestAborted));
     }
 
     /// <summary>
@@ -247,82 +213,21 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [ProducesResponseType(Status200OK)]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType<string>(Status500InternalServerError,  "text/plain")]
-    public async Task<Results<Ok, NotFound<string>, InternalServerError<string>>> ChangeLibrary(string MangaId, string LibraryId, [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock, [FromQuery] string? connectorName = null, [FromQuery] string? connectorSeriesId = null, [FromQuery] bool download = false)
+    public async Task<Results<Ok, NotFound<string>, InternalServerError<string>>> ChangeLibrary(string MangaId, string LibraryId,
+        [FromServices] API.Services.SeriesLibraryService libraryService,
+        [FromQuery] string? connectorName = null, [FromQuery] string? connectorSeriesId = null, [FromQuery] bool download = false)
     {
-        if (await context.FileLibraries.FirstOrDefaultAsync(l => l.Key == LibraryId, HttpContext.RequestAborted) is not { } library)
-            return TypedResults.NotFound(nameof(LibraryId));
-
-        var manga = await context.Series
-            .Include(m => m.Library)
-            .Include(m => m.SourceIds)
-            .Include(m => m.Chapters)
-            .ThenInclude(c => c.SourceIds)
-            .FirstOrDefaultAsync(m => m.Key == MangaId, HttpContext.RequestAborted);
-
-        if (manga is null)
+        (API.Services.ChangeLibraryStatus status, string? error) = await libraryService.ChangeLibraryAsync(
+            context, actionsContext, MangaId, LibraryId, connectorName, connectorSeriesId, download, HttpContext.RequestAborted);
+        return status switch
         {
-            if (string.IsNullOrWhiteSpace(connectorName) || string.IsNullOrWhiteSpace(connectorSeriesId))
-                return TypedResults.NotFound(nameof(MangaId));
-
-            if (connectors.FirstOrDefault(c => c.Name.Equals(connectorName, StringComparison.InvariantCultureIgnoreCase)) is not { } connector)
-                return TypedResults.NotFound(nameof(connectorName));
-
-            if (await connector.GetMangaFromId(connectorSeriesId) is not ({ } m, { } id))
-                return TypedResults.NotFound(nameof(connectorSeriesId));
-
-            if (await context.UpsertManga(m, id, HttpContext.RequestAborted) is not { } added)
-                return TypedResults.InternalServerError("Could not add Series to context");
-
-            manga = added.manga;
-        }
-
-        manga.IsTracked = true;
-
-        // Adding from a search result is one decision: with download=true the originating source is
-        // enabled here and now (the source toggle remains the per-source control afterwards); either
-        // way cover + chapter sync queue immediately so the series is never an empty shell.
-        Schema.SeriesContext.SourceId<Schema.SeriesContext.Series>? addedFrom = connectorName is null ? null
-            : manga.SourceIds.FirstOrDefault(id => id.MangaConnectorName.Equals(connectorName, StringComparison.InvariantCultureIgnoreCase));
-        if (download && addedFrom is not null)
-        {
-            addedFrom.UseForDownload = true;
-            foreach (Schema.SeriesContext.SourceId<Chapter> chId in manga.Chapters.SelectMany(ch =>
-                         ch.SourceIds.Where(chId => chId.MangaConnectorName.Equals(connectorName, StringComparison.InvariantCultureIgnoreCase))))
-                chId.UseForDownload = true;
-        }
-
-        async Task EnqueueAddJobs()
-        {
-            if (addedFrom is not null)
-                await API.JobRuntime.SeriesJobs.EnqueueCoverAndSync(jobStore, clock, addedFrom, settings.DownloadLanguage, HttpContext.RequestAborted);
-        }
-
-        if(manga.LibraryId == library.Key)
-        {
-             await context.Sync(HttpContext.RequestAborted, GetType(), "Track Series");
-             await EnqueueAddJobs();
-             return TypedResults.Ok();
-        }
-
-        Dictionary<Chapter, string?> oldPaths = manga.Chapters.Where(ch => ch.Downloaded).ToDictionary(ch => ch, ch => ch.FullArchiveFilePath);
-        manga.Library = library;
-        Dictionary<Chapter, string?> newPaths = oldPaths.ToDictionary(kv => kv.Key, kv => kv.Key.FullArchiveFilePath);
-        foreach (var kv in oldPaths)
-            await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
-                API.JobRuntime.Handlers.MoveDataHandler.Type,
-                API.JobRuntime.Handlers.MoveDataHandler.PayloadFor(kv.Value!, newPaths[kv.Key]!), clock.UtcNow,
-                dedupKey: API.JobRuntime.Handlers.MoveDataHandler.DedupKey(newPaths[kv.Key]!)), HttpContext.RequestAborted);
-
-        if(await context.Sync(HttpContext.RequestAborted, GetType(), "Move Series") is { success: false } mangaContextResult)
-            return TypedResults.InternalServerError(mangaContextResult.exceptionMessage);
-
-        await EnqueueAddJobs();
-
-        actionsContext.Actions.Add(new LibraryMovedActionRecord(manga, library));
-        if(await actionsContext.Sync(HttpContext.RequestAborted, GetType(), "Move Series") is { success: false } actionsContextResult)
-            return TypedResults.InternalServerError(actionsContextResult.exceptionMessage);
-        
-        return TypedResults.Ok();
+            API.Services.ChangeLibraryStatus.Ok => TypedResults.Ok(),
+            API.Services.ChangeLibraryStatus.LibraryNotFound => TypedResults.NotFound(nameof(LibraryId)),
+            API.Services.ChangeLibraryStatus.SeriesNotFound => TypedResults.NotFound(nameof(MangaId)),
+            API.Services.ChangeLibraryStatus.ConnectorNotFound => TypedResults.NotFound(nameof(connectorName)),
+            API.Services.ChangeLibraryStatus.ConnectorSeriesNotFound => TypedResults.NotFound(nameof(connectorSeriesId)),
+            _ => TypedResults.InternalServerError(error ?? "Could not change library")
+        };
     }
 
     /// <summary>

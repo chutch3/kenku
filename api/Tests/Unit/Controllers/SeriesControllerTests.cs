@@ -73,8 +73,10 @@ public class MangaControllerTests
         mockConnector.Setup(c => c.GetMangaFromId("ext-id")).ReturnsAsync((manga, connectorId));
 
         var controller = CreateController(ctx, actionsCtx, [mockConnector.Object]);
-        
-        var result = await controller.ChangeLibrary(manga.Key, library.Key, new InMemoryJobStore(), new SystemClock(), "MangaDex", "ext-id");
+        var libraryService = new API.Services.SeriesLibraryService(
+            new KenkuSettings(), [mockConnector.Object], new InMemoryJobStore(), new SystemClock());
+
+        var result = await controller.ChangeLibrary(manga.Key, library.Key, libraryService, "MangaDex", "ext-id");
 
         Assert.IsType<Ok>(result.Result);
         var mangaInDb = await ctx.Series.FirstOrDefaultAsync(m => m.Key == manga.Key);
