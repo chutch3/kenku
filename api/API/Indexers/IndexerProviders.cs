@@ -8,11 +8,11 @@ public record ManualIndexerConfig(string Name, string Url, string ApiKey, int[] 
 /// Yields the indexers a user added by hand (Torznab/Newznab endpoints stored in settings). No
 /// Prowlarr involvement — this is the "you can add them" half of the *arr model.
 /// </summary>
-public class ConfiguredIndexerProvider(HttpClient http, IReadOnlyList<ManualIndexerConfig> indexers) : IIndexerProvider
+public class ConfiguredIndexerProvider(HttpClient http, IReadOnlyList<ManualIndexerConfig> indexers, IndexerCooldown cooldown) : IIndexerProvider
 {
     public Task<IReadOnlyList<IIndexer>> GetIndexersAsync(CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<IIndexer>>(
-            indexers.Select(i => (IIndexer)new TorznabIndexer(http, i.Name, i.Url, i.ApiKey, i.Categories)).ToArray());
+            indexers.Select(i => (IIndexer)new TorznabIndexer(http, i.Name, i.Url, i.ApiKey, i.Categories, cooldown)).ToArray());
 }
 
 /// <summary>
@@ -21,7 +21,7 @@ public class ConfiguredIndexerProvider(HttpClient http, IReadOnlyList<ManualInde
 /// so Prowlarr's pushed updates take effect with no Kenku restart. Each enabled config becomes a
 /// <see cref="TorznabIndexer"/> pointing at Prowlarr's per-indexer Torznab endpoint.
 /// </summary>
-public class SyncedIndexerProvider(HttpClient http, KenkuSettings settings) : IIndexerProvider
+public class SyncedIndexerProvider(HttpClient http, KenkuSettings settings, IndexerCooldown cooldown) : IIndexerProvider
 {
     public Task<IReadOnlyList<IIndexer>> GetIndexersAsync(CancellationToken ct)
     {
@@ -30,7 +30,7 @@ public class SyncedIndexerProvider(HttpClient http, KenkuSettings settings) : II
         {
             if (!config.Enabled)
                 continue;
-            indexers.Add(new TorznabIndexer(http, config.Name, config.Url, config.ApiKey, config.Categories));
+            indexers.Add(new TorznabIndexer(http, config.Name, config.Url, config.ApiKey, config.Categories, cooldown));
         }
         return Task.FromResult<IReadOnlyList<IIndexer>>(indexers);
     }

@@ -8,6 +8,7 @@ using API.HttpRequesters;
 using API.DownloadClients;
 using log4net;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace API.Extensions;
 
@@ -33,17 +34,21 @@ public static class ServiceCollectionExtensions
     {
         // ---- Search path (always on) ----
 
+        // IClock is normally registered by the job runtime; TryAdd so this path also composes standalone.
+        services.TryAddSingleton<API.JobRuntime.Interfaces.IClock, API.JobRuntime.SystemClock>();
+        services.AddSingleton<IndexerCooldown>();
+
         if (settings.ManualIndexers.Count > 0)
             services.AddSingleton<IIndexerProvider>(sp =>
                 new ConfiguredIndexerProvider(
                     new HttpClient(sp.GetRequiredService<RateLimitHandler>(), disposeHandler: false),
-                    settings.ManualIndexers));
+                    settings.ManualIndexers, sp.GetRequiredService<IndexerCooldown>()));
 
         // Prowlarr-synced indexers. The provider reads settings live, so we always register it.
         services.AddSingleton<IIndexerProvider>(sp =>
             new SyncedIndexerProvider(
                 new HttpClient(sp.GetRequiredService<RateLimitHandler>(), disposeHandler: false),
-                settings));
+                settings, sp.GetRequiredService<IndexerCooldown>()));
 
         services.AddSingleton<IIndexerClient>(sp =>
             new AggregateIndexerSearch(sp.GetServices<IIndexerProvider>()));

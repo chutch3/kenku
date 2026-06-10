@@ -1,12 +1,15 @@
 using System.Net;
 using API;
 using API.Indexers;
+using API.Tests.Unit.JobRuntime;
 using Xunit;
 
 namespace API.Tests.Unit.Indexers;
 
 public class IndexerProvidersTests
 {
+    private static IndexerCooldown Cool() => new(new FakeClock());
+
     private static HttpClient FakeHttp(Func<HttpRequestMessage, HttpResponseMessage> handler) =>
         new(new FakeHttpMessageHandler(handler));
 
@@ -20,7 +23,7 @@ public class IndexerProvidersTests
         [
             new ManualIndexerConfig("Tracker A", "http://a.test/api", "ka", [8000]),
             new ManualIndexerConfig("Tracker B", "http://b.test/api", "kb", [8000, 8020])
-        ]);
+        ], Cool());
 
         var indexers = await provider.GetIndexersAsync(CancellationToken.None);
 
@@ -32,7 +35,7 @@ public class IndexerProvidersTests
     public async Task ConfiguredProvider_EmptyWhenNoManualIndexers()
     {
         var http = FakeHttp(_ => new HttpResponseMessage(HttpStatusCode.OK));
-        var provider = new ConfiguredIndexerProvider(http, []);
+        var provider = new ConfiguredIndexerProvider(http, [], Cool());
 
         Assert.Empty(await provider.GetIndexersAsync(CancellationToken.None));
     }
@@ -47,7 +50,7 @@ public class IndexerProvidersTests
         settings.SyncedIndexers.Add(new SyncedIndexerConfig(1, "Nyaa", "http://p/1/api", "k", [7030], "torrent", true));
         settings.SyncedIndexers.Add(new SyncedIndexerConfig(2, "Off", "http://p/2/api", "k", [7030], "torrent", false));
 
-        var provider = new SyncedIndexerProvider(http, settings);
+        var provider = new SyncedIndexerProvider(http, settings, Cool());
         var indexers = await provider.GetIndexersAsync(CancellationToken.None);
 
         Assert.Single(indexers);
@@ -59,7 +62,7 @@ public class IndexerProvidersTests
     {
         var http = FakeHttp(_ => new HttpResponseMessage(HttpStatusCode.OK));
         var settings = new KenkuSettings { AppData = NewTmp() };
-        var provider = new SyncedIndexerProvider(http, settings);
+        var provider = new SyncedIndexerProvider(http, settings, Cool());
 
         Assert.Empty(await provider.GetIndexersAsync(CancellationToken.None));
 
@@ -75,7 +78,7 @@ public class IndexerProvidersTests
     {
         var http = FakeHttp(_ => new HttpResponseMessage(HttpStatusCode.OK));
         var settings = new KenkuSettings { AppData = NewTmp() };
-        var provider = new SyncedIndexerProvider(http, settings);
+        var provider = new SyncedIndexerProvider(http, settings, Cool());
 
         Assert.Empty(await provider.GetIndexersAsync(CancellationToken.None));
     }

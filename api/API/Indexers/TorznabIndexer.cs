@@ -9,7 +9,8 @@ namespace API.Indexers;
 /// a Jackett feed, or one of the per-indexer endpoints Prowlarr exposes at
 /// <c>{prowlarr}/{indexerId}/api</c>. Knows nothing about Prowlarr; that's the whole point.
 /// </summary>
-public class TorznabIndexer(HttpClient http, string name, string baseUrl, string apiKey, int[] categories) : IIndexer
+public class TorznabIndexer(HttpClient http, string name, string baseUrl, string apiKey, int[] categories,
+    IndexerCooldown? cooldown = null) : IIndexer
 {
     private static readonly ILog Log = LogManager.GetLogger(typeof(TorznabIndexer));
     private static readonly XNamespace Torznab = "http://torznab.com/schemas/2015/feed";
@@ -18,10 +19,27 @@ public class TorznabIndexer(HttpClient http, string name, string baseUrl, string
 
     public async Task<IndexerSearchResult[]> Search(IndexerQuery query, CancellationToken ct)
     {
+        // A rate-limited indexer is skipped until its cooldown elapses — searching it again just
+        // burns the daily quota and gets another 429. (Was: a 429 per chapter, 51 in an hour.)
+        if (cooldown?.CooldownUntil(Name) is { } until)
+        {
+            Log.DebugFormat("Torznab indexer '{0}' is rate-limited until {1:u}; skipping search.", Name, until);
+            return [];
+        }
+
         try
         {
             string url = BuildUrl(query);
             using HttpResponseMessage response = await http.GetAsync(url, ct);
+            if ((int)response.StatusCode == 429)
+            {
+                TimeSpan? retryAfter = response.Headers.RetryAfter?.Delta
+                    ?? (response.Headers.RetryAfter?.Date is { } date ? date - DateTimeOffset.UtcNow : null);
+                cooldown?.RecordRateLimited(Name, retryAfter is { Ticks: > 0 } ra ? ra : null);
+                Log.WarnFormat("Torznab indexer '{0}' returned HTTP 429; cooling down{1}.", Name,
+                    retryAfter is { Ticks: > 0 } r ? $" for {r.TotalSeconds:0}s" : "");
+                return [];
+            }
             if (!response.IsSuccessStatusCode)
             {
                 Log.WarnFormat("Torznab indexer '{0}' returned HTTP {1}", Name, (int)response.StatusCode);

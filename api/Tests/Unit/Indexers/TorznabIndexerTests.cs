@@ -1,4 +1,5 @@
 using API.Indexers.Interfaces;
+using API.Tests.Unit.JobRuntime;
 using System.Net;
 using System.Text;
 using API.Indexers;
@@ -153,5 +154,40 @@ public class TorznabIndexerTests
         var results = await indexer.Search(new IndexerQuery("Saga"), CancellationToken.None);
 
         Assert.Empty(results);
+    }
+    [Fact]
+    public async Task Search_OnHttp429_CoolsTheIndexerDown_AndSkipsFurtherSearchesUntilTheWindowElapses()
+    {
+        int calls = 0;
+        var http = FakeHttp(_ =>
+        {
+            calls++;
+            var r = new HttpResponseMessage((HttpStatusCode)429);
+            r.Headers.TryAddWithoutValidation("Retry-After", "60");
+            return r;
+        });
+        var clock = new FakeClock();
+        var cooldown = new IndexerCooldown(clock);
+        var indexer = new TorznabIndexer(http, "Busy", "http://prowlarr:9696/1/api", "key", [8000], cooldown);
+
+        Assert.Empty(await indexer.Search(new IndexerQuery("Saga"), CancellationToken.None)); // hits 429, records cooldown
+        Assert.Empty(await indexer.Search(new IndexerQuery("Saga"), CancellationToken.None)); // within window: short-circuits
+
+        Assert.Equal(1, calls); // the second search never touched the network
+        Assert.True(cooldown.IsCoolingDown("Busy"));
+
+        clock.Advance(TimeSpan.FromSeconds(61));
+        Assert.False(cooldown.IsCoolingDown("Busy"));
+        await indexer.Search(new IndexerQuery("Saga"), CancellationToken.None); // window elapsed: searches again
+        Assert.Equal(2, calls);
+    }
+
+    [Fact]
+    public async Task Search_WithoutACooldown_StillWorks_BackwardsCompatible()
+    {
+        var http = FakeHttp(_ => new HttpResponseMessage((HttpStatusCode)429));
+        var indexer = new TorznabIndexer(http, "Busy", "http://prowlarr:9696/1/api", "key", [8000]);
+
+        Assert.Empty(await indexer.Search(new IndexerQuery("Saga"), CancellationToken.None));
     }
 }
