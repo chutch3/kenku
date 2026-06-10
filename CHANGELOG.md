@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v0.13.2 (2026-06-10)
+
+### Bug Fixes
+
+- Move release-selection validation onto the record constructor params so the settings PATCH stops
+  500ing
+  ([`56fedd6`](https://github.com/chutch3/kenku/commit/56fedd6f5917ce9e439264481b688d862fedf1eb))
+
+
 ## v0.13.1 (2026-06-10)
 
 ### Bug Fixes
