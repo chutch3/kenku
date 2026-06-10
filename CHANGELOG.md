@@ -2,6 +2,54 @@
 
 <!-- version list -->
 
+## v0.13.1 (2026-06-10)
+
+### Bug Fixes
+
+- Cool down a rate-limited indexer instead of researching it every chapter and burning the quota
+  ([`ad5995a`](https://github.com/chutch3/kenku/commit/ad5995ab8fc6201459c68bb29b6b4e3b74b4e7e7))
+
+- Read Metron credentials at request time so linking works without a restart
+  ([`976e6c2`](https://github.com/chutch3/kenku/commit/976e6c23a04595274af426d08c44176191f49aea))
+
+- Spare tracked series from the no-download cleanup so watchlist and paused series survive
+  ([`2aecdd5`](https://github.com/chutch3/kenku/commit/2aecdd516824c121f78b6680e8bf7e75ca45f863))
+
+- Sweep a deleted series jobs and tagged torrents so nothing retries against vanished rows
+  ([`efb795a`](https://github.com/chutch3/kenku/commit/efb795a13886b7910bdd0b23bd8145480c26ef05))
+
+### Chores
+
+- Rename the backend test workflow to API Checks since it runs the full suite
+  ([`04b92f6`](https://github.com/chutch3/kenku/commit/04b92f65bb0e13b333a28bcec1a5d34cef1996c5))
+
+### Refactoring
+
+- Collapse the repeated cover-and-sync enqueue blocks into one SeriesJobs helper
+  ([`7e10ff7`](https://github.com/chutch3/kenku/commit/7e10ff70e2a78b15a77ae576162a10a11a81255a))
+
+- Consolidate test fakes and image fixtures into shared FakeSeriesSource and TestImages
+  ([`0ede957`](https://github.com/chutch3/kenku/commit/0ede957b34ebfb02c8d979bc823ce323e239b52a))
+
+- Fold the eleven identical reconciler loops into one Reconciler base class
+  ([`724ef7b`](https://github.com/chutch3/kenku/commit/724ef7bc25e7cd104fd46c71f0ccd2195e8abff7))
+
+- Mirror schema field names on the SourceId DTO and map through From factories
+  ([`8c1c5d7`](https://github.com/chutch3/kenku/commit/8c1c5d7b966ff5a895ac0a54ab7499a2b691abd2))
+
+- Move the cover image pipeline off the SeriesSource base into CoverImageCache
+  ([`81beb9b`](https://github.com/chutch3/kenku/commit/81beb9b2c40c8732c1f3b4738521a9c3dc80399a))
+
+- Move the rollup aggregation and change-library workflow out of SeriesController into services
+  ([`a5bda7e`](https://github.com/chutch3/kenku/commit/a5bda7ef8c9823e5b50588fef61d5984ef59ad49))
+
+- Register each layer through extension methods and move boot work into StartupTasks
+  ([`3b98e90`](https://github.com/chutch3/kenku/commit/3b98e9093cf208d7fb4debe4afcbd95cfe8911e9))
+
+- Resolve domain services from the container instead of hand-constructing them in handlers
+  ([`fe7c9b9`](https://github.com/chutch3/kenku/commit/fe7c9b968fd3d8202af031e43eb3a20749ee0b25))
+
+
 ## v0.13.0 (2026-06-09)
 
 ### Bug Fixes
