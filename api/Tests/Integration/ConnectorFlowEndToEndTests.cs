@@ -1,3 +1,4 @@
+using API.Tests;
 using API.JobRuntime.Interfaces;
 using System.Net;
 using API.Connectors;
@@ -28,14 +29,6 @@ public class ConnectorFlowEndToEndTests : IAsyncLifetime
     private readonly string _libDir = Path.Combine(Path.GetTempPath(), "kenku-cf-" + Guid.NewGuid().ToString("N"));
     private readonly PostgresFixture _postgres = new();
     private string _dbName = null!;
-
-    private static byte[] Jpeg()
-    {
-        using var image = new Image<Rgba32>(8, 8);
-        using var ms = new MemoryStream();
-        image.SaveAsJpeg(ms);
-        return ms.ToArray();
-    }
 
     public async Task InitializeAsync()
     {
@@ -155,7 +148,7 @@ public class ConnectorFlowEndToEndTests : IAsyncLifetime
     [Fact]
     public async Task DownloadCoverJob_SetsCoverFileNameInCache_WithOwnScope()
     {
-        var jpegBytes = Jpeg();
+        var jpegBytes = TestImages.Jpeg();
         var httpRequester = new Mock<IHttpRequester>();
         httpRequester
             .Setup(r => r.MakeRequest(It.IsAny<string>(), It.IsAny<RequestType>(), It.IsAny<string?>(), It.IsAny<CancellationToken?>()))

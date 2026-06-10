@@ -1,3 +1,4 @@
+using API.Tests;
 using API.Acquirers.Interfaces;
 using API.DownloadClients.Interfaces;
 using API.Indexers.Interfaces;
@@ -14,18 +15,7 @@ namespace API.Tests.Unit.Acquirers;
 
 public class TorrentAcquirerTests
 {
-    private sealed class FakeSource : SeriesSource
-    {
-        public FakeSource(KenkuSettings s) : base("FakeTorrent", ["en"], ["fake.test"], "i", s) { }
-        public override AcquisitionKind Kind => AcquisitionKind.Torrent;
-        public override Task<(Series, SourceId<Series>)[]> SearchManga(string s) => throw new NotSupportedException();
-        public override Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string u) => throw new NotSupportedException();
-        public override Task<(Series, SourceId<Series>)?> GetMangaFromId(string i) => throw new NotSupportedException();
-        public override Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> m, string? l = null) => throw new NotSupportedException();
-        internal override Task<string[]> GetChapterImageUrls(SourceId<Chapter> c) => throw new NotSupportedException();
-    }
-
-    private static (SourceId<Chapter> chapterId, FakeSource source, string tempRoot) BuildFixture()
+    private static (SourceId<Chapter> chapterId, FakeSeriesSource source, string tempRoot) BuildFixture()
     {
         string tempRoot = Path.Combine(Path.GetTempPath(), "kenku-tor-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempRoot);
@@ -36,7 +26,7 @@ public class TorrentAcquirerTests
             library, 0f, 2024, "en");
         var chapter = new Chapter(series, "60", null, null);
         var chapterId = new SourceId<Chapter>(chapter, "FakeTorrent", "60", null, true);
-        return (chapterId, new FakeSource(settings), tempRoot);
+        return (chapterId, new FakeSeriesSource("FakeTorrent", settings, AcquisitionKind.Torrent), tempRoot);
     }
 
     [Fact]

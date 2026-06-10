@@ -1,3 +1,4 @@
+using API.Tests;
 using API.HttpRequesters.Interfaces;
 using System.Net;
 using API;
@@ -13,31 +14,6 @@ namespace API.Tests.Unit.Connectors;
 public class SeriesSourceCoverCacheTests
 {
     /// <summary>Minimal connector whose download client is backed by a faked HTTP boundary.</summary>
-    private sealed class FakeConnector : SeriesSource
-    {
-        public FakeConnector(KenkuSettings settings, IHttpRequester client)
-            : base("Fake:Conn", ["en"], ["fake.com"], "icon", settings)
-        {
-            downloadClient = client;
-        }
-
-        public override API.Acquirers.AcquisitionKind Kind => API.Acquirers.AcquisitionKind.ImageList;
-
-        public override Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName) => throw new NotSupportedException();
-        public override Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string url) => throw new NotSupportedException();
-        public override Task<(Series, SourceId<Series>)?> GetMangaFromId(string mangaIdOnSite) => throw new NotSupportedException();
-        public override Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> mangaId, string? language = null) => throw new NotSupportedException();
-        internal override Task<string[]> GetChapterImageUrls(SourceId<Chapter> chapterId) => throw new NotSupportedException();
-    }
-
-    private static byte[] CreateJpegBytes()
-    {
-        using var image = new Image<Rgba32>(8, 8);
-        using var ms = new MemoryStream();
-        image.SaveAsJpeg(ms);
-        return ms.ToArray();
-    }
-
     [Fact]
     public async Task SaveCoverImageToCache_ReturnedFilename_MatchesFileWrittenToCache()
     {
@@ -46,7 +22,7 @@ public class SeriesSourceCoverCacheTests
         try
         {
             var settings = new KenkuSettings { AppData = tempRoot };
-            byte[] jpeg = CreateJpegBytes();
+            byte[] jpeg = TestImages.Jpeg();
 
             var inner = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
             {
@@ -54,7 +30,7 @@ public class SeriesSourceCoverCacheTests
             });
             using var rateLimit = new RateLimitHandler(settings, inner);
             var downloadClient = new HttpRequester(rateLimit, settings);
-            var connector = new FakeConnector(settings, downloadClient);
+            var connector = new FakeSeriesSource("Fake:Conn", settings, httpRequester: downloadClient);
 
             var library = new FileLibrary(Path.Combine(tempRoot, "lib"), "Lib");
             var manga = new Series("Cover Series", "Desc", "https://example.com/img/cover.png", SeriesReleaseStatus.Continuing,

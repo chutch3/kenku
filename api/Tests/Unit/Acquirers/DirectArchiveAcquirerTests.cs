@@ -1,3 +1,4 @@
+using API.Tests;
 using System.Net;
 using API;
 using API.Acquirers.Interfaces;
@@ -11,20 +12,7 @@ namespace API.Tests.Unit.Acquirers;
 
 public class DirectArchiveAcquirerTests
 {
-    private sealed class FakeSource : SeriesSource
-    {
-        public FakeSource(KenkuSettings settings)
-            : base("FakeArchive", ["en"], ["fake.test"], "icon", settings) { }
-
-        public override AcquisitionKind Kind => AcquisitionKind.DirectArchive;
-        public override Task<(Series, SourceId<Series>)[]> SearchManga(string s) => throw new NotSupportedException();
-        public override Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string u) => throw new NotSupportedException();
-        public override Task<(Series, SourceId<Series>)?> GetMangaFromId(string i) => throw new NotSupportedException();
-        public override Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> m, string? l = null) => throw new NotSupportedException();
-        internal override Task<string[]> GetChapterImageUrls(SourceId<Chapter> c) => throw new NotSupportedException();
-    }
-
-    private static (Series series, Chapter chapter, SourceId<Chapter> sourceId, FakeSource source, KenkuSettings settings, string tempRoot)
+    private static (Series series, Chapter chapter, SourceId<Chapter> sourceId, FakeSeriesSource source, KenkuSettings settings, string tempRoot)
         BuildFixture(string archiveUrl)
     {
         string tempRoot = Path.Combine(Path.GetTempPath(), "kenku-da-" + Guid.NewGuid().ToString("N"));
@@ -36,7 +24,7 @@ public class DirectArchiveAcquirerTests
             library, 0f, 2024, "en");
         var chapter = new Chapter(series, "1", null, "T");
         var sourceId = new SourceId<Chapter>(chapter, "FakeArchive", "s1", archiveUrl, true);
-        var source = new FakeSource(settings);
+        var source = new FakeSeriesSource("FakeArchive", settings, AcquisitionKind.DirectArchive);
         return (series, chapter, sourceId, source, settings, tempRoot);
     }
 

@@ -1,3 +1,4 @@
+using API.Tests;
 using API.Acquirers.Interfaces;
 using API.DownloadClients.Interfaces;
 using API.Indexers.Interfaces;
@@ -28,17 +29,6 @@ namespace API.Tests.Integration;
 /// </summary>
 public class TorrentDownloadEndToEndTests : IAsyncLifetime
 {
-    private sealed class FakeTorrentSource : SeriesSource
-    {
-        public FakeTorrentSource(KenkuSettings s) : base("FakeTorrent", ["en"], ["fake.test"], "i", s) { }
-        public override AcquisitionKind Kind => AcquisitionKind.Torrent;
-        public override Task<(Series, SourceId<Series>)[]> SearchManga(string s) => throw new NotSupportedException();
-        public override Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string u) => throw new NotSupportedException();
-        public override Task<(Series, SourceId<Series>)?> GetMangaFromId(string i) => throw new NotSupportedException();
-        public override Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> m, string? l = null) => throw new NotSupportedException();
-        internal override Task<string[]> GetChapterImageUrls(SourceId<Chapter> c) => throw new NotSupportedException();
-    }
-
     /// <summary>In-memory stand-in for qBittorrent: records adds, reports a settable status by tag.</summary>
     private sealed class RecordingDownloadClient : IDownloadClient
     {
@@ -64,7 +54,7 @@ public class TorrentDownloadEndToEndTests : IAsyncLifetime
     private readonly string _tempRoot = Path.Combine(Path.GetTempPath(), "kenku-tor-e2e-" + Guid.NewGuid().ToString("N"));
     private readonly PostgresFixture _postgres = new();
     private readonly RecordingDownloadClient _client = new();
-    private FakeTorrentSource _source = null!;
+    private FakeSeriesSource _source = null!;
     private string _dbName = null!;
     private KenkuApplicationFactory _app = null!;
 
@@ -74,7 +64,7 @@ public class TorrentDownloadEndToEndTests : IAsyncLifetime
         Directory.CreateDirectory(_tempRoot);
 
         var settings = new KenkuSettings { AppData = _tempRoot };
-        _source = new FakeTorrentSource(settings);
+        _source = new FakeSeriesSource("FakeTorrent", settings, AcquisitionKind.Torrent);
 
         var release = new IndexerSearchResult("Saga 060.cbz", "magnet:?xt=urn:btih:abc", 1000, 50, "ix");
         var indexer = new Mock<IIndexerClient>();

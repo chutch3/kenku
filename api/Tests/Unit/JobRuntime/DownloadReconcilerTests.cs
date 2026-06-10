@@ -1,3 +1,4 @@
+using API.Tests;
 using API.DownloadClients.Interfaces;
 using API.JobRuntime.Reconcilers;
 using API.Acquirers;
@@ -87,17 +88,6 @@ public class DownloadReconcilerTests : IDisposable
         Assert.Single(await store.GetAllAsync()); // second tick coalesced on dedup key — no re-queue loop
     }
 
-    private sealed class FakeTorrentSource : SeriesSource
-    {
-        public FakeTorrentSource() : base("MockConnector", ["en"], ["fake.test"], "i", new KenkuSettings { AppData = "/tmp" }) { }
-        public override AcquisitionKind Kind => AcquisitionKind.Torrent;
-        public override Task<(Series, SourceId<Series>)[]> SearchManga(string s) => throw new NotSupportedException();
-        public override Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string u) => throw new NotSupportedException();
-        public override Task<(Series, SourceId<Series>)?> GetMangaFromId(string i) => throw new NotSupportedException();
-        public override Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> m, string? l = null) => throw new NotSupportedException();
-        internal override Task<string[]> GetChapterImageUrls(SourceId<Chapter> c) => throw new NotSupportedException();
-    }
-
     [Fact]
     public async Task Scan_SkipsTorrentChaptersAlreadyInFlightAtTheClient()
     {
@@ -110,7 +100,7 @@ public class DownloadReconcilerTests : IDisposable
               .ReturnsAsync(new DownloadStatus.Downloading(0.5));
 
         int enqueued = await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow,
-            client.Object, [new FakeTorrentSource()], default);
+            client.Object, [new FakeSeriesSource("MockConnector", new KenkuSettings { AppData = "/tmp" }, AcquisitionKind.Torrent)], default);
 
         Assert.Equal(0, enqueued);
         Assert.Empty(await store.GetAllAsync()); // in flight — the completion reconciler owns it
@@ -128,7 +118,7 @@ public class DownloadReconcilerTests : IDisposable
               .ThrowsAsync(new HttpRequestException("connection refused"));
 
         int enqueued = await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow,
-            client.Object, [new FakeTorrentSource()], default);
+            client.Object, [new FakeSeriesSource("MockConnector", new KenkuSettings { AppData = "/tmp" }, AcquisitionKind.Torrent)], default);
 
         Assert.Equal(1, enqueued); // the download job surfaces the client error, bounded by attempts
     }

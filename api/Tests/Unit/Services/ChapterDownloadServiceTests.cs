@@ -1,3 +1,4 @@
+using API.Tests;
 using API.Acquirers.Interfaces;
 using API.Acquirers;
 using API.JobRuntime.Interfaces;
@@ -46,14 +47,6 @@ public class ChapterDownloadServiceTests
         }
     }
 
-    private static byte[] CreateJpegBytes()
-    {
-        using var image = new Image<Rgba32>(8, 8);
-        using var ms = new MemoryStream();
-        image.SaveAsJpeg(ms);
-        return ms.ToArray();
-    }
-
     private static async Task RunDownload(IServiceProvider sp, KenkuSettings settings, SeriesSource connector, string chapterKey,
         API.Notifications.Interfaces.INotificationDispatcher? dispatcher = null)
     {
@@ -90,7 +83,7 @@ public class ChapterDownloadServiceTests
             // Provide a cached cover so EnsureCoverInPublicationFolder does not make a network request.
             Directory.CreateDirectory(settings.CoverImageCacheOriginal);
             string cachedCover = "cached-cover.jpg";
-            await File.WriteAllBytesAsync(Path.Combine(settings.CoverImageCacheOriginal, cachedCover), CreateJpegBytes());
+            await File.WriteAllBytesAsync(Path.Combine(settings.CoverImageCacheOriginal, cachedCover), TestImages.Jpeg());
             manga.CoverFileNameInCache = cachedCover;
 
             context.Series.Add(manga);
@@ -104,7 +97,7 @@ public class ChapterDownloadServiceTests
             mockConnector.Setup(c => c.GetChapterImageUrls(It.IsAny<SourceId<Chapter>>()))
                 .ReturnsAsync(["http://img/1.jpg"]);
 
-            var sourceStream = new TrackingStream(CreateJpegBytes());
+            var sourceStream = new TrackingStream(TestImages.Jpeg());
             mockConnector.Setup(c => c.DownloadImage(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(sourceStream);
 
@@ -218,7 +211,7 @@ public class ChapterDownloadServiceTests
             mockConnector.Setup(c => c.GetChapterImageUrls(It.IsAny<SourceId<Chapter>>()))
                 .ReturnsAsync(["http://img/1.jpg"]);
             mockConnector.Setup(c => c.DownloadImage(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(() => new MemoryStream(CreateJpegBytes()));
+                .ReturnsAsync(() => new MemoryStream(TestImages.Jpeg()));
 
             var services = new ServiceCollection();
             services.AddSingleton(context);
@@ -283,7 +276,7 @@ public class ChapterDownloadServiceTests
             mockConnector.Setup(c => c.GetChapterImageUrls(It.IsAny<SourceId<Chapter>>()))
                 .ReturnsAsync(["http://img/1.jpg"]);
             mockConnector.Setup(c => c.DownloadImage(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(() => new MemoryStream(CreateJpegBytes()));
+                .ReturnsAsync(() => new MemoryStream(TestImages.Jpeg()));
 
             var services = new ServiceCollection();
             services.AddSingleton(context);
@@ -323,7 +316,7 @@ public class ChapterDownloadServiceTests
             var libraryPath = Path.Combine(tempRoot, "library");
             Directory.CreateDirectory(libraryPath);
             Directory.CreateDirectory(settings.CoverImageCacheOriginal);
-            await File.WriteAllBytesAsync(Path.Combine(settings.CoverImageCacheOriginal, "cover.jpg"), CreateJpegBytes());
+            await File.WriteAllBytesAsync(Path.Combine(settings.CoverImageCacheOriginal, "cover.jpg"), TestImages.Jpeg());
 
             var options = new DbContextOptionsBuilder<SeriesContext>()
                 .UseInMemoryDatabase("DownloadWorkerInclude-" + Guid.NewGuid().ToString("N"))
@@ -357,7 +350,7 @@ public class ChapterDownloadServiceTests
             mockConnector.Setup(c => c.GetChapterImageUrls(It.IsAny<SourceId<Chapter>>()))
                 .ReturnsAsync(["http://img/1.jpg"]);
             mockConnector.Setup(c => c.DownloadImage(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(() => new MemoryStream(CreateJpegBytes()));
+                .ReturnsAsync(() => new MemoryStream(TestImages.Jpeg()));
 
             using var runCtx = new SeriesContext(options);
             var services = new ServiceCollection();

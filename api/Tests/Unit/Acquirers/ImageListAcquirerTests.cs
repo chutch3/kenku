@@ -1,3 +1,4 @@
+using API.Tests;
 using System.IO.Compression;
 using API.Acquirers.Interfaces;
 using API.Acquirers;
@@ -29,14 +30,6 @@ public class ImageListAcquirerTests
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 
-    private static byte[] CreateJpegBytes()
-    {
-        using var image = new Image<Rgba32>(8, 8);
-        using var ms = new MemoryStream();
-        image.SaveAsJpeg(ms);
-        return ms.ToArray();
-    }
-
     private static (SourceId<Chapter> chapter, KenkuSettings settings) NewChapter(string tempRoot)
     {
         var settings = new KenkuSettings { AppData = tempRoot, ImageCompression = 100 };
@@ -62,7 +55,7 @@ public class ImageListAcquirerTests
             source.Setup(s => s.GetChapterImageUrls(It.IsAny<SourceId<Chapter>>()))
                 .ReturnsAsync(["u1", "u2", "u3"]);
             source.Setup(s => s.DownloadImage(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(() => new MemoryStream(CreateJpegBytes()));
+                .ReturnsAsync(() => new MemoryStream(TestImages.Jpeg()));
 
             var acquirer = new ImageListAcquirer(settings);
             AcquireResult result = await acquirer.AcquireAsync(chapter, source.Object, finalPath, CancellationToken.None);
@@ -94,7 +87,7 @@ public class ImageListAcquirerTests
             source.Setup(s => s.GetChapterImageUrls(It.IsAny<SourceId<Chapter>>()))
                 .ReturnsAsync(["good", "poison"]);
             source.Setup(s => s.DownloadImage("good", It.IsAny<CancellationToken>()))
-                .ReturnsAsync(() => new MemoryStream(CreateJpegBytes()));
+                .ReturnsAsync(() => new MemoryStream(TestImages.Jpeg()));
             source.Setup(s => s.DownloadImage("poison", It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() => new ThrowingStream());
 

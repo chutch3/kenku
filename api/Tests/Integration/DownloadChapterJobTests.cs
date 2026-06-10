@@ -1,3 +1,4 @@
+using API.Tests;
 using API.JobRuntime.Interfaces;
 using API.JobRuntime;
 using API.JobRuntime.Handlers;
@@ -29,14 +30,6 @@ public class DownloadChapterJobTests : IAsyncLifetime
     private string _dbName = null!;
     private KenkuApplicationFactory _app = null!;
 
-    private static byte[] Jpeg()
-    {
-        using var image = new Image<Rgba32>(8, 8);
-        using var ms = new MemoryStream();
-        image.SaveAsJpeg(ms);
-        return ms.ToArray();
-    }
-
     public async Task InitializeAsync()
     {
         _dbName = await _postgres.CreateDatabaseAsync();
@@ -44,7 +37,7 @@ public class DownloadChapterJobTests : IAsyncLifetime
         var connector = new Mock<SeriesSource>("StubConnector", new[] { "en" }, new[] { "stub.test" }, "icon", settings);
         connector.Setup(c => c.GetChapterImageUrls(It.IsAny<SourceId<Chapter>>())).ReturnsAsync(["u1", "u2"]);
         connector.Setup(c => c.DownloadImage(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(() => new MemoryStream(Jpeg()));
+            .ReturnsAsync(() => new MemoryStream(TestImages.Jpeg()));
 
         _app = new KenkuApplicationFactory
         {
@@ -107,14 +100,6 @@ public class DownloadChapterJobRetryTests : IAsyncLifetime
     private string _dbName = null!;
     private KenkuApplicationFactory _app = null!;
 
-    private static byte[] Jpeg()
-    {
-        using var image = new Image<Rgba32>(8, 8);
-        using var ms = new MemoryStream();
-        image.SaveAsJpeg(ms);
-        return ms.ToArray();
-    }
-
     public async Task InitializeAsync()
     {
         _dbName = await _postgres.CreateDatabaseAsync();
@@ -124,7 +109,7 @@ public class DownloadChapterJobRetryTests : IAsyncLifetime
         connector.Setup(c => c.GetChapterImageUrls(It.IsAny<SourceId<Chapter>>()))
             .ReturnsAsync(["url1", "url2"]);
         connector.Setup(c => c.DownloadImage("url1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(() => new MemoryStream(Jpeg()));
+            .ReturnsAsync(() => new MemoryStream(TestImages.Jpeg()));
         connector.Setup(c => c.DownloadImage("url2", It.IsAny<CancellationToken>()))
             .Returns((string _, CancellationToken __) =>
             {
@@ -133,7 +118,7 @@ public class DownloadChapterJobRetryTests : IAsyncLifetime
                     failedOnce = true;
                     throw new InvalidOperationException("simulated network error");
                 }
-                return Task.FromResult<Stream?>(new MemoryStream(Jpeg()));
+                return Task.FromResult<Stream?>(new MemoryStream(TestImages.Jpeg()));
             });
 
         Directory.CreateDirectory(_libDir);
@@ -197,7 +182,7 @@ public class DownloadChapterJobRetryTests : IAsyncLifetime
         // Advance past backoff so the retry is eligible.
         _clock.Advance(TimeSpan.FromHours(2));
 
-        // Run 2: url2 now returns Jpeg() — retry succeeds.
+        // Run 2: url2 now returns TestImages.Jpeg() — retry succeeds.
         using (var scope = _app.Services.CreateScope())
             await scope.ServiceProvider.GetRequiredService<Dispatcher>().RunOnceAsync();
 
