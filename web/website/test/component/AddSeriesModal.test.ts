@@ -9,7 +9,7 @@ const series = {
     description: 'A frozen world.',
     releaseStatus: 'Continuing',
     sourceIds: [
-        { key: 'sid1', mangaConnectorName: 'WeebCentral', foreignKey: 's1', objId: '01ABC', websiteUrl: null, useForDownload: false },
+        { key: 'sid1', mangaConnectorName: 'WeebCentral', objId: 's1', idOnConnectorSite: '01ABC', websiteUrl: null, useForDownload: false },
     ],
     fileLibraryId: null,
     originalLanguage: 'en',

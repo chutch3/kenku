@@ -19,8 +19,8 @@ function withSources(...names: string[]): MinimalSeries {
         sourceIds: names.map((n, i) => ({
             key: `sid${i}`,
             mangaConnectorName: n,
-            foreignKey: 's1',
-            objId: `id${i}`,
+            objId: 's1',
+            idOnConnectorSite: `id${i}`,
             websiteUrl: null,
             useForDownload: true,
         })),

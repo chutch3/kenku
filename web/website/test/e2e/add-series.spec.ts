@@ -10,7 +10,7 @@ const searchResult = {
     name: 'I Am A Hero',
     description: 'Hideo vs. the end of the world.',
     releaseStatus: 'Completed',
-    sourceIds: [{ key: 'sid1', mangaConnectorName: 'WeebCentral', foreignKey: 's1', objId: '01ABC', websiteUrl: null, useForDownload: false }],
+    sourceIds: [{ key: 'sid1', mangaConnectorName: 'WeebCentral', objId: 's1', idOnConnectorSite: '01ABC', websiteUrl: null, useForDownload: false }],
     fileLibraryId: null,
     originalLanguage: 'en',
     coverUrl: '',

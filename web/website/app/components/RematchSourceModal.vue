@@ -12,7 +12,7 @@
                     </UButton>
                 </div>
                 <p class="text-xs text-muted">
-                    Currently linked to <span class="font-mono text-toned">{{ source.objId }}</span>
+                    Currently linked to <span class="font-mono text-toned">{{ source.idOnConnectorSite }}</span>
                 </p>
 
                 <p v-if="searched && !results.length" class="text-sm text-muted">No matches on {{ source.mangaConnectorName }}.</p>
@@ -21,7 +21,7 @@
                         <FallbackImage :src="r.coverUrl" :alt="r.name" class="w-10 rounded shrink-0" />
                         <div class="min-w-0 grow">
                             <p class="text-sm truncate text-highlighted">{{ r.name }}</p>
-                            <p class="font-mono text-[0.65rem] text-dimmed truncate">{{ r.sourceIds[0]?.objId }}</p>
+                            <p class="font-mono text-[0.65rem] text-dimmed truncate">{{ r.sourceIds[0]?.idOnConnectorSite }}</p>
                         </div>
                         <UButton size="xs" color="primary" :loading="linking === r.key" @click="rematch(r)">Use this</UButton>
                     </li>
@@ -72,7 +72,7 @@ const rematch = async (result: MinimalSeries) => {
         await $api('/v2/Series/{MangaId}/Source/{SourceIdKey}/Rematch', {
             method: 'POST',
             path: { MangaId: props.mangaId, SourceIdKey: props.source.key },
-            body: { idOnConnectorSite: target.objId, websiteUrl: target.websiteUrl ?? undefined },
+            body: { idOnConnectorSite: target.idOnConnectorSite, websiteUrl: target.websiteUrl ?? undefined },
         });
         emit('rematched');
         open.value = false;

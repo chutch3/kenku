@@ -97,7 +97,7 @@ public class SearchControllerTests
         var ok = Assert.IsType<Ok<MangaDto>>(result.Result);
         Assert.Equal("Berserk", ok.Value!.Name);
         var dtoId = Assert.Single(ok.Value.SourceIds);
-        Assert.Equal("berserk-id-123", dtoId.ObjId);
+        Assert.Equal("berserk-id-123", dtoId.IdOnConnectorSite);
     }
 
     [Fact]

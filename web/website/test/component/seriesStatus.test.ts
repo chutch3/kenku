@@ -11,7 +11,7 @@ function series(overrides: Partial<MinimalSeries> = {}): MinimalSeries {
         name: 'Saga',
         description: '',
         releaseStatus: 'Continuing',
-        sourceIds: [{ key: 'sid1', mangaConnectorName: 'Src', foreignKey: 's1', objId: 'x', websiteUrl: null, useForDownload: true }],
+        sourceIds: [{ key: 'sid1', mangaConnectorName: 'Src', objId: 's1', idOnConnectorSite: 'x', websiteUrl: null, useForDownload: true }],
         fileLibraryId: 'lib1',
         originalLanguage: 'en',
         coverUrl: '',

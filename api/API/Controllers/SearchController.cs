@@ -59,7 +59,7 @@ public class SearchController(
             Schema.SeriesContext.SourceId<Series> id = kv.id;
             IEnumerable<DTOs.SourceId<DTOs.Series>> ids =
             [
-                new DTOs.SourceId<DTOs.Series>(id.Key, id.MangaConnectorName, id.ObjId, id.IdOnConnectorSite, id.WebsiteUrl, id.UseForDownload)
+                DTOs.SourceId<DTOs.Series>.From(id)
             ];
             return new MinimalSeries(
                 m.Key, m.Name, m.Description, m.ReleaseStatus, ids,
@@ -87,7 +87,7 @@ public class SearchController(
             return TypedResults.NotFound(nameof(ConnectorSeriesId));
         IEnumerable<DTOs.SourceId<DTOs.Series>> ids =
         [
-            new DTOs.SourceId<DTOs.Series>(id.Key, id.MangaConnectorName, id.ObjId, id.IdOnConnectorSite, id.WebsiteUrl, id.UseForDownload)
+            DTOs.SourceId<DTOs.Series>.From(id)
         ];
         IEnumerable<DTOs.Author> authors = manga.Authors.Select(a => new DTOs.Author(a.Key, a.AuthorName));
         IEnumerable<string> tags = manga.MangaTags.Select(t => t.Tag);
@@ -173,7 +173,7 @@ public class SearchController(
         await API.JobRuntime.SeriesJobs.EnqueueCoverAndSync(jobStore, clock, added.id, settings.DownloadLanguage, HttpContext.RequestAborted);
 
         IEnumerable<DTOs.SourceId<DTOs.Series>> ids = added.manga.SourceIds.Select(id =>
-            new DTOs.SourceId<DTOs.Series>(id.Key, id.MangaConnectorName, id.ObjId, id.IdOnConnectorSite, id.WebsiteUrl, id.UseForDownload));
+            DTOs.SourceId<DTOs.Series>.From(id));
         MinimalSeries result = new(
             added.manga.Key, added.manga.Name, added.manga.Description, added.manga.ReleaseStatus, ids,
             FileLibraryId: added.manga.Library?.Key,

@@ -100,7 +100,7 @@ watch(
             chapters.value =
                 (await $api('/v2/Search/{MangaConnectorName}/Chapters', {
                     path: { MangaConnectorName: src.mangaConnectorName },
-                    query: { ConnectorSeriesId: src.objId },
+                    query: { ConnectorSeriesId: src.idOnConnectorSite },
                 })) ?? [];
         } catch (e) {
             chaptersError.value = e instanceof Error ? ((e as { data?: string }).data ?? e.message) : String(e);
@@ -121,7 +121,7 @@ const add = async (download: boolean) => {
             path: { MangaId: props.series.key, LibraryId: libraryId.value },
             query: {
                 connectorName: source.value.mangaConnectorName,
-                connectorSeriesId: source.value.objId,
+                connectorSeriesId: source.value.idOnConnectorSite,
                 download,
             },
         });

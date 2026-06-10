@@ -43,11 +43,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
             { } result)
             return TypedResults.InternalServerError();
         
-        return TypedResults.Ok(result.Select(m =>
-        {
-            IEnumerable<DTOs.SourceId<Series>> ids = m.SourceIds.Select(id => new DTOs.SourceId<Series>(id.Key, id.MangaConnectorName, id.ObjId, id.IdOnConnectorSite, id.WebsiteUrl, id.UseForDownload));
-            return new MinimalSeries(m.Key, m.Name, m.Description, m.ReleaseStatus, ids, m.LibraryId, m.OriginalLanguage, m.CoverUrl);
-        }).ToList());
+        return TypedResults.Ok(result.Select(MinimalSeries.From).ToList());
     }
     
     /// <summary>
@@ -67,11 +63,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
                 .ToArrayAsync(HttpContext.RequestAborted) is not { } result)
             return TypedResults.InternalServerError();
 
-        return TypedResults.Ok(result.Select(m =>
-        {
-            IEnumerable<DTOs.SourceId<Series>> ids = m.SourceIds.Select(id => new DTOs.SourceId<Series>(id.Key, id.MangaConnectorName, id.ObjId, id.IdOnConnectorSite, id.WebsiteUrl, id.UseForDownload));
-            return new MinimalSeries(m.Key, m.Name, m.Description, m.ReleaseStatus, ids, m.LibraryId, m.OriginalLanguage, m.CoverUrl);
-        }).ToList());
+        return TypedResults.Ok(result.Select(MinimalSeries.From).ToList());
     }
 
     /// <summary>
@@ -135,7 +127,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
         if (await context.MangaWithMetadata().Include(m => m.SourceIds).FirstOrDefaultAsync(m => m.Key == MangaId, HttpContext.RequestAborted) is not { } manga)
             return TypedResults.NotFound(nameof(MangaId));
         
-        IEnumerable<DTOs.SourceId<Series>> ids = manga.SourceIds.Select(id => new DTOs.SourceId<Series>(id.Key, id.MangaConnectorName, id.ObjId, id.IdOnConnectorSite, id.WebsiteUrl, id.UseForDownload));
+        IEnumerable<DTOs.SourceId<Series>> ids = manga.SourceIds.Select(id => DTOs.SourceId<Series>.From(id));
         IEnumerable<Author> authors = manga.Authors.Select(a => new Author(a.Key, a.AuthorName));
         IEnumerable<string> tags = manga.MangaTags.Select(t => t.Tag);
         IEnumerable<Link> links = manga.Links.Select(l => new Link(l.Key, l.LinkProvider, l.LinkUrl));
@@ -397,8 +389,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
 
         await API.JobRuntime.SeriesJobs.EnqueueCoverAndSync(jobStore, clock, replacement, settings.DownloadLanguage, HttpContext.RequestAborted);
 
-        return TypedResults.Ok(new DTOs.SourceId<Series>(replacement.Key, replacement.MangaConnectorName,
-            replacement.ObjId, replacement.IdOnConnectorSite, replacement.WebsiteUrl, replacement.UseForDownload));
+        return TypedResults.Ok(DTOs.SourceId<Series>.From(replacement));
     }
 
     /// <summary>
@@ -501,7 +492,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
 
         return TypedResults.Ok(result.Select(m =>
         {
-            IEnumerable<DTOs.SourceId<Series>> ids = m.SourceIds.Select(id => new DTOs.SourceId<Series>(id.Key, id.MangaConnectorName, id.ObjId, id.IdOnConnectorSite, id.WebsiteUrl, id.UseForDownload));
+            IEnumerable<DTOs.SourceId<Series>> ids = m.SourceIds.Select(id => DTOs.SourceId<Series>.From(id));
             IEnumerable<Author> authors = m.Authors.Select(a => new Author(a.Key, a.AuthorName));
             IEnumerable<string> tags = m.MangaTags.Select(t => t.Tag);
             IEnumerable<Link> links = m.Links.Select(l => new Link(l.Key, l.LinkProvider, l.LinkUrl));
@@ -531,11 +522,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
                 .ToListAsync(HttpContext.RequestAborted) is not { } result)
             return TypedResults.InternalServerError();
         
-        return TypedResults.Ok(result.Select(m =>
-        {
-            IEnumerable<DTOs.SourceId<Series>> ids = m.SourceIds.Select(id => new DTOs.SourceId<Series>(id.Key, id.MangaConnectorName, id.ObjId, id.IdOnConnectorSite, id.WebsiteUrl, id.UseForDownload));
-            return new MinimalSeries(m.Key, m.Name, m.Description, m.ReleaseStatus, ids, m.LibraryId, m.OriginalLanguage, m.CoverUrl);
-        }).ToList());
+        return TypedResults.Ok(result.Select(MinimalSeries.From).ToList());
     }
 
     /// <summary>

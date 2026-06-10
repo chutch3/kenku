@@ -64,7 +64,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
             .ToType(c =>
             {
                 IEnumerable<DTOs.SourceId<Chapter>> ids = c.SourceIds.Select(id =>
-                    new DTOs.SourceId<Chapter>(id.Key, id.MangaConnectorName, id.ObjId, id.IdOnConnectorSite, id.WebsiteUrl, id.UseForDownload));
+                    DTOs.SourceId<Chapter>.From(id));
                 return new Chapter(c.Key, c.ParentMangaId, c.VolumeNumber, c.ChapterNumber, c.Title, ids, c.Downloaded,
                     c.FileName);
             });
@@ -101,7 +101,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
             return TypedResults.NoContent();
 
         IEnumerable<DTOs.SourceId<Chapter>> ids = c.SourceIds.Select(id =>
-            new DTOs.SourceId<Chapter>(id.Key, id.MangaConnectorName, id.ObjId, id.IdOnConnectorSite, id.WebsiteUrl, id.UseForDownload));
+            DTOs.SourceId<Chapter>.From(id));
 
         return TypedResults.Ok(new Chapter(c.Key, c.ParentMangaId, c.VolumeNumber, c.ChapterNumber, c.Title, ids, c.Downloaded, c.FileName));
     }
@@ -133,7 +133,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
             return TypedResults.NoContent();
 
         IEnumerable<DTOs.SourceId<Chapter>> ids = c.SourceIds.Select(id =>
-            new DTOs.SourceId<Chapter>(id.Key, id.MangaConnectorName, id.ObjId, id.IdOnConnectorSite, id.WebsiteUrl, id.UseForDownload));
+            DTOs.SourceId<Chapter>.From(id));
         return TypedResults.Ok(new Chapter(c.Key, c.ParentMangaId, c.VolumeNumber, c.ChapterNumber, c.Title, ids, c.Downloaded, c.FileName));
     }
 
@@ -176,7 +176,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
             return TypedResults.NotFound(nameof(ChapterId));
 
         IEnumerable<DTOs.SourceId<Chapter>> ids = chapter.SourceIds.Select(id =>
-            new DTOs.SourceId<Chapter>(id.Key, id.MangaConnectorName, id.ObjId, id.IdOnConnectorSite, id.WebsiteUrl, id.UseForDownload));
+            DTOs.SourceId<Chapter>.From(id));
         return TypedResults.Ok(new Chapter(chapter.Key, chapter.ParentMangaId, chapter.VolumeNumber, chapter.ChapterNumber, chapter.Title,ids, chapter.Downloaded, chapter.FileName));
     }
 

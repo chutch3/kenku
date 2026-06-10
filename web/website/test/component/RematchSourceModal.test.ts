@@ -3,7 +3,7 @@ import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime';
 import { readBody } from 'h3';
 import RematchSourceModal from '~/components/RematchSourceModal.vue';
 
-const source = { key: 'src-old', mangaConnectorName: 'WeebCentral', foreignKey: 's1', objId: '01BAD/Wrong-Slug', websiteUrl: null, useForDownload: true };
+const source = { key: 'src-old', mangaConnectorName: 'WeebCentral', objId: 's1', idOnConnectorSite: '01BAD/Wrong-Slug', websiteUrl: null, useForDownload: true };
 
 let rematchBody: Record<string, string> | null = null;
 
@@ -13,7 +13,7 @@ registerEndpoint('/v2/Search/WeebCentral/I Am A Hero', () => [
         name: 'I Am A Hero',
         description: '',
         releaseStatus: 'Completed',
-        sourceIds: [{ key: 'sid-good', mangaConnectorName: 'WeebCentral', foreignKey: 'x', objId: '01ABC', websiteUrl: 'https://weebcentral.com/series/01ABC', useForDownload: false }],
+        sourceIds: [{ key: 'sid-good', mangaConnectorName: 'WeebCentral', objId: 'x', idOnConnectorSite: '01ABC', websiteUrl: 'https://weebcentral.com/series/01ABC', useForDownload: false }],
         fileLibraryId: null,
         originalLanguage: 'en',
         coverUrl: '',

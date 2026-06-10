@@ -54,4 +54,8 @@ public record MinimalSeries(string Key, string Name, string Description, SeriesR
     /// </summary>
     [Description("Content Language")]
     public string? Language { get; init; } = Language;
+
+    public static MinimalSeries From(Schema.SeriesContext.Series m) =>
+        new(m.Key, m.Name, m.Description, m.ReleaseStatus,
+            m.SourceIds.Select(SourceId<Series>.From), m.LibraryId, m.OriginalLanguage, m.CoverUrl);
 }

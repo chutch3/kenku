@@ -5713,7 +5713,7 @@
       },
       "ChapterSourceId": {
         "required": [
-          "foreignKey",
+          "idOnConnectorSite",
           "key",
           "mangaConnectorName",
           "objId",
@@ -5726,15 +5726,15 @@
             "type": "string",
             "description": "Name of the Connector"
           },
-          "foreignKey": {
-            "minLength": 1,
-            "type": "string",
-            "description": "Key of the referenced DTO"
-          },
           "objId": {
             "minLength": 1,
             "type": "string",
-            "description": "ID of the Object on the connector site"
+            "description": "Key of the referenced object (series or chapter)"
+          },
+          "idOnConnectorSite": {
+            "minLength": 1,
+            "type": "string",
+            "description": "ID of the object on the connector site"
           },
           "websiteUrl": {
             "type": "string",
@@ -5753,7 +5753,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "API.Controllers.DTOs.SourceId`1 DTO"
+        "description": "API.Controllers.DTOs.SourceId`1 DTO. Field names mirror the schema entity exactly — ObjId is the key of\n            the referenced object, IdOnConnectorSite is the object's id on the connector site. (They were\n            historically swapped on the wire, which made connector-id bugs invisible.)"
       },
       "ChapterVolumeAssignmentResult": {
         "type": "object",
@@ -6941,7 +6941,7 @@
       },
       "SeriesSourceId": {
         "required": [
-          "foreignKey",
+          "idOnConnectorSite",
           "key",
           "mangaConnectorName",
           "objId",
@@ -6954,15 +6954,15 @@
             "type": "string",
             "description": "Name of the Connector"
           },
-          "foreignKey": {
-            "minLength": 1,
-            "type": "string",
-            "description": "Key of the referenced DTO"
-          },
           "objId": {
             "minLength": 1,
             "type": "string",
-            "description": "ID of the Object on the connector site"
+            "description": "Key of the referenced object (series or chapter)"
+          },
+          "idOnConnectorSite": {
+            "minLength": 1,
+            "type": "string",
+            "description": "ID of the object on the connector site"
           },
           "websiteUrl": {
             "type": "string",
@@ -6981,7 +6981,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "API.Controllers.DTOs.SourceId`1 DTO"
+        "description": "API.Controllers.DTOs.SourceId`1 DTO. Field names mirror the schema entity exactly — ObjId is the key of\n            the referenced object, IdOnConnectorSite is the object's id on the connector site. (They were\n            historically swapped on the wire, which made connector-id bugs invisible.)"
       },
       "SetDownloadClientRecord": {
         "type": "object",
