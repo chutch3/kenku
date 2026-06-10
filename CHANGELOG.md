@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.14.0 (2026-06-10)
+
+### Features
+
+- Make the chapter-download retry budget configurable in download settings
+  ([`2b79ee0`](https://github.com/chutch3/kenku/commit/2b79ee034e5726f94056db117a3b38985354947e))
+
+
 ## v0.13.2 (2026-06-10)
 
 ### Bug Fixes
