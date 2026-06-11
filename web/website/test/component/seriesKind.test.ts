@@ -8,6 +8,7 @@ type Connector = components['schemas']['SeriesSource'];
 const connectors = [
     { key: 'WeebCentral', name: 'WeebCentral', enabled: true, iconUrl: '', supportedLanguages: ['en'], kind: 'ImageList' },
     { key: 'Indexers', name: 'Indexers', enabled: true, iconUrl: '', supportedLanguages: ['en'], kind: 'Torrent' },
+    { key: 'GetComics', name: 'GetComics', enabled: true, iconUrl: '', supportedLanguages: ['en'], kind: 'DirectArchive' },
 ] as Connector[];
 
 function withSources(...names: string[]): MinimalSeries {
@@ -33,6 +34,14 @@ function withSources(...names: string[]): MinimalSeries {
 describe('seriesKind', () => {
     it('is comic when every source is indexer/torrent-backed', () => {
         expect(seriesKind(withSources('Indexers'), connectors)).toBe('comic');
+    });
+
+    it('is comic when every source is direct-archive (GetComics)', () => {
+        expect(seriesKind(withSources('GetComics'), connectors)).toBe('comic');
+    });
+
+    it('is comic for mixed torrent + direct-archive sources', () => {
+        expect(seriesKind(withSources('Indexers', 'GetComics'), connectors)).toBe('comic');
     });
 
     it('is manga for scrape-site sources', () => {
