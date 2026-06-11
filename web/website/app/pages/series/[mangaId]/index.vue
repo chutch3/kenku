@@ -21,7 +21,7 @@
                         :manga-id="mangaId"
                         class="w-full mt-2"
                         @layout-changed="refreshNuxtData(FetchKeys.Series.Id(mangaId))" />
-                    <LooseChapters v-if="series?.fileLibraryId" :manga-id="mangaId" class="w-full mt-2" />
+                    <LooseChapters v-if="series?.fileLibraryId" :manga-id="mangaId" :kind="kind" class="w-full mt-2" />
                 </UCard>
 
                 <!-- Download sources: which sites to pull from. -->

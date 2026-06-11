@@ -53,6 +53,14 @@ describe('LooseChapters', () => {
         expect(wrapper.text().toLowerCase()).toContain('no loose chapters');
     });
 
+    it('renders nothing for a comic — volume assignment is a manga concept', async () => {
+        registerVolumes('manga-comic', [entry('5')]);
+
+        const wrapper = await mountSuspended(LooseChapters, { props: { mangaId: 'manga-comic', kind: 'comic' } });
+
+        expect(wrapper.text()).toBe('');
+    });
+
     it('posts the chapter→volume assignment when the user assigns a volume', async () => {
         registerVolumes('manga-assign', [entry('5')]);
         let captured: unknown = null;

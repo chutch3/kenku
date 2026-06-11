@@ -1,5 +1,6 @@
 <template>
-    <div class="flex flex-col gap-2">
+    <!-- Volume assignment is a manga concept; a comic's chapters never need placing. -->
+    <div v-if="kind !== 'comic'" class="flex flex-col gap-2">
         <h3 class="font-semibold">Loose chapters</h3>
         <p v-if="!loose.length" class="text-sm text-muted">No loose chapters — every downloaded chapter has a volume.</p>
         <ul v-else class="flex flex-col gap-2">
@@ -24,7 +25,7 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ mangaId: string }>();
+const props = defineProps<{ mangaId: string; kind?: SeriesKind }>();
 const { $api } = useNuxtApp();
 
 // Loose chapters are the ones the resolver couldn't place — the volumes endpoint returns them under
