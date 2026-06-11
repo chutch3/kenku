@@ -19,6 +19,7 @@
                     <LibraryLayoutSelect
                         v-if="series?.fileLibraryId"
                         :manga-id="mangaId"
+                        :kind="kind"
                         class="w-full mt-2"
                         @layout-changed="refreshNuxtData(FetchKeys.Series.Id(mangaId))" />
                     <LooseChapters v-if="series?.fileLibraryId" :manga-id="mangaId" :kind="kind" class="w-full mt-2" />
