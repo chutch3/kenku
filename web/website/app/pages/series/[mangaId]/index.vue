@@ -83,7 +83,7 @@
                 </UTooltip>
                 <UButton variant="soft" color="warning" icon="i-lucide-trash" @click="deleteOpen = true" />
                 <UTooltip text="Reload" :kbds="['meta', 'R']">
-                    <UButton variant="soft" color="secondary" icon="i-lucide-refresh-ccw" :loading="refreshingData" @click="refreshData" />
+                    <UButton variant="soft" color="secondary" icon="i-lucide-refresh-ccw" :loading="refreshingData" @click="refreshData()" />
                 </UTooltip>
                 <DeleteSeriesModal v-model:open="deleteOpen" :manga-id="mangaId" :series-name="series?.name" @deleted="onDeleted" />
             </template>
@@ -162,19 +162,25 @@ const onRematched = async () => {
 };
 
 const refreshingData = ref(false);
-const refreshData = async () => {
+const refreshData = async (quiet = false) => {
     refreshingData.value = true;
     await refreshNuxtData([
         FetchKeys.Series.Id(mangaId),
+        FetchKeys.Series.Rollup,
         FetchKeys.Metadata.Series(mangaId),
         FetchKeys.FileLibraries,
-        FetchKeys.Chapters.All,
+        FetchKeys.Chapters.Series(mangaId),
     ]);
     refreshingData.value = false;
-    toast.add({ title: 'Series refreshed', icon: 'i-lucide-check', color: 'neutral', duration: 1500 });
+    if (!quiet) toast.add({ title: 'Series refreshed', icon: 'i-lucide-check', color: 'neutral', duration: 1500 });
 };
 
-defineShortcuts({ meta_r: { usingInput: true, handler: refreshData } });
+// While jobs for this series are in flight (e.g. after "Sync now"), poll the rollup and refresh the
+// page when they drain — updates land without leaving and coming back.
+const activeJobs = computed(() => (rollup.value ? rollup.value.queuedJobs + rollup.value.runningJobs : 0));
+useSeriesActivity(activeJobs, { poll: () => refreshRollups(), onDrained: () => refreshData(true) });
+
+defineShortcuts({ meta_r: { usingInput: true, handler: () => refreshData() } });
 
 useHead({ title: 'Series' });
 </script>

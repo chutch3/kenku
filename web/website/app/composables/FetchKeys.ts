@@ -3,7 +3,7 @@ type ActionsFilterRecord = components['schemas']['ActionsFilterRecord'];
 
 export const FetchKeys = {
     FileLibraries: 'FileLibraries',
-    Chapters: { All: 'Chapters' },
+    Chapters: { Series: (mangaId: string) => `Chapters/${mangaId}` },
     Series: { All: 'Series', Id: (id: string) => `Series/${id}`, Rollup: 'Series/Rollup' },
     MangaConnector: { Id: (id: string) => `MangaConnector/${id}`, All: 'MangaConnector' },
     Metadata: { Fetchers: 'Metadata', Links: 'Metadata/Links', Series: (mangaId: string) => `Metadata/Links/${mangaId}` },

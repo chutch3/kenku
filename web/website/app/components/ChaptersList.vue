@@ -111,7 +111,7 @@ const props = defineProps<ChaptersListProps>();
 const { $api } = useNuxtApp();
 
 const { data, refresh } = useAsyncData(
-    FetchKeys.Chapters.All,
+    FetchKeys.Chapters.Series(props.mangaId),
     () =>
         $api('/v2/Chapters/Series/{MangaId}', {
             method: 'POST',
