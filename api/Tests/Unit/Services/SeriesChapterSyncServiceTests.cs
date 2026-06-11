@@ -75,6 +75,53 @@ public class SeriesChapterSyncServiceTests : IDisposable
         Assert.Equal(5, chapterInDb.VolumeNumber); // This will fail until we fix the worker
     }
 
+    // Source cover URLs rot (rotating CDN hosts); the periodic sync is the healing path.
+    [Fact]
+    public async Task Sync_RefreshesTheCoverUrl_FromTheConnector()
+    {
+        var manga = new Series("Test Series", "Desc", "https://temp-old.example/cover.webp", SeriesReleaseStatus.Continuing, [], [], [], []);
+        _mangaContext.Series.Add(manga);
+        var mockConnector = new Mock<SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
+        var mangaMcId = new SourceId(manga, "MangaDex", "manga-id", "url");
+        manga.SourceIds.Add(mangaMcId);
+        _mangaContext.MangaConnectorToManga.Add(mangaMcId);
+        await _mangaContext.SaveChangesAsync();
+
+        mockConnector.Setup(c => c.GetChapters(It.IsAny<SourceId>(), It.IsAny<string>())).ReturnsAsync([]);
+        var fresh = new Series("Test Series", "Desc", "https://temp-new.example/cover.webp", SeriesReleaseStatus.Continuing, [], [], [], []);
+        mockConnector.Setup(c => c.GetMangaFromId("manga-id"))
+            .ReturnsAsync((fresh, new SourceId(fresh, "MangaDex", "manga-id", "url")));
+
+        await new SeriesChapterSyncService([mockConnector.Object])
+            .SyncAsync(_mangaContext, _actionsContext, mangaMcId.Key, "en", CancellationToken.None);
+
+        Assert.Equal("https://temp-new.example/cover.webp", (await _mangaContext.Series.SingleAsync()).CoverUrl);
+    }
+
+    [Fact]
+    public async Task Sync_KeepsTheCoverUrl_AndStillSyncs_WhenTheRefreshFails()
+    {
+        var manga = new Series("Test Series", "Desc", "https://temp-old.example/cover.webp", SeriesReleaseStatus.Continuing, [], [], [], []);
+        _mangaContext.Series.Add(manga);
+        var mockConnector = new Mock<SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
+        var mangaMcId = new SourceId(manga, "MangaDex", "manga-id", "url");
+        manga.SourceIds.Add(mangaMcId);
+        _mangaContext.MangaConnectorToManga.Add(mangaMcId);
+        await _mangaContext.SaveChangesAsync();
+
+        var ch1 = new Chapter(manga, "1", null, null);
+        mockConnector.Setup(c => c.GetChapters(It.IsAny<SourceId>(), It.IsAny<string>()))
+            .ReturnsAsync([(ch1, new ChapterConnectorId(ch1, "MangaDex", "c1", "u1"))]);
+        mockConnector.Setup(c => c.GetMangaFromId("manga-id")).ThrowsAsync(new HttpRequestException("site drifted"));
+
+        var (reported, added) = await new SeriesChapterSyncService([mockConnector.Object])
+            .SyncAsync(_mangaContext, _actionsContext, mangaMcId.Key, "en", CancellationToken.None);
+
+        // Chapters matter more than covers: the sync completes and the URL stays as it was.
+        Assert.Equal(1, added);
+        Assert.Equal("https://temp-old.example/cover.webp", (await _mangaContext.Series.SingleAsync()).CoverUrl);
+    }
+
     [Fact]
     public async Task Sync_Throws_WhenTheSourceIdDoesNotExist()
     {

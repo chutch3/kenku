@@ -37,6 +37,23 @@ public class SeriesChapterSyncService(IEnumerable<SeriesSource> connectors)
 
         Series manga = mangaConnectorId.Obj;
 
+        // Source cover URLs rot (rotating CDN hosts), which breaks both the UI hotlink and the cover
+        // cache refresh forever. Re-resolving here keeps the stored URL fetchable. Never fails the
+        // sync — chapters matter more than covers.
+        try
+        {
+            if (await seriesSource.GetMangaFromId(mangaConnectorId.IdOnConnectorSite) is ({ } fresh, _)
+                && !string.IsNullOrEmpty(fresh.CoverUrl) && fresh.CoverUrl != manga.CoverUrl)
+            {
+                Log.InfoFormat("Cover URL for {0} changed; updating from the connector.", manga.Name);
+                manga.CoverUrl = fresh.CoverUrl;
+            }
+        }
+        catch (Exception e)
+        {
+            Log.WarnFormat("Could not refresh the cover URL for {0}: {1}", manga.Name, e.Message);
+        }
+
         // Retrieve available Chapters from Connector
         (Chapter chapter, SourceId<Chapter> chapterId)[] allChapters =
             (await seriesSource.GetChapters(mangaConnectorId, language)).DistinctBy(c => c.Item1.Key).ToArray();
