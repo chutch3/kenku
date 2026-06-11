@@ -63,6 +63,7 @@ public static class ApplicationServiceCollectionExtensions
     {
         services.AddSingleton<SeriesSource, Global>();
         services.AddSingleton<SeriesSource, AsuraComic>();
+        services.AddSingleton<SeriesSource, ComicHubFree>();
         services.AddSingleton<SeriesSource, GetComics>();
         services.AddSingleton<SeriesSource, MangaDex>();
         services.AddSingleton<SeriesSource, Mangaworld>();
