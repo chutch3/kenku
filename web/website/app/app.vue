@@ -29,6 +29,7 @@
                 <UNavigationMenu :items="primaryNav" orientation="vertical" variant="link" class="-mx-2.5" />
                 <USeparator class="my-4" />
                 <UNavigationMenu :items="devLinks" orientation="vertical" variant="link" class="-mx-2.5" />
+                <AppVersion class="mt-4 block" />
             </template>
 
             <template #right>
@@ -57,6 +58,8 @@
                 <UDropdownMenu :items="devLinks as DropdownMenuItem[]" :content="{ align: 'end' }">
                     <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" aria-label="More" class="max-sm:hidden" />
                 </UDropdownMenu>
+
+                <AppVersion class="max-lg:hidden" />
             </template>
         </UHeader>
 

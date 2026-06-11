@@ -4980,6 +4980,26 @@
         }
       }
     },
+    "/v2/Version": {
+      "get": {
+        "tags": [
+          "Version"
+        ],
+        "summary": "The running build's identity: release tag (or branch@commit for untagged builds), commit, build time.",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/Series/{MangaId}/volumes": {
       "get": {
         "tags": [
@@ -7265,6 +7285,25 @@
         "additionalProperties": false,
         "description": "Entry for a manga with unresolved chapters or missing files."
       },
+      "VersionResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "nullable": true
+          },
+          "commit": {
+            "type": "string",
+            "nullable": true
+          },
+          "builtAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "The running build's identity, stamped at compile time by GitInfo + BuildInformation."
+      },
       "VolumeBundleState": {
         "enum": [
           "NotApplicable",
@@ -7395,6 +7434,9 @@
     },
     {
       "name": "Settings"
+    },
+    {
+      "name": "Version"
     },
     {
       "name": "Volume"
