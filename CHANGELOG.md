@@ -2,6 +2,33 @@
 
 <!-- version list -->
 
+## v0.18.0 (2026-06-11)
+
+### Bug Fixes
+
+- Prefer the cached cover for tracked series so rotated source hosts cannot break covers
+  ([`704be85`](https://github.com/chutch3/kenku/commit/704be85c3ded086c7db45d9a72d93ac634feea51))
+
+- Re-resolve the series cover URL on chapter sync so rotated hosts heal
+  ([`7f1af10`](https://github.com/chutch3/kenku/commit/7f1af10e18137e6246fe7b0c0a6bd6ba38c97db9))
+
+- Report the stamped release version instead of empty git info in Docker builds
+  ([`d842478`](https://github.com/chutch3/kenku/commit/d8424784e7deb0ce84d36a4d96ba50aea5b2c09e))
+
+### Documentation
+
+- Bring the READMEs up to date with comic sources, the job runtime, and current settings
+  ([`73e278a`](https://github.com/chutch3/kenku/commit/73e278aa32591e7c3eae3bece61f69f620ad9f33))
+
+### Features
+
+- Explain layout behavior for comics in the layout select
+  ([`a7a3200`](https://github.com/chutch3/kenku/commit/a7a3200b9488c33caaffbfcfbda57917444ae65e))
+
+- Redesign series cards with a status-colored edge bar and a type-and-status info line
+  ([`c2cb69d`](https://github.com/chutch3/kenku/commit/c2cb69de8f473c3fee61c07143c007617061f8bd))
+
+
 ## v0.17.0 (2026-06-11)
 
 ### Bug Fixes
