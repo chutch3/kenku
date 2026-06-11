@@ -10,6 +10,12 @@ on:
       - ".dockerignore"
       - ".github/workflows/build.yml"
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Existing release version to (re)build and publish (e.g. 0.15.0). Empty = build main as :latest only."
+        required: false
+        type: string
+        default: ""
   workflow_call:
     inputs:
       version:
@@ -27,16 +33,27 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          # A version build checks out its tag, not main HEAD — so it is reproducible and a
+          # failed/lost release build can be re-run later without picking up newer commits.
+          ref: ${{ inputs.version != '' && format('v{0}', inputs.version) || '' }}
 
-      # :latest on every build; add the exact version tag only for release builds.
+      # The exact version tag for release builds; :latest only when that version is the newest
+      # tag, so re-publishing an old version never moves :latest backwards.
       - name: Compute image tags
         id: tags
         env:
           VERSION: ${{ inputs.version }}
         run: |
-          tags="ghcr.io/chutch3/kenku:latest"
-          if [ -n "$VERSION" ]; then
-            tags="ghcr.io/chutch3/kenku:${VERSION},${tags}"
+          if [ -z "$VERSION" ]; then
+            echo "tags=ghcr.io/chutch3/kenku:latest" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          tags="ghcr.io/chutch3/kenku:${VERSION}"
+          newest=$(git ls-remote --tags origin 'v*' | awk -F/ '{print $NF}' \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+          if [ "v${VERSION}" = "$newest" ]; then
+            tags="${tags},ghcr.io/chutch3/kenku:latest"
           fi
           echo "tags=${tags}" >> "$GITHUB_OUTPUT"
 
