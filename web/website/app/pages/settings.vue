@@ -37,7 +37,7 @@
                             <template #header>
                                 <SettingsHeader
                                     title="Library servers"
-                                    subtitle="Mirror your collection into a reader like Komga or Kavita." />
+                                    subtitle="Connect a reader like Komga or Kavita: when downloads land, Kenku tells it to rescan its libraries so new files appear. Point the reader at the same folders Kenku writes to — no metadata is synced." />
                             </template>
                             <div class="flex flex-col gap-2">
                                 <div
