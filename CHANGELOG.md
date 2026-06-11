@@ -2,6 +2,28 @@
 
 <!-- version list -->
 
+## v0.16.0 (2026-06-11)
+
+### Continuous Integration
+
+- Make version image builds reproducible from their tag and rerunnable on demand
+  ([`eb33ce8`](https://github.com/chutch3/kenku/commit/eb33ce81538737bd1f28add0847463dafc9af27e))
+
+### Features
+
+- Add ComicHubFree as a page-reader comic source
+  ([`f48e70a`](https://github.com/chutch3/kenku/commit/f48e70a948966868655343939ad11a96d4b4b937))
+
+- Classify series as comics by source content type instead of acquisition kind
+  ([`bf13f14`](https://github.com/chutch3/kenku/commit/bf13f14a145c27a977b8fb770e58a1d27ba63b0c))
+
+- Discover GetComics series via tag archives and surface collection rows as chapters
+  ([`c6ae823`](https://github.com/chutch3/kenku/commit/c6ae8236de9135acbdfdebd87b6c5a5f156c9d8b))
+
+- Parse GetComics volume and collection titles into their series
+  ([`3d3800b`](https://github.com/chutch3/kenku/commit/3d3800bc317663dcfc73db7c6bc6d75574c5cda9))
+
+
 ## v0.15.0 (2026-06-11)
 
 ### Bug Fixes
