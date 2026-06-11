@@ -2,7 +2,7 @@
     <div class="w-full pt-2">
         <div class="flex min-2xl:flex-row max-2xl:flex-col gap-2 justify-around items-center mb-2">
             <div class="grow-1 basis-0 flex gap-2 flex-row max-sm:flex-wrap max-2xl:order-2 items-center">
-                <p class="text-dimmed">{{ data?.totalCount }} chapters</p>
+                <p class="text-dimmed">{{ data?.totalCount }} {{ kind === 'comic' ? 'issues' : 'chapters' }}</p>
                 <UFieldGroup>
                     <UInput v-model="filter.name" placeholder="Name" />
                     <UButton icon="i-lucide-rotate-ccw" variant="outline" size="xs" @click="filter.name = undefined" />
@@ -31,12 +31,12 @@
                     </UTooltip>
                     <UButton icon="i-lucide-rotate-ccw" variant="outline" size="xs" @click="filter.downloaded = undefined" />
                 </UFieldGroup>
-                <UFieldGroup>
+                <UFieldGroup v-if="kind !== 'comic'">
                     <UInputNumber v-model="filter.volumeNumber" placeholder="Vol" class="w-30" />
                     <UButton icon="i-lucide-rotate-ccw" variant="outline" size="xs" @click="filter.volumeNumber = undefined" />
                 </UFieldGroup>
                 <UFieldGroup>
-                    <UInput v-model="filter.chapterNumber" placeholder="Ch" class="w-30" />
+                    <UInput v-model="filter.chapterNumber" :placeholder="kind === 'comic' ? '#' : 'Ch'" class="w-30" />
                     <UButton icon="i-lucide-rotate-ccw" variant="outline" size="xs" @click="filter.chapterNumber = undefined" />
                 </UFieldGroup>
             </div>
@@ -53,7 +53,7 @@
                     <p class="text-primary">{{ chapter.title }}</p>
                     <p class="text-secondary">
                         <span v-if="chapter.volume" class="mr-1">Vol. {{ chapter.volume }}</span>
-                        <span class="inline">Ch. {{ chapter.chapterNumber }}</span>
+                        <span class="inline">{{ kind === 'comic' ? `#${chapter.chapterNumber}` : `Ch. ${chapter.chapterNumber}` }}</span>
                     </p>
                 </template>
                 <template #description>
@@ -106,6 +106,7 @@ const pagination = ref({ pageIndex: 0, pageSize: 10 });
 
 export interface ChaptersListProps {
     mangaId: string;
+    kind?: SeriesKind;
 }
 const props = defineProps<ChaptersListProps>();
 const { $api } = useNuxtApp();

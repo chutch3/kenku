@@ -1,18 +1,12 @@
 <template>
-    <div>
-        <USelect
-            v-model="layout"
-            :items="layoutOptions"
-            placeholder="Layout"
-            icon="i-lucide-folder-tree"
-            color="secondary"
-            :loading="loading"
-            class="w-full"
-            @change="onLayoutChange" />
-        <p v-if="kind === 'comic'" class="text-xs text-muted mt-1">
-            Comics download as finished archives, so Flat usually fits; volume layouts only group archives that carry a volume number (e.g. TPBs).
-        </p>
-    </div>
+    <USelect
+        v-model="layout"
+        :items="layoutOptions"
+        placeholder="Layout"
+        icon="i-lucide-folder-tree"
+        color="secondary"
+        :loading="loading"
+        @change="onLayoutChange" />
 </template>
 
 <script setup lang="ts">
@@ -24,7 +18,6 @@ const { $api } = useNuxtApp();
 
 export interface LibraryLayoutSelectProps {
     mangaId: string;
-    kind?: SeriesKind;
 }
 
 const props = defineProps<LibraryLayoutSelectProps>();

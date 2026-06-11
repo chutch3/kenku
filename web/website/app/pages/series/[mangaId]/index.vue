@@ -1,7 +1,7 @@
 <template>
     <SeriesDetailPage :series="series" :rollup="rollup" :kind="kind">
         <div class="grid gap-3 max-xl:grid-flow-row-dense min-2xl:grid-cols-[70%_auto] min-xl:grid-cols-[60%_auto] relative min-xl:h-full">
-            <ChaptersList :manga-id="mangaId" class="min-xl:h-full min-xl:overflow-y-scroll" />
+            <ChaptersList :manga-id="mangaId" :kind="kind" class="min-xl:h-full min-xl:overflow-y-scroll" />
             <div class="flex flex-col gap-3">
                 <!-- Storage: where files land. -->
                 <UCard>
@@ -16,10 +16,11 @@
                         :library-id="series?.fileLibraryId"
                         class="w-full"
                         @library-changed="refreshNuxtData(FetchKeys.Series.Id(mangaId))" />
+                    <!-- Comics are effectively always flat (issues carry no volume number), so the
+                         layout choice only exists for manga. -->
                     <LibraryLayoutSelect
-                        v-if="series?.fileLibraryId"
+                        v-if="series?.fileLibraryId && kind !== 'comic'"
                         :manga-id="mangaId"
-                        :kind="kind"
                         class="w-full mt-2"
                         @layout-changed="refreshNuxtData(FetchKeys.Series.Id(mangaId))" />
                     <LooseChapters v-if="series?.fileLibraryId" :manga-id="mangaId" :kind="kind" class="w-full mt-2" />
