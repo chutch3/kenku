@@ -71,6 +71,14 @@
                         <UCard>
                             <template #header>
                                 <SettingsHeader
+                                    title="Sources"
+                                    subtitle="Sites Kenku searches and downloads from. Disabled sources are skipped everywhere, including All-sources search." />
+                            </template>
+                            <SourcesTable />
+                        </UCard>
+                        <UCard>
+                            <template #header>
+                                <SettingsHeader
                                     title="Indexers via Prowlarr"
                                     subtitle="Kenku appears as a Mylar app in Prowlarr, which syncs your comic indexers automatically.">
                                     <UBadge :color="syncedIndexers.length ? 'success' : 'neutral'" variant="subtle">
