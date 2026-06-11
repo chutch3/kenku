@@ -20,9 +20,9 @@ public class SettingsController(KenkuSettings settings) : ControllerBase
     /// <response code="200"></response>
     [HttpGet]
     [ProducesResponseType<SettingsResponse>(Status200OK, "application/json")]
-    public Ok<SettingsResponse> GetSettings()
+    public Ok<SettingsResponse> GetSettings([FromServices] API.Indexers.IndexerCooldown cooldowns)
     {
-        return TypedResults.Ok(SettingsResponse.From(settings));
+        return TypedResults.Ok(SettingsResponse.From(settings, cooldowns));
     }
     
     /// <summary>

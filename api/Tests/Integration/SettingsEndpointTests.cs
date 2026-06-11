@@ -30,6 +30,24 @@ public class SettingsEndpointTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GetSettings_SurfacesAnIndexerRateLimitCooldown()
+    {
+        var settings = _app.Services.GetRequiredService<KenkuSettings>();
+        settings.AddOrUpdateSyncedIndexer(new SyncedIndexerConfig(0, "Nyaa", "https://nyaa.si", "key", [], "torrent", true));
+        settings.AddOrUpdateSyncedIndexer(new SyncedIndexerConfig(0, "Calm", "https://calm.example", "key", [], "torrent", true));
+        _app.Services.GetRequiredService<API.Indexers.IndexerCooldown>()
+            .RecordRateLimited("Nyaa", TimeSpan.FromMinutes(10));
+
+        using var client = _app.CreateClient();
+        var json = await client.GetFromJsonAsync<JsonElement>("/v2/Settings");
+
+        var byName = json.GetProperty("syncedIndexers").EnumerateArray()
+            .ToDictionary(i => i.GetProperty("name").GetString()!);
+        Assert.True(byName["Nyaa"].GetProperty("cooldownUntil").GetDateTime().ToUniversalTime() > DateTime.UtcNow.AddMinutes(5));
+        Assert.Equal(JsonValueKind.Null, byName["Calm"].GetProperty("cooldownUntil").ValueKind);
+    }
+
+    [Fact]
     public async Task PatchDownloadMaxAttempts_PersistsAndReadsBack()
     {
         using var client = _app.CreateClient();

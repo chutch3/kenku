@@ -12,25 +12,28 @@ public record SettingsResponse(
     IReadOnlyList<SyncedIndexerResponse> SyncedIndexers,
     IReadOnlyList<DownloadClientResponse> DownloadClients)
 {
-    public static SettingsResponse From(KenkuSettings s) => new(
+    public static SettingsResponse From(KenkuSettings s, API.Indexers.IndexerCooldown cooldowns) => new(
         s.ApiKey,
         !string.IsNullOrWhiteSpace(s.MetronUsername),
         s.SnapshotSyncedIndexers()
-            .Select(i => new SyncedIndexerResponse(i.Id, i.Name, i.Url, i.Categories, i.Protocol, i.Enabled))
+            .Select(i => new SyncedIndexerResponse(i.Id, i.Name, i.Url, i.Categories, i.Protocol, i.Enabled,
+                cooldowns.CooldownUntil(i.Name)))
             .ToList(),
         s.SnapshotDownloadClients()
             .Select(c => new DownloadClientResponse(c.Id, c.Name, c.Type, c.BaseUrl, c.Username, c.Category, c.Enabled, c.Priority))
             .ToList());
 }
 
-/// <summary>A synced indexer without its API key.</summary>
+/// <summary>A synced indexer without its API key. CooldownUntil is set while the indexer is
+/// rate-limited (HTTP 429) and skipped from searches.</summary>
 public record SyncedIndexerResponse(
     int Id,
     string Name,
     string Url,
     int[] Categories,
     string Protocol,
-    bool Enabled);
+    bool Enabled,
+    DateTime? CooldownUntil);
 
 /// <summary>A download client without its password.</summary>
 public record DownloadClientResponse(

@@ -113,6 +113,7 @@
                                         <UBadge :color="idx.enabled ? 'success' : 'neutral'" variant="subtle" size="sm">
                                             {{ idx.enabled ? 'enabled' : 'disabled' }}
                                         </UBadge>
+                                        <IndexerCooldownBadge :cooldown-until="idx.cooldownUntil" />
                                     </li>
                                 </ul>
                             </div>

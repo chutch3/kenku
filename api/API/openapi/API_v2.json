@@ -7203,10 +7203,15 @@
           },
           "enabled": {
             "type": "boolean"
+          },
+          "cooldownUntil": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         },
         "additionalProperties": false,
-        "description": "A synced indexer without its API key."
+        "description": "A synced indexer without its API key. CooldownUntil is set while the indexer is\n            rate-limited (HTTP 429) and skipped from searches."
       },
       "UnbundleJobResult": {
         "type": "object",

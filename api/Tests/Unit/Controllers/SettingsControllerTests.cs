@@ -41,7 +41,7 @@ public class SettingsControllerTests : IDisposable
         _settings.SyncedIndexers.Add(new SyncedIndexerConfig(1, "Nyaa", "http://p/1/api", "indexer-key", [7030], "torrent", true));
         _settings.DownloadClients.Add(new DownloadClientConfig(1, "qbit", DownloadClientType.QBittorrent, "http://qbit", "admin", "s3cret", "comics", true, 1));
 
-        var result = CreateController().GetSettings();
+        var result = CreateController().GetSettings(new API.Indexers.IndexerCooldown(new API.JobRuntime.SystemClock()));
 
         var ok = Assert.IsType<Ok<API.Controllers.Responses.SettingsResponse>>(result);
         Assert.Equal(_settings.ApiKey, ok.Value!.ApiKey);
@@ -275,7 +275,7 @@ public class SettingsControllerTests : IDisposable
         _settings.SyncedIndexers.Add(new SyncedIndexerConfig(1, "Nyaa", "http://p/1/api", "indexer-key", [7030], "torrent", true));
         _settings.MetronPassword = "metron-pw";
 
-        var ok = Assert.IsType<Ok<API.Controllers.Responses.SettingsResponse>>(CreateController().GetSettings());
+        var ok = Assert.IsType<Ok<API.Controllers.Responses.SettingsResponse>>(CreateController().GetSettings(new API.Indexers.IndexerCooldown(new API.JobRuntime.SystemClock())));
         string json = System.Text.Json.JsonSerializer.Serialize(ok.Value,
             new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
 
