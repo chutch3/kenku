@@ -2,6 +2,20 @@
 
 <!-- version list -->
 
+## v0.19.0 (2026-06-11)
+
+### Features
+
+- Comic series read as issues with no volume filter or layout select
+  ([`a2f44fe`](https://github.com/chutch3/kenku/commit/a2f44fe210735d5d374ac82ba4caa94d637f04a4))
+
+- Discover page with library-aware rails and one-click add through prefilled search
+  ([`bbb60eb`](https://github.com/chutch3/kenku/commit/bbb60ebd074ebccd891409415fd7914248693f9c))
+
+- Discovery rails API with AniList trending, fresh GetComics posts, and subreddit feeds
+  ([`6149a68`](https://github.com/chutch3/kenku/commit/6149a684831359d2a35b33a260d5f0356a5cf137))
+
+
 ## v0.18.0 (2026-06-11)
 
 ### Bug Fixes
