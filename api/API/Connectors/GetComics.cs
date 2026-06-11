@@ -33,17 +33,51 @@ public class GetComics : SeriesSource, IArchiveUrlResolver
 
     private sealed record Post(string Title, string Url, string CoverUrl);
 
+    /// <summary>A post title decomposed into the shapes GetComics actually uses: a single issue
+    /// ("Series #N"), a TPB/volume ("Series Vol. N – Subtitle"), or a collection pack ("Series
+    /// #A – B + extras", "Series Vol. A – B") whose archive is a zip of further archives.</summary>
+    private sealed record ParsedPost(string Series, string? Number, int? Volume, bool IsCollection, int? Year);
+
+    private static readonly Regex TagGroupRx = new(@"[\(\[][^\)\]]*[\)\]]", RegexOptions.Compiled);
+    private static readonly Regex WhitespaceRx = new(@"\s+", RegexOptions.Compiled);
+    private static readonly Regex IssueRangeRx = new(
+        @"^(?<series>.+?)\s*#(?<a>\d{1,5})\s*[–—-]\s*#?(?<b>\d{1,5})(\s*\+.*)?$", RegexOptions.Compiled);
+    private static readonly Regex VolumeRx = new(
+        @"^(?<series>.+?)\s+vol\.?\s*0*(?<n>\d{1,4})(\s*[–—-]\s*(?<sub>.+))?$",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    private static ParsedPost ParseTitle(string title)
+    {
+        ParsedRelease release = ReleaseTitleParser.Parse(title);
+        string cleaned = WhitespaceRx.Replace(TagGroupRx.Replace(title, " "), " ").Trim();
+
+        if (IssueRangeRx.Match(cleaned) is { Success: true } range)
+            return new(range.Groups["series"].Value.Trim().TrimEnd('-', ':', '–').Trim(), null, null, true, release.Year);
+
+        if (VolumeRx.Match(cleaned) is { Success: true } vol)
+        {
+            string? subtitle = vol.Groups["sub"].Success ? vol.Groups["sub"].Value.Trim() : null;
+            // "Vol. 1 – 3": the "subtitle" is just another number — a multi-volume pack.
+            if (subtitle is not null && Regex.IsMatch(subtitle, @"^\d{1,4}$"))
+                return new(vol.Groups["series"].Value.Trim(), null, null, true, release.Year);
+            int n = int.Parse(vol.Groups["n"].Value);
+            return new(vol.Groups["series"].Value.Trim(), n.ToString(), n, false, release.Year);
+        }
+
+        return new(release.SeriesTitle, release.IssueNumber, null, false, release.Year);
+    }
+
     public override async Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName)
     {
         Post[] posts = await FetchSearchPage(SearchUrl(mangaSearchName, 1));
 
         var list = new List<(Series, SourceId<Series>)>();
         foreach (var group in posts
-                     .Select(p => (Post: p, Parsed: ReleaseTitleParser.Parse(p.Title)))
-                     .Where(p => !string.IsNullOrWhiteSpace(p.Parsed.SeriesTitle))
-                     .GroupBy(p => p.Parsed.SeriesTitle, StringComparer.OrdinalIgnoreCase))
+                     .Select(p => (Post: p, Parsed: ParseTitle(p.Title)))
+                     .Where(p => !string.IsNullOrWhiteSpace(p.Parsed.Series))
+                     .GroupBy(p => p.Parsed.Series, StringComparer.OrdinalIgnoreCase))
         {
-            list.Add(BuildSeries(group.First().Parsed.SeriesTitle,
+            list.Add(BuildSeries(group.First().Parsed.Series,
                 group.Select(p => p.Parsed.Year).FirstOrDefault(y => y.HasValue),
                 group.Select(p => p.Post.CoverUrl).FirstOrDefault(c => !string.IsNullOrEmpty(c)) ?? ""));
         }
@@ -94,21 +128,26 @@ public class GetComics : SeriesSource, IArchiveUrlResolver
 
             foreach (Post post in posts)
             {
-                ParsedRelease parsed = ReleaseTitleParser.Parse(post.Title);
-                if (!string.Equals(parsed.SeriesTitle, seriesTitle, StringComparison.OrdinalIgnoreCase))
+                ParsedPost parsed = ParseTitle(post.Title);
+                if (!string.Equals(parsed.Series, seriesTitle, StringComparison.OrdinalIgnoreCase))
                     continue;
-                if (parsed.IssueNumber is null)
+                if (parsed.IsCollection)
+                {
+                    Log.InfoFormat("Skipping collection pack (an archive of archives): {0}", post.Title);
+                    continue;
+                }
+                if (parsed.Number is null)
                 {
                     Log.WarnFormat("Skipping post without a parseable issue number: {0}", post.Title);
                     continue;
                 }
-                if (byIssue.ContainsKey(parsed.IssueNumber))
+                if (byIssue.ContainsKey(parsed.Number))
                     continue;
 
-                var chapter = new Chapter(mangaId.Obj, parsed.IssueNumber, null, post.Title);
-                var chId = new SourceId<Chapter>(chapter, this, parsed.IssueNumber, post.Url, mangaId.UseForDownload);
+                var chapter = new Chapter(mangaId.Obj, parsed.Number, parsed.Volume, post.Title);
+                var chId = new SourceId<Chapter>(chapter, this, parsed.Number, post.Url, mangaId.UseForDownload);
                 chapter.SourceIds.Add(chId);
-                byIssue[parsed.IssueNumber] = (chapter, chId);
+                byIssue[parsed.Number] = (chapter, chId);
             }
 
             // A short page is the last page; probing past it would just burn a request on a 404.

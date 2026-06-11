@@ -165,6 +165,62 @@ public class GetComicsTests
     }
 
     [Fact]
+    public async Task SearchManga_CollapsesVolumeAndCollectionPosts_IntoTheirSeries()
+    {
+        // Real GetComics shapes: TPB/volume posts carry a subtitle after the volume number, and
+        // ended runs ship as "#A – B + extras" collection posts. Both must collapse into the plain
+        // series so back-catalogue series are findable at all.
+        string html = SearchPage(
+            Article("https://getcomics.org/c/inv-vol23/", "Invincible Vol. 23 &#8211; Full House (2017)"),
+            Article("https://getcomics.org/c/inv-collection/", "Invincible #0 &#8211; 144 + TPBs + Extras (Collection) (2003-2018)"),
+            Article("https://getcomics.org/c/inv-144/", "Invincible #144 (2018)"));
+        var connector = CreateConnector(_ => Html(html));
+
+        var results = await connector.SearchManga("invincible");
+
+        var series = Assert.Single(results);
+        Assert.Equal("Invincible", series.Item1.Name);
+    }
+
+    [Fact]
+    public async Task GetChapters_MapsVolumePostsToVolumeChapters()
+    {
+        string page = SearchPage(
+            Article("https://getcomics.org/c/inv-vol23/", "Invincible Vol. 23 &#8211; Full House (2017)"),
+            Article("https://getcomics.org/c/inv-144/", "Invincible #144 (2018)"));
+        var connector = CreateConnector(url =>
+            url.Contains("/page/") ? Html("", HttpStatusCode.NotFound) : Html(page));
+        var mangaId = SeriesId(connector, "Invincible");
+
+        var chapters = await connector.GetChapters(mangaId);
+
+        Assert.Equal(2, chapters.Length);
+        var vol = Assert.Single(chapters, c => c.Item1.VolumeNumber == 23);
+        Assert.Equal("23", vol.Item1.ChapterNumber);
+        Assert.Equal("Invincible Vol. 23 – Full House (2017)", vol.Item1.Title);
+        Assert.Equal("https://getcomics.org/c/inv-vol23/", vol.Item2.WebsiteUrl);
+        var issue = Assert.Single(chapters, c => c.Item1.ChapterNumber == "144");
+        Assert.Null(issue.Item1.VolumeNumber);
+    }
+
+    [Fact]
+    public async Task GetChapters_SkipsMultiVolumePacks_TheyAreArchivesOfArchives()
+    {
+        // "Vol. 1 – 3" packs download as a zip of TPB archives — useless as a single chapter file.
+        string page = SearchPage(
+            Article("https://getcomics.org/c/inv-comp/", "Invincible Compendium Vol. 1 &#8211; 3 (2013-2019)"),
+            Article("https://getcomics.org/c/inv-comp2/", "Invincible Compendium Vol. 2 (2018)"));
+        var connector = CreateConnector(url =>
+            url.Contains("/page/") ? Html("", HttpStatusCode.NotFound) : Html(page));
+        var mangaId = SeriesId(connector, "Invincible Compendium");
+
+        var chapters = await connector.GetChapters(mangaId);
+
+        var only = Assert.Single(chapters);
+        Assert.Equal(2, only.Item1.VolumeNumber);
+    }
+
+    [Fact]
     public async Task GetChapters_DeduplicatesPostsThatParseToTheSameIssue()
     {
         string page = SearchPage(
