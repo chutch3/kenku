@@ -38,6 +38,12 @@ jobs:
           # failed/lost release build can be re-run later without picking up newer commits.
           ref: ${{ inputs.version != '' && format('v{0}', inputs.version) || '' }}
 
+      # The Docker context has no .git, so the checked-out commit is passed in as a build-arg
+      # and stamped into the assembly's informational version (shown by /v2/Version).
+      - name: Resolve checked-out commit
+        id: rev
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
       # The exact version tag for release builds; :latest only when that version is the newest
       # tag, so re-publishing an old version never moves :latest backwards.
       - name: Compute image tags
@@ -81,4 +87,5 @@ jobs:
           push: true
           build-args: |
             VERSION=${{ inputs.version }}
+            GIT_SHA=${{ steps.rev.outputs.sha }}
           tags: ${{ steps.tags.outputs.tags }}

@@ -31,12 +31,15 @@ COPY api/ /src/
 # Release version stamped into the assembly. Defaults to 0.0.0 for local/main builds;
 # the release pipeline passes the semantic-release version (e.g. 0.0.1).
 ARG VERSION=0.0.0
+# The commit the image was built from; surfaced by /v2/Version via SourceRevisionId
+# (it lands in the assembly's informational version as "+<sha>").
+ARG GIT_SHA=""
 # GitVersion=false: no .git in the build context, so let GitInfo skip deriving the
 # package version from git (otherwise it emits an invalid "0.0.0+main." and fails);
 # the version comes from the VERSION build-arg instead.
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
     VERSION="${VERSION:-0.0.0}" && \
-    dotnet publish /src/API/API.csproj -c Release --property:OutputPath=/publish -p:GitVersion=false -p:Version="$VERSION" -maxcpucount:1 --no-cache
+    dotnet publish /src/API/API.csproj -c Release --property:OutputPath=/publish -p:GitVersion=false -p:Version="$VERSION" -p:SourceRevisionId="$GIT_SHA" -maxcpucount:1 --no-cache
 
 # ---- Stage 4: final runtime ----
 FROM base AS runtime
