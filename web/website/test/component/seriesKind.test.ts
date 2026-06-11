@@ -58,6 +58,11 @@ describe('seriesKind', () => {
         expect(seriesKind(withSources('Indexers', 'WeebCentral'), connectors)).toBe('manga');
     });
 
+    it('matches connector names case-insensitively, like the backend lookups', () => {
+        const series = withSources('getcomics');
+        expect(seriesKind(series, connectors)).toBe('comic');
+    });
+
     it('defaults to manga without sources or connector data', () => {
         expect(seriesKind(withSources(), connectors)).toBe('manga');
         expect(seriesKind(withSources('Indexers'), null)).toBe('manga');

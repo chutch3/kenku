@@ -7,8 +7,11 @@ export type SeriesKind = 'manga' | 'comic';
 
 /** A series is a comic when every source it has declares comic content — what the source serves,
  * not how it acquires it. Comics have no MangaDex/AniList notion of volume mapping. Mixed or
- * unknown sources behave as manga. */
+ * unknown sources behave as manga. Mirrors the backend rule in API/Connectors/SeriesContentType.cs —
+ * keep the two in sync, including the case-insensitive name match. */
 export function seriesKind(series: AnySeries, connectors?: Connector[] | null): SeriesKind {
-    const types = (series.sourceIds ?? []).map((s) => connectors?.find((c) => c.name === s.mangaConnectorName)?.contentType);
+    const types = (series.sourceIds ?? []).map(
+        (s) => connectors?.find((c) => c.name?.toLowerCase() === s.mangaConnectorName?.toLowerCase())?.contentType
+    );
     return types.length > 0 && types.every((t) => t === 'Comic') ? 'comic' : 'manga';
 }

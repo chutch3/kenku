@@ -108,4 +108,26 @@ public class SeriesDeletionEndToEndTests : IAsyncLifetime
         Assert.Contains(torrentKey, _client.Removed);
         Assert.DoesNotContain(scrapeKey, _client.Removed);
     }
+
+    // Connector-name lookups are case-insensitive everywhere else; the torrent-tag filter must agree.
+    [Fact]
+    public async Task DeletingASeries_MatchesTorrentSourcesCaseInsensitively()
+    {
+        (string mangaId, string torrentKey) = await _app.WithSeriesContext(async ctx =>
+        {
+            var manga = new Series("Preacher", "", "", SeriesReleaseStatus.Completed, [], [], [], []);
+            ctx.Series.Add(manga);
+            var chapter = new Chapter(manga, "1", null, null);
+            ctx.Chapters.Add(chapter);
+            var sourceId = new SourceId<Chapter>(chapter, "INDEXERS", "1", null, true);
+            ctx.MangaConnectorToChapter.Add(sourceId);
+            await ctx.SaveChangesAsync();
+            return (manga.Key, sourceId.Key);
+        });
+
+        var response = await _app.CreateClient().DeleteAsync($"/v2/Series/{mangaId}");
+        response.EnsureSuccessStatusCode();
+
+        Assert.Contains(torrentKey, _client.Removed);
+    }
 }

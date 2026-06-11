@@ -49,9 +49,9 @@ public class SeriesLibraryService(KenkuSettings settings, IEnumerable<SeriesSour
         // Only torrent-kind sources tag the download client, and each Remove is an HTTP round-trip —
         // sweeping every scrape/archive chapter made deleting a long series take minutes.
         List<string> torrentConnectorNames = connectors
-            .Where(c => c.Kind == AcquisitionKind.Torrent).Select(c => c.Name).ToList();
+            .Where(c => c.Kind == AcquisitionKind.Torrent).Select(c => c.Name.ToLower()).ToList();
         List<string> torrentTags = await context.MangaConnectorToChapter
-            .Where(id => id.Obj.ParentMangaId == mangaId && torrentConnectorNames.Contains(id.MangaConnectorName))
+            .Where(id => id.Obj.ParentMangaId == mangaId && torrentConnectorNames.Contains(id.MangaConnectorName.ToLower()))
             .Select(id => id.Key)
             .ToListAsync(ct);
 

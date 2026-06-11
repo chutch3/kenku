@@ -1,6 +1,9 @@
+using API.JobRuntime.Handlers;
 using API.Schema.JobsContext;
 using API.Services;
+using API.Tests.Unit.JobRuntime;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using JobEntity = API.Schema.JobsContext.Job;
 
@@ -69,5 +72,38 @@ public class JobRetentionTests : IAsyncLifetime
             Assert.Contains(remaining, j => j.Status == JobStatus.Failed);
             Assert.Contains(remaining, j => j.Status == JobStatus.Queued);
         }
+    }
+
+    // The handler must honour the runtime CompletedJobRetentionDays setting, not a compile-time
+    // default: with retention shortened to 1 day, a 2-day-old job (safe under the default 3) is pruned.
+    [Fact]
+    public async Task CleanupHandler_PrunesByTheConfiguredRetention()
+    {
+        var now = new DateTime(2026, 6, 8, 12, 0, 0, DateTimeKind.Utc);
+        var twoDaysOld = now.AddDays(-2);
+
+        await using (var seed = NewContext())
+        {
+            seed.JobQueue.AddRange(
+                Job(JobStatus.Succeeded, twoDaysOld, twoDaysOld), // pruned only if the 1-day setting is honoured
+                Job(JobStatus.Succeeded, now.AddHours(-1), now.AddHours(-1)));
+            await seed.SaveChangesAsync();
+        }
+
+        var services = new ServiceCollection();
+        services.AddScoped(_ => NewContext());
+        services.AddScoped<CleanupService>();
+        services.AddSingleton<API.JobRuntime.Interfaces.IClock>(new FakeClock(now));
+        services.AddSingleton(new KenkuSettings { CompletedJobRetentionDays = 1 });
+        await using var provider = services.BuildServiceProvider();
+
+        var handler = new CleanupHandler(provider.GetRequiredService<IServiceScopeFactory>());
+        await handler.ExecuteAsync(
+            new JobEntity(CleanupHandler.Type, CleanupHandler.PayloadFor(CleanupKind.CompletedJobs), now),
+            CancellationToken.None);
+
+        await using var verify = NewContext();
+        var remaining = Assert.Single(await verify.JobQueue.ToListAsync());
+        Assert.Equal(now.AddHours(-1), remaining.FinishedAt);
     }
 }

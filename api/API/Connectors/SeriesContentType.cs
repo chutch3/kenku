@@ -1,8 +1,10 @@
 namespace API.Connectors;
 
 /// <summary>
-/// Resolves a series' content type from its sources, mirroring the UI rule: comic when every linked
-/// source serves comics; a mixed or unknown source set stays manga so manga machinery keeps working.
+/// Resolves a series' content type from its sources: comic when every linked source serves comics;
+/// a mixed or unknown source set stays manga so manga machinery keeps working. Mirrors the UI rule
+/// in web/website/app/composables/useSeriesKind.ts — keep the two in sync, including the
+/// case-insensitive name match.
 /// </summary>
 public static class SeriesContentType
 {
