@@ -125,6 +125,39 @@ describe('QueueList', () => {
         expect(wrapper.text()).toContain('120');
     });
 
+    it('keeps queue order stable by enqueue time, regardless of status or activity', async () => {
+        registerEndpoint('/v2/JobQueue', () => [
+            job({ key: 'oldest', status: 'NeedsAttention', error: 'boom', createdAt: '2026-06-06T00:00:00Z' }),
+            job({ key: 'middle', status: 'Running', createdAt: '2026-06-06T00:01:00Z', startedAt: '2026-06-06T00:06:00Z' }),
+            job({ key: 'newest', status: 'Succeeded', createdAt: '2026-06-06T00:02:00Z', finishedAt: '2026-06-06T00:05:00Z' }),
+        ]);
+
+        const wrapper = await mountSuspended(QueueList);
+
+        // Newest enqueued first; an attention or recently-active job changes in place, it doesn't jump.
+        const rows = wrapper.findAll('li').map((li) => li.text());
+        expect(rows.findIndex((t) => t.includes('Succeeded'))).toBeLessThan(rows.findIndex((t) => t.includes('Running')));
+        expect(rows.findIndex((t) => t.includes('Running'))).toBeLessThan(rows.findIndex((t) => t.includes('NeedsAttention')));
+    });
+
+    it('expands a row to the full error and lifecycle, collapsed by default', async () => {
+        const longError = 'chapter list request failed: HTTP 429 — the indexer is rate limiting; retry after the cooldown elapses';
+        registerEndpoint('/v2/JobQueue', () => [
+            job({ key: 'needs', status: 'NeedsAttention', error: longError, startedAt: '2026-06-06T00:00:30Z' }),
+        ]);
+
+        const wrapper = await mountSuspended(QueueList);
+
+        expect(wrapper.text()).not.toContain('Queued:');
+
+        await wrapper.find('li > div').trigger('click');
+
+        expect(wrapper.text()).toContain('Queued:');
+        const fullError = wrapper.findAll('p').find((p) => p.text() === longError);
+        expect(fullError, 'untruncated error paragraph').toBeTruthy();
+        expect(fullError!.classes()).not.toContain('truncate');
+    });
+
     it('shows an empty state when the queue is empty', async () => {
         registerEndpoint('/v2/JobQueue', () => []);
 

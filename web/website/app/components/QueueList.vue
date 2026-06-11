@@ -7,41 +7,50 @@
             description="Review the error, then retry or dismiss." />
         <p v-if="!jobs.length" class="text-sm text-muted">No jobs in the queue.</p>
         <ul v-else class="flex flex-col gap-1">
-            <li v-for="job in displayedJobs" :key="job.key" class="flex items-center gap-2 text-sm">
-                <UBadge :color="statusColor(job.status)" variant="subtle" class="w-32 justify-center">{{ job.status }}</UBadge>
-                <span class="grow truncate" :title="job.type">
-                    {{ jobLabel(job) }}
-                    <NuxtLink
-                        v-if="seriesName(job)"
-                        :to="`/series/${job.resourceKey}`"
-                        class="text-secondary hover:underline">{{ seriesName(job) }}</NuxtLink>
-                    <span v-if="job.progress" class="text-muted">— {{ job.progress }}</span>
-                </span>
-                <span v-if="job.attempts > 1" class="text-dimmed">×{{ job.attempts }}</span>
-                <span
-                    v-if="durationLabel(job)"
-                    class="text-dimmed tabular-nums w-16 text-right"
-                    :title="timingTitle(job)">{{ durationLabel(job) }}</span>
-                <span
-                    v-if="whenLabel(job)"
-                    class="text-muted text-xs w-24 text-right"
-                    :title="timingTitle(job)">{{ whenLabel(job) }}</span>
-                <span v-if="job.error" class="text-error truncate max-w-80" :title="job.error">{{ job.error }}</span>
-                <UButton
-                    v-if="job.status === 'NeedsAttention'"
-                    size="xs" color="primary" :loading="busy === job.key" @click="retry(job.key)">
-                    Retry
-                </UButton>
-                <UButton
-                    v-if="job.status === 'NeedsAttention'"
-                    size="xs" variant="soft" color="neutral" :loading="busy === job.key" @click="dismiss(job.key)">
-                    Dismiss
-                </UButton>
-                <UButton
-                    v-if="job.status === 'Queued' || job.status === 'Running'"
-                    size="xs" variant="soft" color="error" :loading="busy === job.key" @click="cancel(job.key)">
-                    Cancel
-                </UButton>
+            <li v-for="job in displayedJobs" :key="job.key" class="flex flex-col text-sm">
+                <div class="flex items-center gap-2 cursor-pointer" @click="toggle(job.key)">
+                    <UBadge :color="statusColor(job.status)" variant="subtle" class="w-32 justify-center">{{ job.status }}</UBadge>
+                    <span class="grow truncate" :title="job.type">
+                        {{ jobLabel(job) }}
+                        <NuxtLink
+                            v-if="seriesName(job)"
+                            :to="`/series/${job.resourceKey}`"
+                            class="text-secondary hover:underline"
+                            @click.stop>{{ seriesName(job) }}</NuxtLink>
+                        <span v-if="job.progress" class="text-muted">— {{ job.progress }}</span>
+                    </span>
+                    <span v-if="job.attempts > 1" class="text-dimmed">×{{ job.attempts }}</span>
+                    <span
+                        v-if="durationLabel(job)"
+                        class="text-dimmed tabular-nums w-16 text-right"
+                        :title="timingTitle(job)">{{ durationLabel(job) }}</span>
+                    <span
+                        v-if="whenLabel(job)"
+                        class="text-muted text-xs w-24 text-right"
+                        :title="timingTitle(job)">{{ whenLabel(job) }}</span>
+                    <span v-if="job.error" class="text-error truncate max-w-80">{{ job.error }}</span>
+                    <UButton
+                        v-if="job.status === 'NeedsAttention'"
+                        size="xs" color="primary" :loading="busy === job.key" @click.stop="retry(job.key)">
+                        Retry
+                    </UButton>
+                    <UButton
+                        v-if="job.status === 'NeedsAttention'"
+                        size="xs" variant="soft" color="neutral" :loading="busy === job.key" @click.stop="dismiss(job.key)">
+                        Dismiss
+                    </UButton>
+                    <UButton
+                        v-if="job.status === 'Queued' || job.status === 'Running'"
+                        size="xs" variant="soft" color="error" :loading="busy === job.key" @click.stop="cancel(job.key)">
+                        Cancel
+                    </UButton>
+                    <UIcon :name="expanded.has(job.key) ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" class="text-dimmed shrink-0" />
+                </div>
+                <div v-if="expanded.has(job.key)" class="ml-34 my-1 flex flex-col gap-1 text-xs">
+                    <p v-if="job.error" class="text-error whitespace-pre-wrap break-words">{{ job.error }}</p>
+                    <p class="text-muted">{{ job.type }} · attempt {{ job.attempts }}/{{ job.maxAttempts }}</p>
+                    <p class="text-muted whitespace-pre-line">{{ timingTitle(job) }}</p>
+                </div>
             </li>
         </ul>
         <p v-if="jobs.length > DISPLAY_LIMIT" class="text-xs text-muted">
@@ -96,22 +105,28 @@ onBeforeUnmount(() => {
 });
 
 const ms = (iso?: string | null) => (iso ? Date.parse(iso) : undefined);
-const activityMs = (job: QueuedJob) => ms(job.finishedAt) ?? ms(job.startedAt) ?? ms(job.createdAt) ?? 0;
 
-// NeedsAttention pinned to the top (it needs action and is easily lost in a long queue), then the rest
-// most-recent-activity first.
-const sortedJobs = computed(() => [...jobs.value].sort((a, b) => {
-    const an = a.status === 'NeedsAttention' ? 1 : 0;
-    const bn = b.status === 'NeedsAttention' ? 1 : 0;
-    return bn - an || activityMs(b) - activityMs(a);
-}));
+// Stable queue order: newest enqueued first. createdAt never changes, so a row keeps its place while
+// its status flips in place under the 2s poll; the banner above flags anything needing attention.
+const sortedJobs = computed(() => [...jobs.value].sort((a, b) =>
+    (ms(b.createdAt) ?? 0) - (ms(a.createdAt) ?? 0) || a.key.localeCompare(b.key)));
 
 const needsAttentionCount = computed(() => jobs.value.filter(j => j.status === 'NeedsAttention').length);
 
-// Cap the rendered list: retention bounds the table to a few days, but that can still be hundreds of rows.
-// NeedsAttention sorts first so it's always within the cap.
+// Cap the rendered list: retention bounds the table to a few days, but that can still be hundreds of
+// rows. NeedsAttention jobs older than the cap stay actionable — appended after the recent window.
 const DISPLAY_LIMIT = 100;
-const displayedJobs = computed(() => sortedJobs.value.slice(0, DISPLAY_LIMIT));
+const displayedJobs = computed(() => {
+    const recent = sortedJobs.value.slice(0, DISPLAY_LIMIT);
+    const olderAttention = sortedJobs.value.slice(DISPLAY_LIMIT).filter((j) => j.status === 'NeedsAttention');
+    return [...recent, ...olderAttention];
+});
+
+const expanded = ref(new Set<string>());
+const toggle = (key: string) => {
+    if (!expanded.value.delete(key)) expanded.value.add(key);
+    expanded.value = new Set(expanded.value);
+};
 
 // Run time: finished − started for completed jobs, or live elapsed since start for a running one.
 const durationLabel = (job: QueuedJob) => {
