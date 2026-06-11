@@ -123,26 +123,45 @@ public class GetComicsTests
         Assert.Single(chapters, c => c.Item1.ChapterNumber == "8");
     }
 
+    private static string FullPageOfSaga(int firstIssue) => SearchPage(Enumerable.Range(firstIssue, 12)
+        .Select(i => Article($"https://getcomics.org/c/saga-{i}/", $"Saga #{i} (2024)")).ToArray());
+
     [Fact]
-    public async Task GetChapters_WalksThePagedSearch_UntilThePagesRunOut()
+    public async Task GetChapters_WalksThePagedSearch_StoppingAtTheFirstShortPage()
     {
+        // The site serves 12 posts per page; a shorter page is the last one, so probing the next
+        // page (a 404 the IHttpRequester seam masks as a 500) would be a wasted request.
         var requested = new List<string>();
-        string page1 = SearchPage(Article("https://getcomics.org/c/saga-60/", "Saga #60 (2024)"));
         string page2 = SearchPage(Article("https://getcomics.org/c/saga-61/", "Saga #61 (2024)"));
         var connector = CreateConnector(url =>
         {
             requested.Add(url);
             if (url.Contains("/page/2/")) return Html(page2);
             if (url.Contains("/page/")) return Html("", HttpStatusCode.NotFound);
-            return Html(page1);
+            return Html(FullPageOfSaga(49));
         });
         var mangaId = SeriesId(connector, "Saga");
 
         var chapters = await connector.GetChapters(mangaId);
 
-        Assert.Equal(2, chapters.Length);
+        Assert.Equal(13, chapters.Length);
         Assert.Contains(requested, u => u.StartsWith("https://getcomics.org/?s="));
         Assert.Contains(requested, u => u.StartsWith("https://getcomics.org/page/2/?s="));
+        Assert.DoesNotContain(requested, u => u.Contains("/page/3/"));
+    }
+
+    [Fact]
+    public async Task GetChapters_TreatsAFailurePastTheFirstPage_AsTheEndOfPaging()
+    {
+        // The IHttpRequester seam collapses the site's past-the-end 404 into a synthetic 500, so any
+        // failure beyond page 1 must end paging with the posts already gathered — not throw.
+        var connector = CreateConnector(url =>
+            url.Contains("/page/") ? Html("", HttpStatusCode.InternalServerError) : Html(FullPageOfSaga(49)));
+        var mangaId = SeriesId(connector, "Saga");
+
+        var chapters = await connector.GetChapters(mangaId);
+
+        Assert.Equal(12, chapters.Length);
     }
 
     [Fact]

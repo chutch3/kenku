@@ -21,6 +21,7 @@ public class GetComics : SeriesSource, IArchiveUrlResolver
 {
     // Posts per page is 12; five pages bounds a chapter sync at 60 posts while staying polite.
     private const int MaxSearchPages = 5;
+    private const int PostsPerPage = 12;
 
     public GetComics(KenkuSettings settings, IHttpRequester downloadClient)
         : base("GetComics", ["en"], ["getcomics.org"], "https://getcomics.org/share/uploads/2020/04/cropped-GetComics-Favicon.png", settings)
@@ -87,7 +88,7 @@ public class GetComics : SeriesSource, IArchiveUrlResolver
         var byIssue = new Dictionary<string, (Chapter, SourceId<Chapter>)>();
         for (int page = 1; page <= MaxSearchPages; page++)
         {
-            Post[]? posts = await FetchSearchPage(SearchUrl(seriesTitle, page), missingPageIsEnd: page > 1);
+            Post[]? posts = await FetchSearchPage(SearchUrl(seriesTitle, page), failuresEndPaging: page > 1);
             if (posts is null || posts.Length == 0)
                 break;
 
@@ -109,6 +110,10 @@ public class GetComics : SeriesSource, IArchiveUrlResolver
                 chapter.SourceIds.Add(chId);
                 byIssue[parsed.IssueNumber] = (chapter, chId);
             }
+
+            // A short page is the last page; probing past it would just burn a request on a 404.
+            if (posts.Length < PostsPerPage)
+                break;
         }
         Log.InfoFormat("Found {0} chapters for {1}", byIssue.Count, seriesTitle);
         return byIssue.Values.ToArray();
@@ -210,11 +215,13 @@ public class GetComics : SeriesSource, IArchiveUrlResolver
     /// (the post-list section is present with zero articles) from a selector miss or error page,
     /// which throws so a sync surfaces the breakage instead of silently emptying the series.
     /// </summary>
-    private async Task<Post[]?> FetchSearchPage(string url, bool missingPageIsEnd = false)
+    private async Task<Post[]?> FetchSearchPage(string url, bool failuresEndPaging = false)
     {
         using HttpResponseMessage response = await downloadClient.MakeRequest(url, RequestType.Default);
-        if (missingPageIsEnd && response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            return null; // WordPress 404s pages past the last one — the normal end of paging.
+        // WordPress 404s pages past the last one, but the IHttpRequester seam masks non-success
+        // statuses as a synthetic 500 — so past page 1, any failure is treated as the end of paging.
+        if (failuresEndPaging && !response.IsSuccessStatusCode)
+            return null;
         if (!response.IsSuccessStatusCode)
             throw new HttpRequestException($"GetComics search request failed: HTTP {(int)response.StatusCode} for {url}");
 
