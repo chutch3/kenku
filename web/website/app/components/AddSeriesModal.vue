@@ -1,5 +1,5 @@
 <template>
-    <UModal v-model:open="open" :title="series.name" :description="kind === 'comic' ? `From ${sourceName} — comic, delivered via your indexers` : `From ${sourceName}`">
+    <UModal v-model:open="open" :title="series.name" :description="description">
         <template #body>
             <div class="flex flex-col gap-4">
                 <div class="flex gap-4">
@@ -79,6 +79,11 @@ const sourceName = computed(() => source.value?.mangaConnectorName ?? 'source');
 
 const { data: connectors } = await useApi('/v2/SeriesSource', { key: FetchKeys.MangaConnector.All, server: false });
 const kind = computed(() => seriesKind(props.series, connectors.value));
+const description = computed(() => {
+    if (kind.value !== 'comic') return `From ${sourceName.value}`;
+    const torrentBacked = connectors.value?.find((c) => c.name === sourceName.value)?.kind === 'Torrent';
+    return torrentBacked ? `From ${sourceName.value} — comic, delivered via your indexers` : `From ${sourceName.value} — comic`;
+});
 
 const { data: libraries } = await useApi('/v2/FileLibrary', { key: FetchKeys.FileLibraries, server: false });
 const libraryItems = computed(() => (libraries.value ?? []).map((l) => ({ label: `${l.libraryName} (${l.basePath})`, value: l.key })));

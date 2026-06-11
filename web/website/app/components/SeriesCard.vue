@@ -1,8 +1,9 @@
 <template>
     <div class="kenku-lift group relative max-sm:w-[var(--mangacover-width-sm)] w-(--mangacover-width) mt-4 mr-4 rounded-lg">
         <SeriesCover :series="series" blur />
-        <div class="absolute top-2 left-2 z-10 max-sm:hidden">
+        <div class="absolute top-2 left-2 z-10 max-sm:hidden flex flex-col items-start gap-1">
             <SeriesStatusBadge :series="series" :rollup="rollup" />
+            <UBadge v-if="kind === 'comic'" color="neutral" variant="subtle" icon="i-lucide-zap" class="backdrop-blur-sm">Comic</UBadge>
         </div>
         <div
             v-if="series.sourceIds.length"
@@ -20,7 +21,11 @@ type Series = components['schemas']['Series'];
 type MinimalSeries = components['schemas']['MinimalSeries'];
 type SeriesRollup = components['schemas']['SeriesRollup'];
 
-defineProps<SeriesCardProps>();
+const props = defineProps<SeriesCardProps>();
+
+// Not awaited: the card renders immediately and the badge appears once connectors load.
+const { data: connectors } = useApi('/v2/SeriesSource', { key: FetchKeys.MangaConnector.All, server: false });
+const kind = computed(() => seriesKind(props.series, connectors.value));
 
 export interface SeriesCardProps extends /* @vue-ignore */ PageCardProps {
     series: Series | MinimalSeries;

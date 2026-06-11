@@ -20,6 +20,11 @@ let chapters: object[] | null = [];
 let changeLibraryQuery: Record<string, string> | null = null;
 
 registerEndpoint('/v2/FileLibrary', () => [{ key: 'lib1', libraryName: 'Manga', basePath: '/data/manga' }]);
+registerEndpoint('/v2/SeriesSource', () => [
+    { key: 'WeebCentral', name: 'WeebCentral', enabled: true, iconUrl: '', supportedLanguages: ['en'], kind: 'ImageList', contentType: 'Manga' },
+    { key: 'Indexers', name: 'Indexers', enabled: true, iconUrl: '', supportedLanguages: ['en'], kind: 'Torrent', contentType: 'Comic' },
+    { key: 'GetComics', name: 'GetComics', enabled: true, iconUrl: '', supportedLanguages: ['en'], kind: 'DirectArchive', contentType: 'Comic' },
+]);
 registerEndpoint('/v2/Search/WeebCentral/Chapters', (event) => {
     if (chapters === null) throw createError({ statusCode: 500, statusMessage: 'chapter list request failed: HTTP 404' });
     return chapters;
@@ -80,6 +85,29 @@ describe('AddSeriesModal', () => {
         await vi.waitFor(() =>
             expect(changeLibraryQuery).toMatchObject({ connectorName: 'WeebCentral', connectorSeriesId: '01ABC', download: 'true' }));
         expect(wrapper.emitted('added')).toBeTruthy();
+    });
+
+    it('describes a direct-download comic source without claiming indexer delivery', async () => {
+        chapters = [{ chapterNumber: '1', volumeNumber: null, title: null }];
+        const comicSeries = {
+            ...series,
+            sourceIds: [{ ...series.sourceIds[0], mangaConnectorName: 'GetComics' }],
+        };
+        await mountSuspended(AddSeriesModal, { props: { series: comicSeries, open: true } });
+
+        await vi.waitFor(() => expect(bodyText()).toContain('From GetComics — comic'));
+        expect(bodyText()).not.toContain('indexers');
+    });
+
+    it('still explains indexer delivery for torrent-backed comics', async () => {
+        chapters = [{ chapterNumber: '1', volumeNumber: null, title: null }];
+        const comicSeries = {
+            ...series,
+            sourceIds: [{ ...series.sourceIds[0], mangaConnectorName: 'Indexers' }],
+        };
+        await mountSuspended(AddSeriesModal, { props: { series: comicSeries, open: true } });
+
+        await vi.waitFor(() => expect(bodyText()).toContain('From Indexers — comic, delivered via your indexers'));
     });
 
     it('Add only sends download=false', async () => {
