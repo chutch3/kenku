@@ -1,8 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime';
 import type { VueWrapper } from '@vue/test-utils';
+import type { components } from '#open-fetch-schemas/api';
 import SeriesCard from '~/components/SeriesCard.vue';
 import { tooltipStub } from './tooltipStub';
+
+type SeriesRollup = components['schemas']['SeriesRollup'];
 
 const connectors = [
     { key: 'WeebCentral', name: 'WeebCentral', enabled: true, iconUrl: 'http://localhost/icon.png', supportedLanguages: ['en'], kind: 'ImageList', contentType: 'Manga' },
@@ -13,7 +16,7 @@ registerEndpoint('/v2/SeriesSource', () => connectors);
 registerEndpoint('/v2/SeriesSource/WeebCentral', () => connectors[0]);
 registerEndpoint('/v2/SeriesSource/GetComics', () => connectors[1]);
 
-function series(connectorName: string) {
+function series(connectorName: string, fileLibraryId: string | null = null) {
     return {
         key: 's1',
         name: 'The Boys',
@@ -29,35 +32,41 @@ function series(connectorName: string) {
                 useForDownload: true,
             },
         ],
-        fileLibraryId: null,
+        fileLibraryId,
         originalLanguage: 'en',
         coverUrl: 'http://localhost/cover.jpg',
     };
 }
 
-function mount(connectorName: string) {
-    return mountSuspended(SeriesCard, {
-        props: { series: series(connectorName) },
-        global: { stubs: tooltipStub },
-    });
+function mount(props: Record<string, unknown>) {
+    return mountSuspended(SeriesCard, { props, global: { stubs: tooltipStub } });
 }
 
-function comicBadge(wrapper: VueWrapper) {
-    return wrapper.findAll('span').find((s) => s.text() === 'Comic');
+function statusBar(wrapper: VueWrapper) {
+    return wrapper.find('[data-test="status-bar"]');
 }
 
 describe('SeriesCard', () => {
-    it('badges a comic-sourced series so mixed search results are tellable apart', async () => {
-        const wrapper = await mount('GetComics');
+    it('states the content type on the info line so mixed search results are tellable apart', async () => {
+        const wrapper = await mount({ series: series('GetComics') });
 
-        await vi.waitFor(() => expect(comicBadge(wrapper)).toBeTruthy());
+        await vi.waitFor(() => expect(wrapper.text()).toContain('Comic · Not tracked'));
     });
 
-    it('leaves manga-sourced series unbadged', async () => {
-        const wrapper = await mount('WeebCentral');
+    it('manga series read Manga on the info line', async () => {
+        const wrapper = await mount({ series: series('WeebCentral') });
 
-        // Wait until the connector-driven source icon is up, so the missing badge is a decision, not a race.
-        await vi.waitFor(() => expect(wrapper.find('img[alt="WeebCentral icon"]').exists()).toBe(true));
-        expect(comicBadge(wrapper)).toBeFalsy();
+        await vi.waitFor(() => expect(wrapper.text()).toContain('Manga · Not tracked'));
+    });
+
+    it('colors the status bar by track state', async () => {
+        const untracked = await mount({ series: series('GetComics') });
+        expect(statusBar(untracked).classes()).toContain('bg-sumi-400/60');
+
+        const attention: Partial<SeriesRollup> = {
+            mangaId: 's1', needsAttentionJobs: 2, queuedJobs: 0, runningJobs: 0, downloadedChapters: 1, wantedChapters: 12,
+        };
+        const broken = await mount({ series: series('GetComics', 'lib1'), rollup: attention });
+        expect(statusBar(broken).classes()).toContain('bg-vermillion-500');
     });
 });

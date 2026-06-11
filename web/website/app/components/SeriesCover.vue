@@ -15,6 +15,7 @@
                 class="font-display max-sm:text-sm text-lg/tight font-semibold text-white line-clamp-3 [text-shadow:0_1px_8px_rgba(0,0,0,0.6)]">
                 {{ series?.name }}
             </p>
+            <slot name="footer" />
         </div>
     </div>
 </template>
