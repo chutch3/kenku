@@ -29,12 +29,26 @@ public class DirectArchiveAcquirer(HttpClient http) : IChapterAcquirer
             return new AcquireResult.Failed("the connector did not provide an archive URL for this chapter");
         }
 
+        string archiveUrl = chapter.WebsiteUrl;
+        if (source is IArchiveUrlResolver resolver)
+        {
+            switch (await resolver.ResolveArchiveUrl(chapter, ct))
+            {
+                case ArchiveResolution.Resolved resolved:
+                    archiveUrl = resolved.Url;
+                    break;
+                case ArchiveResolution.Manual manual:
+                    Log.InfoFormat("Chapter {0} needs manual handling: {1}", chapter, manual.Reason);
+                    return new AcquireResult.Failed(manual.Reason);
+            }
+        }
+
         try
         {
-            using HttpResponseMessage response = await http.GetAsync(chapter.WebsiteUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+            using HttpResponseMessage response = await http.GetAsync(archiveUrl, HttpCompletionOption.ResponseHeadersRead, ct);
             if (!response.IsSuccessStatusCode)
             {
-                Log.ErrorFormat("Failed to download archive {0}: HTTP {1}", chapter.WebsiteUrl, (int)response.StatusCode);
+                Log.ErrorFormat("Failed to download archive {0}: HTTP {1}", archiveUrl, (int)response.StatusCode);
                 return new AcquireResult.Failed($"archive download failed: HTTP {(int)response.StatusCode}");
             }
 
@@ -44,7 +58,7 @@ public class DirectArchiveAcquirer(HttpClient http) : IChapterAcquirer
         }
         catch (Exception ex)
         {
-            Log.ErrorFormat("Failed to acquire archive {0}: {1}", chapter.WebsiteUrl, ex);
+            Log.ErrorFormat("Failed to acquire archive {0}: {1}", archiveUrl, ex);
             // Best effort cleanup of any partial file
             try { if (File.Exists(saveArchiveFilePath)) File.Delete(saveArchiveFilePath); } catch { /* swallow */ }
             return new AcquireResult.Failed($"archive download failed: {ex.Message}");

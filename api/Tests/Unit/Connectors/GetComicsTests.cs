@@ -2,6 +2,7 @@ using API.HttpRequesters.Interfaces;
 using System.Net;
 using System.Text;
 using API;
+using API.Acquirers.Interfaces;
 using API.Connectors;
 using API.HttpRequesters;
 using API.Schema.SeriesContext;
@@ -224,6 +225,140 @@ public class GetComicsTests
 
         await Assert.ThrowsAsync<NotSupportedException>(() => connector.GetChapterImageUrls(chapterId));
         await Assert.ThrowsAsync<NotSupportedException>(() => connector.DownloadImage("https://img.test/x.jpg", CancellationToken.None));
+    }
+
+    // Post-page fixtures matching the live structure (grounded 2026-06-10): download buttons are
+    // <a title="…"> inside .aio-button-center divs; the Main Server button's title casing varies
+    // ("DOWNLOAD NOW" / "Download Now"); mirror buttons name their host.
+    private static string PostPage(params string[] buttons) => $"""
+        <html><body>
+        <h1 class="post-title">Saga #60 (2024)</h1>
+        <section class="post-contents">
+        {string.Join("\n", buttons)}
+        </section>
+        </body></html>
+        """;
+
+    private static string Button(string title, string href) => $"""
+        <div class="aio-button-center"><div class="aio-pulse"><a href="{href}" class="aio-red" title="{title}" rel="nofollow">{title}</a></div></div>
+        """;
+
+    private static SourceId<Chapter> ChapterId(SeriesSource connector, string postUrl)
+    {
+        var manga = new Series("Saga", "", "", SeriesReleaseStatus.Continuing, [], [], [], [], originalLanguage: "en");
+        var chapter = new Chapter(manga, "60", null, null);
+        var id = new SourceId<Chapter>(chapter, connector, "60", postUrl, true);
+        chapter.SourceIds.Add(id);
+        return id;
+    }
+
+    [Fact]
+    public async Task ResolveArchiveUrl_PrefersTheMainServerLink()
+    {
+        string html = PostPage(
+            Button("DOWNLOAD NOW", "https://getcomics.org/dls/abc123"),
+            Button("TERABOX", "https://1024terabox.com/s/xyz"),
+            Button("PIXELDRAIN", "https://getcomics.org/dls/pd456"));
+        var connector = CreateConnector(_ => Html(html));
+
+        var resolution = await connector.ResolveArchiveUrl(ChapterId(connector, "https://getcomics.org/c/saga-60/"), CancellationToken.None);
+
+        Assert.Equal("https://getcomics.org/dls/abc123", Assert.IsType<ArchiveResolution.Resolved>(resolution).Url);
+    }
+
+    [Fact]
+    public async Task ResolveArchiveUrl_ResolvesPixeldrain_WhenThereIsNoMainServer()
+    {
+        // The Pixeldrain button is a getcomics dls wrapper that 302s to the share page; the direct
+        // file lives at /api/file/{id}. Following the redirect and rewriting gets a fetchable URL.
+        string html = PostPage(
+            Button("TERABOX", "https://1024terabox.com/s/xyz"),
+            Button("PIXELDRAIN", "https://getcomics.org/dls/pd456"));
+        var connector = CreateConnector(url =>
+        {
+            if (url == "https://getcomics.org/dls/pd456")
+            {
+                var landed = Html("<html><body>pixeldrain landing</body></html>");
+                landed.RequestMessage = new HttpRequestMessage(HttpMethod.Get, "https://pixeldrain.com/u/iRQ3ndKZ");
+                return landed;
+            }
+            return Html(html);
+        });
+
+        var resolution = await connector.ResolveArchiveUrl(ChapterId(connector, "https://getcomics.org/c/saga-60/"), CancellationToken.None);
+
+        Assert.Equal("https://pixeldrain.com/api/file/iRQ3ndKZ?download",
+            Assert.IsType<ArchiveResolution.Resolved>(resolution).Url);
+    }
+
+    [Fact]
+    public async Task ResolveArchiveUrl_ResolvesMediafire_FromItsDownloadButton()
+    {
+        string html = PostPage(Button("MEDIAFIRE", "https://getcomics.org/dls/mf789"));
+        string mediafirePage = """
+            <html><body><a id="downloadButton" href="https://download123.mediafire.com/file/saga60.cbz">Download</a></body></html>
+            """;
+        var connector = CreateConnector(url =>
+            url == "https://getcomics.org/dls/mf789" ? Html(mediafirePage) : Html(html));
+
+        var resolution = await connector.ResolveArchiveUrl(ChapterId(connector, "https://getcomics.org/c/saga-60/"), CancellationToken.None);
+
+        Assert.Equal("https://download123.mediafire.com/file/saga60.cbz",
+            Assert.IsType<ArchiveResolution.Resolved>(resolution).Url);
+    }
+
+    [Fact]
+    public async Task ResolveArchiveUrl_ParksMirrorOnlyPosts_NamingTheHosts()
+    {
+        string html = PostPage(
+            Button("TERABOX", "https://1024terabox.com/s/xyz"),
+            Button("MEGA", "https://mega.nz/file/abc"),
+            Button("Read Online", "https://readcomicsonline.ru/comic/saga/60"));
+        var connector = CreateConnector(_ => Html(html));
+
+        var resolution = await connector.ResolveArchiveUrl(ChapterId(connector, "https://getcomics.org/c/saga-60/"), CancellationToken.None);
+
+        var manual = Assert.IsType<ArchiveResolution.Manual>(resolution);
+        Assert.Contains("TERABOX", manual.Reason);
+        Assert.Contains("MEGA", manual.Reason);
+        Assert.Contains("download manually", manual.Reason);
+        Assert.DoesNotContain("Read Online", manual.Reason);
+    }
+
+    [Fact]
+    public async Task ResolveArchiveUrl_ParksPostsThatBundleSeveralDownloads()
+    {
+        // A multi-single post carries one Download Now per bundled issue; fetching just the first
+        // would silently drop the rest, so the whole post goes to manual handling instead.
+        string html = PostPage(
+            Button("Download Now", "https://getcomics.org/dls/one"),
+            Button("DOWNLOAD NOW", "https://getcomics.org/dls/two"));
+        var connector = CreateConnector(_ => Html(html));
+
+        var resolution = await connector.ResolveArchiveUrl(ChapterId(connector, "https://getcomics.org/c/saga-60/"), CancellationToken.None);
+
+        Assert.Contains("2 separate downloads", Assert.IsType<ArchiveResolution.Manual>(resolution).Reason);
+    }
+
+    [Fact]
+    public async Task ResolveArchiveUrl_ParksPostsWithNoDownloadButtons()
+    {
+        // Real case: a post whose hosts were all taken down keeps only a Read Online button.
+        string html = PostPage(Button("Read Online", "https://readcomicsonline.ru/comic/saga/60"));
+        var connector = CreateConnector(_ => Html(html));
+
+        var resolution = await connector.ResolveArchiveUrl(ChapterId(connector, "https://getcomics.org/c/saga-60/"), CancellationToken.None);
+
+        Assert.IsType<ArchiveResolution.Manual>(resolution);
+    }
+
+    [Fact]
+    public async Task ResolveArchiveUrl_Throws_WhenThePageIsNotAPost()
+    {
+        var connector = CreateConnector(_ => Html("<html><body>cloudflare interstitial</body></html>"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() =>
+            connector.ResolveArchiveUrl(ChapterId(connector, "https://getcomics.org/c/saga-60/"), CancellationToken.None));
     }
 
     private static SourceId<Series> SeriesId(SeriesSource connector, string title)

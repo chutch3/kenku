@@ -1,6 +1,8 @@
 using API.HttpRequesters.Interfaces;
+using System.Text.RegularExpressions;
 using System.Web;
 using API.Acquirers;
+using API.Acquirers.Interfaces;
 using API.HttpRequesters;
 using API.Indexers;
 using API.Schema.SeriesContext;
@@ -12,9 +14,10 @@ namespace API.Connectors;
 /// GetComics.org as a direct-download comic source: the WordPress search is scraped, posts are
 /// collapsed into series by parsed title (the <see cref="IndexerBackedSeriesSource"/> model), and
 /// each post becomes a chapter whose WebsiteUrl is the post page. Kind = DirectArchive routes
-/// downloads through the archive path instead of page scraping.
+/// downloads through the archive path, with the post resolved to its archive URL lazily at
+/// download time (<see cref="IArchiveUrlResolver"/>) so syncs never re-scrape every post.
 /// </summary>
-public class GetComics : SeriesSource
+public class GetComics : SeriesSource, IArchiveUrlResolver
 {
     // Posts per page is 12; five pages bounds a chapter sync at 60 posts while staying polite.
     private const int MaxSearchPages = 5;
@@ -117,6 +120,85 @@ public class GetComics : SeriesSource
 
     public override Task<Stream?> DownloadImage(string imageUrl, CancellationToken ct)
         => throw new NotSupportedException("GetComics (direct-archive) sources do not download images.");
+
+    private static readonly Regex PixeldrainShareUrl = new(@"^https?://pixeldrain\.com/u/([A-Za-z0-9]+)", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Resolves a post page to a fetchable archive URL. The Main Server button ("Download Now", a
+    /// redirect to the file) wins; Pixeldrain and Mediafire get per-host resolvers; everything else
+    /// (Mega, Terabox, WeTransfer, …) can't be automated and is parked for manual handling with the
+    /// hosts named. Posts bundling several Download Now buttons (one per issue) are parked too —
+    /// fetching just the first would silently drop the rest.
+    /// </summary>
+    public async Task<ArchiveResolution> ResolveArchiveUrl(SourceId<Chapter> chapter, CancellationToken ct)
+    {
+        string postUrl = chapter.WebsiteUrl!;
+        using HttpResponseMessage response = await downloadClient.MakeRequest(postUrl, RequestType.Default, cancellationToken: ct);
+        if (!response.IsSuccessStatusCode)
+            throw new HttpRequestException($"GetComics post request failed: HTTP {(int)response.StatusCode} for {postUrl}");
+
+        HtmlDocument doc = new();
+        doc.LoadHtml(await response.Content.ReadAsStringAsync(ct));
+        if (doc.DocumentNode.SelectSingleNode("//h1[contains(@class, 'post-title')]") is null)
+            throw new HttpRequestException($"GetComics page {postUrl} does not look like a post — the selectors may have drifted or an error page was served.");
+
+        (string Title, string Href)[] buttons = (doc.DocumentNode.SelectNodes(
+                    "//div[contains(concat(' ', normalize-space(@class), ' '), ' aio-button-center ')]//a[@title]")
+                ?? Enumerable.Empty<HtmlNode>())
+            .Select(a => (Title: a.GetAttributeValue("title", "").Trim(), Href: a.GetAttributeValue("href", "")))
+            .Where(b => b.Title.Length > 0 && b.Href.Length > 0)
+            .ToArray();
+
+        (string Title, string Href)[] mainServer = buttons
+            .Where(b => b.Title.Equals("Download Now", StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (mainServer.Length == 1)
+            return new ArchiveResolution.Resolved(mainServer[0].Href);
+        if (mainServer.Length > 1)
+            return new ArchiveResolution.Manual($"the post bundles {mainServer.Length} separate downloads — download manually");
+
+        foreach ((string title, string href) in buttons)
+        {
+            if (title.Equals("Pixeldrain", StringComparison.OrdinalIgnoreCase))
+                return await ResolvePixeldrain(href, ct);
+            if (title.Equals("Mediafire", StringComparison.OrdinalIgnoreCase))
+                return await ResolveMediafire(href, ct);
+        }
+
+        string[] hosts = buttons
+            .Where(b => !b.Title.Equals("Read Online", StringComparison.OrdinalIgnoreCase))
+            .Select(b => b.Title).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        return new ArchiveResolution.Manual(hosts.Length == 0
+            ? "the post has no download links — download manually"
+            : $"only available via {string.Join(", ", hosts)} — download manually");
+    }
+
+    /// <summary>The button links to the share page (often via a getcomics redirect); the file itself
+    /// is served by Pixeldrain's API, so the share id is rewritten into the direct-file URL.</summary>
+    private async Task<ArchiveResolution> ResolvePixeldrain(string href, CancellationToken ct)
+    {
+        Match match = PixeldrainShareUrl.Match(href);
+        if (!match.Success)
+        {
+            using HttpResponseMessage response = await downloadClient.MakeRequest(href, RequestType.Default, cancellationToken: ct);
+            match = PixeldrainShareUrl.Match(response.RequestMessage?.RequestUri?.ToString() ?? "");
+        }
+        return match.Success
+            ? new ArchiveResolution.Resolved($"https://pixeldrain.com/api/file/{match.Groups[1].Value}?download")
+            : new ArchiveResolution.Manual("couldn't resolve the Pixeldrain link — download manually");
+    }
+
+    private async Task<ArchiveResolution> ResolveMediafire(string href, CancellationToken ct)
+    {
+        using HttpResponseMessage response = await downloadClient.MakeRequest(href, RequestType.Default, cancellationToken: ct);
+        if (!response.IsSuccessStatusCode)
+            throw new HttpRequestException($"Mediafire page request failed: HTTP {(int)response.StatusCode} for {href}");
+        HtmlDocument doc = new();
+        doc.LoadHtml(await response.Content.ReadAsStringAsync(ct));
+        string fileUrl = doc.DocumentNode.SelectSingleNode("//a[@id='downloadButton']")?.GetAttributeValue("href", "") ?? "";
+        return fileUrl.Length > 0
+            ? new ArchiveResolution.Resolved(fileUrl)
+            : new ArchiveResolution.Manual("couldn't resolve the Mediafire link — download manually");
+    }
 
     private static string SearchUrl(string query, int page) =>
         page == 1

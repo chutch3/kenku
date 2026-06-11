@@ -22,8 +22,19 @@ namespace API.Tests.Integration;
 public class GetComicsDownloadEndToEndTests : IAsyncLifetime
 {
     private static readonly byte[] ArchiveBytes = [0x50, 0x4B, 0x05, 0x06, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    private const string ArchiveUrl = "https://fake.test/battle-beast-9.cbz";
+    private const string PostUrl = "https://getcomics.org/other-comics/battle-beast-9/";
+    private const string ArchiveUrl = "https://getcomics.org/dls/abc123";
     private const string CoverUrl = "https://fake.test/battle-beast-cover.jpg";
+
+    // The chapter carries the post page, not the archive: the connector resolves the Main Server
+    // ("Download Now") button to the archive URL at download time.
+    private const string PostHtml = $"""
+        <html><body>
+        <h1 class="post-title">Invincible Universe &#8211; Battle Beast #9 (2026)</h1>
+        <div class="aio-button-center"><div class="aio-pulse"><a href="{ArchiveUrl}" class="aio-red" title="DOWNLOAD NOW" rel="nofollow">DOWNLOAD NOW</a></div></div>
+        <div class="aio-button-center"><div class="aio-pulse"><a href="https://1024terabox.com/s/xyz" class="aio-blue" title="TERABOX" rel="nofollow">TERABOX</a></div></div>
+        </body></html>
+        """;
 
     private readonly string _tempRoot = Path.Combine(Path.GetTempPath(), "kenku-gc-e2e-" + Guid.NewGuid().ToString("N"));
     private readonly PostgresFixture _postgres = new();
@@ -37,6 +48,7 @@ public class GetComicsDownloadEndToEndTests : IAsyncLifetime
 
         var inner = new FakeHttpMessageHandler(req => req.RequestUri!.ToString() switch
         {
+            PostUrl => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(PostHtml) },
             ArchiveUrl => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(ArchiveBytes) },
             CoverUrl => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(TestImages.Jpeg()) },
             _ => new HttpResponseMessage(HttpStatusCode.NotFound),
@@ -77,7 +89,7 @@ public class GetComicsDownloadEndToEndTests : IAsyncLifetime
             ctx.MangaConnectorToManga.Add(new SourceId<Series>(manga, "GetComics", "Invincible Universe – Battle Beast", null));
             var chapter = new Chapter(manga, "9", null, "Invincible Universe – Battle Beast #9 (2026)");
             ctx.Chapters.Add(chapter);
-            var sourceId = new SourceId<Chapter>(chapter, "GetComics", "9", ArchiveUrl, true);
+            var sourceId = new SourceId<Chapter>(chapter, "GetComics", "9", PostUrl, true);
             ctx.MangaConnectorToChapter.Add(sourceId);
             await ctx.SaveChangesAsync();
             return (chapterKey: chapter.Key, sourceKey: sourceId.Key, dir: manga.FullDirectoryPath);

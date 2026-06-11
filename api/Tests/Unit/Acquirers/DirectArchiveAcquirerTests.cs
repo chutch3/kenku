@@ -84,6 +84,75 @@ public class DirectArchiveAcquirerTests
         }
     }
 
+    /// <summary>A stand-in for a connector (like GetComics) whose chapters carry a post-page URL that
+    /// must be resolved to the actual archive URL at download time.</summary>
+    private sealed class ResolvingSource(string name, KenkuSettings settings, ArchiveResolution resolution)
+        : SeriesSource(name, ["en"], ["fake.test"], "icon", settings), IArchiveUrlResolver
+    {
+        public override AcquisitionKind Kind => AcquisitionKind.DirectArchive;
+        public Task<ArchiveResolution> ResolveArchiveUrl(SourceId<Chapter> chapter, CancellationToken ct) =>
+            Task.FromResult(resolution);
+        public override Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName) => throw new NotSupportedException();
+        public override Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string url) => throw new NotSupportedException();
+        public override Task<(Series, SourceId<Series>)?> GetMangaFromId(string mangaIdOnSite) => throw new NotSupportedException();
+        public override Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> mangaId, string? language = null) => throw new NotSupportedException();
+        internal override Task<string[]> GetChapterImageUrls(SourceId<Chapter> chapterId) => throw new NotSupportedException();
+    }
+
+    [Fact]
+    public async Task AcquireAsync_DownloadsTheResolvedUrl_WhenTheSourceResolvesArchiveUrls()
+    {
+        // The chapter's WebsiteUrl is a post page, not the archive; the source's resolver supplies
+        // the real archive URL at download time and that is what must be fetched.
+        const string resolvedUrl = "https://fake.test/dls/abc123";
+        var (_, _, sourceId, _, settings, tempRoot) = BuildFixture("https://fake.test/post/saga-60/");
+        var source = new ResolvingSource("FakeArchive", settings, new ArchiveResolution.Resolved(resolvedUrl));
+        try
+        {
+            string saveTo = Path.Combine(tempRoot, "out.cbz");
+            string capturedUrl = "";
+            var inner = new FakeHttpMessageHandler(req =>
+            {
+                capturedUrl = req.RequestUri!.ToString();
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([0x50, 0x4B]) };
+            });
+            using var http = new HttpClient(inner);
+            var acquirer = new DirectArchiveAcquirer(http);
+
+            AcquireResult result = await acquirer.AcquireAsync(sourceId, source, saveTo, CancellationToken.None);
+
+            Assert.IsType<AcquireResult.Acquired>(result);
+            Assert.Equal(resolvedUrl, capturedUrl);
+        }
+        finally
+        {
+            try { Directory.Delete(tempRoot, recursive: true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task AcquireAsync_FailsWithTheManualReason_WithoutDownloading()
+    {
+        // A mirror-only post can't be automated; the resolver's reason must surface on the failed
+        // job (→ NeedsAttention), and nothing must be fetched.
+        const string reason = "only available via TERABOX, MEGA — download manually";
+        var (_, _, sourceId, _, settings, tempRoot) = BuildFixture("https://fake.test/post/compendium/");
+        var source = new ResolvingSource("FakeArchive", settings, new ArchiveResolution.Manual(reason));
+        try
+        {
+            var http = new HttpClient(new FakeHttpMessageHandler(_ => throw new InvalidOperationException("must not be called")));
+            var acquirer = new DirectArchiveAcquirer(http);
+
+            AcquireResult result = await acquirer.AcquireAsync(sourceId, source, Path.Combine(tempRoot, "x.cbz"), CancellationToken.None);
+
+            Assert.Equal(reason, Assert.IsType<AcquireResult.Failed>(result).Reason);
+        }
+        finally
+        {
+            try { Directory.Delete(tempRoot, recursive: true); } catch { }
+        }
+    }
+
     [Fact]
     public async Task AcquireAsync_Fails_WhenChapterHasNoWebsiteUrl()
     {
