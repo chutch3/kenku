@@ -80,6 +80,7 @@ const cmdkOpen = useState('cmdk-open', () => false);
 
 const primaryNav = computed<NavigationMenuItem[]>(() => [
     { label: 'Library', to: '/', icon: 'i-lucide-library', exact: true },
+    { label: 'Discover', to: '/discover', icon: 'i-lucide-compass' },
     { label: 'Activity', to: '/queue', icon: 'i-lucide-layers' },
     { label: 'Settings', to: '/settings', icon: 'i-lucide-settings' },
 ]);

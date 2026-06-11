@@ -152,6 +152,18 @@ const search = async (q: string): Promise<MinimalSeries[]> => {
     return data ?? [];
 };
 
+// Deep links (e.g. Discover cards) land here with ?q= and optionally ?source=; run the search
+// on arrival so adding is one click away.
+onMounted(() => {
+    const q = useRoute().query.q;
+    const source = useRoute().query.source;
+    if (typeof q !== 'string' || !q) return;
+    query.value = q;
+    if (typeof source === 'string')
+        connector.value = connectors.value?.find((c) => c.name === source) ?? connector.value;
+    performSearch();
+});
+
 const pendingAdd = ref<MinimalSeries | null>(null);
 const addModalOpen = ref(false);
 const toast = useToast();

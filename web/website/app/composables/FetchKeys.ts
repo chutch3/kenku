@@ -13,4 +13,5 @@ export const FetchKeys = {
     JobQueue: { All: 'JobQueue' },
     NotificationConnectors: { All: 'All' },
     Version: 'Version',
+    Discover: { Manga: 'Discover/Manga', Comics: 'Discover/Comics', Feed: 'Discover/Feed' },
 };
