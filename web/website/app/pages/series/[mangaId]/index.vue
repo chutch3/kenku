@@ -81,10 +81,11 @@
                 <UTooltip text="Sync chapters & cover now">
                     <UButton variant="soft" color="secondary" icon="i-lucide-cloud-download" loading-auto @click="syncNow" />
                 </UTooltip>
-                <UButton variant="soft" color="warning" icon="i-lucide-trash" @click="remove" />
+                <UButton variant="soft" color="warning" icon="i-lucide-trash" @click="deleteOpen = true" />
                 <UTooltip text="Reload" :kbds="['meta', 'R']">
                     <UButton variant="soft" color="secondary" icon="i-lucide-refresh-ccw" :loading="refreshingData" @click="refreshData" />
                 </UTooltip>
+                <DeleteSeriesModal v-model:open="deleteOpen" :manga-id="mangaId" :series-name="series?.name" @deleted="onDeleted" />
             </template>
         </template>
     </SeriesDetailPage>
@@ -138,8 +139,9 @@ const setRequestedFrom = async (MangaConnectorName: string, IsRequested: boolean
     await refreshNuxtData(FetchKeys.Series.Id(mangaId));
 };
 
-const remove = async () => {
-    await $api('/v2/Series/{MangaId}', { method: 'DELETE', path: { MangaId: mangaId } });
+const deleteOpen = ref(false);
+const onDeleted = async () => {
+    toast.add({ title: `Deleted ${series.value?.name ?? 'series'}`, icon: 'i-lucide-trash', color: 'neutral' });
     await refreshNuxtData(FetchKeys.Series.All);
     navigateTo('/');
 };
