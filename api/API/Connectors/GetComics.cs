@@ -69,8 +69,14 @@ public class GetComics : SeriesSource, IArchiveUrlResolver
 
     public override async Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName)
     {
-        Post[] posts = await FetchSearchPage(SearchUrl(mangaSearchName, 1));
+        Post[] posts = await FetchSearchPage(SearchUrl(mangaSearchName, 1)) ?? [];
+        (Series, SourceId<Series>)[] list = CollapsePosts(posts);
+        Log.InfoFormat("Search '{0}' yielded {1} series from {2} posts.", mangaSearchName, list.Length, posts.Length);
+        return list;
+    }
 
+    private (Series, SourceId<Series>)[] CollapsePosts(IEnumerable<Post> posts)
+    {
         var list = new List<(Series, SourceId<Series>)>();
         foreach (var group in posts
                      .Select(p => (Post: p, Parsed: ParseTitle(p.Title)))
@@ -81,7 +87,6 @@ public class GetComics : SeriesSource, IArchiveUrlResolver
                 group.Select(p => p.Parsed.Year).FirstOrDefault(y => y.HasValue),
                 group.Select(p => p.Post.CoverUrl).FirstOrDefault(c => !string.IsNullOrEmpty(c)) ?? ""));
         }
-        Log.InfoFormat("Search '{0}' yielded {1} series from {2} posts.", mangaSearchName, list.Count, posts.Length);
         return list.ToArray();
     }
 
@@ -110,52 +115,103 @@ public class GetComics : SeriesSource, IArchiveUrlResolver
     public override async Task<(Series, SourceId<Series>)?> GetMangaFromId(string mangaIdOnSite)
     {
         // The id is the collapsed series title; re-searching reproduces the same collapse (and its
-        // cover — building the series bare here would lose it at add time).
-        (Series, SourceId<Series>)[] results = await SearchManga(mangaIdOnSite);
-        return results.Cast<(Series, SourceId<Series>)?>().FirstOrDefault(r =>
-            string.Equals(r!.Value.Item1.Name, mangaIdOnSite, StringComparison.OrdinalIgnoreCase));
+        // cover — building the series bare here would lose it at add time). For an ended run the
+        // recency-ordered search page misses it, so the per-series tag archive answers instead.
+        (Series, SourceId<Series>)? match = MatchByName(await SearchManga(mangaIdOnSite), mangaIdOnSite);
+        if (match is not null)
+            return match;
+
+        Post[]? tagPosts = await FetchSearchPage(TagUrl(Slugify(mangaIdOnSite), 1), failuresEndPaging: true);
+        return tagPosts is null ? null : MatchByName(CollapsePosts(tagPosts), mangaIdOnSite);
     }
+
+    private static (Series, SourceId<Series>)? MatchByName((Series, SourceId<Series>)[] results, string name) =>
+        results.Cast<(Series, SourceId<Series>)?>().FirstOrDefault(r =>
+            string.Equals(r!.Value.Item1.Name, name, StringComparison.OrdinalIgnoreCase));
 
     public override async Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> mangaId, string? language = null)
     {
         string seriesTitle = mangaId.Obj.Name;
-        var byIssue = new Dictionary<string, (Chapter, SourceId<Chapter>)>();
+        var byNumber = new Dictionary<string, (Chapter, SourceId<Chapter>)>();
+        foreach (Post post in await FetchPostsFor(seriesTitle))
+        {
+            ParsedPost parsed = ParseTitle(post.Title);
+            if (!string.Equals(parsed.Series, seriesTitle, StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (parsed.IsCollection)
+            {
+                // The pack itself is a zip of further archives — useless as one chapter file — but
+                // its body lists per-item links, and the readable ones become chapters.
+                await ExpandCollectionPost(post, seriesTitle, mangaId, byNumber);
+                continue;
+            }
+            AddChapter(byNumber, mangaId, parsed, post.Title, parsed.Number ?? "", post.Url);
+        }
+        Log.InfoFormat("Found {0} chapters for {1}", byNumber.Count, seriesTitle);
+        return byNumber.Values.ToArray();
+    }
+
+    /// <summary>The series' posts: the per-series tag archive when it exists (complete and free of
+    /// the recency-ordered search's cross-series noise), else the paged search.</summary>
+    private async Task<List<Post>> FetchPostsFor(string seriesTitle)
+    {
+        List<Post>? tagged = await WalkArchivePages(page => TagUrl(Slugify(seriesTitle), page), missingArchiveIsNull: true);
+        if (tagged is not null)
+            return tagged;
+        return await WalkArchivePages(page => SearchUrl(seriesTitle, page), missingArchiveIsNull: false) ?? [];
+    }
+
+    private async Task<List<Post>?> WalkArchivePages(Func<int, string> pageUrl, bool missingArchiveIsNull)
+    {
+        var all = new List<Post>();
         for (int page = 1; page <= MaxSearchPages; page++)
         {
-            Post[]? posts = await FetchSearchPage(SearchUrl(seriesTitle, page), failuresEndPaging: page > 1);
+            Post[]? posts = await FetchSearchPage(pageUrl(page), failuresEndPaging: page > 1 || missingArchiveIsNull);
+            if (page == 1 && posts is null)
+                return null;
             if (posts is null || posts.Length == 0)
                 break;
-
-            foreach (Post post in posts)
-            {
-                ParsedPost parsed = ParseTitle(post.Title);
-                if (!string.Equals(parsed.Series, seriesTitle, StringComparison.OrdinalIgnoreCase))
-                    continue;
-                if (parsed.IsCollection)
-                {
-                    Log.InfoFormat("Skipping collection pack (an archive of archives): {0}", post.Title);
-                    continue;
-                }
-                if (parsed.Number is null)
-                {
-                    Log.WarnFormat("Skipping post without a parseable issue number: {0}", post.Title);
-                    continue;
-                }
-                if (byIssue.ContainsKey(parsed.Number))
-                    continue;
-
-                var chapter = new Chapter(mangaId.Obj, parsed.Number, parsed.Volume, post.Title);
-                var chId = new SourceId<Chapter>(chapter, this, parsed.Number, post.Url, mangaId.UseForDownload);
-                chapter.SourceIds.Add(chId);
-                byIssue[parsed.Number] = (chapter, chId);
-            }
-
+            all.AddRange(posts);
             // A short page is the last page; probing past it would just burn a request on a 404.
             if (posts.Length < PostsPerPage)
                 break;
         }
-        Log.InfoFormat("Found {0} chapters for {1}", byIssue.Count, seriesTitle);
-        return byIssue.Values.ToArray();
+        return all;
+    }
+
+    private async Task ExpandCollectionPost(Post post, string seriesTitle, SourceId<Series> mangaId,
+        Dictionary<string, (Chapter, SourceId<Chapter>)> byNumber)
+    {
+        HtmlDocument doc = await FetchPostDocument(post.Url, CancellationToken.None);
+        foreach ((string label, string _) in ParseSectionRows(doc))
+        {
+            ParsedPost parsed = ParseTitle(label);
+            if (!string.Equals(parsed.Series, seriesTitle, StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (parsed.IsCollection || parsed.Number is null)
+            {
+                Log.InfoFormat("Skipping unreadable or unnumbered collection row: {0}", label);
+                continue;
+            }
+            AddChapter(byNumber, mangaId, parsed, label, label, post.Url);
+        }
+    }
+
+    private void AddChapter(Dictionary<string, (Chapter, SourceId<Chapter>)> byNumber, SourceId<Series> mangaId,
+        ParsedPost parsed, string title, string idOnSite, string url)
+    {
+        if (parsed.Number is null)
+        {
+            Log.WarnFormat("Skipping post without a parseable issue number: {0}", title);
+            return;
+        }
+        if (byNumber.ContainsKey(parsed.Number))
+            return;
+
+        var chapter = new Chapter(mangaId.Obj, parsed.Number, parsed.Volume, title);
+        var chId = new SourceId<Chapter>(chapter, this, idOnSite, url, mangaId.UseForDownload);
+        chapter.SourceIds.Add(chId);
+        byNumber[parsed.Number] = (chapter, chId);
     }
 
     // GetComics posts are finished archives; there are no page images to enumerate or download.
@@ -177,14 +233,18 @@ public class GetComics : SeriesSource, IArchiveUrlResolver
     public async Task<ArchiveResolution> ResolveArchiveUrl(SourceId<Chapter> chapter, CancellationToken ct)
     {
         string postUrl = chapter.WebsiteUrl!;
-        using HttpResponseMessage response = await downloadClient.MakeRequest(postUrl, RequestType.Default, cancellationToken: ct);
-        if (!response.IsSuccessStatusCode)
-            throw new HttpRequestException($"GetComics post request failed: HTTP {(int)response.StatusCode} for {postUrl}");
+        HtmlDocument doc = await FetchPostDocument(postUrl, ct);
 
-        HtmlDocument doc = new();
-        doc.LoadHtml(await response.Content.ReadAsStringAsync(ct));
-        if (doc.DocumentNode.SelectSingleNode("//h1[contains(@class, 'post-title')]") is null)
-            throw new HttpRequestException($"GetComics page {postUrl} does not look like a post — the selectors may have drifted or an error page was served.");
+        // A chapter born from a collection row stores the row's label as its id (an ordinary post's
+        // id is just its issue number) and downloads that row's Main Server link.
+        bool isRowChapter = chapter.IdOnConnectorSite != chapter.Obj.ChapterNumber;
+        if (isRowChapter)
+        {
+            foreach ((string label, string href) in ParseSectionRows(doc))
+                if (label.Equals(chapter.IdOnConnectorSite, StringComparison.OrdinalIgnoreCase))
+                    return new ArchiveResolution.Resolved(href);
+            return new ArchiveResolution.Manual($"the post no longer lists '{chapter.IdOnConnectorSite}' — download manually");
+        }
 
         (string Title, string Href)[] buttons = (doc.DocumentNode.SelectNodes(
                     "//div[contains(concat(' ', normalize-space(@class), ' '), ' aio-button-center ')]//a[@title]")
@@ -248,6 +308,60 @@ public class GetComics : SeriesSource, IArchiveUrlResolver
         page == 1
             ? $"https://getcomics.org/?s={HttpUtility.UrlEncode(query)}"
             : $"https://getcomics.org/page/{page}/?s={HttpUtility.UrlEncode(query)}";
+
+    private static string TagUrl(string slug, int page) =>
+        page == 1
+            ? $"https://getcomics.org/tag/{slug}/"
+            : $"https://getcomics.org/tag/{slug}/page/{page}/";
+
+    private static string Slugify(string title) =>
+        Regex.Replace(title.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
+
+    /// <summary>Fetches a post page, loudly: a failed request or a page without the post title
+    /// means drift or an error page, never silently-empty results.</summary>
+    private async Task<HtmlDocument> FetchPostDocument(string postUrl, CancellationToken ct)
+    {
+        using HttpResponseMessage response = await downloadClient.MakeRequest(postUrl, RequestType.Default, cancellationToken: ct);
+        if (!response.IsSuccessStatusCode)
+            throw new HttpRequestException($"GetComics post request failed: HTTP {(int)response.StatusCode} for {postUrl}");
+
+        HtmlDocument doc = new();
+        doc.LoadHtml(await response.Content.ReadAsStringAsync(ct));
+        if (doc.DocumentNode.SelectSingleNode("//h1[contains(@class, 'post-title')]") is null)
+            throw new HttpRequestException($"GetComics page {postUrl} does not look like a post — the selectors may have drifted or an error page was served.");
+        return doc;
+    }
+
+    /// <summary>Collection posts list their contents as &lt;li&gt; rows — a label followed by host
+    /// links. Yields each row that carries an automatable "Main Server" link.</summary>
+    private static IEnumerable<(string Label, string Href)> ParseSectionRows(HtmlDocument doc)
+    {
+        foreach (HtmlNode li in doc.DocumentNode.SelectNodes("//li[.//a]") ?? Enumerable.Empty<HtmlNode>())
+        {
+            HtmlNode? mainServer = li.Descendants("a").FirstOrDefault(a =>
+                HtmlEntity.DeEntitize(a.InnerText).Trim().Equals("Main Server", StringComparison.OrdinalIgnoreCase));
+            if (mainServer is null)
+                continue;
+            string label = RowLabel(li);
+            string href = mainServer.GetAttributeValue("href", "");
+            if (label.Length > 0 && href.Length > 0)
+                yield return (label, href);
+        }
+    }
+
+    /// <summary>The row's label is everything before its first link (the trailing " :" separator
+    /// stripped), e.g. "Invincible Vol. 01 – Family Matters (2005) (135 MB)".</summary>
+    private static string RowLabel(HtmlNode li)
+    {
+        var label = new System.Text.StringBuilder();
+        foreach (HtmlNode child in li.ChildNodes)
+        {
+            if (child.Name == "a" || child.Descendants("a").Any())
+                break;
+            label.Append(child.InnerText);
+        }
+        return WhitespaceRx.Replace(HtmlEntity.DeEntitize(label.ToString()), " ").Trim().TrimEnd(':').Trim();
+    }
 
     /// <summary>
     /// Fetches one search-results page and extracts its posts. Distinguishes "legitimately empty"

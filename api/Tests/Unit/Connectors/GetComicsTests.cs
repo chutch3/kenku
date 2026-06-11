@@ -127,7 +127,7 @@ public class GetComicsTests
         .Select(i => Article($"https://getcomics.org/c/saga-{i}/", $"Saga #{i} (2024)")).ToArray());
 
     [Fact]
-    public async Task GetChapters_WalksThePagedSearch_StoppingAtTheFirstShortPage()
+    public async Task GetChapters_WalksThePagedArchive_StoppingAtTheFirstShortPage()
     {
         // The site serves 12 posts per page; a shorter page is the last one, so probing the next
         // page (a 404 the IHttpRequester seam masks as a 500) would be a wasted request.
@@ -145,8 +145,8 @@ public class GetComicsTests
         var chapters = await connector.GetChapters(mangaId);
 
         Assert.Equal(13, chapters.Length);
-        Assert.Contains(requested, u => u.StartsWith("https://getcomics.org/?s="));
-        Assert.Contains(requested, u => u.StartsWith("https://getcomics.org/page/2/?s="));
+        Assert.Contains("https://getcomics.org/tag/saga/", requested);
+        Assert.Contains("https://getcomics.org/tag/saga/page/2/", requested);
         Assert.DoesNotContain(requested, u => u.Contains("/page/3/"));
     }
 
@@ -218,6 +218,141 @@ public class GetComicsTests
 
         var only = Assert.Single(chapters);
         Assert.Equal(2, only.Item1.VolumeNumber);
+    }
+
+    // Collection post page modeled on the live "Invincible #0 – 144 + TPBs + Extras" structure:
+    // <h3> sections with <li> rows, each row a labeled set of links where "Main Server" is the
+    // automatable one. Range rows are chunk zips (archives of archives); volume rows are single
+    // readable TPB archives.
+    private const string CollectionPostHtml = """
+        <html><body>
+        <h1 class="post-title">Invincible #0 &#8211; 144 + TPBs + Extras (Collection) (2003-2018)</h1>
+        <section class="post-contents">
+        <h3>Main Issues</h3><ul>
+        <li>Invincible #0 &#8211; 25 (2003-2005) (679 MB)<strong> :</strong><br /><strong><a href="https://getcomics.org/dls/chunk0"><span style="color: #ff0000;">Main Server</span></a> | <a href="https://getcomics.org/dls/t0"><span>TERABOX</span></a></strong></li>
+        </ul>
+        <h3>TPBs</h3><ul>
+        <li>Invincible Vol. 01 &#8211; Family Matters (2005, 3rd Printing) (135 MB)<strong> :</strong><br /><strong><a href="https://getcomics.org/dls/tpb1"><span style="color: #ff0000;">Main Server</span></a> | <a href="https://getcomics.org/dls/m1"><span>Mega</span></a></strong></li>
+        <li>Invincible Vol. 02 &#8211; Eight is Enough (2005) (140 MB)<strong> :</strong> <a href="https://getcomics.org/dls/tpb2">Main Server</a></li>
+        <li>Guarding the Globe Vol. 1 &#8211; Under Siege (TPB) (2012) (263 MB)<strong> :</strong> <a href="https://getcomics.org/dls/gg1">Main Server</a></li>
+        </ul>
+        </section>
+        </body></html>
+        """;
+
+    [Fact]
+    public async Task GetChapters_WalksTheTagArchive_InsteadOfTheNoisySearch()
+    {
+        // The WordPress search is recency-ordered, so an ended run's posts sit pages deep behind
+        // unrelated noise; the per-series tag archive lists exactly the series' posts.
+        var requested = new List<string>();
+        string page = SearchPage(Article("https://getcomics.org/c/boys-72/", "The Boys #72 (2012)"));
+        var connector = CreateConnector(url =>
+        {
+            requested.Add(url);
+            if (url.Contains("/page/")) return Html("", HttpStatusCode.NotFound);
+            return Html(page);
+        });
+        var mangaId = SeriesId(connector, "The Boys");
+
+        var chapters = await connector.GetChapters(mangaId);
+
+        Assert.Single(chapters);
+        Assert.Contains("https://getcomics.org/tag/the-boys/", requested);
+        Assert.DoesNotContain(requested, u => u.Contains("?s="));
+    }
+
+    [Fact]
+    public async Task GetChapters_FallsBackToSearch_WhenTheSeriesHasNoTag()
+    {
+        var requested = new List<string>();
+        string page = SearchPage(Article("https://getcomics.org/c/saga-60/", "Saga #60 (2024)"));
+        var connector = CreateConnector(url =>
+        {
+            requested.Add(url);
+            if (url.Contains("/tag/")) return Html("", HttpStatusCode.NotFound);
+            if (url.Contains("/page/")) return Html("", HttpStatusCode.NotFound);
+            return Html(page);
+        });
+        var mangaId = SeriesId(connector, "Saga");
+
+        var chapters = await connector.GetChapters(mangaId);
+
+        Assert.Single(chapters);
+        Assert.Contains(requested, u => u.Contains("/tag/saga/"));
+        Assert.Contains(requested, u => u.Contains("?s="));
+    }
+
+    [Fact]
+    public async Task GetChapters_ExpandsCollectionPosts_IntoTheirReadableRows()
+    {
+        // The collection post itself is one giant zip-of-archives, but its body lists per-item
+        // links: volume rows (single readable TPBs) become chapters; range rows (chunk zips) and
+        // rows of other series do not.
+        string tagPage = SearchPage(
+            Article("https://getcomics.org/c/inv-collection/", "Invincible #0 &#8211; 144 + TPBs + Extras (Collection) (2003-2018)"));
+        var connector = CreateConnector(url =>
+        {
+            if (url.Contains("/c/inv-collection/")) return Html(CollectionPostHtml);
+            if (url.Contains("/page/")) return Html("", HttpStatusCode.NotFound);
+            return Html(tagPage);
+        });
+        var mangaId = SeriesId(connector, "Invincible");
+
+        var chapters = await connector.GetChapters(mangaId);
+
+        Assert.Equal(2, chapters.Length);
+        var vol1 = Assert.Single(chapters, c => c.Item1.VolumeNumber == 1);
+        Assert.Equal("1", vol1.Item1.ChapterNumber);
+        Assert.Equal("https://getcomics.org/c/inv-collection/", vol1.Item2.WebsiteUrl);
+        Assert.Equal("Invincible Vol. 01 – Family Matters (2005, 3rd Printing) (135 MB)", vol1.Item2.IdOnConnectorSite);
+        Assert.Single(chapters, c => c.Item1.VolumeNumber == 2);
+    }
+
+    [Fact]
+    public async Task ResolveArchiveUrl_ResolvesARowChapter_ToItsRowsMainServerLink()
+    {
+        var connector = CreateConnector(_ => Html(CollectionPostHtml));
+        var manga = new Series("Invincible", "", "", SeriesReleaseStatus.Continuing, [], [], [], [], originalLanguage: "en");
+        var chapter = new Chapter(manga, "1", 1, null);
+        var id = new SourceId<Chapter>(chapter, connector,
+            "Invincible Vol. 01 – Family Matters (2005, 3rd Printing) (135 MB)",
+            "https://getcomics.org/c/inv-collection/", true);
+
+        var resolution = await connector.ResolveArchiveUrl(id, CancellationToken.None);
+
+        Assert.Equal("https://getcomics.org/dls/tpb1", Assert.IsType<ArchiveResolution.Resolved>(resolution).Url);
+    }
+
+    [Fact]
+    public async Task ResolveArchiveUrl_ParksARowChapter_WhoseRowDisappeared()
+    {
+        var connector = CreateConnector(_ => Html(CollectionPostHtml));
+        var manga = new Series("Invincible", "", "", SeriesReleaseStatus.Continuing, [], [], [], [], originalLanguage: "en");
+        var chapter = new Chapter(manga, "3", 3, null);
+        var id = new SourceId<Chapter>(chapter, connector,
+            "Invincible Vol. 03 – Perfect Strangers (2004) (131 MB)",
+            "https://getcomics.org/c/inv-collection/", true);
+
+        var resolution = await connector.ResolveArchiveUrl(id, CancellationToken.None);
+
+        Assert.IsType<ArchiveResolution.Manual>(resolution);
+    }
+
+    [Fact]
+    public async Task GetMangaFromId_FindsTheSeriesViaItsTag_WhenSearchMisses()
+    {
+        // The add flow re-fetches by id; for an ended run the plain-title search page is all
+        // unrelated recent posts, so the tag archive must answer instead.
+        string noise = SearchPage(Article("https://getcomics.org/c/bb-9/", "Invincible Universe &#8211; Battle Beast #9 (2026)"));
+        string tagPage = SearchPage(Article("https://getcomics.org/c/inv-144/", "Invincible #144 (2018)", "https://img.test/inv.jpg"));
+        var connector = CreateConnector(url => url.Contains("/tag/") ? Html(tagPage) : Html(noise));
+
+        var result = await connector.GetMangaFromId("Invincible");
+
+        Assert.NotNull(result);
+        Assert.Equal("Invincible", result.Value.Item1.Name);
+        Assert.Equal("https://img.test/inv.jpg", result.Value.Item1.CoverUrl);
     }
 
     [Fact]
