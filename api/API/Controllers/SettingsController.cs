@@ -269,6 +269,30 @@ public class SettingsController(KenkuSettings settings) : ControllerBase
     }
 
     /// <summary>
+    /// How long Succeeded/Cancelled jobs stay in the queue before the cleanup job prunes them.
+    /// </summary>
+    /// <response code="200"></response>
+    [HttpGet("CompletedJobRetentionDays")]
+    [ProducesResponseType<int>(Status200OK, "application/json")]
+    public Ok<int> GetCompletedJobRetentionDays() => TypedResults.Ok(settings.CompletedJobRetentionDays);
+
+    /// <summary>
+    /// Sets the completed-job retention window in days.
+    /// </summary>
+    /// <response code="200"></response>
+    /// <response code="400">Must be at least 1 day</response>
+    [HttpPatch("CompletedJobRetentionDays/{days}")]
+    [ProducesResponseType(Status200OK)]
+    [ProducesResponseType<string>(Status400BadRequest, "text/plain")]
+    public Results<Ok, BadRequest<string>> SetCompletedJobRetentionDays(int days)
+    {
+        if (days < 1)
+            return TypedResults.BadRequest("Retention must be at least 1 day.");
+        settings.SetCompletedJobRetentionDays(days);
+        return TypedResults.Ok();
+    }
+
+    /// <summary>
     /// How torrent releases are picked for comics: seeder floor, preferred and blocked filename tokens.
     /// </summary>
     /// <response code="200"></response>

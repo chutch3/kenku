@@ -171,6 +171,21 @@ public class MaintenanceControllerTests
     }
 
     [Fact]
+    public async Task PruneCompletedJobs_EnqueuesACompletedJobsCleanup()
+    {
+        var (mangaCtx, actionsCtx) = CreateContexts();
+        var jobStore = new InMemoryJobStore();
+        var controller = CreateController(mangaCtx, actionsCtx);
+
+        await controller.PruneCompletedJobs(jobStore, new API.JobRuntime.SystemClock());
+
+        var job = Assert.Single(await jobStore.GetAllAsync());
+        Assert.Equal(API.JobRuntime.Handlers.CleanupHandler.Type, job.Type);
+        var payload = System.Text.Json.JsonSerializer.Deserialize<API.JobRuntime.Handlers.CleanupPayload>(job.Payload);
+        Assert.Equal(API.Services.CleanupKind.CompletedJobs, payload!.Kind);
+    }
+
+    [Fact]
     public async Task ResetAndResolveVolumes_EnqueuesAResolveJobPerSeries()
     {
         var (mangaCtx, actionsCtx) = CreateContexts();

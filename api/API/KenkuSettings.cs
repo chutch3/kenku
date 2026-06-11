@@ -61,6 +61,11 @@ public class KenkuSettings
     /// <summary>How many times a chapter download is attempted before it parks in NeedsAttention.</summary>
     public int DownloadMaxAttempts { get; set; } = 5;
 
+    /// <summary>How long Succeeded/Cancelled jobs stay in the queue before pruning. Seeded from the
+    /// COMPLETED_JOB_RETENTION_DAYS env var for fresh installs; runtime changes persist here.</summary>
+    public int CompletedJobRetentionDays { get; set; } =
+        int.Parse(Environment.GetEnvironmentVariable("COMPLETED_JOB_RETENTION_DAYS") ?? "3");
+
     public VolumeResolutionStrategy VolumeResolutionStrategy { get; set; } = VolumeResolutionStrategy.ExactThenGuess;
 
     public int VolumeResolutionParallelism { get; set; } = 3;
@@ -329,6 +334,12 @@ public class KenkuSettings
     public void SetDownloadMaxAttempts(int value)
     {
         this.DownloadMaxAttempts = value;
+        Save();
+    }
+
+    public void SetCompletedJobRetentionDays(int value)
+    {
+        this.CompletedJobRetentionDays = value;
         Save();
     }
 

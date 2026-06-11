@@ -75,6 +75,7 @@
                                     subtitle="Sites Kenku searches and downloads from. Disabled sources are skipped everywhere, including All-sources search." />
                             </template>
                             <SourcesTable />
+                            <DownloadLanguageField class="mt-4" />
                         </UCard>
                         <UCard>
                             <template #header>
@@ -240,16 +241,9 @@
                 <template #maintenance>
                     <UCard class="max-w-3xl">
                         <template #header>
-                            <SettingsHeader title="Maintenance" subtitle="Housekeeping for the database and the action log." />
+                            <SettingsHeader title="Maintenance" subtitle="Housekeeping for the database, files, and the job queue." />
                         </template>
-                        <div class="flex gap-2 flex-wrap">
-                            <UButton icon="i-lucide-database" variant="soft" loading-auto class="w-fit" @click="cleanUpDatabase">
-                                Clean database
-                            </UButton>
-                            <UButton icon="i-lucide-captions-off" variant="soft" loading-auto class="w-fit" @click="cleanUpActions">
-                                Clean actions
-                            </UButton>
-                        </div>
+                        <MaintenancePanel />
                     </UCard>
                 </template>
             </UTabs>
@@ -291,14 +285,6 @@ const addPushoverModal = overlay.create(LazyPushoverModal);
 const addGenericConnectorModal = overlay.create(LazyGenericNotificationConnectorModal);
 const downloadClientModal = overlay.create(LazyDownloadClientModal);
 const metronModal = overlay.create(LazyMetronModal);
-
-const cleanUpDatabase = async () => {
-    await useApi('/v2/Maintenance/CleanupNoDownloadManga', { method: 'POST' });
-    await refreshNuxtData(FetchKeys.Series.All);
-};
-const cleanUpActions = async () => {
-    await useApi('/v2/Maintenance/CleanupActions', { method: 'POST' });
-};
 
 const { data: libraries } = useApi('/v2/LibraryConnector', { key: FetchKeys.Libraries.All, server: false });
 const komgaConnected = computed(() => libraries.value?.find((l) => l.type === 'Komga'));

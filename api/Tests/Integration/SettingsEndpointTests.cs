@@ -48,6 +48,29 @@ public class SettingsEndpointTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task PatchCompletedJobRetentionDays_PersistsAndReadsBack()
+    {
+        using var client = _app.CreateClient();
+
+        var response = await client.PatchAsync("/v2/Settings/CompletedJobRetentionDays/7", null);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(7, _app.Services.GetRequiredService<KenkuSettings>().CompletedJobRetentionDays);
+
+        var read = await client.GetFromJsonAsync<int>("/v2/Settings/CompletedJobRetentionDays");
+        Assert.Equal(7, read);
+    }
+
+    [Fact]
+    public async Task PatchCompletedJobRetentionDays_RejectsZero()
+    {
+        using var client = _app.CreateClient();
+
+        var response = await client.PatchAsync("/v2/Settings/CompletedJobRetentionDays/0", null);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task PatchDownloadMaxAttempts_PersistsAndReadsBack()
     {
         using var client = _app.CreateClient();

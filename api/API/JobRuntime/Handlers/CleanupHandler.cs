@@ -52,7 +52,8 @@ public class CleanupHandler(IServiceScopeFactory scopeFactory) : IJobHandler
                 break;
             case CleanupKind.CompletedJobs:
                 await service.CleanupCompletedJobsAsync(provider.GetRequiredService<JobsContext>(),
-                    provider.GetRequiredService<Interfaces.IClock>().UtcNow, Constants.CompletedJobRetention, ct);
+                    provider.GetRequiredService<Interfaces.IClock>().UtcNow,
+                    TimeSpan.FromDays(provider.GetRequiredService<KenkuSettings>().CompletedJobRetentionDays), ct);
                 break;
         }
     }

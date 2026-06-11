@@ -1725,6 +1725,19 @@
         }
       }
     },
+    "/v2/Maintenance/PruneCompletedJobs": {
+      "post": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "Enqueues a cleanup that prunes Succeeded/Cancelled jobs older than the retention window.",
+        "responses": {
+          "200": {
+            "description": "Prune job enqueued"
+          }
+        }
+      }
+    },
     "/v2/Maintenance/ResolveMissingVolumes": {
       "post": {
         "tags": [
@@ -4612,6 +4625,61 @@
           },
           "400": {
             "description": "Must be at least 1",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Settings/CompletedJobRetentionDays": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "How long Succeeded/Cancelled jobs stay in the queue before the cleanup job prunes them.",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Settings/CompletedJobRetentionDays/{days}": {
+      "patch": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Sets the completed-job retention window in days.",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "400": {
+            "description": "Must be at least 1 day",
             "content": {
               "text/plain; x-version=2.0": {
                 "schema": {

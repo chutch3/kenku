@@ -78,6 +78,20 @@ public class MaintenanceController(SeriesContext mangaContext, ActionsContext ac
     }
 
     /// <summary>
+    /// Enqueues a cleanup that prunes Succeeded/Cancelled jobs older than the retention window.
+    /// </summary>
+    /// <response code="200">Prune job enqueued</response>
+    [HttpPost("PruneCompletedJobs")]
+    [ProducesResponseType(Status200OK)]
+    public async Task<Ok> PruneCompletedJobs([FromServices] IJobStore jobStore, [FromServices] IClock clock)
+    {
+        await jobStore.EnqueueAsync(new Schema.JobsContext.Job(
+            CleanupHandler.Type, CleanupHandler.PayloadFor(CleanupKind.CompletedJobs), clock.UtcNow),
+            HttpContext.RequestAborted);
+        return TypedResults.Ok();
+    }
+
+    /// <summary>
     /// Enqueues a ResolveSeriesVolumes job for each series with unresolved chapter volumes.
     /// </summary>
     /// <response code="200">Resolve jobs enqueued</response>
