@@ -11,7 +11,7 @@
 const { $api } = useNuxtApp();
 const toast = useToast();
 
-const { data: current } = useApi('/v2/Settings/DownloadLanguage', { key: 'Settings/DownloadLanguage', server: false });
+const { data: current } = useApi('/v2/Settings/DownloadLanguage', { key: FetchKeys.Settings.DownloadLanguage, server: false });
 const language = ref('');
 watch(current, (v) => { if (v) language.value = v; }, { immediate: true });
 

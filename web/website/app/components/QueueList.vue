@@ -20,14 +20,8 @@
                         <span v-if="job.progress" class="text-muted">— {{ job.progress }}</span>
                     </span>
                     <span v-if="job.attempts > 1" class="text-dimmed">×{{ job.attempts }}</span>
-                    <span
-                        v-if="durationLabel(job)"
-                        class="text-dimmed tabular-nums w-16 text-right"
-                        :title="timingTitle(job)">{{ durationLabel(job) }}</span>
-                    <span
-                        v-if="whenLabel(job)"
-                        class="text-muted text-xs w-24 text-right"
-                        :title="timingTitle(job)">{{ whenLabel(job) }}</span>
+                    <span v-if="durationLabel(job)" class="text-dimmed tabular-nums w-16 text-right">{{ durationLabel(job) }}</span>
+                    <span v-if="whenLabel(job)" class="text-muted text-xs w-24 text-right">{{ whenLabel(job) }}</span>
                     <span v-if="job.error" class="text-error truncate max-w-80">{{ job.error }}</span>
                     <UButton
                         v-if="job.status === 'NeedsAttention'"
@@ -53,8 +47,8 @@
                 </div>
             </li>
         </ul>
-        <p v-if="jobs.length > DISPLAY_LIMIT" class="text-xs text-muted">
-            Showing {{ DISPLAY_LIMIT }} of {{ jobs.length }} most recent jobs.
+        <p v-if="jobs.length > displayedJobs.length" class="text-xs text-muted">
+            Showing {{ displayedJobs.length }} of {{ jobs.length }} jobs, most recent first.
         </p>
     </div>
 </template>

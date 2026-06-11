@@ -5,5 +5,5 @@
 </template>
 
 <script setup lang="ts">
-const { data: version } = useApi('/v2/Version', { key: 'Version', server: false });
+const { data: version } = useApi('/v2/Version', { key: FetchKeys.Version, server: false });
 </script>

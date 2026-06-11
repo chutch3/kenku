@@ -158,6 +158,19 @@ describe('QueueList', () => {
         expect(fullError!.classes()).not.toContain('truncate');
     });
 
+    it('counts appended old attention rows in the footer, not just the recent window', async () => {
+        const recent = Array.from({ length: 115 }, (_, i) =>
+            job({ key: `r${i}`, status: 'Succeeded', createdAt: '2026-06-06T01:00:00Z' }));
+        const oldAttention = Array.from({ length: 5 }, (_, i) =>
+            job({ key: `a${i}`, status: 'NeedsAttention', error: 'boom', createdAt: '2026-06-01T00:00:00Z' }));
+        registerEndpoint('/v2/JobQueue', () => [...recent, ...oldAttention]);
+
+        const wrapper = await mountSuspended(QueueList);
+
+        expect(wrapper.findAll('li')).toHaveLength(105);
+        expect(wrapper.text()).toContain('Showing 105 of 120');
+    });
+
     it('shows an empty state when the queue is empty', async () => {
         registerEndpoint('/v2/JobQueue', () => []);
 

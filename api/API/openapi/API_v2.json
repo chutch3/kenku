@@ -7366,7 +7366,7 @@
           },
           "builtAt": {
             "type": "string",
-            "nullable": true
+            "format": "date-time"
           }
         },
         "additionalProperties": false,

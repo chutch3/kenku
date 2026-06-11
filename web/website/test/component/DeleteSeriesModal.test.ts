@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime';
+import { createError } from 'h3';
 import DeleteSeriesModal from '~/components/DeleteSeriesModal.vue';
 
 let deleteCalled = false;
@@ -13,6 +14,13 @@ registerEndpoint('/v2/Series/s1', {
             releaseDelete = resolve;
         });
         return {};
+    },
+});
+
+registerEndpoint('/v2/Series/broken', {
+    method: 'DELETE',
+    handler: () => {
+        throw createError({ statusCode: 500, statusMessage: 'database busy' });
     },
 });
 
@@ -47,6 +55,19 @@ describe('DeleteSeriesModal', () => {
 
         releaseDelete!();
         await vi.waitFor(() => expect(wrapper.emitted('deleted')).toBeTruthy());
+    });
+
+    it('surfaces a failed delete instead of closing silently', async () => {
+        const wrapper = await mountSuspended(DeleteSeriesModal, {
+            props: { mangaId: 'broken', seriesName: 'The Boys', open: true },
+        });
+
+        findButton('Delete').click();
+
+        await vi.waitFor(() => expect(document.body.textContent?.toLowerCase()).toContain('delete failed'));
+        expect(wrapper.emitted('deleted')).toBeFalsy();
+        // Modal stays open so the user can retry or cancel.
+        expect(findButton('Delete')).toBeTruthy();
     });
 
     it('cancel closes without calling the API', async () => {

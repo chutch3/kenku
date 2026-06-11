@@ -32,6 +32,6 @@ public class VersionEndpointTests : IAsyncLifetime
 
         Assert.False(string.IsNullOrWhiteSpace(json.GetProperty("version").GetString()));
         Assert.False(string.IsNullOrWhiteSpace(json.GetProperty("commit").GetString()));
-        Assert.False(string.IsNullOrWhiteSpace(json.GetProperty("builtAt").GetString()));
+        Assert.True(json.GetProperty("builtAt").GetDateTime() > DateTime.MinValue);
     }
 }

@@ -8,8 +8,9 @@ export const FetchKeys = {
     MangaConnector: { Id: (id: string) => `MangaConnector/${id}`, All: 'MangaConnector' },
     Metadata: { Fetchers: 'Metadata', Links: 'Metadata/Links', Series: (mangaId: string) => `Metadata/Links/${mangaId}` },
     Libraries: { All: 'Libraries', Id: (id: string) => `Libraries/${id}` },
-    Settings: { All: 'Settings' },
+    Settings: { All: 'Settings', DownloadLanguage: 'Settings/DownloadLanguage', JobRetention: 'Settings/JobRetention' },
     Actions: { Types: 'Actions/Types', Page: (filter: ActionsFilterRecord, page: number) => `Actions/${JSON.stringify(filter)}/${page}` },
     JobQueue: { All: 'JobQueue' },
     NotificationConnectors: { All: 'All' },
+    Version: 'Version',
 };

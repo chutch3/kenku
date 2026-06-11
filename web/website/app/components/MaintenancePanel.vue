@@ -1,7 +1,7 @@
 <template>
     <div class="flex flex-col gap-4">
         <div class="flex gap-2 flex-wrap">
-            <UButton icon="i-lucide-database" variant="soft" loading-auto class="w-fit" @click="run('/v2/Maintenance/CleanupNoDownloadManga', 'Removed series no source downloads')">
+            <UButton icon="i-lucide-database" variant="soft" loading-auto class="w-fit" @click="run('/v2/Maintenance/CleanupNoDownloadManga', 'Removed series with no download sources', FetchKeys.Series.All)">
                 Clean database
             </UButton>
             <UButton icon="i-lucide-captions-off" variant="soft" loading-auto class="w-fit" @click="run('/v2/Maintenance/CleanupActions', 'Action log cleared')">
@@ -33,13 +33,13 @@
 const { $api } = useNuxtApp();
 const toast = useToast();
 
-const run = async (path: Parameters<typeof $api>[0], done: string) => {
+const run = async (path: Parameters<typeof $api>[0], done: string, refreshKey?: string) => {
     await $api(path, { method: 'POST' });
     toast.add({ title: done, icon: 'i-lucide-check', color: 'success' });
-    if (path.includes('CleanupNoDownloadManga')) await refreshNuxtData(FetchKeys.Series.All);
+    if (refreshKey) await refreshNuxtData(refreshKey);
 };
 
-const { data: currentRetention } = useApi('/v2/Settings/CompletedJobRetentionDays', { key: 'Settings/JobRetention', server: false });
+const { data: currentRetention } = useApi('/v2/Settings/CompletedJobRetentionDays', { key: FetchKeys.Settings.JobRetention, server: false });
 const retentionDays = ref<number>(3);
 watch(currentRetention, (v) => { if (v != null) retentionDays.value = v; }, { immediate: true });
 
