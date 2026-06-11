@@ -69,6 +69,9 @@ public abstract class SeriesSource(string name, string[] supportedLanguages, str
     /// <summary>How this source delivers chapters. Drives dispatch to the matching IChapterAcquirer.</summary>
     [NotMapped] public abstract AcquisitionKind Kind { get; }
 
+    /// <summary>What this source serves. Comic sources opt in; the historical scrapers are manga.</summary>
+    [NotMapped] public virtual ContentType ContentType => ContentType.Manga;
+
     public abstract Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName);
 
     public abstract Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string url);

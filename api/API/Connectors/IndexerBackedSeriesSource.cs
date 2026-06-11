@@ -35,6 +35,8 @@ public sealed class IndexerBackedSeriesSource : SeriesSource
 
     public override AcquisitionKind Kind => AcquisitionKind.Torrent;
 
+    public override ContentType ContentType => ContentType.Comic;
+
     public override async Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName)
     {
         IndexerSearchResult[] results = await _indexers.Search(

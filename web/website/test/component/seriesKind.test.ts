@@ -6,9 +6,10 @@ type MinimalSeries = components['schemas']['MinimalSeries'];
 type Connector = components['schemas']['SeriesSource'];
 
 const connectors = [
-    { key: 'WeebCentral', name: 'WeebCentral', enabled: true, iconUrl: '', supportedLanguages: ['en'], kind: 'ImageList' },
-    { key: 'Indexers', name: 'Indexers', enabled: true, iconUrl: '', supportedLanguages: ['en'], kind: 'Torrent' },
-    { key: 'GetComics', name: 'GetComics', enabled: true, iconUrl: '', supportedLanguages: ['en'], kind: 'DirectArchive' },
+    { key: 'WeebCentral', name: 'WeebCentral', enabled: true, iconUrl: '', supportedLanguages: ['en'], kind: 'ImageList', contentType: 'Manga' },
+    { key: 'Indexers', name: 'Indexers', enabled: true, iconUrl: '', supportedLanguages: ['en'], kind: 'Torrent', contentType: 'Comic' },
+    { key: 'GetComics', name: 'GetComics', enabled: true, iconUrl: '', supportedLanguages: ['en'], kind: 'DirectArchive', contentType: 'Comic' },
+    { key: 'ComicHubFree', name: 'ComicHubFree', enabled: true, iconUrl: '', supportedLanguages: ['en'], kind: 'ImageList', contentType: 'Comic' },
 ] as Connector[];
 
 function withSources(...names: string[]): MinimalSeries {
@@ -42,6 +43,11 @@ describe('seriesKind', () => {
 
     it('is comic for mixed torrent + direct-archive sources', () => {
         expect(seriesKind(withSources('Indexers', 'GetComics'), connectors)).toBe('comic');
+    });
+
+    it('is comic for a page-reader comic source, despite its manga-style ImageList kind', () => {
+        expect(seriesKind(withSources('ComicHubFree'), connectors)).toBe('comic');
+        expect(seriesKind(withSources('ComicHubFree', 'GetComics'), connectors)).toBe('comic');
     });
 
     it('is manga for scrape-site sources', () => {

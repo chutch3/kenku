@@ -32,6 +32,8 @@ public class ComicHubFree : SeriesSource
 
     public override AcquisitionKind Kind => AcquisitionKind.ImageList;
 
+    public override ContentType ContentType => ContentType.Comic;
+
     public override async Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName)
     {
         string requestUrl = $"https://comichubfree.com/search-comic?key={HttpUtility.UrlEncode(mangaSearchName)}";

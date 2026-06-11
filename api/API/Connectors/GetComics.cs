@@ -31,6 +31,8 @@ public class GetComics : SeriesSource, IArchiveUrlResolver
 
     public override AcquisitionKind Kind => AcquisitionKind.DirectArchive;
 
+    public override ContentType ContentType => ContentType.Comic;
+
     private sealed record Post(string Title, string Url, string CoverUrl);
 
     /// <summary>A post title decomposed into the shapes GetComics actually uses: a single issue

@@ -5834,6 +5834,14 @@
         "additionalProperties": false,
         "description": "Result of a PUT /Chapter/{id}/volume operation."
       },
+      "ContentType": {
+        "enum": [
+          "Manga",
+          "Comic"
+        ],
+        "type": "string",
+        "description": "What a source serves — independent of HOW it delivers it (API.Acquirers.AcquisitionKind).\nA page-reader comic site is still a comic source; the UI diverges the comic experience on this."
+      },
       "CoverSize": {
         "enum": [
           "Original",
@@ -6951,6 +6959,7 @@
       },
       "SeriesSource": {
         "required": [
+          "contentType",
           "enabled",
           "iconUrl",
           "key",
@@ -6981,6 +6990,9 @@
           },
           "kind": {
             "$ref": "#/components/schemas/AcquisitionKind"
+          },
+          "contentType": {
+            "$ref": "#/components/schemas/ContentType"
           },
           "key": {
             "maxLength": 64,
