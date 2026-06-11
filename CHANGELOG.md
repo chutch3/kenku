@@ -2,6 +2,31 @@
 
 <!-- version list -->
 
+## v0.15.0 (2026-06-11)
+
+### Bug Fixes
+
+- End GetComics paging on a short page instead of probing into masked 404s
+  ([`3318b3b`](https://github.com/chutch3/kenku/commit/3318b3bafb5efeb1d91870f45a467ab874ba9ad9))
+
+### Features
+
+- Add GetComics.org as a direct-archive comic source
+  ([`67440f9`](https://github.com/chutch3/kenku/commit/67440f9f38ca11cdcd7638138f44ba00fffad897))
+
+- Resolve GetComics posts to archive links at download time and park mirror-only posts for manual
+  handling
+  ([`03759a4`](https://github.com/chutch3/kenku/commit/03759a40a8bba84b284a19259ba5eade80f02ee5))
+
+- Show direct-archive series as comics in the catalog
+  ([`efc5c6e`](https://github.com/chutch3/kenku/commit/efc5c6e7503089c8931d349f3c67b88a2a2c5f4f))
+
+### Testing
+
+- Prove a GetComics direct-archive chapter downloads through the job runtime
+  ([`47a9b35`](https://github.com/chutch3/kenku/commit/47a9b35a48ca18ba3184f5cda3e2cc4adc9ca54b))
+
+
 ## v0.14.0 (2026-06-10)
 
 ### Features
