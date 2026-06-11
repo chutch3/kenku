@@ -2,7 +2,8 @@
     <div
         class="kenku-cover group/cover relative max-sm:w-[var(--mangacover-width-sm)] max-sm:h-[var(--mangacover-height-sm)] w-(--mangacover-width) h-(--mangacover-height) rounded-lg overflow-clip ring-1 ring-default">
         <FallbackImage
-            :src="coverUrl"
+            :src="coverSources[0]"
+            :fallbacks="coverSources.slice(1)"
             :alt="`${series.name} cover`"
             class="w-full h-full object-cover transition-transform duration-500 group-hover/cover:scale-105" />
         <!-- Manga-cover scrim: art stays visible, title sits in an ink wash. -->
@@ -25,9 +26,12 @@ type MinimalSeries = components['schemas']['MinimalSeries'];
 
 const props = defineProps<{ series: Series | MinimalSeries; blur?: boolean }>();
 const config = useRuntimeConfig();
-const coverUrl = computed(() => {
+// Tracked series prefer Kenku's cached copy — source cover URLs rot (rotating CDN hosts) while the
+// cache survives. Search results aren't cached yet, so they hotlink the source first.
+const coverSources = computed(() => {
     const m = props.series as Series;
-    if (m.coverUrl && m.coverUrl.length > 0) return m.coverUrl;
-    return `${config.public.openFetch.api.baseURL}v2/Series/${props.series.key}/Cover/Medium`;
+    const cacheUrl = `${config.public.openFetch.api.baseURL}v2/Series/${props.series.key}/Cover/Medium`;
+    const sourceUrl = m.coverUrl && m.coverUrl.length > 0 ? m.coverUrl : null;
+    return (props.series.fileLibraryId ? [cacheUrl, sourceUrl] : [sourceUrl, cacheUrl]).filter((s): s is string => !!s);
 });
 </script>
