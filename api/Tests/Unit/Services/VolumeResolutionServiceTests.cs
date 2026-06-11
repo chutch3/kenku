@@ -74,6 +74,30 @@ public class VolumeResolutionServiceTests : IDisposable
             await Resolve(settings, key);
     }
 
+    [Fact]
+    public async Task Resolve_SkipsComicSeries_NeverTouchingMangaDex()
+    {
+        var settings = new KenkuSettings();
+        var library = new FileLibrary(_testRoot, "Test Library");
+        _mangaContext.FileLibraries.Add(library);
+        var manga = new Series("The Boys", "Desc", "url", SeriesReleaseStatus.Completed, [], [], [], [], library);
+        manga.SourceIds.Add(new SourceId<Series>(manga, "FakeComics", "the-boys", null));
+        _mangaContext.Series.Add(manga);
+        _mangaContext.Chapters.Add(new Chapter(manga, "1", null, null) { Downloaded = true });
+        await _mangaContext.SaveChangesAsync();
+        API.Connectors.SeriesSource[] connectors =
+            [new FakeSeriesSource("FakeComics", settings, contentType: API.Connectors.ContentType.Comic)];
+
+        await new VolumeResolutionService(settings, _mockMangaDexResolver.Object, _mockSearchService.Object,
+                connectors: connectors)
+            .ResolveAsync(_mangaContext, manga.Key, CancellationToken.None);
+
+        _mockSearchService.Verify(s => s.SearchAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.Null((await _mangaContext.Chapters.SingleAsync()).VolumeNumber);
+        Assert.Equal(MetadataSourceStatus.Unlinked, (await _mangaContext.Series.Include(m => m.MetadataSource)
+            .SingleAsync()).MetadataSource!.Status);
+    }
+
     // Absorbs the former RefreshMetadataSource worker: a Confirmed link is synced from its source even when
     // auto-resolution is Disabled, applying the exact map and stamping LastSyncedAt.
     [Fact]

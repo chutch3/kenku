@@ -84,9 +84,9 @@ public class MaintenanceController(SeriesContext mangaContext, ActionsContext ac
     [HttpPost("ResolveMissingVolumes")]
     [ProducesResponseType(Status200OK)]
     public async Task<Ok> ResolveMissingVolumes([FromServices] IJobStore jobStore, [FromServices] KenkuSettings settings,
-        [FromServices] IClock clock)
+        [FromServices] IClock clock, [FromServices] IEnumerable<API.Connectors.SeriesSource> connectors)
     {
-        await VolumeResolutionReconciler.ScanAndEnqueueAsync(mangaContext, jobStore, settings, clock.UtcNow, HttpContext.RequestAborted);
+        await VolumeResolutionReconciler.ScanAndEnqueueAsync(mangaContext, jobStore, settings, connectors, clock.UtcNow, HttpContext.RequestAborted);
         return TypedResults.Ok();
     }
 
@@ -117,7 +117,8 @@ public class MaintenanceController(SeriesContext mangaContext, ActionsContext ac
     public async Task<Results<Ok, InternalServerError<string>>> ResetAndResolveVolumes(
         [FromServices] IJobStore jobStore,
         [FromServices] KenkuSettings settings,
-        [FromServices] IClock clock)
+        [FromServices] IClock clock,
+        [FromServices] IEnumerable<API.Connectors.SeriesSource> connectors)
     {
         var chapters = await mangaContext.Chapters.ToListAsync(HttpContext.RequestAborted);
         foreach (var chapter in chapters)
@@ -126,7 +127,7 @@ public class MaintenanceController(SeriesContext mangaContext, ActionsContext ac
         if (await mangaContext.Sync(HttpContext.RequestAborted, GetType(), nameof(ResetAndResolveVolumes)) is { success: false } result)
             return TypedResults.InternalServerError(result.exceptionMessage);
 
-        await VolumeResolutionReconciler.ScanAndEnqueueAsync(mangaContext, jobStore, settings, clock.UtcNow, HttpContext.RequestAborted);
+        await VolumeResolutionReconciler.ScanAndEnqueueAsync(mangaContext, jobStore, settings, connectors, clock.UtcNow, HttpContext.RequestAborted);
         return TypedResults.Ok();
     }
 }

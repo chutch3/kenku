@@ -49,7 +49,7 @@ public class VolumeResolutionReconcilerTests : IDisposable
         var store = new InMemoryJobStore();
 
         int enqueued = await VolumeResolutionReconciler.ScanAndEnqueueAsync(
-            ctx, store, new KenkuSettings(), DateTime.UtcNow, default);
+            ctx, store, new KenkuSettings(), [], DateTime.UtcNow, default);
 
         Assert.Equal(3, enqueued);
         var jobs = await store.GetAllAsync();
@@ -66,7 +66,7 @@ public class VolumeResolutionReconcilerTests : IDisposable
 
         int enqueued = await VolumeResolutionReconciler.ScanAndEnqueueAsync(
             ctx, store, new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.Disabled },
-            DateTime.UtcNow, default);
+            [], DateTime.UtcNow, default);
 
         Assert.Equal(0, enqueued);
         Assert.Empty(await store.GetAllAsync());
@@ -79,9 +79,39 @@ public class VolumeResolutionReconcilerTests : IDisposable
         var store = new InMemoryJobStore();
         var settings = new KenkuSettings();
 
-        await VolumeResolutionReconciler.ScanAndEnqueueAsync(ctx, store, settings, DateTime.UtcNow, default);
-        await VolumeResolutionReconciler.ScanAndEnqueueAsync(ctx, store, settings, DateTime.UtcNow, default);
+        await VolumeResolutionReconciler.ScanAndEnqueueAsync(ctx, store, settings, [], DateTime.UtcNow, default);
+        await VolumeResolutionReconciler.ScanAndEnqueueAsync(ctx, store, settings, [], DateTime.UtcNow, default);
 
         Assert.Equal(2, (await store.GetAllAsync()).Count); // second tick coalesced on dedup key
+    }
+
+    [Fact]
+    public async Task Scan_SkipsSeriesWhoseSourcesAreAllComic()
+    {
+        using var ctx = NewContext();
+        var library = new FileLibrary(_root, "Lib");
+        ctx.FileLibraries.Add(library);
+        var settings = new KenkuSettings();
+        var comic = new Series("The Boys", "", "u", SeriesReleaseStatus.Completed, [], [], [], [], library);
+        comic.SourceIds.Add(new SourceId<Series>(comic, "FakeComics", "the-boys", null));
+        var manga = new Series("One Piece", "", "u", SeriesReleaseStatus.Continuing, [], [], [], [], library);
+        manga.SourceIds.Add(new SourceId<Series>(manga, "FakeManga", "one-piece", null));
+        ctx.Series.AddRange(comic, manga);
+        ctx.Chapters.Add(new Chapter(comic, "1", null, null));
+        ctx.Chapters.Add(new Chapter(manga, "1", null, null));
+        await ctx.SaveChangesAsync();
+        var store = new InMemoryJobStore();
+        API.Connectors.SeriesSource[] connectors =
+        [
+            new FakeSeriesSource("FakeComics", settings, contentType: API.Connectors.ContentType.Comic),
+            new FakeSeriesSource("FakeManga", settings),
+        ];
+
+        int enqueued = await VolumeResolutionReconciler.ScanAndEnqueueAsync(
+            ctx, store, settings, connectors, DateTime.UtcNow, default);
+
+        Assert.Equal(1, enqueued);
+        var job = Assert.Single(await store.GetAllAsync());
+        Assert.Equal(VolumeResolutionReconciler.DedupKey(manga.Key), job.DedupKey);
     }
 }

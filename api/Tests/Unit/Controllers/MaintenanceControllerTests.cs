@@ -117,7 +117,7 @@ public class MaintenanceControllerTests
 
         var controller = CreateController(mangaCtx, actionsCtx);
         var result = await controller.ResetAndResolveVolumes(
-            new InMemoryJobStore(), new KenkuSettings(), new SystemClock());
+            new InMemoryJobStore(), new KenkuSettings(), new SystemClock(), []);
 
         Assert.IsType<Ok>(result.Result);
         var chapters = await mangaCtx.Chapters.ToListAsync();
@@ -140,7 +140,7 @@ public class MaintenanceControllerTests
         var jobStore = new InMemoryJobStore();
         var controller = CreateController(mangaCtx, actionsCtx);
         var result = await controller.ResetAndResolveVolumes(
-            jobStore, new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.Disabled }, new SystemClock());
+            jobStore, new KenkuSettings { VolumeResolutionStrategy = VolumeResolutionStrategy.Disabled }, new SystemClock(), []);
 
         Assert.IsType<Ok>(result.Result);
         Assert.All(await mangaCtx.Chapters.ToListAsync(), c => Assert.Null(c.VolumeNumber));
@@ -164,7 +164,7 @@ public class MaintenanceControllerTests
 
         var controller = CreateController(mangaCtx, actionsCtx);
         await controller.ResetAndResolveVolumes(
-            new InMemoryJobStore(), new KenkuSettings(), new SystemClock());
+            new InMemoryJobStore(), new KenkuSettings(), new SystemClock(), []);
 
         var chapters = await mangaCtx.Chapters.ToListAsync();
         Assert.All(chapters, c => Assert.Null(c.VolumeNumber));
@@ -183,7 +183,7 @@ public class MaintenanceControllerTests
 
         var jobStore = new InMemoryJobStore();
         var controller = CreateController(mangaCtx, actionsCtx);
-        var result = await controller.ResetAndResolveVolumes(jobStore, new KenkuSettings(), new SystemClock());
+        var result = await controller.ResetAndResolveVolumes(jobStore, new KenkuSettings(), new SystemClock(), []);
 
         Assert.IsType<Ok>(result.Result);
         Assert.Single(await jobStore.GetAllAsync());

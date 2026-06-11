@@ -27,11 +27,16 @@ public class VolumeResolutionReconciler(
         ScanAndEnqueueAsync(
             scope.GetRequiredService<SeriesContext>(),
             scope.GetRequiredService<IJobStore>(),
-            settings, clock.UtcNow, ct);
+            settings,
+            scope.GetRequiredService<IEnumerable<Connectors.SeriesSource>>(),
+            clock.UtcNow, ct);
 
-    /// <summary>Enqueues a resolve job per series with an unresolved chapter. No-op when resolution is disabled.</summary>
+    /// <summary>
+    /// Enqueues a resolve job per series with an unresolved chapter. No-op when resolution is disabled.
+    /// Comic-content series are skipped — volume mapping is a manga concept.
+    /// </summary>
     public static async Task<int> ScanAndEnqueueAsync(SeriesContext series, IJobStore store, KenkuSettings settings,
-        DateTime now, CancellationToken ct)
+        IEnumerable<Connectors.SeriesSource> connectors, DateTime now, CancellationToken ct)
     {
         if (settings.VolumeResolutionStrategy == VolumeResolutionStrategy.Disabled)
             return 0;
@@ -41,6 +46,15 @@ public class VolumeResolutionReconciler(
             .Select(c => c.ParentMangaId)
             .Distinct()
             .ToListAsync(ct);
+
+        if (mangaIds.Count > 0)
+            mangaIds = (await series.Series
+                    .Include(m => m.SourceIds)
+                    .Where(m => mangaIds.Contains(m.Key))
+                    .ToListAsync(ct))
+                .Where(m => !Connectors.SeriesContentType.IsComic(m, connectors))
+                .Select(m => m.Key)
+                .ToList();
 
         foreach (string mangaId in mangaIds)
             await store.EnqueueAsync(new Job(ResolveSeriesVolumesHandler.Type,

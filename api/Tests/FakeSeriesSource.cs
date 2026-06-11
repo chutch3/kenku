@@ -15,17 +15,21 @@ namespace API.Tests;
 public sealed class FakeSeriesSource : SeriesSource
 {
     private readonly AcquisitionKind _kind;
+    private readonly ContentType _contentType;
 
     public FakeSeriesSource(string name, KenkuSettings settings,
-        AcquisitionKind kind = AcquisitionKind.ImageList, IHttpRequester? httpRequester = null)
+        AcquisitionKind kind = AcquisitionKind.ImageList, IHttpRequester? httpRequester = null,
+        ContentType contentType = ContentType.Manga)
         : base(name, ["en"], ["fake.test"], "icon", settings)
     {
         _kind = kind;
+        _contentType = contentType;
         if (httpRequester is not null)
             downloadClient = httpRequester;
     }
 
     public override AcquisitionKind Kind => _kind;
+    public override ContentType ContentType => _contentType;
     public override Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName) => throw new NotSupportedException();
     public override Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string url) => throw new NotSupportedException();
     public override Task<(Series, SourceId<Series>)?> GetMangaFromId(string mangaIdOnSite) => throw new NotSupportedException();

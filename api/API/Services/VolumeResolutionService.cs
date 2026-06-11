@@ -22,7 +22,8 @@ public class VolumeResolutionService(
     KenkuSettings settings,
     IMangaDexVolumeResolver mangaDexVolumeResolver,
     IMangaDexSearchService mangaDexSearchService,
-    IEnumerable<IVolumeResolver>? volumeResolvers = null)
+    IEnumerable<IVolumeResolver>? volumeResolvers = null,
+    IEnumerable<Connectors.SeriesSource>? connectors = null)
 {
     private static readonly ILog Log = LogManager.GetLogger(typeof(VolumeResolutionService));
 
@@ -37,6 +38,14 @@ public class VolumeResolutionService(
         if (manga is null)
         {
             Log.Warn($"Series {mangaId} not found in database; skipping.");
+            return;
+        }
+
+        // Volume mapping is a manga concept; MangaDex has nothing to say about a comic, and a fuzzy
+        // auto-match against it can only mislink. Comics stay untouched.
+        if (connectors is not null && Connectors.SeriesContentType.IsComic(manga, connectors))
+        {
+            Log.Debug($"{manga.Name} is comic-content; skipping volume resolution.");
             return;
         }
 
