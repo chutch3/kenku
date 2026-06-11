@@ -100,6 +100,9 @@ public class KenkuSettings
     /// <summary>Indexers Prowlarr has pushed/synced into Kenku (source of truth lives in Prowlarr).</summary>
     public List<SyncedIndexerConfig> SyncedIndexers { get; set; } = [];
 
+    /// <summary>Subreddits surfaced on the Discover page's feed rail.</summary>
+    public List<string> DiscoveryFeeds { get; set; } = ["manga", "comicbooks"];
+
     /// <summary>
     /// Fallback comic category IDs for indexer searches, used ONLY for indexers that carry no
     /// categories of their own — an indexer's Prowlarr-synced / manually-configured categories take

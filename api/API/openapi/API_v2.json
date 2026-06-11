@@ -800,6 +800,75 @@
         }
       }
     },
+    "/v2/Discover/Manga": {
+      "get": {
+        "tags": [
+          "Discover"
+        ],
+        "summary": "Manga trending on AniList right now.",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DiscoveryEntry"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Discover/Comics": {
+      "get": {
+        "tags": [
+          "Discover"
+        ],
+        "summary": "Fresh comics from the latest posts of archive sources (currently GetComics).",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DiscoveryEntry"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Discover/Feed": {
+      "get": {
+        "tags": [
+          "Discover"
+        ],
+        "summary": "Hot posts from the configured subreddits. One rate-limited subreddit never empties the rail.",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DiscoveryEntry"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/FileLibrary": {
       "get": {
         "tags": [
@@ -6146,6 +6215,33 @@
         },
         "additionalProperties": false
       },
+      "DiscoveryEntry": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "coverUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "nullable": true
+          },
+          "blurb": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "One discovery-rail card: a series someone might want to add, regardless of which rail found it."
+      },
       "DownloadClientResponse": {
         "type": "object",
         "properties": {
@@ -7370,7 +7466,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "The running build's identity, stamped at compile time by GitInfo + BuildInformation."
+        "description": "The running build's identity. Release builds carry the semantic version (and \"+commit\")\n            the pipeline stamps into the assembly; dev builds fall back to local git info. Docker builds have\n            no .git in the build context, so the git fields can be empty there."
       },
       "VolumeBundleState": {
         "enum": [
@@ -7463,6 +7559,9 @@
     },
     {
       "name": "Chapters"
+    },
+    {
+      "name": "Discover"
     },
     {
       "name": "FileLibrary"

@@ -17,7 +17,7 @@ namespace API.Connectors;
 /// downloads through the archive path, with the post resolved to its archive URL lazily at
 /// download time (<see cref="IArchiveUrlResolver"/>) so syncs never re-scrape every post.
 /// </summary>
-public class GetComics : SeriesSource, IArchiveUrlResolver
+public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.ILatestSeriesProvider
 {
     // Posts per page is 12; five pages bounds a chapter sync at 60 posts while staying polite.
     private const int MaxSearchPages = 5;
@@ -68,6 +68,27 @@ public class GetComics : SeriesSource, IArchiveUrlResolver
 
         return new(release.SeriesTitle, release.IssueNumber, null, false, release.Year);
     }
+
+    /// <summary>The front page is the newest-posts archive — the "fresh comics" discovery rail.
+    /// Posts collapse into series the same way search results do.</summary>
+    public async Task<List<API.Discovery.DiscoveryEntry>> GetLatestSeriesAsync(CancellationToken ct)
+    {
+        Post[] posts = await FetchSearchPage(LatestUrl(1))
+            ?? throw new HttpRequestException("GetComics front page yielded no post list — markup drift?");
+        var entries = new List<API.Discovery.DiscoveryEntry>();
+        foreach (var group in posts
+                     .Select(p => (Post: p, Parsed: ParseTitle(p.Title)))
+                     .Where(p => !string.IsNullOrWhiteSpace(p.Parsed.Series))
+                     .GroupBy(p => p.Parsed.Series, StringComparer.OrdinalIgnoreCase))
+            entries.Add(new API.Discovery.DiscoveryEntry(
+                group.First().Parsed.Series,
+                group.Select(p => p.Post.CoverUrl).FirstOrDefault(c => !string.IsNullOrEmpty(c)) ?? "",
+                group.First().Post.Url,
+                Name, null));
+        return entries;
+    }
+
+    private static string LatestUrl(int page) => $"https://getcomics.org/page/{page}/";
 
     public override async Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName)
     {

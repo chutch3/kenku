@@ -49,6 +49,25 @@ public class GetComicsTests
         </article>
         """;
 
+    [Fact]
+    public async Task GetLatestSeries_CollapsesFrontPagePosts_IntoDiscoveryEntries()
+    {
+        var connector = CreateConnector(url => url.Contains("/page/1")
+            ? Html(SearchPage(
+                Article("https://getcomics.org/the-boys-vol-1", "The Boys Vol. 1 – The Name of the Game (2019)"),
+                Article("https://getcomics.org/the-boys-vol-2", "The Boys Vol. 2 – Get Some (2019)"),
+                Article("https://getcomics.org/saga-66", "Saga #66 (2026)")))
+            : Html("wrong page", HttpStatusCode.InternalServerError));
+
+        List<API.Discovery.DiscoveryEntry> latest = await connector.GetLatestSeriesAsync(CancellationToken.None);
+
+        Assert.Equal(2, latest.Count); // both The Boys posts collapse into one series card
+        Assert.Equal("The Boys", latest[0].Title);
+        Assert.Equal("https://getcomics.org/the-boys-vol-1", latest[0].Url);
+        Assert.Equal("GetComics", latest[0].Source);
+        Assert.Equal("Saga", latest[1].Title);
+    }
+
     private static GetComics CreateConnector(Func<string, HttpResponseMessage> route) =>
         new(CreateSettings(), RoutedClient(route).Object);
 
