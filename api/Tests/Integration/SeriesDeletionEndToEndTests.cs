@@ -82,4 +82,30 @@ public class SeriesDeletionEndToEndTests : IAsyncLifetime
         Assert.Empty(await _app.WithJobsContext(c => c.JobQueue.Where(j => j.ResourceKey == mangaId).ToListAsync()));
         Assert.Contains(chapterSourceKey, _client.Removed);
     }
+
+    // Only torrent-kind sources tag the download client; asking it about every scrape/archive chapter
+    // turned deletion into one HTTP round-trip per chapter (the slow-delete incident).
+    [Fact]
+    public async Task DeletingASeries_OnlyReleasesTorrentTaggedChapters()
+    {
+        (string mangaId, string torrentKey, string scrapeKey) = await _app.WithSeriesContext(async ctx =>
+        {
+            var manga = new Series("The Boys", "", "", SeriesReleaseStatus.Completed, [], [], [], []);
+            ctx.Series.Add(manga);
+            var torrentChapter = new Chapter(manga, "1", null, null);
+            var scrapeChapter = new Chapter(manga, "2", null, null);
+            ctx.Chapters.AddRange(torrentChapter, scrapeChapter);
+            var torrentId = new SourceId<Chapter>(torrentChapter, "Indexers", "1", null, true);
+            var scrapeId = new SourceId<Chapter>(scrapeChapter, "WeebCentral", "2", null, true);
+            ctx.MangaConnectorToChapter.AddRange(torrentId, scrapeId);
+            await ctx.SaveChangesAsync();
+            return (manga.Key, torrentId.Key, scrapeId.Key);
+        });
+
+        var response = await _app.CreateClient().DeleteAsync($"/v2/Series/{mangaId}");
+        response.EnsureSuccessStatusCode();
+
+        Assert.Contains(torrentKey, _client.Removed);
+        Assert.DoesNotContain(scrapeKey, _client.Removed);
+    }
 }

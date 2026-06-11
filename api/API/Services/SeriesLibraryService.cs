@@ -1,3 +1,4 @@
+using API.Acquirers;
 using API.DownloadClients.Interfaces;
 using API.JobRuntime.Interfaces;
 using API.JobRuntime;
@@ -45,19 +46,27 @@ public class SeriesLibraryService(KenkuSettings settings, IEnumerable<SeriesSour
         if (await context.Series.FirstOrDefaultAsync(m => m.Key == mangaId, ct) is not { } manga)
             return false;
 
-        List<string> chapterSourceKeys = await context.MangaConnectorToChapter
-            .Where(id => id.Obj.ParentMangaId == mangaId)
+        // Only torrent-kind sources tag the download client, and each Remove is an HTTP round-trip —
+        // sweeping every scrape/archive chapter made deleting a long series take minutes.
+        List<string> torrentConnectorNames = connectors
+            .Where(c => c.Kind == AcquisitionKind.Torrent).Select(c => c.Name).ToList();
+        List<string> torrentTags = await context.MangaConnectorToChapter
+            .Where(id => id.Obj.ParentMangaId == mangaId && torrentConnectorNames.Contains(id.MangaConnectorName))
             .Select(id => id.Key)
             .ToListAsync(ct);
 
-        List<Job> jobs = await jobsContext.JobQueue.Where(j => j.ResourceKey == mangaId).ToListAsync(ct);
-        foreach (Job job in jobs.Where(j => j.Status == JobStatus.Running))
-            running.Cancel(job.Key);
-        jobsContext.JobQueue.RemoveRange(jobs.Where(j => j.Status != JobStatus.Running));
-        await jobsContext.SaveChangesAsync(ct);
+        List<string> runningJobKeys = await jobsContext.JobQueue
+            .Where(j => j.ResourceKey == mangaId && j.Status == JobStatus.Running)
+            .Select(j => j.Key)
+            .ToListAsync(ct);
+        foreach (string jobKey in runningJobKeys)
+            running.Cancel(jobKey);
+        await jobsContext.JobQueue
+            .Where(j => j.ResourceKey == mangaId && j.Status != JobStatus.Running)
+            .ExecuteDeleteAsync(ct);
 
         if (downloadClient is not null)
-            foreach (string tag in chapterSourceKeys)
+            foreach (string tag in torrentTags)
             {
                 try { await downloadClient.Remove(tag, deleteData: false, ct); }
                 catch (Exception e) { Log.Warn($"Could not release torrent '{tag}': {e.Message}"); }
