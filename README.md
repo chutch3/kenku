@@ -7,11 +7,13 @@
 
 ## About
 
-Kenku automatically downloads chapters and metadata from scanlation sites and
-indexers, packages them as `.cbz` archives, enriches them with metadata, and can
-trigger library scans in [Komga](https://komga.org/) and
-[Kavita](https://www.kavitareader.com/) plus push notifications via Gotify, Ntfy,
-Pushover and generic webhooks.
+Kenku tracks manga and western comics: it searches its sources, downloads chapters
+as `.cbz` archives, enriches them with metadata, and keeps the library organized.
+Manga comes from scanlation/scrape sites; comics from direct-archive sites, comic
+page readers, or torrents (indexers synced from Prowlarr, downloads via a download
+client). Finished files can trigger library scans in [Komga](https://komga.org/)
+and [Kavita](https://www.kavitareader.com/) plus push notifications via Gotify,
+Ntfy, Pushover and generic webhooks.
 
 It ships as **one Docker image**: the .NET app serves the prerendered Nuxt UI
 (from `wwwroot`) and the REST API on the same origin.

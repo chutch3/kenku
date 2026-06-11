@@ -24,14 +24,22 @@ types are generated at build time from the backend's OpenAPI spec
 
 ## Screens
 
-- **Library** — grid of tracked series.
-- **Search** — find new series across the configured sources.
-- **Series detail** — chapters, metadata linking, downloads, and merge.
-- **Settings** — file libraries, library connectors (Komga/Kavita), notifications
-  (Gotify/Ntfy/Pushover/webhooks), Prowlarr setup (Kenku's base URL + API key to paste
-  into Prowlarr as a Mylar application, with a regenerate button), the synced-indexer
-  list Prowlarr pushes in, download-client management, and Metron metadata credentials.
-- **Actions** — the backend's action/audit log.
+- **Library** — grid of tracked series; comic series are badged and get a comic-
+  specific experience (no manga volume mapping).
+- **Search** — find new series across the configured sources, per source or all at
+  once, with a chapter preview before adding.
+- **Series detail** — chapters, metadata linking & volume mapping (manga) or Metron
+  enrichment (comics), per-source download toggles, merge, and delete; the page
+  refreshes itself while jobs for the series are running.
+- **Activity** — the live job queue (stable order, rows expand to the full error,
+  retry/dismiss/cancel) and the backend's action/audit log.
+- **Settings** — file libraries and library servers (Komga/Kavita), sources
+  (enable/disable, download language), Prowlarr setup (Kenku's base URL + API key to
+  paste into Prowlarr as a Mylar application) with the synced-indexer list and its
+  rate-limit state, download-client management, torrent release selection, Metron
+  credentials, notifications (Gotify/Ntfy/Pushover/webhooks), and maintenance
+  (cleanup triggers, completed-job retention). The deployed version shows in the
+  header.
 
 ## Built with
 

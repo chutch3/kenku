@@ -6,8 +6,10 @@
 </div>
 
 This is the backend half of the [Kenku](../README.md) monorepo. It is a REST API and
-a background job runner in one process: REST endpoints configure and start workers
-(search a series, fetch chapters, download, organize), and the workers do the work.
+a background job runtime in one process: REST endpoints configure the system and
+enqueue jobs (search a series, fetch chapters, download, organize), and the job
+queue — fed by periodic reconcilers — does the work with bounded retries; failures
+park as needs-attention for the user.
 
 In production it is bundled into the single Kenku image and served alongside the web
 UI on the same origin (see the root [`README.md`](../README.md)). This document covers
@@ -18,11 +20,15 @@ the backend itself — its capabilities, configuration, and local development.
 - Downloads chapters from scanlation sites and indexers, packaging each chapter as a
   `.cbz` archive (optionally with `ComicInfo.xml`, JPEG compression, or grayscale to
   save space).
-- **Sources**: MangaDex, MangaWorld, AsuraComic, WeebCentral, plus indexer-backed
-  torrent acquisition. Prowlarr syncs Torznab/Newznab indexers *into* Kenku (Kenku
-  emulates a Mylar application; see "Prowlarr integration" below), and downloads are
-  handed to one or more configurable download clients (qBittorrent).
-- **Metadata enrichment**: MyAnimeList (via Jikan) and Metron.
+- **Manga sources** (page scraping): MangaDex, MangaWorld, AsuraComic, WeebCentral.
+- **Comic sources**: GetComics (finished archives, resolved per post), ComicHubFree
+  (page reader), plus indexer-backed torrent acquisition. Prowlarr syncs
+  Torznab/Newznab indexers *into* Kenku (Kenku emulates a Mylar application; see
+  "Prowlarr integration" below), and downloads are handed to one or more
+  configurable download clients (qBittorrent). Sources can be toggled in Settings.
+- **Metadata enrichment**: MyAnimeList (via Jikan) for manga, Metron for comics,
+  and chapter→volume mapping resolved from MangaDex/Wikipedia with optional
+  per-volume CBZ bundling (manga only — comics are never auto-matched).
 - **Library integration**: triggers scans in [Komga](https://komga.org/) and
   [Kavita](https://www.kavitareader.com/).
 - **Notifications**: Gotify, Ntfy, Pushover, and generic REST webhooks.
@@ -85,11 +91,12 @@ The container is configured through environment variables:
 | `MATCH_EXACT_CHAPTER_NAME`        | `true`           | Match the stored filename exactly with the file on disk.                     |
 | `CREATE_COMICINFO_XML`            | `true`           | Include `ComicInfo.xml` in `.cbz` archives.                                  |
 | `ALWAYS_INCLUDE_VOLUME_IN_FILENAME` | `false`        | Always include a volume in filenames (default `Vol. 0`).                     |
-| `HTTP_REQUEST_TIMEOUT`            | `10`             | Per-request timeout for source connectors (seconds).                        |
+| `HTTP_REQUEST_TIMEOUT`            | `60`             | Per-request timeout for source connectors (seconds).                        |
 | `REQUESTS_PER_MINUTE`             | `90`             | Per-host rate limit for source connectors.                                  |
 | `MINUTES_BETWEEN_NOTIFICATIONS`   | `1`              | Interval at which queued notifications are sent.                            |
 | `HOURS_BETWEEN_NEW_CHAPTERS_CHECK`| `3`              | Interval at which sources are polled for new chapters.                      |
-| `WORKER_TIMEOUT`                  | `600`            | Seconds a worker may run before it is forcefully cancelled.                 |
+| `WORKER_TIMEOUT`                  | `600`            | Seconds a job may run before it is forcefully cancelled.                    |
+| `COMPLETED_JOB_RETENTION_DAYS`    | `3`              | Initial retention for Succeeded/Cancelled jobs; adjustable at runtime in Settings → Maintenance. |
 
 Per-user settings (download language, naming scheme, connector settings, the Prowlarr
 API key, Prowlarr-synced indexers, download clients, Metron credentials, etc.) are
@@ -105,7 +112,10 @@ and a reachable PostgreSQL instance.
 cd api
 dotnet restore                      # resolves the solution in this directory
 dotnet run --project API            # serves the API on :6531
-dotnet test Tests/Tests.csproj      # run the unit tests
+
+# Tests: the integration suite needs Postgres on :5433 — the compose file provides it
+docker compose -f docker-compose.test.yml up -d
+dotnet test Tests/Tests.csproj
 ```
 
 ## Built with
