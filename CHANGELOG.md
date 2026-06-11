@@ -2,6 +2,61 @@
 
 <!-- version list -->
 
+## v0.17.0 (2026-06-11)
+
+### Bug Fixes
+
+- Hide manga volume assignment on comic series pages
+  ([`0d0bffe`](https://github.com/chutch3/kenku/commit/0d0bffe8c5619dbf6c7a86b36ce0f4d377190dbb))
+
+- Match connector names case-insensitively in the comic rule and torrent sweep, and pin the
+  retention setting with a test
+  ([`3e7bdef`](https://github.com/chutch3/kenku/commit/3e7bdef57e365bae5182497e75374acc8b1d3b48))
+
+- Refresh series detail rollup and chapters, auto-refreshing when in-flight jobs drain
+  ([`e64df86`](https://github.com/chutch3/kenku/commit/e64df86d89d05720494423e04e3e2a38dc333215))
+
+- Skip MangaDex volume resolution for comic series
+  ([`531b056`](https://github.com/chutch3/kenku/commit/531b056e0bcb3357d994c3dab147a0594356464a))
+
+- Stop series delete from sweeping every chapter through the download client
+  ([`2aaf7fc`](https://github.com/chutch3/kenku/commit/2aaf7fc8c2e3ceae12f963aeaa9dc3cd2465aa5f))
+
+### Documentation
+
+- Explain that library servers are rescan triggers, not metadata sync
+  ([`e413c0c`](https://github.com/chutch3/kenku/commit/e413c0c6a0af9d63e07de2edd6087316d0971fbb))
+
+### Features
+
+- Badge comic series on cards and stop claiming indexer delivery for direct comic sources
+  ([`411c7b3`](https://github.com/chutch3/kenku/commit/411c7b37e62c3c1064137944466f3ec84fb8729c))
+
+- Configure job retention and download language from settings with full maintenance triggers
+  ([`b527118`](https://github.com/chutch3/kenku/commit/b52711898a5b7315c4197dc2a2bf33c5fadce871))
+
+- Confirm series deletion with in-flight feedback and a completion toast
+  ([`b1f2e97`](https://github.com/chutch3/kenku/commit/b1f2e970f086b75ecf33238e178fc44ae951dd13))
+
+- Enable or disable sources from settings
+  ([`ae8a595`](https://github.com/chutch3/kenku/commit/ae8a595037ae310f59889a45556ae37b52d5e660))
+
+- Expose the deployed version via the API and show it in the GUI
+  ([`e790952`](https://github.com/chutch3/kenku/commit/e7909521eb58d1155393169fed9a69597f9f3620))
+
+- Stable queue ordering with expandable job rows showing the full error
+  ([`eb74163`](https://github.com/chutch3/kenku/commit/eb74163a9072b82c339993beb61df3f92208391c))
+
+- Surface indexer rate-limit cooldowns in settings
+  ([`cc84869`](https://github.com/chutch3/kenku/commit/cc848694ada1566e97b434860d4052a9384a5db8))
+
+### Refactoring
+
+- Surface delete failures, tick the cooldown badge, true queue footer counts, and registry-backed
+  fetch keys
+  ([`c72f700`](https://github.com/chutch3/kenku/commit/c72f7004d1e81c80845c31ff799cf50a2ac39148))
+
+
 ## v0.16.0 (2026-06-11)
 
 ### Continuous Integration
