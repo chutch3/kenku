@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime';
+import { clearNuxtData } from '#imports';
 import { createError } from 'h3';
 import Discover from '~/pages/discover.vue';
 
@@ -22,13 +23,16 @@ const berserkSeries = { ...sagaSeries, key: 'berserk-key', name: 'Berserk' };
 
 let urlResolution: object | null = sagaSeries;
 let globalResults: object[] = [];
+let mangaEntries: object[] = [];
+let comicsEntries: object[] = [];
 
-registerEndpoint('/v2/Discover/Manga', () => [
-    { title: 'Berserk', coverUrl: '', url: 'https://anilist.co/manga/1', source: 'AniList', blurb: null },
-]);
-registerEndpoint('/v2/Discover/Comics', () => [
+const defaultManga = [{ title: 'Berserk', coverUrl: '', url: 'https://anilist.co/manga/1', source: 'AniList', blurb: null }];
+const defaultComics = [
     { title: 'Saga', coverUrl: '', url: 'https://getcomics.org/other-comics/saga-61-2025/', source: 'GetComics', blurb: null },
-]);
+];
+
+registerEndpoint('/v2/Discover/Manga', () => mangaEntries);
+registerEndpoint('/v2/Discover/Comics', () => comicsEntries);
 registerEndpoint('/v2/Discover/Manga/TopRated', () => [
     { title: 'Vagabond', coverUrl: '', url: 'https://anilist.co/manga/3', source: 'AniList', blurb: null },
 ]);
@@ -59,7 +63,10 @@ registerEndpoint('/v2/SeriesSource', () => [
 registerEndpoint('/v2/FileLibrary', () => [{ key: 'lib1', libraryName: 'Comics', basePath: '/data/comics' }]);
 registerEndpoint('/v2/Search/GetComics/Chapters', () => [{ chapterNumber: '61', volumeNumber: null, title: null }]);
 
-async function clickCard(wrapper: Awaited<ReturnType<typeof mountSuspended>>, title: string) {
+let wrapper: Awaited<ReturnType<typeof mountSuspended>>;
+const mountPage = async () => (wrapper = await mountSuspended(Discover));
+
+async function clickCard(title: string) {
     await vi.waitFor(() => expect(wrapper.text()).toContain(title));
     const card = wrapper.findAll('button').find((b) => b.text().includes(title));
     expect(card, `card "${title}"`).toBeTruthy();
@@ -70,12 +77,29 @@ describe('discover page', () => {
     beforeEach(() => {
         urlResolution = sagaSeries;
         globalResults = [];
+        mangaEntries = defaultManga;
+        comicsEntries = defaultComics;
         navigateToMock.mockClear();
+        clearNuxtData();
+    });
+
+    // Unmount before wiping the body — a live wrapper re-rendering against a wiped DOM throws.
+    afterEach(() => {
+        wrapper?.unmount();
         document.body.innerHTML = '';
     });
 
+    it('does not claim there is nothing to show while a newer rail has entries', async () => {
+        mangaEntries = [];
+        comicsEntries = [];
+        await mountPage();
+
+        await vi.waitFor(() => expect(wrapper.text()).toContain('Vagabond'));
+        expect(wrapper.text()).not.toContain('Nothing to show');
+    });
+
     it('renders the top-rated, new-this-year, and configured genre rails', async () => {
-        const wrapper = await mountSuspended(Discover);
+        await mountPage();
 
         await vi.waitFor(() => {
             expect(wrapper.text()).toContain('Vagabond');
@@ -86,9 +110,9 @@ describe('discover page', () => {
     });
 
     it('resolves a fresh-comics card by post URL and opens the add modal in place', async () => {
-        const wrapper = await mountSuspended(Discover);
+        await mountPage();
 
-        await clickCard(wrapper, 'Saga');
+        await clickCard('Saga');
 
         await vi.waitFor(() => expect(document.body.textContent).toContain('Add & download'));
         expect(navigateToMock).not.toHaveBeenCalled();
@@ -96,9 +120,9 @@ describe('discover page', () => {
 
     it('opens the add modal for a trending card whose title matches a Global hit', async () => {
         globalResults = [berserkSeries];
-        const wrapper = await mountSuspended(Discover);
+        await mountPage();
 
-        await clickCard(wrapper, 'Berserk');
+        await clickCard('Berserk');
 
         await vi.waitFor(() => expect(document.body.textContent).toContain('Add & download'));
         expect(navigateToMock).not.toHaveBeenCalled();
@@ -106,9 +130,9 @@ describe('discover page', () => {
 
     it('falls back to the prefilled search page when no Global hit matches the title', async () => {
         globalResults = [{ ...berserkSeries, name: 'Berserk: The Prototype' }];
-        const wrapper = await mountSuspended(Discover);
+        await mountPage();
 
-        await clickCard(wrapper, 'Berserk');
+        await clickCard('Berserk');
 
         await vi.waitFor(() => expect(navigateToMock).toHaveBeenCalledWith('/search?q=Berserk'));
         expect(document.body.textContent).not.toContain('Add & download');
@@ -116,9 +140,9 @@ describe('discover page', () => {
 
     it('falls back to the source-scoped search page when URL resolution fails', async () => {
         urlResolution = null;
-        const wrapper = await mountSuspended(Discover);
+        await mountPage();
 
-        await clickCard(wrapper, 'Saga');
+        await clickCard('Saga');
 
         await vi.waitFor(() => expect(navigateToMock).toHaveBeenCalledWith('/search?q=Saga&source=GetComics'));
     });

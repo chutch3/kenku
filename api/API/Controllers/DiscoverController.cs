@@ -1,5 +1,6 @@
 using API.Connectors;
 using API.Discovery;
+using API.Schema.DiscoveryContext;
 using Asp.Versioning;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -9,9 +10,11 @@ using static Microsoft.AspNetCore.Http.StatusCodes;
 namespace API.Controllers;
 
 /// <summary>
-/// Discovery rails: lists of series someone might want to add. Each rail is fetched from its third
-/// party at most once per hour (<see cref="DiscoveryCache"/>) and degrades to the stale or empty
-/// list instead of failing the page.
+/// Discovery rails: lists of series someone might want to add. AniList and GetComics rails are
+/// fetched from their third party at most once per hour (<see cref="DiscoveryCache"/>); the feed
+/// rail reads the database cache kept fresh by
+/// <see cref="API.JobRuntime.Handlers.RefreshDiscoveryFeedHandler"/>. Every rail degrades to the
+/// stale or empty list instead of failing the page.
 /// </summary>
 [ApiVersion(2)]
 [ApiController]
@@ -83,7 +86,7 @@ public class DiscoverController(DiscoveryCache cache, KenkuSettings settings, AP
     /// <response code="200"></response>
     [HttpGet("Feed")]
     [ProducesResponseType<List<DiscoveryEntry>>(Status200OK, "application/json")]
-    public async Task<Ok<List<DiscoveryEntry>>> GetFeed([FromServices] API.Schema.DiscoveryContext.DiscoveryContext db)
+    public async Task<Ok<List<DiscoveryEntry>>> GetFeed([FromServices] DiscoveryContext db)
     {
         var posts = await db.Posts.ToListAsync(HttpContext.RequestAborted);
         return TypedResults.Ok(settings.DiscoveryFeeds

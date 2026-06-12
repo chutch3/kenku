@@ -77,11 +77,7 @@ public class TorrentFinalizationService
             return;
         }
 
-        var syncs = await Task.WhenAll(
-            seriesContext.Sync(ct, typeof(TorrentFinalizationService), nameof(FinalizeAsync)),
-            actionsContext.Sync(ct, typeof(TorrentFinalizationService), nameof(FinalizeAsync)));
-        foreach (var s in syncs)
-            if (!s.success) Log.ErrorFormat("Sync failed during torrent finalise: {0}", s.exceptionMessage);
+        await SyncBoth(seriesContext, actionsContext, nameof(FinalizeAsync), ct);
 
         // Hand the torrent back to the client for removal; keep the seeded data on disk in case the user
         // has ratio targets. The .cbz files themselves we already moved out.
@@ -124,11 +120,7 @@ public class TorrentFinalizationService
 
         if (placed > 0)
         {
-            var syncs = await Task.WhenAll(
-                seriesContext.Sync(ct, typeof(TorrentFinalizationService), nameof(FinalizePackAsync)),
-                actionsContext.Sync(ct, typeof(TorrentFinalizationService), nameof(FinalizePackAsync)));
-            foreach (var s in syncs)
-                if (!s.success) Log.ErrorFormat("Sync failed during pack finalise: {0}", s.exceptionMessage);
+            await SyncBoth(seriesContext, actionsContext, nameof(FinalizePackAsync), ct);
         }
         else
         {
@@ -141,7 +133,7 @@ public class TorrentFinalizationService
     }
 
     /// <summary>Fans pack archives out to the chapters their filenames parse to. Returns how many were placed.</summary>
-    private static int FanOut(string[] archives, string seriesName, List<Chapter> chapters,
+    private static int FanOut(string[] archives, string seriesName, List<Chapter> undownloadedChapters,
         KenkuSettings settings, ActionsContext actionsContext)
     {
         int placed = 0;
@@ -151,11 +143,21 @@ public class TorrentFinalizationService
             // Same-series check keeps a pack's extras/specials from claiming a main-run issue number.
             if (parsed.IssueNumber is null) continue;
             if (!string.Equals(parsed.SeriesTitle, seriesName, StringComparison.OrdinalIgnoreCase)) continue;
-            Chapter? target = chapters.FirstOrDefault(c => c.ChapterNumber == parsed.IssueNumber && !c.Downloaded);
+            Chapter? target = undownloadedChapters.FirstOrDefault(c => c.ChapterNumber == parsed.IssueNumber);
             if (target is null) continue;
             if (Place(archive, target, settings, actionsContext)) placed++;
         }
         return placed;
+    }
+
+    private static async Task SyncBoth(SeriesContext seriesContext, ActionsContext actionsContext,
+        string reason, CancellationToken ct)
+    {
+        var syncs = await Task.WhenAll(
+            seriesContext.Sync(ct, typeof(TorrentFinalizationService), reason),
+            actionsContext.Sync(ct, typeof(TorrentFinalizationService), reason));
+        foreach (var s in syncs)
+            if (!s.success) Log.ErrorFormat("Sync failed during {0}: {1}", reason, s.exceptionMessage);
     }
 
     /// <summary>Moves one archive into <paramref name="chapter"/>'s publication path and marks it downloaded.</summary>

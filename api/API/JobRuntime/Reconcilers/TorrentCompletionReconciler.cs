@@ -66,7 +66,7 @@ public class TorrentCompletionReconciler(IServiceScopeFactory scopeFactory, IClo
         // completed download carrying a pack tag gets a FinalizePack job (deduped per tag).
         foreach (DownloadEntry entry in await downloadClient.List(ct))
         {
-            if (Acquirers.PackTag.SeriesKeyOf(entry.Tag) is not { } seriesKey) continue;
+            if (PackTag.SeriesKeyOf(entry.Tag) is not { } seriesKey) continue;
             if (entry.Status is not DownloadStatus.Completed packCompleted) continue;
 
             await store.EnqueueAsync(new Job(FinalizePackHandler.Type,

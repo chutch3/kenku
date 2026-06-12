@@ -2,6 +2,7 @@ using API.Discovery;
 using API.JobRuntime.Interfaces;
 using API.Schema.DiscoveryContext;
 using API.Schema.JobsContext;
+using log4net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,6 +15,8 @@ namespace API.JobRuntime.Handlers;
 /// </summary>
 public class RefreshDiscoveryFeedHandler(IServiceScopeFactory scopeFactory) : IJobHandler
 {
+    private static readonly ILog Log = LogManager.GetLogger(typeof(RefreshDiscoveryFeedHandler));
+
     public const string Type = "RefreshDiscoveryFeed";
     public string JobType => Type;
 
@@ -35,7 +38,11 @@ public class RefreshDiscoveryFeedHandler(IServiceScopeFactory scopeFactory) : IJ
         {
             List<DiscoveryEntry> entries;
             try { entries = await reddit.GetHotAsync(subreddit, 10, ct); }
-            catch (Exception) { continue; }
+            catch (Exception e)
+            {
+                Log.WarnFormat("Feed fetch for r/{0} failed ({1}); its rail keeps the last good posts.", subreddit, e.Message);
+                continue;
+            }
 
             db.Posts.RemoveRange(await db.Posts.Where(p => p.Rail == subreddit).ToListAsync(ct));
             db.Posts.AddRange(entries.Select((e, i) =>

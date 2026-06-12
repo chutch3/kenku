@@ -10,36 +10,14 @@
             </div>
 
             <DiscoveryRail
-                title="Trending manga"
-                subtitle="AniList · right now"
-                :entries="manga"
+                v-for="rail in rails"
+                :key="rail.title"
+                :title="rail.title"
+                :subtitle="rail.subtitle"
+                :entries="rail.entries"
                 :library="library"
                 :resolving="resolving"
-                @pick="(e) => pick(e)"
-                @open="openSeries" />
-            <DiscoveryRail
-                title="Fresh comics"
-                subtitle="GetComics · latest posts"
-                :entries="comics"
-                :library="library"
-                :resolving="resolving"
-                @pick="(e) => pick(e, 'GetComics')"
-                @open="openSeries" />
-            <DiscoveryRail
-                title="New & popular"
-                subtitle="AniList · started this year"
-                :entries="newManga"
-                :library="library"
-                :resolving="resolving"
-                @pick="(e) => pick(e)"
-                @open="openSeries" />
-            <DiscoveryRail
-                title="Top rated"
-                subtitle="AniList · all-time"
-                :entries="topRated"
-                :library="library"
-                :resolving="resolving"
-                @pick="(e) => pick(e)"
+                @pick="(e) => pick(e, rail.source)"
                 @open="openSeries" />
             <DiscoveryGenreRail
                 v-for="genre in genres"
@@ -51,7 +29,7 @@
                 @open="openSeries" />
             <DiscoveryRail title="From the feeds" subtitle="hot on reddit" :entries="feed" external />
 
-            <div v-if="!loading && !manga?.length && !comics?.length && !feed?.length" class="flex flex-col items-center gap-3 py-16 text-center">
+            <div v-if="empty" class="flex flex-col items-center gap-3 py-16 text-center">
                 <KenkuMark :size="52" class="opacity-80" />
                 <p class="font-display text-lg text-highlighted">Nothing to show right now</p>
                 <p class="text-muted max-w-md">The discovery sources didn't answer — they're retried hourly, so check back soon.</p>
@@ -74,7 +52,19 @@ const { data: library } = useApi('/v2/Series', { key: FetchKeys.Series.All, lazy
 const { data: settings } = useApi('/v2/Settings', { key: FetchKeys.Settings.All, lazy: true, server: false });
 const genres = computed(() => settings.value?.discoveryGenres ?? []);
 
+const rails = computed(() => [
+    { title: 'Trending manga', subtitle: 'AniList · right now', entries: manga.value },
+    { title: 'Fresh comics', subtitle: 'GetComics · latest posts', entries: comics.value, source: 'GetComics' },
+    { title: 'New & popular', subtitle: 'AniList · started this year', entries: newManga.value },
+    { title: 'Top rated', subtitle: 'AniList · all-time', entries: topRated.value },
+]);
+
 const loading = computed(() => (mangaPending.value || comicsPending.value) && !manga.value?.length && !comics.value?.length);
+// Genre rails fetch inside their own components, so the page can't see their entries — any
+// configured genre suppresses the empty state rather than contradicting a populated rail.
+const empty = computed(
+    () => !loading.value && rails.value.every((r) => !r.entries?.length) && !feed.value?.length && !genres.value.length
+);
 
 const goSearch = (title: string, source?: string) =>
     navigateTo(`/search?q=${encodeURIComponent(title)}${source ? `&source=${source}` : ''}`);
@@ -82,14 +72,14 @@ const openSeries = (key: string) => navigateTo(`/series/${key}`);
 
 const { searchByUrl, searchByConnector } = useSeriesSearch();
 const { pendingAdd, addModalOpen, startAdd, onAdded } = useAddSeriesFlow();
-const resolving = ref<string | null>(null);
+const resolving = ref<Entry | null>(null);
 
 // Click-to-add: resolve the card to a real connector series and pop the add modal in place.
 // Source rails (GetComics) resolve exactly via their post URL; AniList entries only have a title,
 // so anything short of a confident Global name match falls back to the prefilled search page.
 const pick = async (entry: Entry, source?: string) => {
     if (resolving.value) return;
-    resolving.value = entry.url || entry.title || '';
+    resolving.value = entry;
     try {
         const match =
             source && entry.url

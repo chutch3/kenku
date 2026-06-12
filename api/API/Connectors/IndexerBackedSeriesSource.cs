@@ -90,13 +90,23 @@ public sealed class IndexerBackedSeriesSource : SeriesSource
 
     /// <summary>A pack release covers each issue in its range. Pathological ranges (a mis-parse
     /// claiming thousands of issues) are dropped rather than fabricating chapters.</summary>
-    private static IEnumerable<string> IssuesOf(ParsedRelease p)
+    private IEnumerable<string> IssuesOf(ParsedRelease p)
     {
         if (p.IssueNumber is not null)
+        {
             yield return p.IssueNumber;
-        else if (p.IssueRange is { } range && range.End - range.Start < 1000)
+        }
+        else if (p.IssueRange is { } range)
+        {
+            if (range.End - range.Start >= 1000)
+            {
+                Log.WarnFormat("Ignoring implausible pack range {0}-{1} for '{2}' — likely a title mis-parse.",
+                    range.Start, range.End, p.SeriesTitle);
+                yield break;
+            }
             for (int i = range.Start; i <= range.End; i++)
                 yield return i.ToString();
+        }
     }
 
     // Torrent sources never expose page images; both image-path hooks are unreachable for Kind=Torrent.
