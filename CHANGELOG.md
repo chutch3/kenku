@@ -2,6 +2,37 @@
 
 <!-- version list -->
 
+## v0.20.0 (2026-06-12)
+
+### Features
+
+- Acquire back-catalogue issues via covering pack torrents with deduped pack tags
+  ([`37abbf0`](https://github.com/chutch3/kenku/commit/37abbf0ff1f465955aa81c54d952425354f53c4a))
+
+- Add series straight from discover via in-place modal with search fallback
+  ([`7b21d89`](https://github.com/chutch3/kenku/commit/7b21d89ea82520117fbc013af122d7768dee90ca))
+
+- Discover shelves for top rated, new this year, and configurable genre rails
+  ([`bff8bb6`](https://github.com/chutch3/kenku/commit/bff8bb6f43ce66b627db89f125939c59d618a296))
+
+- Fan a completed pack torrent out to every chapter its files cover
+  ([`dcad666`](https://github.com/chutch3/kenku/commit/dcad666dce966e1acc8387eead1fbe2da1977ab0))
+
+- Parse comic pack releases as issue ranges and expand them into issues
+  ([`24808a2`](https://github.com/chutch3/kenku/commit/24808a20b5b2e515230022a8a52941ecf7cfaeb9))
+
+- Reddit discovery rail backed by db cache refreshed hourly by a job
+  ([`a750884`](https://github.com/chutch3/kenku/commit/a7508842bf56e098bd0f773766fdcd2652fad690))
+
+- Torrents panel on the activity page with live progress and seeders
+  ([`5e1e87b`](https://github.com/chutch3/kenku/commit/5e1e87bddba081acc46057aad7ae8f3006a703e6))
+
+### Refactoring
+
+- Critique fixes for discover empty state, stale docs, silent failures, and rail duplication
+  ([`f4e59c5`](https://github.com/chutch3/kenku/commit/f4e59c526d87baef746444e2c607414eb4cbd9e2))
+
+
 ## v0.19.0 (2026-06-11)
 
 ### Features
