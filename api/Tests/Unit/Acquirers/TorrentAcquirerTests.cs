@@ -65,6 +65,68 @@ public class TorrentAcquirerTests
     }
 
     [Fact]
+    public async Task AcquireAsync_FallsBackToACoveringPack_WhenNoExactReleaseExists()
+    {
+        var (chapterId, source, tempRoot) = BuildFixture();
+        try
+        {
+            var pack = new IndexerSearchResult("Saga 001-066 (digital)", "magnet:?xt=urn:btih:pack", 9000, 25, "ix");
+            var indexer = new Mock<IIndexerClient>();
+            indexer.Setup(i => i.Search(It.Is<IndexerQuery>(q => q.IssueNumber != null), It.IsAny<CancellationToken>()))
+                   .ReturnsAsync([]);
+            indexer.Setup(i => i.Search(It.Is<IndexerQuery>(q => q.IssueNumber == null), It.IsAny<CancellationToken>()))
+                   .ReturnsAsync([pack]);
+
+            string? capturedUrl = null, capturedTag = null;
+            var torrent = new Mock<IDownloadClient>();
+            torrent.Setup(t => t.Add(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                   .Callback<string, string, string, CancellationToken>((u, _, tag, _) => { capturedUrl = u; capturedTag = tag; })
+                   .ReturnsAsync("tag-result");
+
+            var selector = new ReleaseSelector { MinSeeders = 1, PreferredTokens = [], BlockedTokens = [] };
+            var acquirer = new TorrentAcquirer(indexer.Object, torrent.Object, selector,
+                new TorrentAcquirerSettings(Path.Combine(tempRoot, "staging"), [8000]));
+
+            AcquireResult result = await acquirer.AcquireAsync(chapterId, source, Path.Combine(tempRoot, "x.cbz"), CancellationToken.None);
+
+            Assert.IsType<AcquireResult.Deferred>(result);
+            Assert.Equal("magnet:?xt=urn:btih:pack", capturedUrl);
+            Assert.Equal(PackTag.For(chapterId.Obj.ParentManga.Key, "magnet:?xt=urn:btih:pack"), capturedTag);
+        }
+        finally { try { Directory.Delete(tempRoot, recursive: true); } catch { } }
+    }
+
+    [Fact]
+    public async Task AcquireAsync_Defers_WithoutReAdding_WhenTheCoveringPackIsAlreadyInFlight()
+    {
+        var (chapterId, source, tempRoot) = BuildFixture();
+        try
+        {
+            var pack = new IndexerSearchResult("Saga 001-066 (digital)", "magnet:?xt=urn:btih:pack", 9000, 25, "ix");
+            var indexer = new Mock<IIndexerClient>();
+            indexer.Setup(i => i.Search(It.Is<IndexerQuery>(q => q.IssueNumber != null), It.IsAny<CancellationToken>()))
+                   .ReturnsAsync([]);
+            indexer.Setup(i => i.Search(It.Is<IndexerQuery>(q => q.IssueNumber == null), It.IsAny<CancellationToken>()))
+                   .ReturnsAsync([pack]);
+
+            // Another chapter of the run already handed this pack off — same deterministic tag.
+            var torrent = new Mock<IDownloadClient>();
+            torrent.Setup(t => t.GetStatus(It.Is<string>(s => s.StartsWith("pack:")), It.IsAny<CancellationToken>()))
+                   .ReturnsAsync(new DownloadStatus.Downloading(0.4));
+
+            var selector = new ReleaseSelector { MinSeeders = 1, PreferredTokens = [], BlockedTokens = [] };
+            var acquirer = new TorrentAcquirer(indexer.Object, torrent.Object, selector,
+                new TorrentAcquirerSettings(Path.Combine(tempRoot, "staging"), [8000]));
+
+            AcquireResult result = await acquirer.AcquireAsync(chapterId, source, Path.Combine(tempRoot, "x.cbz"), CancellationToken.None);
+
+            Assert.IsType<AcquireResult.Deferred>(result);
+            torrent.Verify(t => t.Add(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+        finally { try { Directory.Delete(tempRoot, recursive: true); } catch { } }
+    }
+
+    [Fact]
     public async Task AcquireAsync_Fails_WhenIndexerHasNoResults()
     {
         var (chapterId, source, tempRoot) = BuildFixture();

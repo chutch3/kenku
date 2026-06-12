@@ -61,21 +61,51 @@ public class QBittorrentClient(HttpClient http, string baseUrl, string username,
             string tags = el.TryGetProperty("tags", out var t) ? t.GetString() ?? "" : "";
             if (!TagsContain(tags, tag)) continue;
 
-            string state = el.TryGetProperty("state", out var s) ? s.GetString() ?? "" : "";
-            double progress = el.TryGetProperty("progress", out var p) && p.TryGetDouble(out double pv) ? pv : 0.0;
-            string savePath = el.TryGetProperty("save_path", out var sp) ? sp.GetString() ?? "" : "";
-
-            if (state.Equals("error", StringComparison.OrdinalIgnoreCase) ||
-                state.Equals("missingFiles", StringComparison.OrdinalIgnoreCase))
-                return new DownloadStatus.Errored(state);
-
-            if (progress >= 1.0)
-                return new DownloadStatus.Completed(savePath);
-
-            return new DownloadStatus.Downloading(progress);
+            return StatusOf(el);
         }
 
         return null;
+    }
+
+    public async Task<IReadOnlyList<DownloadEntry>> List(CancellationToken ct)
+    {
+        if (!await EnsureAuth(ct)) return [];
+
+        using HttpResponseMessage resp = await GetWithCookie("/api/v2/torrents/info?category=kenku", ct);
+        if (!resp.IsSuccessStatusCode)
+            return [];
+
+        string body = await resp.Content.ReadAsStringAsync(ct);
+        using JsonDocument doc = JsonDocument.Parse(body);
+        if (doc.RootElement.ValueKind != JsonValueKind.Array)
+            return [];
+
+        var entries = new List<DownloadEntry>();
+        foreach (JsonElement el in doc.RootElement.EnumerateArray())
+        {
+            string tags = el.TryGetProperty("tags", out var t) ? t.GetString() ?? "" : "";
+            string tag = tags.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .FirstOrDefault() ?? "";
+            string name = el.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
+            int seeders = el.TryGetProperty("num_seeds", out var ns) && ns.TryGetInt32(out int sv) ? sv : 0;
+            double progress = el.TryGetProperty("progress", out var p) && p.TryGetDouble(out double pv) ? pv : 0.0;
+            entries.Add(new DownloadEntry(tag, name, StatusOf(el), progress, seeders));
+        }
+        return entries;
+    }
+
+    private static DownloadStatus StatusOf(JsonElement el)
+    {
+        string state = el.TryGetProperty("state", out var s) ? s.GetString() ?? "" : "";
+        double progress = el.TryGetProperty("progress", out var p) && p.TryGetDouble(out double pv) ? pv : 0.0;
+        string savePath = el.TryGetProperty("save_path", out var sp) ? sp.GetString() ?? "" : "";
+
+        if (state.Equals("error", StringComparison.OrdinalIgnoreCase) ||
+            state.Equals("missingFiles", StringComparison.OrdinalIgnoreCase))
+            return new DownloadStatus.Errored(state);
+        if (progress >= 1.0)
+            return new DownloadStatus.Completed(savePath);
+        return new DownloadStatus.Downloading(progress);
     }
 
     public async Task Remove(string tag, bool deleteData, CancellationToken ct)

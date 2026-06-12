@@ -122,6 +122,32 @@ public class QBittorrentClientTests
     }
 
     [Fact]
+    public async Task List_ReturnsEveryKenkuTorrentWithTagProgressAndSeeders()
+    {
+        var (client, router, _) = Build();
+        router.Routes["/api/v2/auth/login"] = _ => Ok();
+        router.Routes["/api/v2/torrents/info"] = req =>
+        {
+            Assert.Contains("category=kenku", req.RequestUri!.Query);
+            return Json("""
+                [{"hash":"a","name":"Saga 060","progress":0.42,"state":"downloading","save_path":"/d","tags":"chap-1","num_seeds":12},
+                 {"hash":"b","name":"Invincible 001-144","progress":1.0,"state":"uploading","save_path":"/d/pack","tags":"pack:series1:abcd1234","num_seeds":3}]
+                """);
+        };
+
+        var entries = await client.List(CancellationToken.None);
+
+        Assert.Equal(2, entries.Count);
+        Assert.Equal("chap-1", entries[0].Tag);
+        Assert.Equal("Saga 060", entries[0].Name);
+        Assert.Equal(12, entries[0].Seeders);
+        Assert.IsType<DownloadStatus.Downloading>(entries[0].Status);
+        Assert.Equal("pack:series1:abcd1234", entries[1].Tag);
+        var done = Assert.IsType<DownloadStatus.Completed>(entries[1].Status);
+        Assert.Equal("/d/pack", done.SavePath);
+    }
+
+    [Fact]
     public async Task Remove_ResolvesHashFromInfoThenDeletes()
     {
         var (client, router, _) = Build();

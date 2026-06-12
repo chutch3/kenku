@@ -128,6 +128,29 @@ public class TorrentFinalizationServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task FinalizePack_PlacesEveryMatchingChapterAndRemovesTheTag()
+    {
+        var (chapter, _) = await Seed("58", "59");
+        string seriesKey = chapter.ParentManga.Key;
+        string tag = API.Acquirers.PackTag.For(seriesKey, "magnet:?xt=urn:btih:pack");
+        string savePath = SavePathWithCbz(
+            "Saga 058 (2018) (digital).cbz",
+            "Saga 059 (2018) (digital).cbz",
+            "Saga 060 (2018) (digital).cbz");
+        var settings = new KenkuSettings { AppData = _root, ChapterNamingScheme = "%M - Ch.%C" };
+
+        var torrent = new Mock<IDownloadClient>();
+
+        await new TorrentFinalizationService().FinalizePackAsync(
+            _seriesContext, _actionsContext, torrent.Object, settings, tag, seriesKey, savePath, CancellationToken.None);
+
+        var chapters = await _seriesContext.Chapters.ToListAsync();
+        Assert.All(chapters, c => Assert.True(c.Downloaded, $"ch.{c.ChapterNumber} should be downloaded"));
+        Assert.Equal(3, (await _actionsContext.Actions.ToListAsync()).Count);
+        torrent.Verify(t => t.Remove(tag, false, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task Finalize_WhenAlreadyDownloaded_IsNoOp()
     {
         var (chapter, chId) = await Seed();

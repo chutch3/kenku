@@ -164,6 +164,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddSingleton<IJobHandler, PlaceChapterFileHandler>();
         services.AddSingleton<IJobHandler, DownloadCoverHandler>();
         services.AddSingleton<IJobHandler, FinalizeTorrentHandler>();
+        services.AddSingleton<IJobHandler, FinalizePackHandler>();
         services.AddSingleton<IJobHandler, VerifyDownloadStateHandler>();
         services.AddSingleton<IJobHandler, MoveDataHandler>();
         services.AddSingleton<IJobHandler, RefreshDiscoveryFeedHandler>();

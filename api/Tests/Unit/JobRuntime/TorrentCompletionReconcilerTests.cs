@@ -58,11 +58,40 @@ public class TorrentCompletionReconcilerTests : IDisposable
 
     private FakeTorrentSource[] Connectors => [new FakeTorrentSource(new KenkuSettings { AppData = _root })];
 
+    /// <summary>A client mock holding no torrents beyond what a test sets up explicitly.</summary>
+    private static Mock<IDownloadClient> NewTorrentClient()
+    {
+        var torrent = new Mock<IDownloadClient>();
+        torrent.Setup(t => t.List(It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        return torrent;
+    }
+
+    [Fact]
+    public async Task Scan_EnqueuesAFinalizePackJob_ForACompletedPackTorrent()
+    {
+        var (ctx, _) = await SeedTorrentChapter();
+        string tag = PackTag.For("series-key-1", "magnet:?xt=urn:btih:pack");
+        var torrent = NewTorrentClient();
+        torrent.Setup(t => t.List(It.IsAny<CancellationToken>())).ReturnsAsync(
+        [
+            new DownloadEntry(tag, "Saga 001-066", new DownloadStatus.Completed("/d/pack"), 1.0, 3),
+            new DownloadEntry("chap-x", "Saga 060", new DownloadStatus.Downloading(0.4), 0.4, 9),
+        ]);
+        var store = new InMemoryJobStore();
+
+        await TorrentCompletionReconciler.ScanAndEnqueueAsync(ctx, torrent.Object, Connectors, store, DateTime.UtcNow, default);
+        await TorrentCompletionReconciler.ScanAndEnqueueAsync(ctx, torrent.Object, Connectors, store, DateTime.UtcNow, default);
+
+        var job = Assert.Single(await store.GetAllAsync(), j => j.Type == FinalizePackHandler.Type);
+        Assert.Contains("series-key-1", job.Payload);
+        Assert.Contains("/d/pack", job.Payload);
+    }
+
     [Fact]
     public async Task Scan_WhenTorrentCompleted_EnqueuesFinalizeJob()
     {
         var (ctx, chId) = await SeedTorrentChapter();
-        var torrent = new Mock<IDownloadClient>();
+        var torrent = NewTorrentClient();
         torrent.Setup(t => t.GetStatus(chId.Key, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new DownloadStatus.Completed(Path.Combine(_root, "out")));
         var store = new InMemoryJobStore();
@@ -77,7 +106,7 @@ public class TorrentCompletionReconcilerTests : IDisposable
     public async Task Scan_WhenTorrentStillDownloading_EnqueuesNothing()
     {
         var (ctx, chId) = await SeedTorrentChapter();
-        var torrent = new Mock<IDownloadClient>();
+        var torrent = NewTorrentClient();
         torrent.Setup(t => t.GetStatus(chId.Key, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new DownloadStatus.Downloading(0.3));
         var store = new InMemoryJobStore();
@@ -91,7 +120,7 @@ public class TorrentCompletionReconcilerTests : IDisposable
     public async Task Scan_IsDedupedPerSource_SoTicksDoNotPileUp()
     {
         var (ctx, chId) = await SeedTorrentChapter();
-        var torrent = new Mock<IDownloadClient>();
+        var torrent = NewTorrentClient();
         torrent.Setup(t => t.GetStatus(chId.Key, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new DownloadStatus.Completed(Path.Combine(_root, "out")));
         var store = new InMemoryJobStore();

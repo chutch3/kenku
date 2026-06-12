@@ -61,6 +61,19 @@ public class TorrentCompletionReconciler(IServiceScopeFactory scopeFactory, IClo
                 resourceKey: chId.Obj.ParentMangaId, dedupKey: DedupKey(chId.Key)), ct);
             enqueued++;
         }
+
+        // Pack torrents aren't chapter-keyed, so they're discovered from the client itself: any
+        // completed download carrying a pack tag gets a FinalizePack job (deduped per tag).
+        foreach (DownloadEntry entry in await downloadClient.List(ct))
+        {
+            if (Acquirers.PackTag.SeriesKeyOf(entry.Tag) is not { } seriesKey) continue;
+            if (entry.Status is not DownloadStatus.Completed packCompleted) continue;
+
+            await store.EnqueueAsync(new Job(FinalizePackHandler.Type,
+                FinalizePackHandler.PayloadFor(entry.Tag, seriesKey, packCompleted.SavePath), now,
+                resourceKey: seriesKey, dedupKey: $"finalize-pack:{entry.Tag}"), ct);
+            enqueued++;
+        }
         return enqueued;
     }
 }

@@ -67,17 +67,7 @@ public class TorrentFinalizationService
             List<Chapter> seriesChapters = await seriesContext.Chapters
                 .Where(c => c.ParentMangaId == chapter.ParentMangaId && !c.Downloaded)
                 .ToListAsync(ct);
-            placed = 0;
-            foreach (string archive in archives)
-            {
-                ParsedRelease parsed = ReleaseTitleParser.Parse(Path.GetFileNameWithoutExtension(archive));
-                // Same-series check keeps a pack's extras/specials from claiming a main-run issue number.
-                if (parsed.IssueNumber is null) continue;
-                if (!string.Equals(parsed.SeriesTitle, chapter.ParentManga.Name, StringComparison.OrdinalIgnoreCase)) continue;
-                Chapter? target = seriesChapters.FirstOrDefault(c => c.ChapterNumber == parsed.IssueNumber && !c.Downloaded);
-                if (target is null) continue;
-                if (Place(archive, target, settings, actionsContext)) placed++;
-            }
+            placed = FanOut(archives, chapter.ParentManga.Name, seriesChapters, settings, actionsContext);
         }
 
         if (placed == 0)
@@ -98,6 +88,74 @@ public class TorrentFinalizationService
         await downloadClient.Remove(sourceIdKey, deleteData: false, ct);
 
         Log.InfoFormat("Finalised torrent for {0}: placed {1} chapter file(s).", chapter.ParentManga.Name, placed);
+    }
+
+    /// <summary>
+    /// Finalises a completed pack torrent (tag <c>pack:{seriesKey}:{hash}</c>): fans its archives out
+    /// to every undownloaded chapter of the series they parse to, then removes the torrent. The pack
+    /// is removed even when nothing could be placed — its contents won't change, so leaving it would
+    /// only make the completion reconciler re-enqueue a hopeless finalise forever.
+    /// </summary>
+    public async Task FinalizePackAsync(SeriesContext seriesContext, ActionsContext actionsContext,
+        IDownloadClient downloadClient, KenkuSettings settings, string tag, string seriesKey, string savePath,
+        CancellationToken ct)
+    {
+        Series? series = await seriesContext.Series
+            .Include(s => s.Library)
+            .FirstOrDefaultAsync(s => s.Key == seriesKey, ct);
+        if (series is null)
+        {
+            Log.ErrorFormat("Could not finalise pack {0}: series {1} not found.", tag, seriesKey);
+            return;
+        }
+
+        if (!Directory.Exists(savePath))
+        {
+            Log.ErrorFormat("Pack {0} reports completion at {1} but the directory does not exist.", tag, savePath);
+            return;
+        }
+
+        List<Chapter> chapters = await seriesContext.Chapters
+            .Where(c => c.ParentMangaId == seriesKey && !c.Downloaded)
+            .ToListAsync(ct);
+
+        string[] archives = Directory.EnumerateFiles(savePath, "*.cbz", SearchOption.AllDirectories).ToArray();
+        int placed = FanOut(archives, series.Name, chapters, settings, actionsContext);
+
+        if (placed > 0)
+        {
+            var syncs = await Task.WhenAll(
+                seriesContext.Sync(ct, typeof(TorrentFinalizationService), nameof(FinalizePackAsync)),
+                actionsContext.Sync(ct, typeof(TorrentFinalizationService), nameof(FinalizePackAsync)));
+            foreach (var s in syncs)
+                if (!s.success) Log.ErrorFormat("Sync failed during pack finalise: {0}", s.exceptionMessage);
+        }
+        else
+        {
+            Log.ErrorFormat("Pack {0} at {1} contained {2} archive(s) but none matched an undownloaded chapter of {3}.",
+                tag, savePath, archives.Length, series.Name);
+        }
+
+        await downloadClient.Remove(tag, deleteData: false, ct);
+        Log.InfoFormat("Finalised pack {0} for {1}: placed {2} chapter file(s).", tag, series.Name, placed);
+    }
+
+    /// <summary>Fans pack archives out to the chapters their filenames parse to. Returns how many were placed.</summary>
+    private static int FanOut(string[] archives, string seriesName, List<Chapter> chapters,
+        KenkuSettings settings, ActionsContext actionsContext)
+    {
+        int placed = 0;
+        foreach (string archive in archives)
+        {
+            ParsedRelease parsed = ReleaseTitleParser.Parse(Path.GetFileNameWithoutExtension(archive));
+            // Same-series check keeps a pack's extras/specials from claiming a main-run issue number.
+            if (parsed.IssueNumber is null) continue;
+            if (!string.Equals(parsed.SeriesTitle, seriesName, StringComparison.OrdinalIgnoreCase)) continue;
+            Chapter? target = chapters.FirstOrDefault(c => c.ChapterNumber == parsed.IssueNumber && !c.Downloaded);
+            if (target is null) continue;
+            if (Place(archive, target, settings, actionsContext)) placed++;
+        }
+        return placed;
     }
 
     /// <summary>Moves one archive into <paramref name="chapter"/>'s publication path and marks it downloaded.</summary>

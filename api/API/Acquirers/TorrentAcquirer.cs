@@ -53,25 +53,44 @@ public class TorrentAcquirer(
             Categories: settings.IndexerCategories);
 
         IndexerSearchResult[] results = await indexer.Search(query, ct);
-        if (results.Length == 0)
-        {
-            Log.InfoFormat("No torrent releases found for {0} ch.{1}", series.Name, ch.ChapterNumber);
-            return new AcquireResult.Failed($"no torrent releases found for {series.Name} ch.{ch.ChapterNumber}");
-        }
-
         IndexerSearchResult? best = selector.SelectBest(results);
+        string tagKey = chapter.Key;
+
         if (best is null)
         {
-            Log.InfoFormat("No torrent releases passed selection criteria for {0} ch.{1} ({2} candidates)",
-                series.Name, ch.ChapterNumber, results.Length);
-            return new AcquireResult.Failed(
-                $"no release passed selection for {series.Name} ch.{ch.ChapterNumber} ({results.Length} candidates, min seeders {selector.MinSeeders})");
+            // No usable single-issue release — back catalogues often exist only as packs, so fall
+            // back to a pack release whose issue range covers this chapter. Packs get a tag derived
+            // from the release itself, so every chapter of the run converges on one client entry.
+            IndexerSearchResult[] packs = await SearchCoveringPacks(series, ch, ct);
+            best = selector.SelectBest(packs);
+            if (best is null)
+            {
+                if (results.Length == 0 && packs.Length == 0)
+                {
+                    Log.InfoFormat("No torrent releases found for {0} ch.{1} (singles or packs)", series.Name, ch.ChapterNumber);
+                    return new AcquireResult.Failed($"no torrent releases found for {series.Name} ch.{ch.ChapterNumber} (singles or packs)");
+                }
+                Log.InfoFormat("No torrent releases passed selection criteria for {0} ch.{1} ({2} candidates)",
+                    series.Name, ch.ChapterNumber, results.Length + packs.Length);
+                return new AcquireResult.Failed(
+                    $"no release passed selection for {series.Name} ch.{ch.ChapterNumber} ({results.Length + packs.Length} candidates, min seeders {selector.MinSeeders})");
+            }
+
+            tagKey = PackTag.For(series.Key, best.DownloadUrl);
+            switch (await downloadClient.GetStatus(tagKey, ct))
+            {
+                case DownloadStatus.Downloading or DownloadStatus.Completed:
+                    Log.DebugFormat("Pack covering {0} ch.{1} already in the client; deferring to completion.", series.Name, ch.ChapterNumber);
+                    return new AcquireResult.Deferred();
+                case DownloadStatus.Errored errored:
+                    return new AcquireResult.Failed($"the pack torrent errored in the download client: {errored.Reason}");
+            }
         }
 
-        string stagingDir = Path.Combine(settings.StagingDirectory, chapter.Key);
+        string stagingDir = Path.Combine(settings.StagingDirectory, tagKey.Replace(':', '_'));
         Directory.CreateDirectory(stagingDir);
 
-        string? tag = await downloadClient.Add(best.DownloadUrl, stagingDir, chapter.Key, ct);
+        string? tag = await downloadClient.Add(best.DownloadUrl, stagingDir, tagKey, ct);
         if (tag is null)
         {
             Log.WarnFormat("Torrent client refused release {0} for {1} ch.{2}", best.Title, series.Name, ch.ChapterNumber);
@@ -81,6 +100,23 @@ public class TorrentAcquirer(
         Log.InfoFormat("Handed off torrent '{0}' for {1} ch.{2}; TorrentCompletionReconciler will finalise on completion.",
             best.Title, series.Name, ch.ChapterNumber);
         return new AcquireResult.Deferred();
+    }
+
+    /// <summary>Pack releases of this series whose issue range covers <paramref name="ch"/>.</summary>
+    private async Task<IndexerSearchResult[]> SearchCoveringPacks(Series series, Chapter ch, CancellationToken ct)
+    {
+        // Decimal specials ("60.5") never appear in integer issue ranges.
+        if (!int.TryParse(ch.ChapterNumber, out int issue))
+            return [];
+
+        IndexerSearchResult[] results = await indexer.Search(
+            new IndexerQuery(series.Name, null, series.Year?.ToString(), settings.IndexerCategories), ct);
+        return results.Where(r =>
+        {
+            ParsedRelease p = ReleaseTitleParser.Parse(r.Title);
+            return string.Equals(p.SeriesTitle, series.Name, StringComparison.OrdinalIgnoreCase)
+                   && p.IssueRange is { } range && issue >= range.Start && issue <= range.End;
+        }).ToArray();
     }
 }
 

@@ -28,6 +28,9 @@ public class SeriesDeletionEndToEndTests : IAsyncLifetime
             Removed.Add(tag);
             return Task.CompletedTask;
         }
+
+        public Task<IReadOnlyList<DownloadEntry>> List(CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<DownloadEntry>>([]);
     }
 
     private readonly PostgresFixture _postgres = new();

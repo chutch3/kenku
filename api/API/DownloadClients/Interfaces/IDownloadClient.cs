@@ -19,7 +19,16 @@ public interface IDownloadClient
 
     /// <summary>Removes the torrent tagged with <paramref name="tag"/>. No-ops if not found.</summary>
     Task Remove(string tag, bool deleteData, CancellationToken ct);
+
+    /// <summary>
+    /// Every download in Kenku's category, with its tag and status. Lets callers find downloads whose
+    /// tags aren't chapter-keyed (pack torrents) and surface in-flight progress.
+    /// </summary>
+    Task<IReadOnlyList<DownloadEntry>> List(CancellationToken ct);
 }
+
+/// <summary>One download as the client reports it.</summary>
+public record DownloadEntry(string Tag, string Name, DownloadStatus Status, double Progress, int Seeders);
 
 public abstract record DownloadStatus
 {

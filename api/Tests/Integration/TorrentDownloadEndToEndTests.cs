@@ -49,6 +49,10 @@ public class TorrentDownloadEndToEndTests : IAsyncLifetime
             Status = null;
             return Task.CompletedTask;
         }
+
+        public Task<IReadOnlyList<DownloadEntry>> List(CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<DownloadEntry>>(
+                Added.Select(a => new DownloadEntry(a.Tag, a.Url, Status ?? new DownloadStatus.Downloading(0), 0, 0)).ToList());
     }
 
     private readonly string _tempRoot = Path.Combine(Path.GetTempPath(), "kenku-tor-e2e-" + Guid.NewGuid().ToString("N"));
