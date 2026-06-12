@@ -73,17 +73,30 @@ public sealed class IndexerBackedSeriesSource : SeriesSource
         foreach (IndexerSearchResult r in results)
         {
             ParsedRelease p = ReleaseTitleParser.Parse(r.Title);
-            if (p.IssueNumber is null) continue;
             // Only keep releases that parse to this series (avoid cross-series bleed in the result set).
             if (!string.Equals(p.SeriesTitle, seriesTitle, StringComparison.OrdinalIgnoreCase)) continue;
-            if (byIssue.ContainsKey(p.IssueNumber)) continue;
+            foreach (string issue in IssuesOf(p))
+            {
+                if (byIssue.ContainsKey(issue)) continue;
 
-            var chapter = new Chapter(mangaId.Obj, p.IssueNumber, null, null);
-            var chId = new SourceId<Chapter>(chapter, this, p.IssueNumber, null, mangaId.UseForDownload);
-            chapter.SourceIds.Add(chId);
-            byIssue[p.IssueNumber] = (chapter, chId);
+                var chapter = new Chapter(mangaId.Obj, issue, null, null);
+                var chId = new SourceId<Chapter>(chapter, this, issue, null, mangaId.UseForDownload);
+                chapter.SourceIds.Add(chId);
+                byIssue[issue] = (chapter, chId);
+            }
         }
         return byIssue.Values.ToArray();
+    }
+
+    /// <summary>A pack release covers each issue in its range. Pathological ranges (a mis-parse
+    /// claiming thousands of issues) are dropped rather than fabricating chapters.</summary>
+    private static IEnumerable<string> IssuesOf(ParsedRelease p)
+    {
+        if (p.IssueNumber is not null)
+            yield return p.IssueNumber;
+        else if (p.IssueRange is { } range && range.End - range.Start < 1000)
+            for (int i = range.Start; i <= range.End; i++)
+                yield return i.ToString();
     }
 
     // Torrent sources never expose page images; both image-path hooks are unreachable for Kind=Torrent.

@@ -103,6 +103,35 @@ public class IndexerBackedSeriesSourceTests
     }
 
     [Fact]
+    public async Task GetChapters_ExpandsPackReleasesIntoTheirIssues()
+    {
+        var source = Build(
+            R("Saga 001-005 (2012) (digital)"),  // pack → issues 1..5
+            R("Saga 004 (2012)"));               // overlaps the pack — still one chapter per issue
+
+        var (series, seriesId) = (await source.SearchManga("Saga")).First(s => s.Item1.Name == "Saga");
+
+        var chapters = await source.GetChapters(seriesId);
+
+        var numbers = chapters.Select(c => c.Item1.ChapterNumber).OrderBy(int.Parse).ToArray();
+        Assert.Equal(new[] { "1", "2", "3", "4", "5" }, numbers);
+    }
+
+    [Fact]
+    public async Task SearchManga_CollapsesPackAndSingleReleasesIntoOneSeries()
+    {
+        // Pre-range parsing, "Invincible 001-144" parsed its series as "Invincible 001" — packs and
+        // singles split into two series entries for the same comic.
+        var source = Build(
+            R("Invincible 001-144 (2003-2018) (digital)"),
+            R("Invincible 106 (2013)"));
+
+        var results = await source.SearchManga("Invincible");
+
+        Assert.Equal("Invincible", Assert.Single(results).Item1.Name);
+    }
+
+    [Fact]
     public async Task GetChapterImageUrls_Throws_BecauseTorrentSourcesHaveNoPages()
     {
         var source = Build();
