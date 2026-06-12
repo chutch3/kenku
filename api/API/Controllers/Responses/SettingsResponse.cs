@@ -10,6 +10,7 @@ public record SettingsResponse(
     string ApiKey,
     bool MetronConfigured,
     IReadOnlyList<string> DiscoveryGenres,
+    IReadOnlyList<string> DiscoveryFeeds,
     IReadOnlyList<SyncedIndexerResponse> SyncedIndexers,
     IReadOnlyList<DownloadClientResponse> DownloadClients)
 {
@@ -17,6 +18,7 @@ public record SettingsResponse(
         s.ApiKey,
         !string.IsNullOrWhiteSpace(s.MetronUsername),
         s.DiscoveryGenres,
+        s.DiscoveryFeeds,
         s.SnapshotSyncedIndexers()
             .Select(i => new SyncedIndexerResponse(i.Id, i.Name, i.Url, i.Categories, i.Protocol, i.Enabled,
                 cooldowns.CooldownUntil(i.Name)))

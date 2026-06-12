@@ -26,6 +26,13 @@
                 @pick="(e) => pick(e)"
                 @open="openSeries" />
             <DiscoveryRail title="From the feeds" subtitle="hot on reddit" :entries="feed" external />
+            <div v-if="feedStarved" class="flex items-center gap-2 text-xs text-muted">
+                <UIcon name="i-lucide-rss" />
+                <span>
+                    Nothing from the feeds yet — they're fetched hourly and reddit may be rate-limiting.
+                    Settings → Maintenance can trigger a fetch now.
+                </span>
+            </div>
 
             <div v-if="empty" class="flex flex-col items-center gap-3 py-16 text-center">
                 <KenkuMark :size="52" class="opacity-80" />
@@ -50,7 +57,7 @@ const { data: manga, pending: mangaPending } = useApi('/v2/Discover/Manga', { ke
 const { data: comics, pending: comicsPending } = useApi('/v2/Discover/Comics', { key: FetchKeys.Discover.Comics, lazy: true, server: false });
 const { data: newManga } = useApi('/v2/Discover/Manga/New', { key: FetchKeys.Discover.New, lazy: true, server: false });
 const { data: topRated } = useApi('/v2/Discover/Manga/TopRated', { key: FetchKeys.Discover.TopRated, lazy: true, server: false });
-const { data: feed } = useApi('/v2/Discover/Feed', { key: FetchKeys.Discover.Feed, lazy: true, server: false });
+const { data: feed, pending: feedPending } = useApi('/v2/Discover/Feed', { key: FetchKeys.Discover.Feed, lazy: true, server: false });
 const { data: library } = useApi('/v2/Series', { key: FetchKeys.Series.All, lazy: true, server: false });
 const { data: settings } = useApi('/v2/Settings', { key: FetchKeys.Settings.All, lazy: true, server: false });
 const genres = computed(() => settings.value?.discoveryGenres ?? []);
@@ -67,6 +74,10 @@ const loading = computed(() => (mangaPending.value || comicsPending.value) && !m
 // configured genre suppresses the empty state rather than contradicting a populated rail.
 const empty = computed(
     () => !loading.value && rails.value.every((r) => !r.entries?.length) && !feed.value?.length && !genres.value.length
+);
+// An empty feed rail hides itself; with feeds configured that silence is undiagnosable — say why.
+const feedStarved = computed(
+    () => !feedPending.value && !!settings.value?.discoveryFeeds?.length && !feed.value?.length
 );
 
 const openSeries = (key: string) => navigateTo(`/series/${key}`);

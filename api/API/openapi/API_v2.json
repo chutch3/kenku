@@ -1906,6 +1906,19 @@
         }
       }
     },
+    "/v2/Maintenance/RefreshDiscoveryFeeds": {
+      "post": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "Enqueues the discovery feed refresh immediately (normally hourly via\nAPI.JobRuntime.Reconcilers.DiscoveryFeedReconciler) — lets an empty or stale feed rail be diagnosed live.",
+        "responses": {
+          "200": {
+            "description": "Refresh job enqueued"
+          }
+        }
+      }
+    },
     "/v2/Maintenance/ResolveMissingVolumes": {
       "post": {
         "tags": [
@@ -7491,6 +7504,13 @@
             "type": "boolean"
           },
           "discoveryGenres": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "discoveryFeeds": {
             "type": "array",
             "items": {
               "type": "string"

@@ -50,6 +50,7 @@ public class SettingsControllerTests : IDisposable
         Assert.Single(ok.Value.DownloadClients);
         Assert.Equal("qbit", ok.Value.DownloadClients[0].Name);
         Assert.Equal(["Action", "Romance"], ok.Value.DiscoveryGenres);
+        Assert.Equal(["manga", "comicbooks"], ok.Value.DiscoveryFeeds);
     }
 
     [Fact]

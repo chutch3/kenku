@@ -19,6 +19,9 @@
             <UButton icon="i-lucide-eraser" variant="soft" loading-auto class="w-fit" @click="run('/v2/Maintenance/PruneCompletedJobs', 'Job pruning queued')">
                 Prune completed jobs
             </UButton>
+            <UButton icon="i-lucide-rss" variant="soft" loading-auto class="w-fit" @click="run('/v2/Maintenance/RefreshDiscoveryFeeds', 'Discovery feed refresh queued')">
+                Refresh discovery feeds
+            </UButton>
         </div>
         <div class="flex items-end gap-2">
             <UFormField label="Completed-job retention (days)" description="Succeeded and cancelled jobs older than this are pruned; jobs needing attention are always kept.">

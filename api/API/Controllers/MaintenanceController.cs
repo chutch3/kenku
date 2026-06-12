@@ -92,6 +92,19 @@ public class MaintenanceController(SeriesContext mangaContext, ActionsContext ac
     }
 
     /// <summary>
+    /// Enqueues the discovery feed refresh immediately (normally hourly via
+    /// <see cref="DiscoveryFeedReconciler"/>) — lets an empty or stale feed rail be diagnosed live.
+    /// </summary>
+    /// <response code="200">Refresh job enqueued</response>
+    [HttpPost("RefreshDiscoveryFeeds")]
+    [ProducesResponseType(Status200OK)]
+    public async Task<Ok> RefreshDiscoveryFeeds([FromServices] IJobStore jobStore, [FromServices] IClock clock)
+    {
+        await DiscoveryFeedReconciler.EnqueueAsync(jobStore, clock.UtcNow, HttpContext.RequestAborted);
+        return TypedResults.Ok();
+    }
+
+    /// <summary>
     /// Enqueues a ResolveSeriesVolumes job for each series with unresolved chapter volumes.
     /// </summary>
     /// <response code="200">Resolve jobs enqueued</response>

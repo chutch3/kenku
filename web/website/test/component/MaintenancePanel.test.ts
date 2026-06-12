@@ -15,6 +15,7 @@ for (const task of [
     'SyncChapterFileNames',
     'ResetAndResolveVolumes',
     'PruneCompletedJobs',
+    'RefreshDiscoveryFeeds',
 ]) {
     registerEndpoint(`/v2/Maintenance/${task}`, {
         method: 'POST',
@@ -57,6 +58,7 @@ describe('MaintenancePanel', () => {
             ['Resolve missing volumes', 'ResolveMissingVolumes'],
             ['Sync file names', 'SyncChapterFileNames'],
             ['Prune completed jobs', 'PruneCompletedJobs'],
+            ['Refresh discovery feeds', 'RefreshDiscoveryFeeds'],
         ];
         for (const [label, task] of buttons) {
             const button = findButton(label);

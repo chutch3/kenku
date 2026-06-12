@@ -39,6 +39,20 @@ public class MaintenanceControllerTests
     }
 
     [Fact]
+    public async Task RefreshDiscoveryFeeds_EnqueuesTheDedupedRefreshJob()
+    {
+        var (mangaCtx, actionsCtx) = CreateContexts();
+        var store = new InMemoryJobStore();
+
+        await CreateController(mangaCtx, actionsCtx).RefreshDiscoveryFeeds(store, new API.Tests.Unit.JobRuntime.FakeClock());
+        await CreateController(mangaCtx, actionsCtx).RefreshDiscoveryFeeds(store, new API.Tests.Unit.JobRuntime.FakeClock());
+
+        var job = Assert.Single(await store.GetAllAsync());
+        Assert.Equal(RefreshDiscoveryFeedHandler.Type, job.Type);
+        Assert.Equal(API.JobRuntime.Reconcilers.DiscoveryFeedReconciler.DedupKey, job.DedupKey);
+    }
+
+    [Fact]
     public async Task CleanupActions_DeletesAllActions()
     {
         var (mangaCtx, actionsCtx) = CreateContexts();

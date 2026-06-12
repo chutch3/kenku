@@ -47,14 +47,16 @@ registerEndpoint('/v2/Discover/Manga/Genre/Horror', () => [
     { title: 'Uzumaki', coverUrl: '', url: 'https://anilist.co/manga/6', source: 'AniList', blurb: null },
 ]);
 let discoveryGenres = ['Action'];
+let feedEntries: object[] = [];
 registerEndpoint('/v2/Settings', () => ({
     apiKey: '',
     metronConfigured: false,
     discoveryGenres,
+    discoveryFeeds: ['manga', 'comicbooks'],
     syncedIndexers: [],
     downloadClients: [],
 }));
-registerEndpoint('/v2/Discover/Feed', () => []);
+registerEndpoint('/v2/Discover/Feed', () => feedEntries);
 registerEndpoint('/v2/Series', () => []);
 registerEndpoint('/v2/Search', async () => {
     // Small delay so tests can observe the modal's resolving state before the match lands.
@@ -91,8 +93,23 @@ describe('discover page', () => {
         mangaEntries = defaultManga;
         comicsEntries = defaultComics;
         discoveryGenres = ['Action'];
+        feedEntries = [];
         navigateToMock.mockClear();
         clearNuxtData();
+    });
+
+    it('explains an empty feed rail instead of hiding it silently', async () => {
+        await mountPage();
+
+        await vi.waitFor(() => expect(wrapper.text()).toContain('Nothing from the feeds yet'));
+    });
+
+    it('hides the empty-feed note once the feed has posts', async () => {
+        feedEntries = [{ title: 'A hot thread', coverUrl: '', url: 'https://reddit.test/1', source: 'r/manga', blurb: null }];
+        await mountPage();
+
+        await vi.waitFor(() => expect(wrapper.text()).toContain('A hot thread'));
+        expect(wrapper.text()).not.toContain('Nothing from the feeds yet');
     });
 
     it('reflects genre changes made in settings on the next visit', async () => {
