@@ -1,5 +1,6 @@
 using API.DownloadClients.Interfaces;
 using API.DownloadClients;
+using API.Indexers;
 using API.Schema.ActionsContext;
 using API.Schema.ActionsContext.Actions;
 using API.Schema.SeriesContext;
@@ -46,18 +47,67 @@ public class TorrentFinalizationService
             return;
         }
 
-        string? archive = Directory.EnumerateFiles(savePath, "*.cbz", SearchOption.AllDirectories).FirstOrDefault();
-        if (archive is null)
+        string[] archives = Directory.EnumerateFiles(savePath, "*.cbz", SearchOption.AllDirectories).ToArray();
+        if (archives.Length == 0)
         {
             Log.ErrorFormat("Torrent completed at {0} but contains no .cbz; cannot finalise {1}.", savePath, chapter);
             return;
         }
 
+        // A single archive is what the release was selected for — trust the selection. Multiple
+        // archives mean a pack: fan each file out to the chapter its filename parses to, so one
+        // pack download fulfils the whole run (other chapters' pending jobs no-op on Downloaded).
+        int placed;
+        if (archives.Length == 1)
+        {
+            placed = Place(archives[0], chapter, settings, actionsContext) ? 1 : 0;
+        }
+        else
+        {
+            List<Chapter> seriesChapters = await seriesContext.Chapters
+                .Where(c => c.ParentMangaId == chapter.ParentMangaId && !c.Downloaded)
+                .ToListAsync(ct);
+            placed = 0;
+            foreach (string archive in archives)
+            {
+                ParsedRelease parsed = ReleaseTitleParser.Parse(Path.GetFileNameWithoutExtension(archive));
+                // Same-series check keeps a pack's extras/specials from claiming a main-run issue number.
+                if (parsed.IssueNumber is null) continue;
+                if (!string.Equals(parsed.SeriesTitle, chapter.ParentManga.Name, StringComparison.OrdinalIgnoreCase)) continue;
+                Chapter? target = seriesChapters.FirstOrDefault(c => c.ChapterNumber == parsed.IssueNumber && !c.Downloaded);
+                if (target is null) continue;
+                if (Place(archive, target, settings, actionsContext)) placed++;
+            }
+        }
+
+        if (placed == 0)
+        {
+            Log.ErrorFormat("Torrent at {0} contained {1} archive(s) but none could be placed for {2}; leaving it for inspection.",
+                savePath, archives.Length, chapter);
+            return;
+        }
+
+        var syncs = await Task.WhenAll(
+            seriesContext.Sync(ct, typeof(TorrentFinalizationService), nameof(FinalizeAsync)),
+            actionsContext.Sync(ct, typeof(TorrentFinalizationService), nameof(FinalizeAsync)));
+        foreach (var s in syncs)
+            if (!s.success) Log.ErrorFormat("Sync failed during torrent finalise: {0}", s.exceptionMessage);
+
+        // Hand the torrent back to the client for removal; keep the seeded data on disk in case the user
+        // has ratio targets. The .cbz files themselves we already moved out.
+        await downloadClient.Remove(sourceIdKey, deleteData: false, ct);
+
+        Log.InfoFormat("Finalised torrent for {0}: placed {1} chapter file(s).", chapter.ParentManga.Name, placed);
+    }
+
+    /// <summary>Moves one archive into <paramref name="chapter"/>'s publication path and marks it downloaded.</summary>
+    private static bool Place(string archive, Chapter chapter, KenkuSettings settings, ActionsContext actionsContext)
+    {
         string? targetPath = chapter.GetFullFilepath(settings.ChapterNamingScheme);
         if (targetPath is null)
         {
-            Log.ErrorFormat("Could not resolve a target path for {0}; cannot finalise.", chapter);
-            return;
+            Log.ErrorFormat("Could not resolve a target path for {0}; cannot place {1}.", chapter, archive);
+            return false;
         }
 
         string? targetDir = Path.GetDirectoryName(targetPath);
@@ -71,24 +121,12 @@ public class TorrentFinalizationService
         catch (Exception ex)
         {
             Log.ErrorFormat("Failed to move {0} → {1}: {2}", archive, targetPath, ex);
-            return;
+            return false;
         }
 
         chapter.Downloaded = true;
         chapter.FileName = new FileInfo(targetPath).Name;
-
         actionsContext.Actions.Add(new ChapterDownloadedActionRecord(chapter.ParentManga, chapter));
-
-        var syncs = await Task.WhenAll(
-            seriesContext.Sync(ct, typeof(TorrentFinalizationService), nameof(FinalizeAsync)),
-            actionsContext.Sync(ct, typeof(TorrentFinalizationService), nameof(FinalizeAsync)));
-        foreach (var s in syncs)
-            if (!s.success) Log.ErrorFormat("Sync failed during torrent finalise: {0}", s.exceptionMessage);
-
-        // Hand the torrent back to the client for removal; keep the seeded data on disk in case the user
-        // has ratio targets. The .cbz itself we already moved out.
-        await downloadClient.Remove(sourceIdKey, deleteData: false, ct);
-
-        Log.InfoFormat("Finalised torrent for {0} ch.{1} → {2}", chapter.ParentManga.Name, chapter.ChapterNumber, targetPath);
+        return true;
     }
 }

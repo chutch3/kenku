@@ -35,7 +35,7 @@ public class TorrentFinalizationServiceTests : IDisposable
         try { Directory.Delete(_root, recursive: true); } catch { /* best effort */ }
     }
 
-    private async Task<(Chapter chapter, SourceId<Chapter> chId)> Seed()
+    private async Task<(Chapter chapter, SourceId<Chapter> chId)> Seed(params string[] extraChapterNumbers)
     {
         var library = new FileLibrary(Path.Combine(_root, "library"), "Lib");
         _seriesContext.FileLibraries.Add(library);
@@ -45,16 +45,21 @@ public class TorrentFinalizationServiceTests : IDisposable
         _seriesContext.Chapters.Add(chapter);
         var chId = new SourceId<Chapter>(chapter, "FakeTorrent", "60", "magnet:?xt=urn:btih:abc", true);
         _seriesContext.MangaConnectorToChapter.Add(chId);
+        foreach (string number in extraChapterNumbers)
+            _seriesContext.Chapters.Add(new Chapter(series, number, null, null));
         await _seriesContext.SaveChangesAsync();
         return (chapter, chId);
     }
 
-    private string SavePathWithCbz()
+    private string SavePathWithCbz(params string[] fileNames)
     {
         string savePath = Path.Combine(_root, "torrent-out");
         Directory.CreateDirectory(savePath);
-        using var zip = ZipFile.Open(Path.Combine(savePath, "saga-60.cbz"), ZipArchiveMode.Create);
-        zip.CreateEntry("0.jpg");
+        foreach (string fileName in fileNames.DefaultIfEmpty("saga-60.cbz"))
+        {
+            using var zip = ZipFile.Open(Path.Combine(savePath, fileName), ZipArchiveMode.Create);
+            zip.CreateEntry("0.jpg");
+        }
         return savePath;
     }
 
@@ -77,6 +82,49 @@ public class TorrentFinalizationServiceTests : IDisposable
         Assert.True(File.Exists(chapter.GetFullFilepath(settings.ChapterNamingScheme)!));
         Assert.False(File.Exists(Path.Combine(savePath, "saga-60.cbz")), "source .cbz should be moved, not copied");
         torrent.Verify(t => t.Remove(chId.Key, false, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Finalize_FansAPackTorrentOutToItsChapters()
+    {
+        var (chapter, chId) = await Seed("58", "59");
+        string savePath = SavePathWithCbz(
+            "Saga 058 (2018) (digital).cbz",
+            "Saga 059 (2018) (digital).cbz",
+            "Saga 060 (2018) (digital).cbz");
+        var settings = new KenkuSettings { AppData = _root, ChapterNamingScheme = "%M - Ch.%C" };
+
+        var torrent = new Mock<IDownloadClient>();
+
+        await new TorrentFinalizationService().FinalizeAsync(
+            _seriesContext, _actionsContext, torrent.Object, settings, chId.Key, savePath, CancellationToken.None);
+
+        var chapters = await _seriesContext.Chapters.ToListAsync();
+        Assert.All(chapters, c => Assert.True(c.Downloaded, $"ch.{c.ChapterNumber} should be downloaded"));
+        Assert.All(chapters, c => Assert.True(File.Exists(c.GetFullFilepath(settings.ChapterNamingScheme)!)));
+        Assert.Equal(3, (await _actionsContext.Actions.ToListAsync()).Count);
+        torrent.Verify(t => t.Remove(chId.Key, false, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Finalize_LeavesPackFilesThatMatchNoChapter()
+    {
+        // Chapter "1" exists, so "Some Other Book 001" would claim it if files weren't checked
+        // against the series name.
+        var (chapter, chId) = await Seed("1");
+        string savePath = SavePathWithCbz(
+            "Saga 060 (2018) (digital).cbz",
+            "Saga 099 (2024) (digital).cbz",          // no chapter 99 tracked
+            "Some Other Book 001 (2020).cbz");        // different series — never claimed
+        var settings = new KenkuSettings { AppData = _root, ChapterNamingScheme = "%M - Ch.%C" };
+
+        await new TorrentFinalizationService().FinalizeAsync(
+            _seriesContext, _actionsContext, new Mock<IDownloadClient>().Object, settings, chId.Key, savePath, CancellationToken.None);
+
+        Assert.True((await _seriesContext.Chapters.FirstAsync(c => c.Key == chapter.Key)).Downloaded);
+        Assert.False((await _seriesContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).Downloaded);
+        Assert.True(File.Exists(Path.Combine(savePath, "Saga 099 (2024) (digital).cbz")));
+        Assert.True(File.Exists(Path.Combine(savePath, "Some Other Book 001 (2020).cbz")));
     }
 
     [Fact]
