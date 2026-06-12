@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v0.21.0 (2026-06-12)
+
+### Bug Fixes
+
+- Stale discover resolution can no longer hijack the add modal for another card
+  ([`1452747`](https://github.com/chutch3/kenku/commit/1452747aaa937138625f2f1c989a0c6921615c9c))
+
+### Features
+
+- Discover add modal opens instantly and resolves inside with search fallback
+  ([`580155f`](https://github.com/chutch3/kenku/commit/580155fa041bec9c11a959c8ce823ee22144409f))
+
+- Scope global search by content type and optionally skip torrent indexers
+  ([`f30e8ee`](https://github.com/chutch3/kenku/commit/f30e8ee2a0fe0596b81c88b2c5711c536427dc3e))
+
+
 ## v0.20.0 (2026-06-12)
 
 ### Features
