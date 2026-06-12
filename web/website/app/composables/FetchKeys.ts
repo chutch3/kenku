@@ -11,6 +11,7 @@ export const FetchKeys = {
     Settings: { All: 'Settings', DownloadLanguage: 'Settings/DownloadLanguage', JobRetention: 'Settings/JobRetention' },
     Actions: { Types: 'Actions/Types', Page: (filter: ActionsFilterRecord, page: number) => `Actions/${JSON.stringify(filter)}/${page}` },
     JobQueue: { All: 'JobQueue' },
+    Torrents: 'Torrents',
     NotificationConnectors: { All: 'All' },
     Version: 'Version',
     Discover: {

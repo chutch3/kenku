@@ -6,6 +6,7 @@
             </UTooltip>
         </template>
         <ActivityTabs active="operations" class="mb-3" />
+        <TorrentsPanel class="mb-3" />
         <QueueList />
     </KenkuPage>
 </template>
@@ -13,7 +14,7 @@
 <script setup lang="ts">
 const toast = useToast();
 const reload = async () => {
-    await refreshNuxtData(FetchKeys.JobQueue.All);
+    await refreshNuxtData([FetchKeys.JobQueue.All, FetchKeys.Torrents]);
     toast.add({ title: 'Queue refreshed', icon: 'i-lucide-check', color: 'neutral', duration: 1500 });
 };
 defineShortcuts({ meta_r: { usingInput: true, handler: reload } });

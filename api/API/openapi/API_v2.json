@@ -5265,6 +5265,29 @@
         }
       }
     },
+    "/v2/Torrents": {
+      "get": {
+        "tags": [
+          "Torrents"
+        ],
+        "summary": "Downloads currently in the torrent client, with live progress and seeders.",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TorrentResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/Version": {
       "get": {
         "tags": [
@@ -7552,6 +7575,37 @@
         "additionalProperties": false,
         "description": "A synced indexer without its API key. CooldownUntil is set while the indexer is\n            rate-limited (HTTP 429) and skipped from searches."
       },
+      "TorrentResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "tag": {
+            "type": "string",
+            "nullable": true
+          },
+          "state": {
+            "type": "string",
+            "nullable": true
+          },
+          "progress": {
+            "type": "number",
+            "format": "double"
+          },
+          "seeders": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "One download as the torrent client reports it, for the activity page."
+      },
       "UnbundleJobResult": {
         "type": "object",
         "properties": {
@@ -7756,6 +7810,9 @@
     },
     {
       "name": "Settings"
+    },
+    {
+      "name": "Torrents"
     },
     {
       "name": "Version"
