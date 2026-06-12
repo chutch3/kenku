@@ -49,6 +49,7 @@ public class SettingsControllerTests : IDisposable
         Assert.Equal("Nyaa", ok.Value.SyncedIndexers[0].Name);
         Assert.Single(ok.Value.DownloadClients);
         Assert.Equal("qbit", ok.Value.DownloadClients[0].Name);
+        Assert.Equal(["Action", "Romance"], ok.Value.DiscoveryGenres);
     }
 
     [Fact]
@@ -344,5 +345,16 @@ public class SettingsControllerTests : IDisposable
         var result = CreateController().SetReleaseSelection(new ReleaseSelectionRecord(-1, [], []));
 
         Assert.IsType<BadRequest<string>>(result.Result);
+    }
+
+    [Fact]
+    public void SetDiscoveryGenres_TrimsDedupesAndPersists()
+    {
+        Directory.CreateDirectory(_settings.WorkingDirectory);
+
+        CreateController().SetDiscoveryGenres([" Action ", "action", "Romance", "  "]);
+
+        Assert.Equal(["Action", "Romance"], _settings.DiscoveryGenres);
+        Assert.Contains("Romance", File.ReadAllText(_settings.SettingsFilePath));
     }
 }

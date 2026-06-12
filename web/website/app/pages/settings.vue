@@ -215,6 +215,16 @@
                     </div>
                 </template>
 
+                <!-- DISCOVERY -->
+                <template #discovery>
+                    <UCard class="max-w-3xl">
+                        <template #header>
+                            <SettingsHeader title="Discovery" subtitle="What shows up on the Discover page." />
+                        </template>
+                        <DiscoveryGenresField />
+                    </UCard>
+                </template>
+
                 <!-- NOTIFICATIONS -->
                 <template #notifications>
                     <UCard class="max-w-3xl">
@@ -391,6 +401,7 @@ const deCamel = (camel: string): string =>
 const tabs = [
     { label: 'Library', icon: 'i-lucide-folder-tree', slot: 'library' as const },
     { label: 'Downloading', icon: 'i-lucide-download', slot: 'downloading' as const },
+    { label: 'Discovery', icon: 'i-lucide-compass', slot: 'discovery' as const },
     { label: 'Notifications', icon: 'i-lucide-bell', slot: 'notifications' as const },
     { label: 'Maintenance', icon: 'i-lucide-wrench', slot: 'maintenance' as const },
 ];

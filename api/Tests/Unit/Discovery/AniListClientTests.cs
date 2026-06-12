@@ -20,9 +20,9 @@ public class AniListClientTests
     """;
 
     [Fact]
-    public void ParseTrending_MapsEntries_PreferringEnglishTitles()
+    public void ParseMedia_MapsEntries_PreferringEnglishTitles()
     {
-        List<DiscoveryEntry> entries = AniListClient.ParseTrending(TrendingJson);
+        List<DiscoveryEntry> entries = AniListClient.ParseMedia(TrendingJson);
 
         Assert.Equal(2, entries.Count);
         Assert.Equal("Pick Me Up", entries[0].Title);
@@ -36,8 +36,30 @@ public class AniListClientTests
     }
 
     [Fact]
-    public void ParseTrending_Throws_OnAnUnexpectedShape()
+    public void ParseMedia_Throws_OnAnUnexpectedShape()
     {
-        Assert.ThrowsAny<Exception>(() => AniListClient.ParseTrending("""{"errors":[{"message":"boom"}]}"""));
+        Assert.ThrowsAny<Exception>(() => AniListClient.ParseMedia("""{"errors":[{"message":"boom"}]}"""));
+    }
+
+    [Fact]
+    public void BuildRequestBody_OmitsAbsentFilters()
+    {
+        string body = AniListClient.BuildRequestBody(AniListShelf.Trending, 20);
+
+        Assert.Contains("TRENDING_DESC", body);
+        Assert.Contains("\"perPage\":20", body);
+        // GraphQL treats an unprovided nullable variable as "argument not supplied" — an explicit
+        // null would instead filter on genre being null.
+        Assert.DoesNotContain("genre", body.Split("variables")[1]);
+        Assert.DoesNotContain("startDateGreater", body.Split("variables")[1]);
+    }
+
+    [Fact]
+    public void BuildRequestBody_IncludesGenreAndFuzzyStartDate()
+    {
+        string body = AniListClient.BuildRequestBody(new AniListShelf("POPULARITY_DESC", Genre: "Action", MinStartYear: 2026), 10);
+
+        Assert.Contains("\"genre\":\"Action\"", body);
+        Assert.Contains("\"startDateGreater\":20260000", body);
     }
 }

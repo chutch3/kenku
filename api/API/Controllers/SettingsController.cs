@@ -318,6 +318,22 @@ public class SettingsController(KenkuSettings settings) : ControllerBase
     }
 
     /// <summary>
+    /// Sets the AniList genres shown as rails on the Discover page.
+    /// </summary>
+    /// <response code="200"></response>
+    [HttpPatch("DiscoveryGenres")]
+    [ProducesResponseType(Status200OK)]
+    public Ok SetDiscoveryGenres([FromBody] string[] genres)
+    {
+        settings.SetDiscoveryGenres(genres
+            .Select(g => g.Trim())
+            .Where(g => g.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList());
+        return TypedResults.Ok();
+    }
+
+    /// <summary>
     /// Sets Metron (metron.cloud) metadata credentials
     /// </summary>
     /// <response code="200"></response>

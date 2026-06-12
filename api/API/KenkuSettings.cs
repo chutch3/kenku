@@ -103,6 +103,9 @@ public class KenkuSettings
     /// <summary>Subreddits surfaced on the Discover page's feed rail.</summary>
     public List<string> DiscoveryFeeds { get; set; } = ["manga", "comicbooks"];
 
+    /// <summary>AniList genre names that each get their own rail on the Discover page.</summary>
+    public List<string> DiscoveryGenres { get; set; } = ["Action", "Romance"];
+
     /// <summary>
     /// Fallback comic category IDs for indexer searches, used ONLY for indexers that carry no
     /// categories of their own — an indexer's Prowlarr-synced / manually-configured categories take
@@ -325,6 +328,12 @@ public class KenkuSettings
         this.ReleaseMinSeeders = minSeeders;
         this.ReleasePreferredTokens = preferredTokens;
         this.ReleaseBlockedTokens = blockedTokens;
+        Save();
+    }
+
+    public void SetDiscoveryGenres(List<string> genres)
+    {
+        this.DiscoveryGenres = genres;
         Save();
     }
 

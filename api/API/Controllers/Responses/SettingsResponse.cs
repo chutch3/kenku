@@ -9,12 +9,14 @@ namespace API.Controllers.Responses;
 public record SettingsResponse(
     string ApiKey,
     bool MetronConfigured,
+    IReadOnlyList<string> DiscoveryGenres,
     IReadOnlyList<SyncedIndexerResponse> SyncedIndexers,
     IReadOnlyList<DownloadClientResponse> DownloadClients)
 {
     public static SettingsResponse From(KenkuSettings s, API.Indexers.IndexerCooldown cooldowns) => new(
         s.ApiKey,
         !string.IsNullOrWhiteSpace(s.MetronUsername),
+        s.DiscoveryGenres,
         s.SnapshotSyncedIndexers()
             .Select(i => new SyncedIndexerResponse(i.Id, i.Name, i.Url, i.Categories, i.Protocol, i.Enabled,
                 cooldowns.CooldownUntil(i.Name)))

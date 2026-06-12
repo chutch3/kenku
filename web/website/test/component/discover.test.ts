@@ -29,6 +29,22 @@ registerEndpoint('/v2/Discover/Manga', () => [
 registerEndpoint('/v2/Discover/Comics', () => [
     { title: 'Saga', coverUrl: '', url: 'https://getcomics.org/other-comics/saga-61-2025/', source: 'GetComics', blurb: null },
 ]);
+registerEndpoint('/v2/Discover/Manga/TopRated', () => [
+    { title: 'Vagabond', coverUrl: '', url: 'https://anilist.co/manga/3', source: 'AniList', blurb: null },
+]);
+registerEndpoint('/v2/Discover/Manga/New', () => [
+    { title: 'Kagurabachi', coverUrl: '', url: 'https://anilist.co/manga/4', source: 'AniList', blurb: null },
+]);
+registerEndpoint('/v2/Discover/Manga/Genre/Action', () => [
+    { title: 'Sakamoto Days', coverUrl: '', url: 'https://anilist.co/manga/5', source: 'AniList', blurb: null },
+]);
+registerEndpoint('/v2/Settings', () => ({
+    apiKey: '',
+    metronConfigured: false,
+    discoveryGenres: ['Action'],
+    syncedIndexers: [],
+    downloadClients: [],
+}));
 registerEndpoint('/v2/Discover/Feed', () => []);
 registerEndpoint('/v2/Series', () => []);
 registerEndpoint('/v2/Search', () => {
@@ -56,6 +72,17 @@ describe('discover page', () => {
         globalResults = [];
         navigateToMock.mockClear();
         document.body.innerHTML = '';
+    });
+
+    it('renders the top-rated, new-this-year, and configured genre rails', async () => {
+        const wrapper = await mountSuspended(Discover);
+
+        await vi.waitFor(() => {
+            expect(wrapper.text()).toContain('Vagabond');
+            expect(wrapper.text()).toContain('Kagurabachi');
+            expect(wrapper.text()).toContain('Sakamoto Days');
+        });
+        expect(wrapper.text()).toContain('Action');
     });
 
     it('resolves a fresh-comics card by post URL and opens the add modal in place', async () => {

@@ -25,6 +25,30 @@
                 :resolving="resolving"
                 @pick="(e) => pick(e, 'GetComics')"
                 @open="openSeries" />
+            <DiscoveryRail
+                title="New & popular"
+                subtitle="AniList · started this year"
+                :entries="newManga"
+                :library="library"
+                :resolving="resolving"
+                @pick="(e) => pick(e)"
+                @open="openSeries" />
+            <DiscoveryRail
+                title="Top rated"
+                subtitle="AniList · all-time"
+                :entries="topRated"
+                :library="library"
+                :resolving="resolving"
+                @pick="(e) => pick(e)"
+                @open="openSeries" />
+            <DiscoveryGenreRail
+                v-for="genre in genres"
+                :key="genre"
+                :genre="genre"
+                :library="library"
+                :resolving="resolving"
+                @pick="(e) => pick(e)"
+                @open="openSeries" />
             <DiscoveryRail title="From the feeds" subtitle="hot on reddit" :entries="feed" external />
 
             <div v-if="!loading && !manga?.length && !comics?.length && !feed?.length" class="flex flex-col items-center gap-3 py-16 text-center">
@@ -43,8 +67,12 @@ type Entry = components['schemas']['DiscoveryEntry'];
 
 const { data: manga, pending: mangaPending } = useApi('/v2/Discover/Manga', { key: FetchKeys.Discover.Manga, lazy: true, server: false });
 const { data: comics, pending: comicsPending } = useApi('/v2/Discover/Comics', { key: FetchKeys.Discover.Comics, lazy: true, server: false });
+const { data: newManga } = useApi('/v2/Discover/Manga/New', { key: FetchKeys.Discover.New, lazy: true, server: false });
+const { data: topRated } = useApi('/v2/Discover/Manga/TopRated', { key: FetchKeys.Discover.TopRated, lazy: true, server: false });
 const { data: feed } = useApi('/v2/Discover/Feed', { key: FetchKeys.Discover.Feed, lazy: true, server: false });
 const { data: library } = useApi('/v2/Series', { key: FetchKeys.Series.All, lazy: true, server: false });
+const { data: settings } = useApi('/v2/Settings', { key: FetchKeys.Settings.All, lazy: true, server: false });
+const genres = computed(() => settings.value?.discoveryGenres ?? []);
 
 const loading = computed(() => (mangaPending.value || comicsPending.value) && !manga.value?.length && !comics.value?.length);
 

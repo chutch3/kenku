@@ -15,7 +15,7 @@ namespace API.Controllers;
 [ApiVersion(2)]
 [ApiController]
 [Route("v{v:apiVersion}/[controller]")]
-public class DiscoverController(DiscoveryCache cache, KenkuSettings settings) : ControllerBase
+public class DiscoverController(DiscoveryCache cache, KenkuSettings settings, API.JobRuntime.Interfaces.IClock clock) : ControllerBase
 {
     private static readonly TimeSpan Ttl = TimeSpan.FromHours(1);
 
@@ -25,7 +25,41 @@ public class DiscoverController(DiscoveryCache cache, KenkuSettings settings) : 
     [ProducesResponseType<List<DiscoveryEntry>>(Status200OK, "application/json")]
     public async Task<Ok<List<DiscoveryEntry>>> GetTrendingManga([FromServices] IAniListClient aniList)
         => TypedResults.Ok(await cache.GetOrRefreshAsync("anilist-trending", Ttl,
-            () => aniList.GetTrendingMangaAsync(20, HttpContext.RequestAborted)));
+            () => aniList.GetMangaListAsync(AniListShelf.Trending, 20, HttpContext.RequestAborted)));
+
+    /// <summary>All-time highest-rated manga on AniList.</summary>
+    /// <response code="200"></response>
+    [HttpGet("Manga/TopRated")]
+    [ProducesResponseType<List<DiscoveryEntry>>(Status200OK, "application/json")]
+    public async Task<Ok<List<DiscoveryEntry>>> GetTopRatedManga([FromServices] IAniListClient aniList)
+        => TypedResults.Ok(await cache.GetOrRefreshAsync("anilist-top-rated", Ttl,
+            () => aniList.GetMangaListAsync(AniListShelf.TopRated, 20, HttpContext.RequestAborted)));
+
+    /// <summary>Popular manga that started this year — the manga stand-in for a seasonal shelf.</summary>
+    /// <response code="200"></response>
+    [HttpGet("Manga/New")]
+    [ProducesResponseType<List<DiscoveryEntry>>(Status200OK, "application/json")]
+    public async Task<Ok<List<DiscoveryEntry>>> GetNewManga([FromServices] IAniListClient aniList)
+    {
+        int year = clock.UtcNow.Year;
+        return TypedResults.Ok(await cache.GetOrRefreshAsync($"anilist-new-{year}", Ttl,
+            () => aniList.GetMangaListAsync(AniListShelf.NewThisYear(year), 20, HttpContext.RequestAborted)));
+    }
+
+    /// <summary>Manga trending in one of the configured genres (<see cref="KenkuSettings.DiscoveryGenres"/>).</summary>
+    /// <response code="200"></response>
+    /// <response code="404">The genre is not configured — keeps the cache bounded to known rails.</response>
+    [HttpGet("Manga/Genre/{Genre}")]
+    [ProducesResponseType<List<DiscoveryEntry>>(Status200OK, "application/json")]
+    [ProducesResponseType(Status404NotFound)]
+    public async Task<Results<Ok<List<DiscoveryEntry>>, NotFound>> GetGenreManga(string Genre, [FromServices] IAniListClient aniList)
+    {
+        string? genre = settings.DiscoveryGenres.FirstOrDefault(g => g.Equals(Genre, StringComparison.OrdinalIgnoreCase));
+        if (genre is null)
+            return TypedResults.NotFound();
+        return TypedResults.Ok(await cache.GetOrRefreshAsync($"anilist-genre-{genre.ToLowerInvariant()}", Ttl,
+            () => aniList.GetMangaListAsync(AniListShelf.ForGenre(genre), 20, HttpContext.RequestAborted)));
+    }
 
     /// <summary>Fresh comics from the latest posts of archive sources (currently GetComics).</summary>
     /// <response code="200"></response>

@@ -3,6 +3,7 @@ using API.Controllers;
 using API.Discovery;
 using API.Tests.Unit.JobRuntime;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Xunit;
@@ -12,9 +13,10 @@ namespace API.Tests.Unit.Controllers;
 public class DiscoverControllerTests
 {
     private static readonly DiscoveryEntry Entry = new("Berserk", "c", "u", "AniList", null);
+    private static readonly FakeClock Clock = new(new DateTime(2026, 6, 12, 0, 0, 0, DateTimeKind.Utc));
 
     private static DiscoverController CreateController(KenkuSettings? settings = null) =>
-        new(new DiscoveryCache(new FakeClock(DateTime.UtcNow)), settings ?? new KenkuSettings())
+        new(new DiscoveryCache(Clock), settings ?? new KenkuSettings(), Clock)
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
         };
@@ -35,12 +37,60 @@ public class DiscoverControllerTests
     public async Task Manga_ReturnsTheTrendingRail()
     {
         var aniList = new Mock<IAniListClient>();
-        aniList.Setup(a => a.GetTrendingMangaAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+        aniList.Setup(a => a.GetMangaListAsync(AniListShelf.Trending, It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([Entry]);
 
         var ok = await CreateController().GetTrendingManga(aniList.Object);
 
         Assert.Equal("Berserk", Assert.Single(ok.Value!).Title);
+    }
+
+    [Fact]
+    public async Task TopRated_ReturnsTheTopRatedShelf()
+    {
+        var aniList = new Mock<IAniListClient>();
+        aniList.Setup(a => a.GetMangaListAsync(AniListShelf.TopRated, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([Entry]);
+
+        var ok = await CreateController().GetTopRatedManga(aniList.Object);
+
+        Assert.Equal("Berserk", Assert.Single(ok.Value!).Title);
+    }
+
+    [Fact]
+    public async Task New_RequestsPopularMangaStartedInTheClockYear()
+    {
+        var aniList = new Mock<IAniListClient>();
+        aniList.Setup(a => a.GetMangaListAsync(AniListShelf.NewThisYear(2026), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([Entry]);
+
+        var ok = await CreateController().GetNewManga(aniList.Object);
+
+        Assert.Equal("Berserk", Assert.Single(ok.Value!).Title);
+    }
+
+    [Fact]
+    public async Task Genre_ServesAConfiguredGenre_CaseInsensitively()
+    {
+        var settings = new KenkuSettings { DiscoveryGenres = ["Action"] };
+        var aniList = new Mock<IAniListClient>();
+        aniList.Setup(a => a.GetMangaListAsync(AniListShelf.ForGenre("Action"), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([Entry]);
+
+        var result = await CreateController(settings).GetGenreManga("action", aniList.Object);
+
+        var ok = Assert.IsType<Ok<List<DiscoveryEntry>>>(result.Result);
+        Assert.Equal("Berserk", Assert.Single(ok.Value!).Title);
+    }
+
+    [Fact]
+    public async Task Genre_RejectsAnUnconfiguredGenre()
+    {
+        var settings = new KenkuSettings { DiscoveryGenres = ["Action"] };
+
+        var result = await CreateController(settings).GetGenreManga("Horror", new Mock<IAniListClient>().Object);
+
+        Assert.IsType<NotFound>(result.Result);
     }
 
     [Fact]

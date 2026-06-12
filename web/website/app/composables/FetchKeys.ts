@@ -13,5 +13,12 @@ export const FetchKeys = {
     JobQueue: { All: 'JobQueue' },
     NotificationConnectors: { All: 'All' },
     Version: 'Version',
-    Discover: { Manga: 'Discover/Manga', Comics: 'Discover/Comics', Feed: 'Discover/Feed' },
+    Discover: {
+        Manga: 'Discover/Manga',
+        Comics: 'Discover/Comics',
+        Feed: 'Discover/Feed',
+        TopRated: 'Discover/TopRated',
+        New: 'Discover/New',
+        Genre: (genre: string) => `Discover/Genre/${genre}`,
+    },
 };

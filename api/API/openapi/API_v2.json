@@ -823,6 +823,105 @@
         }
       }
     },
+    "/v2/Discover/Manga/TopRated": {
+      "get": {
+        "tags": [
+          "Discover"
+        ],
+        "summary": "All-time highest-rated manga on AniList.",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DiscoveryEntry"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Discover/Manga/New": {
+      "get": {
+        "tags": [
+          "Discover"
+        ],
+        "summary": "Popular manga that started this year — the manga stand-in for a seasonal shelf.",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DiscoveryEntry"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Discover/Manga/Genre/{Genre}": {
+      "get": {
+        "tags": [
+          "Discover"
+        ],
+        "summary": "Manga trending in one of the configured genres (API.KenkuSettings.DiscoveryGenres).",
+        "parameters": [
+          {
+            "name": "Genre",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DiscoveryEntry"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The genre is not configured — keeps the cache bounded to known rails.",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/Discover/Comics": {
       "get": {
         "tags": [
@@ -4825,6 +4924,55 @@
         }
       }
     },
+    "/v2/Settings/DiscoveryGenres": {
+      "patch": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Sets the AniList genres shown as rails on the Discover page.",
+        "requestBody": {
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/v2/Settings/Metron": {
       "patch": {
         "tags": [
@@ -7301,6 +7449,13 @@
           },
           "metronConfigured": {
             "type": "boolean"
+          },
+          "discoveryGenres": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
           },
           "syncedIndexers": {
             "type": "array",
