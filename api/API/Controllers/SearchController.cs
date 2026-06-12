@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using API.Acquirers;
 using API.Controllers.DTOs;
 using API.Connectors;
 using MangaConnectorImpl = API.Connectors.SeriesSource;
@@ -59,7 +60,7 @@ public class SearchController(
         {
             Global global => await global.SearchMangaScoped(Query, contentType, includeTorrents),
             _ when (contentType is not null && connector.ContentType != contentType)
-                   || (!includeTorrents && connector.Kind == Acquirers.AcquisitionKind.Torrent) => [],
+                   || (!includeTorrents && connector.Kind == AcquisitionKind.Torrent) => [],
             _ => await connector.SearchManga(Query),
         };
 

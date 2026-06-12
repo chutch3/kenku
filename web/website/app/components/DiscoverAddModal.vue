@@ -2,24 +2,23 @@
     <UModal v-model:open="open" :title="entry.title ?? 'Add series'">
         <template #body>
             <AddSeriesForm v-if="match" :series="match" @added="onFormAdded" />
-            <div v-else-if="failed" class="flex flex-col gap-3">
+            <div v-else class="flex flex-col gap-3">
                 <div class="flex gap-4">
                     <FallbackImage :src="entry.coverUrl" :alt="entry.title ?? ''" class="w-24 rounded-md shrink-0 self-start" />
-                    <p class="text-sm text-muted">
-                        Couldn't confidently match this on your sources — the full search lets you pick from every result.
-                    </p>
+                    <div class="flex flex-col gap-2 min-w-0">
+                        <p v-if="failed" class="text-sm text-muted">
+                            Couldn't confidently match this on your sources — the full search lets you pick from every result.
+                        </p>
+                        <template v-else>
+                            <p v-if="entry.blurb" class="text-sm text-muted line-clamp-4">{{ entry.blurb }}</p>
+                            <p class="text-sm flex items-center gap-1.5">
+                                <UIcon name="i-lucide-loader-circle" class="animate-spin text-secondary" />
+                                Finding it on your sources…
+                            </p>
+                        </template>
+                    </div>
                 </div>
-                <UButton icon="i-lucide-search" color="primary" class="w-fit" @click="openSearch">Search instead</UButton>
-            </div>
-            <div v-else class="flex gap-4">
-                <FallbackImage :src="entry.coverUrl" :alt="entry.title ?? ''" class="w-24 rounded-md shrink-0 self-start" />
-                <div class="flex flex-col gap-2 min-w-0">
-                    <p v-if="entry.blurb" class="text-sm text-muted line-clamp-4">{{ entry.blurb }}</p>
-                    <p class="text-sm flex items-center gap-1.5">
-                        <UIcon name="i-lucide-loader-circle" class="animate-spin text-secondary" />
-                        Finding it on your sources…
-                    </p>
-                </div>
+                <UButton v-if="failed" icon="i-lucide-search" color="primary" class="w-fit" @click="openSearch">Search instead</UButton>
             </div>
         </template>
     </UModal>
@@ -41,7 +40,7 @@ const emit = defineEmits<{ (e: 'added', series: MinimalSeries, payload: { librar
 const { searchByUrl, searchByConnector } = useSeriesSearch();
 
 // Cap the lookup well below the patience threshold — past it, the full search page is the better tool.
-const ResolveTimeoutMs = 8000;
+const RESOLVE_TIMEOUT_MS = 8000;
 
 const match = ref<MinimalSeries | null>(null);
 const failed = ref(false);
@@ -53,21 +52,25 @@ watch(
     open,
     async (isOpen) => {
         if (!isOpen) return;
+        const target = props.entry;
         match.value = null;
         failed.value = false;
         try {
             const found =
                 props.source && props.entry.url
-                    ? await searchByUrl(props.entry.url, { timeoutMs: ResolveTimeoutMs })
+                    ? await searchByUrl(props.entry.url, { timeoutMs: RESOLVE_TIMEOUT_MS })
                     : ((await searchByConnector('Global', props.entry.title ?? '', {
                           contentType: 'Manga',
                           includeTorrents: false,
-                          timeoutMs: ResolveTimeoutMs,
+                          timeoutMs: RESOLVE_TIMEOUT_MS,
                       })).find((s) => normalizeTitle(s.name) === normalizeTitle(props.entry.title)) ?? null);
+            // A close-and-reopen on another card mid-lookup means this result no longer owns the
+            // modal — applying it would put the wrong series behind the Add buttons.
+            if (props.entry !== target || !open.value) return;
             if (found) match.value = found;
             else failed.value = true;
         } catch {
-            failed.value = true;
+            if (props.entry === target && open.value) failed.value = true;
         }
     },
     { immediate: true }
