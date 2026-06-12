@@ -13,18 +13,18 @@
                 :href="external ? m.entry.url : undefined"
                 :target="external ? '_blank' : undefined"
                 rel="noopener"
-                class="kenku-lift relative w-28 shrink-0 text-left cursor-pointer group"
+                class="kenku-lift relative max-sm:w-[var(--mangacover-width-sm)] w-(--mangacover-width) shrink-0 text-left cursor-pointer group"
                 :title="m.entry.blurb ?? m.entry.title ?? undefined"
                 @click="onClick(m)">
                 <div
-                    class="relative h-40 w-28 rounded-lg overflow-clip ring-1"
+                    class="relative max-sm:h-[var(--mangacover-height-sm)] h-(--mangacover-height) max-sm:w-[var(--mangacover-width-sm)] w-(--mangacover-width) rounded-lg overflow-clip ring-1"
                     :class="m.inLibrary ? 'ring-jade-500/70' : 'ring-default'">
                     <FallbackImage
                         :src="m.entry.coverUrl"
                         :alt="m.entry.title ?? ''"
                         class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                    <div class="absolute inset-x-0 bottom-0 pt-8 pb-1.5 px-1.5 bg-gradient-to-t from-black/90 via-black/55 to-transparent">
-                        <p class="text-[0.7rem]/tight font-medium text-white line-clamp-3 [text-shadow:0_1px_8px_rgba(0,0,0,0.6)]">
+                    <div class="absolute inset-x-0 bottom-0 pt-10 pb-2 px-2 bg-gradient-to-t from-black/90 via-black/55 to-transparent">
+                        <p class="text-sm/tight font-medium text-white line-clamp-3 [text-shadow:0_1px_8px_rgba(0,0,0,0.6)]">
                             {{ m.entry.title }}
                         </p>
                     </div>
@@ -57,8 +57,9 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ (e: 'pick', entry: Entry): void; (e: 'open', seriesKey: string): void }>();
 
+// Library-sized covers make a long rail a wall — twelve is a browse.
 const marked = computed(() =>
-    (props.entries ?? []).map((entry) => ({
+    (props.entries ?? []).slice(0, 12).map((entry) => ({
         entry,
         inLibrary: props.external
             ? undefined

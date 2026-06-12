@@ -45,6 +45,15 @@ describe('DiscoveryRail', () => {
         expect(wrapper.text()).not.toContain('In library');
     });
 
+    it('caps a rail at twelve entries so it stays a browse, not a wall', async () => {
+        const many = Array.from({ length: 15 }, (_, i) => ({
+            title: `Title ${i}`, coverUrl: '', url: `https://anilist.co/manga/${i}`, source: 'AniList', blurb: null,
+        }));
+        const wrapper = await mountSuspended(DiscoveryRail, { props: { title: 'Trending', entries: many } });
+
+        expect(wrapper.findAll('button')).toHaveLength(12);
+    });
+
     it('renders nothing while empty', async () => {
         const wrapper = await mountSuspended(DiscoveryRail, { props: { title: 'Trending manga', entries: [] } });
 

@@ -6,25 +6,49 @@
             </p>
 
             <div v-if="loading" class="flex gap-3">
-                <USkeleton v-for="n in 8" :key="n" class="h-40 w-28 rounded-lg shrink-0" />
+                <USkeleton
+                    v-for="n in 6"
+                    :key="n"
+                    class="max-sm:h-[var(--mangacover-height-sm)] h-(--mangacover-height) max-sm:w-[var(--mangacover-width-sm)] w-(--mangacover-width) rounded-lg shrink-0" />
             </div>
 
-            <DiscoveryRail
-                v-for="rail in rails"
-                :key="rail.title"
-                :title="rail.title"
-                :subtitle="rail.subtitle"
-                :entries="rail.entries"
-                :library="library"
-                @pick="(e) => pick(e, rail.source)"
-                @open="openSeries" />
-            <DiscoveryGenreRail
-                v-for="genre in genres"
-                :key="genre"
-                :genre="genre"
-                :library="library"
-                @pick="(e) => pick(e)"
-                @open="openSeries" />
+            <section v-if="mangaRails.some((r) => r.entries?.length) || genres.length" class="flex flex-col gap-8">
+                <div class="flex items-center gap-3 -mb-2">
+                    <h2 class="font-display text-2xl font-bold text-highlighted">Manga</h2>
+                    <span class="h-px w-16 bg-vermillion-500 shadow-[0_0_8px_var(--color-vermillion-500)]" />
+                </div>
+                <DiscoveryRail
+                    v-for="rail in mangaRails"
+                    :key="rail.title"
+                    :title="rail.title"
+                    :subtitle="rail.subtitle"
+                    :entries="rail.entries"
+                    :library="library"
+                    @pick="(e) => pick(e)"
+                    @open="openSeries" />
+                <DiscoveryGenreRail
+                    v-for="genre in genres"
+                    :key="genre"
+                    :genre="genre"
+                    :library="library"
+                    @pick="(e) => pick(e)"
+                    @open="openSeries" />
+            </section>
+
+            <section v-if="comics?.length" class="flex flex-col gap-8">
+                <div class="flex items-center gap-3 -mb-2">
+                    <h2 class="font-display text-2xl font-bold text-highlighted">Comics</h2>
+                    <span class="h-px w-16 bg-vermillion-500 shadow-[0_0_8px_var(--color-vermillion-500)]" />
+                </div>
+                <DiscoveryRail
+                    title="Fresh releases"
+                    subtitle="GetComics · latest posts"
+                    :entries="comics"
+                    :library="library"
+                    @pick="(e) => pick(e, 'GetComics')"
+                    @open="openSeries" />
+            </section>
+
             <DiscoveryRail title="From the feeds" subtitle="hot on reddit" :entries="feed" external />
             <div v-if="feedStarved" class="flex items-center gap-2 text-xs text-muted">
                 <UIcon name="i-lucide-rss" />
@@ -62,9 +86,8 @@ const { data: library } = useApi('/v2/Series', { key: FetchKeys.Series.All, lazy
 const { data: settings } = useApi('/v2/Settings', { key: FetchKeys.Settings.All, lazy: true, server: false });
 const genres = computed(() => settings.value?.discoveryGenres ?? []);
 
-const rails = computed(() => [
-    { title: 'Trending manga', subtitle: 'AniList · right now', entries: manga.value },
-    { title: 'Fresh comics', subtitle: 'GetComics · latest posts', entries: comics.value, source: 'GetComics' },
+const mangaRails = computed(() => [
+    { title: 'Trending', subtitle: 'AniList · right now', entries: manga.value },
     { title: 'New & popular', subtitle: 'AniList · started this year', entries: newManga.value },
     { title: 'Top rated', subtitle: 'AniList · all-time', entries: topRated.value },
 ]);
@@ -73,7 +96,12 @@ const loading = computed(() => (mangaPending.value || comicsPending.value) && !m
 // Genre rails fetch inside their own components, so the page can't see their entries — any
 // configured genre suppresses the empty state rather than contradicting a populated rail.
 const empty = computed(
-    () => !loading.value && rails.value.every((r) => !r.entries?.length) && !feed.value?.length && !genres.value.length
+    () =>
+        !loading.value &&
+        mangaRails.value.every((r) => !r.entries?.length) &&
+        !comics.value?.length &&
+        !feed.value?.length &&
+        !genres.value.length
 );
 // An empty feed rail hides itself; with feeds configured that silence is undiagnosable — say why.
 const feedStarved = computed(

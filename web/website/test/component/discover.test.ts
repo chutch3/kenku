@@ -98,6 +98,15 @@ describe('discover page', () => {
         clearNuxtData();
     });
 
+    it('separates manga and comics recommendations under their own section headings', async () => {
+        await mountPage();
+
+        await vi.waitFor(() => expect(wrapper.text()).toContain('Berserk'));
+        const headings = wrapper.findAll('h2').map((h) => h.text());
+        expect(headings).toContain('Manga');
+        expect(headings).toContain('Comics');
+    });
+
     it('explains an empty feed rail instead of hiding it silently', async () => {
         await mountPage();
 
