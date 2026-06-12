@@ -1,10 +1,9 @@
 <template>
-    <div class="flex items-end gap-2">
-        <UFormField label="Genre rails" description="AniList genres that each get their own rail on the Discover page.">
-            <UInputTags v-model="genres" placeholder="Add a genre…" class="w-72" />
-        </UFormField>
-        <UButton variant="soft" loading-auto @click="save">Save</UButton>
-    </div>
+    <UFormField label="Genre rails" description="AniList genres that each get their own rail on the Discover page — changes apply immediately.">
+        <!-- add-on-blur: a half-typed genre commits when focus leaves the input instead of being
+             silently dropped; every committed change saves itself (no Save button to race). -->
+        <UInputTags v-model="genres" add-on-blur placeholder="Add a genre…" class="w-72" />
+    </UFormField>
 </template>
 
 <script setup lang="ts">
@@ -15,9 +14,13 @@ const { data: settings } = useApi('/v2/Settings', { key: FetchKeys.Settings.All,
 const genres = ref<string[]>([]);
 watch(settings, (s) => { if (s) genres.value = [...(s.discoveryGenres ?? [])]; }, { immediate: true });
 
-const save = async () => {
-    await $api('/v2/Settings/DiscoveryGenres', { method: 'PATCH', body: genres.value });
+// Self-stabilizing: edits that already match the saved list (initial load, post-save refresh) are
+// no-ops, so this can't loop with the settings watch above.
+watch(genres, async (next) => {
+    const saved = settings.value?.discoveryGenres ?? [];
+    if (next.length === saved.length && next.every((g, i) => g === saved[i])) return;
+    await $api('/v2/Settings/DiscoveryGenres', { method: 'PATCH', body: next });
     await refreshNuxtData(FetchKeys.Settings.All);
-    toast.add({ title: 'Discovery genres saved', icon: 'i-lucide-check', color: 'success' });
-};
+    toast.add({ title: 'Discovery genres saved', icon: 'i-lucide-check', color: 'success', duration: 1500 });
+});
 </script>

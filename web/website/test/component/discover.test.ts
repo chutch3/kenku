@@ -43,10 +43,14 @@ registerEndpoint('/v2/Discover/Manga/New', () => [
 registerEndpoint('/v2/Discover/Manga/Genre/Action', () => [
     { title: 'Sakamoto Days', coverUrl: '', url: 'https://anilist.co/manga/5', source: 'AniList', blurb: null },
 ]);
+registerEndpoint('/v2/Discover/Manga/Genre/Horror', () => [
+    { title: 'Uzumaki', coverUrl: '', url: 'https://anilist.co/manga/6', source: 'AniList', blurb: null },
+]);
+let discoveryGenres = ['Action'];
 registerEndpoint('/v2/Settings', () => ({
     apiKey: '',
     metronConfigured: false,
-    discoveryGenres: ['Action'],
+    discoveryGenres,
     syncedIndexers: [],
     downloadClients: [],
 }));
@@ -86,8 +90,22 @@ describe('discover page', () => {
         globalSearchQuery = null;
         mangaEntries = defaultManga;
         comicsEntries = defaultComics;
+        discoveryGenres = ['Action'];
         navigateToMock.mockClear();
         clearNuxtData();
+    });
+
+    it('reflects genre changes made in settings on the next visit', async () => {
+        await mountPage();
+        await vi.waitFor(() => expect(wrapper.text()).toContain('Sakamoto Days'));
+        wrapper.unmount();
+
+        // Genres edited elsewhere; revisiting Discover must not trust the warm cache.
+        discoveryGenres = ['Horror'];
+        await mountPage();
+
+        await vi.waitFor(() => expect(wrapper.text()).toContain('Uzumaki'));
+        expect(wrapper.text()).not.toContain('Sakamoto Days');
     });
 
     // Unmount before wiping the body — a live wrapper re-rendering against a wiped DOM throws.

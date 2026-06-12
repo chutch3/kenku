@@ -27,15 +27,15 @@ describe('DiscoveryGenresField', () => {
         clearNuxtData();
     });
 
-    it('shows the configured genres and saves the list', async () => {
+    it('shows the configured genres and saves as soon as one is committed', async () => {
         const wrapper = await mountSuspended(DiscoveryGenresField);
         await vi.waitFor(() => expect(wrapper.text()).toContain('Action'));
         expect(wrapper.text()).toContain('Romance');
 
-        const save = wrapper.findAll('button').find((b) => b.text().includes('Save'));
-        expect(save, 'save button').toBeTruthy();
-        await save!.trigger('click');
+        const input = wrapper.find('input');
+        await input.setValue('Horror');
+        await input.trigger('keydown', { key: 'Enter' });
 
-        await vi.waitFor(() => expect(patchedBody).toEqual(['Action', 'Romance']));
+        await vi.waitFor(() => expect(patchedBody).toEqual(['Action', 'Romance', 'Horror']));
     });
 });
