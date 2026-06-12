@@ -2,7 +2,7 @@
     <KenkuPage title="Discover">
         <div class="reveal flex flex-col gap-8 pt-1 pb-24">
             <p class="text-sm text-muted -mb-4">
-                What's moving right now — click anything new to search and add it; anything you already hoard opens in place.
+                What's moving right now — click anything new to add it; anything you already hoard opens in place.
             </p>
 
             <div v-if="loading" class="flex gap-3">
@@ -14,14 +14,16 @@
                 subtitle="AniList · right now"
                 :entries="manga"
                 :library="library"
-                @pick="(e) => goSearch(e.title ?? '')"
+                :resolving="resolving"
+                @pick="(e) => pick(e)"
                 @open="openSeries" />
             <DiscoveryRail
                 title="Fresh comics"
                 subtitle="GetComics · latest posts"
                 :entries="comics"
                 :library="library"
-                @pick="(e) => goSearch(e.title ?? '', 'GetComics')"
+                :resolving="resolving"
+                @pick="(e) => pick(e, 'GetComics')"
                 @open="openSeries" />
             <DiscoveryRail title="From the feeds" subtitle="hot on reddit" :entries="feed" external />
 
@@ -30,11 +32,15 @@
                 <p class="font-display text-lg text-highlighted">Nothing to show right now</p>
                 <p class="text-muted max-w-md">The discovery sources didn't answer — they're retried hourly, so check back soon.</p>
             </div>
+            <AddSeriesModal v-if="pendingAdd" v-model:open="addModalOpen" :series="pendingAdd" @added="onAdded" />
         </div>
     </KenkuPage>
 </template>
 
 <script setup lang="ts">
+import type { components } from '#open-fetch-schemas/api';
+type Entry = components['schemas']['DiscoveryEntry'];
+
 const { data: manga, pending: mangaPending } = useApi('/v2/Discover/Manga', { key: FetchKeys.Discover.Manga, lazy: true, server: false });
 const { data: comics, pending: comicsPending } = useApi('/v2/Discover/Comics', { key: FetchKeys.Discover.Comics, lazy: true, server: false });
 const { data: feed } = useApi('/v2/Discover/Feed', { key: FetchKeys.Discover.Feed, lazy: true, server: false });
@@ -45,6 +51,32 @@ const loading = computed(() => (mangaPending.value || comicsPending.value) && !m
 const goSearch = (title: string, source?: string) =>
     navigateTo(`/search?q=${encodeURIComponent(title)}${source ? `&source=${source}` : ''}`);
 const openSeries = (key: string) => navigateTo(`/series/${key}`);
+
+const { searchByUrl, searchByConnector } = useSeriesSearch();
+const { pendingAdd, addModalOpen, startAdd, onAdded } = useAddSeriesFlow();
+const resolving = ref<string | null>(null);
+
+// Click-to-add: resolve the card to a real connector series and pop the add modal in place.
+// Source rails (GetComics) resolve exactly via their post URL; AniList entries only have a title,
+// so anything short of a confident Global name match falls back to the prefilled search page.
+const pick = async (entry: Entry, source?: string) => {
+    if (resolving.value) return;
+    resolving.value = entry.url || entry.title || '';
+    try {
+        const match =
+            source && entry.url
+                ? await searchByUrl(entry.url)
+                : (await searchByConnector('Global', entry.title ?? '')).find(
+                      (s) => normalizeTitle(s.name) === normalizeTitle(entry.title)
+                  );
+        if (match) startAdd(match);
+        else await goSearch(entry.title ?? '', source);
+    } catch {
+        await goSearch(entry.title ?? '', source);
+    } finally {
+        resolving.value = null;
+    }
+};
 
 useHead({ title: 'Discover' });
 </script>

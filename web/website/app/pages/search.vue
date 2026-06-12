@@ -90,8 +90,6 @@ import type { components } from '#open-fetch-schemas/api';
 type MangaConnector = components['schemas']['SeriesSource'];
 type MinimalSeries = components['schemas']['MinimalSeries'];
 
-const { $api } = useNuxtApp();
-
 const gridClass =
     'grid min-sm:grid-cols-[repeat(auto-fill,_minmax(var(--mangacover-width),_1fr))] max-sm:grid-cols-[repeat(auto-fill,_minmax(var(--mangacover-width-sm),_1fr))] gap-4';
 
@@ -137,19 +135,16 @@ const performSearch = async () => {
     }
 };
 
+const { searchByUrl, searchByConnector } = useSeriesSearch();
 const search = async (q: string): Promise<MinimalSeries[]> => {
     if (isUrl(q)) {
-        const data = await $api('/v2/Search', { query: { url: JSON.stringify(q) } });
+        const data = await searchByUrl(q);
         if (!data) return [];
         connector.value = connectors.value?.find((c) => c.name == data.sourceIds[0]?.mangaConnectorName);
         return [data];
     }
     if (!selectedConnector.value?.name) return [];
-    const data = await $api('/v2/Search/{MangaConnectorName}/{Query}', {
-        path: { MangaConnectorName: selectedConnector.value.name, Query: q },
-        method: 'GET',
-    });
-    return data ?? [];
+    return await searchByConnector(selectedConnector.value.name, q);
 };
 
 // Deep links (e.g. Discover cards) land here with ?q= and optionally ?source=; run the search
@@ -164,32 +159,14 @@ onMounted(() => {
     performSearch();
 });
 
-const pendingAdd = ref<MinimalSeries | null>(null);
-const addModalOpen = ref(false);
-const toast = useToast();
+const { pendingAdd, addModalOpen, startAdd, onAdded } = useAddSeriesFlow();
 
 const openResult = (m: MinimalSeries) => {
     if (m.fileLibraryId) {
         navigateTo(`/series/${m.key}?return=${useRoute().fullPath}`);
         return;
     }
-    pendingAdd.value = m;
-    addModalOpen.value = true;
-};
-
-const onAdded = ({ libraryId, download }: { libraryId: string; download: boolean }) => {
-    const added = pendingAdd.value;
-    if (!added) return;
-    // Flip the card in place so the result shows its real tracked state without leaving the page.
-    added.fileLibraryId = libraryId;
-    if (added.sourceIds[0]) added.sourceIds[0].useForDownload = download;
-    refreshNuxtData([FetchKeys.Series.All, FetchKeys.Series.Rollup]);
-    toast.add({
-        title: download ? `Added ${added.name} — downloading` : `Added ${added.name}`,
-        icon: download ? 'i-lucide-cloud-download' : 'i-lucide-bookmark-plus',
-        color: 'success',
-        actions: [{ label: 'Open series', onClick: () => void navigateTo(`/series/${added.key}`) }],
-    });
+    startAdd(m);
 };
 
 useHead({ title: 'Search Series' });

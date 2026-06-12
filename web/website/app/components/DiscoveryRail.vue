@@ -35,6 +35,11 @@
                         size="sm"
                         icon="i-lucide-check"
                         class="absolute top-1 right-1">In library</UBadge>
+                    <div
+                        v-if="resolving && (m.entry.url || m.entry.title) === resolving"
+                        class="absolute inset-0 grid place-items-center bg-black/50">
+                        <UIcon name="i-lucide-loader-circle" class="size-6 animate-spin text-white" />
+                    </div>
                 </div>
             </component>
         </div>
@@ -54,21 +59,22 @@ const props = defineProps<{
     library?: MinimalSeries[] | null;
     /** Feed rails link out (reddit posts aren't series); series rails emit into the add flow. */
     external?: boolean;
+    /** Entry key (url, or title) currently resolving into the add flow — shows a spinner, blocks clicks. */
+    resolving?: string | null;
 }>();
 const emit = defineEmits<{ (e: 'pick', entry: Entry): void; (e: 'open', seriesKey: string): void }>();
 
-const norm = (s?: string | null) => (s ?? '').trim().toLowerCase();
 const marked = computed(() =>
     (props.entries ?? []).map((entry) => ({
         entry,
         inLibrary: props.external
             ? undefined
-            : (props.library ?? []).find((s) => s.fileLibraryId && norm(s.name) === norm(entry.title)),
+            : (props.library ?? []).find((s) => s.fileLibraryId && normalizeTitle(s.name) === normalizeTitle(entry.title)),
     }))
 );
 
 const onClick = (m: { entry: Entry; inLibrary?: MinimalSeries }) => {
-    if (props.external) return;
+    if (props.external || props.resolving) return;
     if (m.inLibrary) emit('open', m.inLibrary.key);
     else emit('pick', m.entry);
 };
