@@ -8,6 +8,38 @@ namespace API.Tests.Unit.Connectors;
 
 public class GlobalTests
 {
+    private static Mock<SeriesSource> Connector(KenkuSettings settings, string name, ContentType contentType,
+        API.Acquirers.AcquisitionKind kind, string resultName)
+    {
+        var mock = new Mock<SeriesSource>(name, new[] { "en" }, new[] { name + ".test" }, "icon", settings);
+        var manga = new Series(resultName, "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], []);
+        var id = new SourceId<Series>(manga, mock.Object, name + "-id", "url");
+        mock.Setup(c => c.SearchManga(It.IsAny<string>())).ReturnsAsync([(manga, id)]);
+        mock.Setup(c => c.ContentType).Returns(contentType);
+        mock.Setup(c => c.Kind).Returns(kind);
+        mock.Object.Enabled = true;
+        return mock;
+    }
+
+    [Fact]
+    public async Task SearchMangaScoped_FiltersByContentTypeAndSkipsTorrents()
+    {
+        var settings = new KenkuSettings { DownloadLanguage = "en" };
+        var services = new ServiceCollection();
+        services.AddSingleton(Connector(settings, "WeebCentral", ContentType.Manga, API.Acquirers.AcquisitionKind.ImageList, "Manga hit").Object);
+        services.AddSingleton(Connector(settings, "GetComics", ContentType.Comic, API.Acquirers.AcquisitionKind.DirectArchive, "Comic hit").Object);
+        services.AddSingleton(Connector(settings, "Indexers", ContentType.Comic, API.Acquirers.AcquisitionKind.Torrent, "Torrent hit").Object);
+        var global = new Global(settings, services.BuildServiceProvider());
+
+        var mangaOnly = await global.SearchMangaScoped("q", ContentType.Manga, includeTorrents: false);
+        var comicsNoTorrents = await global.SearchMangaScoped("q", ContentType.Comic, includeTorrents: false);
+        var everything = await global.SearchMangaScoped("q", null, includeTorrents: true);
+
+        Assert.Equal("Manga hit", Assert.Single(mangaOnly).Item1.Name);
+        Assert.Equal("Comic hit", Assert.Single(comicsNoTorrents).Item1.Name);
+        Assert.Equal(3, everything.Length);
+    }
+
     [Fact]
     public async Task SearchManga_SortsByDownloadLanguage()
     {

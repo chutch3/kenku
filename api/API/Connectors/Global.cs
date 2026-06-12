@@ -19,10 +19,23 @@ public class Global : SeriesSource
 
     public override AcquisitionKind Kind => AcquisitionKind.ImageList;
 
-        public override async Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName)
+    public override Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName) =>
+        SearchMangaScoped(mangaSearchName, contentType: null, includeTorrents: true);
+
+    /// <summary>
+    /// Search restricted to connectors of one content type, optionally skipping torrent indexers.
+    /// Discover's in-place add resolves through this: skipping the indexers keeps the click fast and
+    /// spends no indexer quota, and an AniList card can only ever match a manga source anyway.
+    /// </summary>
+    public async Task<(Series, SourceId<Series>)[]> SearchMangaScoped(string mangaSearchName,
+        ContentType? contentType, bool includeTorrents)
     {
-        Log.Debug("Searching Series on all enabled connectors:");
-        SeriesSource[] enabledConnectors = GetConnectors().Where(c => c.Enabled).ToArray();
+        Log.Debug("Searching Series on all enabled connectors in scope:");
+        SeriesSource[] enabledConnectors = GetConnectors()
+            .Where(c => c.Enabled
+                        && (contentType is null || c.ContentType == contentType)
+                        && (includeTorrents || c.Kind != AcquisitionKind.Torrent))
+            .ToArray();
         Log.Debug(string.Join(", ", enabledConnectors.Select(c => c.Name)));
 
         Task<(Series, SourceId<Series>)[]>[] tasks =

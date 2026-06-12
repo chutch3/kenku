@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using SchemaManga = API.Schema.SeriesContext.Series;
 using SchemaConnectorId = API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series>;
 
@@ -173,6 +174,57 @@ public class SearchControllerTests
         var ok = Assert.IsType<Ok<List<MinimalSeries>>>(result.Result);
         var searchResult = Assert.Single(ok.Value!);
         Assert.Equal("http://example.com/opm.jpg", searchResult.CoverUrl);
+    }
+
+    [Fact]
+    public async Task SearchManga_WithScope_SearchesOnlyMatchingConnectorsThroughGlobal()
+    {
+        using var ctx = CreateContext();
+        var settings = new KenkuSettings { DownloadLanguage = "en" };
+
+        var mangaSource = new Mock<API.Connectors.SeriesSource>("WeebCentral", new[] { "en" }, new[] { "weebcentral.com" }, "i", settings);
+        var manga = MakeTestManga("Manga hit");
+        mangaSource.Setup(c => c.SearchManga(It.IsAny<string>())).ReturnsAsync([(manga, MakeConnectorId(manga, "WeebCentral", "id1"))]);
+        mangaSource.Setup(c => c.ContentType).Returns(ContentType.Manga);
+        mangaSource.Setup(c => c.Kind).Returns(AcquisitionKind.ImageList);
+
+        var torrentSource = new Mock<API.Connectors.SeriesSource>("Indexers", new[] { "en" }, new[] { "" }, "i", settings);
+        var torrentHit = MakeTestManga("Torrent hit");
+        torrentSource.Setup(c => c.SearchManga(It.IsAny<string>())).ReturnsAsync([(torrentHit, MakeConnectorId(torrentHit, "Indexers", "id2"))]);
+        torrentSource.Setup(c => c.ContentType).Returns(ContentType.Comic);
+        torrentSource.Setup(c => c.Kind).Returns(AcquisitionKind.Torrent);
+
+        var services = new ServiceCollection();
+        services.AddSingleton(mangaSource.Object);
+        services.AddSingleton(torrentSource.Object);
+        var global = new Global(settings, services.BuildServiceProvider());
+
+        var controller = new SearchController(ctx, [global, mangaSource.Object, torrentSource.Object]);
+        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
+
+        var result = await controller.SearchManga("Global", "q", ContentType.Manga, includeTorrents: false);
+
+        var ok = Assert.IsType<Ok<List<MinimalSeries>>>(result.Result);
+        Assert.Equal("Manga hit", Assert.Single(ok.Value!).Name);
+        torrentSource.Verify(c => c.SearchManga(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SearchManga_WithScope_ReturnsEmptyForAMismatchedSingleConnector()
+    {
+        using var ctx = CreateContext();
+        var torrentSource = new Mock<API.Connectors.SeriesSource>("Indexers", new[] { "en" }, new[] { "" }, "i", new KenkuSettings());
+        torrentSource.Setup(c => c.ContentType).Returns(ContentType.Comic);
+        torrentSource.Setup(c => c.Kind).Returns(AcquisitionKind.Torrent);
+
+        var controller = new SearchController(ctx, [torrentSource.Object]);
+        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
+
+        var result = await controller.SearchManga("Indexers", "q", ContentType.Comic, includeTorrents: false);
+
+        var ok = Assert.IsType<Ok<List<MinimalSeries>>>(result.Result);
+        Assert.Empty(ok.Value!);
+        torrentSource.Verify(c => c.SearchManga(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]

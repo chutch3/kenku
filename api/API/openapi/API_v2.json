@@ -3077,6 +3077,23 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "contentType",
+            "in": "query",
+            "description": "Restrict the search to connectors of this content type",
+            "schema": {
+              "$ref": "#/components/schemas/ContentType"
+            }
+          },
+          {
+            "name": "includeTorrents",
+            "in": "query",
+            "description": "When false, torrent indexers are skipped — faster, and spends no indexer quota",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
           }
         ],
         "responses": {

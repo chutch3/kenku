@@ -37,6 +37,8 @@ public class SearchController(
     /// </summary>
     /// <param name="MangaConnectorName"><see cref="SeriesSource"/>.Name</param>
     /// <param name="Query">searchTerm</param>
+    /// <param name="contentType">Restrict the search to connectors of this content type</param>
+    /// <param name="includeTorrents">When false, torrent indexers are skipped — faster, and spends no indexer quota</param>
     /// <response code="200"><see cref="MinimalSeries"/> exert of <see cref="Schema.SeriesContext.Series"/></response>
     /// <response code="404"><see cref="SeriesSource"/> with Name not found</response>
     /// <response code="412"><see cref="SeriesSource"/> with Name is disabled</response>
@@ -44,14 +46,22 @@ public class SearchController(
     [ProducesResponseType<List<MinimalSeries>>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType(Status406NotAcceptable)]
-    public async Task<Results<Ok<List<MinimalSeries>>, NotFound<string>, StatusCodeHttpResult>> SearchManga(string MangaConnectorName, string Query)
+    public async Task<Results<Ok<List<MinimalSeries>>, NotFound<string>, StatusCodeHttpResult>> SearchManga(
+        string MangaConnectorName, string Query,
+        [FromQuery] ContentType? contentType = null, [FromQuery] bool includeTorrents = true)
     {
         if (connectors.FirstOrDefault(c => c.Name.Equals(MangaConnectorName, StringComparison.InvariantCultureIgnoreCase)) is not { } connector)
             return TypedResults.NotFound(nameof(MangaConnectorName));
         if (!connector.Enabled)
             return TypedResults.StatusCode(Status412PreconditionFailed);
 
-        (Series manga, Schema.SeriesContext.SourceId<Series> id)[] mangas = await connector.SearchManga(Query);
+        (Series manga, Schema.SeriesContext.SourceId<Series> id)[] mangas = connector switch
+        {
+            Global global => await global.SearchMangaScoped(Query, contentType, includeTorrents),
+            _ when (contentType is not null && connector.ContentType != contentType)
+                   || (!includeTorrents && connector.Kind == Acquirers.AcquisitionKind.Torrent) => [],
+            _ => await connector.SearchManga(Query),
+        };
 
         IEnumerable<MinimalSeries> result = mangas.Select(kv =>
         {
