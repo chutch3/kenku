@@ -16,7 +16,6 @@
                 :subtitle="rail.subtitle"
                 :entries="rail.entries"
                 :library="library"
-                :resolving="resolving"
                 @pick="(e) => pick(e, rail.source)"
                 @open="openSeries" />
             <DiscoveryGenreRail
@@ -24,7 +23,6 @@
                 :key="genre"
                 :genre="genre"
                 :library="library"
-                :resolving="resolving"
                 @pick="(e) => pick(e)"
                 @open="openSeries" />
             <DiscoveryRail title="From the feeds" subtitle="hot on reddit" :entries="feed" external />
@@ -34,7 +32,12 @@
                 <p class="font-display text-lg text-highlighted">Nothing to show right now</p>
                 <p class="text-muted max-w-md">The discovery sources didn't answer — they're retried hourly, so check back soon.</p>
             </div>
-            <AddSeriesModal v-if="pendingAdd" v-model:open="addModalOpen" :series="pendingAdd" @added="onAdded" />
+            <DiscoverAddModal
+                v-if="activeEntry"
+                v-model:open="addOpen"
+                :entry="activeEntry"
+                :source="activeSource"
+                @added="notifyAdded" />
         </div>
     </KenkuPage>
 </template>
@@ -66,34 +69,19 @@ const empty = computed(
     () => !loading.value && rails.value.every((r) => !r.entries?.length) && !feed.value?.length && !genres.value.length
 );
 
-const goSearch = (title: string, source?: string) =>
-    navigateTo(`/search?q=${encodeURIComponent(title)}${source ? `&source=${source}` : ''}`);
 const openSeries = (key: string) => navigateTo(`/series/${key}`);
 
-const { searchByUrl, searchByConnector } = useSeriesSearch();
-const { pendingAdd, addModalOpen, startAdd, onAdded } = useAddSeriesFlow();
-const resolving = ref<Entry | null>(null);
+// Click-to-add: the modal opens instantly with the entry's own details and resolves the real
+// connector series inside itself (DiscoverAddModal) — the click never waits on a search.
+const { notifyAdded } = useAddSeriesFlow();
+const activeEntry = ref<Entry | null>(null);
+const activeSource = ref<string | undefined>();
+const addOpen = ref(false);
 
-// Click-to-add: resolve the card to a real connector series and pop the add modal in place.
-// Source rails (GetComics) resolve exactly via their post URL; AniList entries only have a title,
-// so anything short of a confident Global name match falls back to the prefilled search page.
-const pick = async (entry: Entry, source?: string) => {
-    if (resolving.value) return;
-    resolving.value = entry;
-    try {
-        const match =
-            source && entry.url
-                ? await searchByUrl(entry.url)
-                : (await searchByConnector('Global', entry.title ?? '')).find(
-                      (s) => normalizeTitle(s.name) === normalizeTitle(entry.title)
-                  );
-        if (match) startAdd(match);
-        else await goSearch(entry.title ?? '', source);
-    } catch {
-        await goSearch(entry.title ?? '', source);
-    } finally {
-        resolving.value = null;
-    }
+const pick = (entry: Entry, source?: string) => {
+    activeEntry.value = entry;
+    activeSource.value = source;
+    addOpen.value = true;
 };
 
 useHead({ title: 'Discover' });

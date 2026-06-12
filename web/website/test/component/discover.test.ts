@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime';
 import { clearNuxtData } from '#imports';
-import { createError } from 'h3';
+import { createError, getQuery } from 'h3';
 import Discover from '~/pages/discover.vue';
 
 const { navigateToMock } = vi.hoisted(() => ({ navigateToMock: vi.fn() }));
@@ -23,6 +23,7 @@ const berserkSeries = { ...sagaSeries, key: 'berserk-key', name: 'Berserk' };
 
 let urlResolution: object | null = sagaSeries;
 let globalResults: object[] = [];
+let globalSearchQuery: Record<string, string> | null = null;
 let mangaEntries: object[] = [];
 let comicsEntries: object[] = [];
 
@@ -51,11 +52,16 @@ registerEndpoint('/v2/Settings', () => ({
 }));
 registerEndpoint('/v2/Discover/Feed', () => []);
 registerEndpoint('/v2/Series', () => []);
-registerEndpoint('/v2/Search', () => {
+registerEndpoint('/v2/Search', async () => {
+    // Small delay so tests can observe the modal's resolving state before the match lands.
+    await new Promise((r) => setTimeout(r, 50));
     if (urlResolution === null) throw createError({ statusCode: 500, statusMessage: 'resolution failed' });
     return urlResolution;
 });
-registerEndpoint('/v2/Search/Global/Berserk', () => globalResults);
+registerEndpoint('/v2/Search/Global/Berserk', (event) => {
+    globalSearchQuery = getQuery(event) as Record<string, string>;
+    return globalResults;
+});
 registerEndpoint('/v2/SeriesSource', () => [
     { key: 'Global', name: 'Global', enabled: true, iconUrl: '', supportedLanguages: ['en'], kind: 'ImageList', contentType: 'Manga' },
     { key: 'GetComics', name: 'GetComics', enabled: true, iconUrl: '', supportedLanguages: ['en'], kind: 'DirectArchive', contentType: 'Comic' },
@@ -77,6 +83,7 @@ describe('discover page', () => {
     beforeEach(() => {
         urlResolution = sagaSeries;
         globalResults = [];
+        globalSearchQuery = null;
         mangaEntries = defaultManga;
         comicsEntries = defaultComics;
         navigateToMock.mockClear();
@@ -109,40 +116,57 @@ describe('discover page', () => {
         expect(wrapper.text()).toContain('Action');
     });
 
-    it('resolves a fresh-comics card by post URL and opens the add modal in place', async () => {
+    it('opens the modal immediately and resolves the comic post inside it', async () => {
         await mountPage();
 
         await clickCard('Saga');
 
+        // Feedback is instant: the modal is up with the entry's details while the lookup runs.
+        await vi.waitFor(() => expect(document.body.textContent).toContain('Finding it on your sources'));
         await vi.waitFor(() => expect(document.body.textContent).toContain('Add & download'));
         expect(navigateToMock).not.toHaveBeenCalled();
     });
 
-    it('opens the add modal for a trending card whose title matches a Global hit', async () => {
+    it('resolves a trending card via a manga-only, torrent-free search', async () => {
         globalResults = [berserkSeries];
         await mountPage();
 
         await clickCard('Berserk');
 
         await vi.waitFor(() => expect(document.body.textContent).toContain('Add & download'));
+        expect(globalSearchQuery).toMatchObject({ contentType: 'Manga', includeTorrents: 'false' });
         expect(navigateToMock).not.toHaveBeenCalled();
     });
 
-    it('falls back to the prefilled search page when no Global hit matches the title', async () => {
+    it('offers the search page when no hit matches the title', async () => {
         globalResults = [{ ...berserkSeries, name: 'Berserk: The Prototype' }];
         await mountPage();
 
         await clickCard('Berserk');
 
+        const fallback = await vi.waitFor(() => {
+            const button = [...document.body.querySelectorAll('button')].find((b) => b.textContent?.includes('Search instead'));
+            expect(button, 'fallback button').toBeTruthy();
+            return button!;
+        });
+        fallback.click();
+
         await vi.waitFor(() => expect(navigateToMock).toHaveBeenCalledWith('/search?q=Berserk'));
         expect(document.body.textContent).not.toContain('Add & download');
     });
 
-    it('falls back to the source-scoped search page when URL resolution fails', async () => {
+    it('offers the source-scoped search page when URL resolution fails', async () => {
         urlResolution = null;
         await mountPage();
 
         await clickCard('Saga');
+
+        const fallback = await vi.waitFor(() => {
+            const button = [...document.body.querySelectorAll('button')].find((b) => b.textContent?.includes('Search instead'));
+            expect(button, 'fallback button').toBeTruthy();
+            return button!;
+        });
+        fallback.click();
 
         await vi.waitFor(() => expect(navigateToMock).toHaveBeenCalledWith('/search?q=Saga&source=GetComics'));
     });

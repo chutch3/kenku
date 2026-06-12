@@ -4,7 +4,6 @@
         subtitle="AniList · trending in genre"
         :entries="entries"
         :library="library"
-        :resolving="resolving"
         @pick="(e) => emit('pick', e)"
         @open="(k) => emit('open', k)" />
 </template>
@@ -14,7 +13,7 @@ import type { components } from '#open-fetch-schemas/api';
 type Entry = components['schemas']['DiscoveryEntry'];
 type MinimalSeries = components['schemas']['MinimalSeries'];
 
-const props = defineProps<{ genre: string; library?: MinimalSeries[] | null; resolving?: Entry | null }>();
+const props = defineProps<{ genre: string; library?: MinimalSeries[] | null }>();
 const emit = defineEmits<{ (e: 'pick', entry: Entry): void; (e: 'open', seriesKey: string): void }>();
 
 // One rail per configured genre, rendered in a list — so the fetch must not await.

@@ -35,11 +35,6 @@
                         size="sm"
                         icon="i-lucide-check"
                         class="absolute top-1 right-1">In library</UBadge>
-                    <div
-                        v-if="m.entry === resolving"
-                        class="absolute inset-0 grid place-items-center bg-black/50">
-                        <UIcon name="i-lucide-loader-circle" class="size-6 animate-spin text-white" />
-                    </div>
                 </div>
             </component>
         </div>
@@ -59,8 +54,6 @@ const props = defineProps<{
     library?: MinimalSeries[] | null;
     /** Feed rails link out (reddit posts aren't series); series rails emit into the add flow. */
     external?: boolean;
-    /** The entry currently resolving into the add flow (matched by identity) — shows a spinner, blocks clicks. */
-    resolving?: Entry | null;
 }>();
 const emit = defineEmits<{ (e: 'pick', entry: Entry): void; (e: 'open', seriesKey: string): void }>();
 
@@ -74,7 +67,7 @@ const marked = computed(() =>
 );
 
 const onClick = (m: { entry: Entry; inLibrary?: MinimalSeries }) => {
-    if (props.external || props.resolving) return;
+    if (props.external) return;
     if (m.inLibrary) emit('open', m.inLibrary.key);
     else emit('pick', m.entry);
 };
