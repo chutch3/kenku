@@ -950,7 +950,7 @@
         "tags": [
           "Discover"
         ],
-        "summary": "Hot posts from the configured subreddits. One rate-limited subreddit never empties the rail.",
+        "summary": "Hot posts from the configured subreddits, served from the database cache kept fresh by\nAPI.JobRuntime.Handlers.RefreshDiscoveryFeedHandler — so the rail survives\nreddit rate-limiting with its last good batch.",
         "responses": {
           "200": {
             "description": "",

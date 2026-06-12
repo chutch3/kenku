@@ -54,6 +54,8 @@ public static class ApplicationServiceCollectionExtensions
             options.UseNpgsql(connectionStringBuilder.ConnectionString));
         services.AddDbContext<Schema.JobsContext.JobsContext>(options =>
             options.UseNpgsql(connectionStringBuilder.ConnectionString));
+        services.AddDbContext<Schema.DiscoveryContext.DiscoveryContext>(options =>
+            options.UseNpgsql(connectionStringBuilder.ConnectionString));
         return services;
     }
 
@@ -164,6 +166,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddSingleton<IJobHandler, FinalizeTorrentHandler>();
         services.AddSingleton<IJobHandler, VerifyDownloadStateHandler>();
         services.AddSingleton<IJobHandler, MoveDataHandler>();
+        services.AddSingleton<IJobHandler, RefreshDiscoveryFeedHandler>();
         services.AddScoped<IJobStore, EfJobStore>();
         // Overall download concurrency is bounded by MaxConcurrentDownloads (per-host rate limiting is
         // separate, in RateLimitHandler); per-series fairness comes from the dispatcher's per-resource cap.
@@ -190,6 +193,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddHostedService<ChapterFilePlacementReconciler>();
         services.AddHostedService<CoverRefreshReconciler>();
         services.AddHostedService<DownloadStateReconciler>();
+        services.AddHostedService<DiscoveryFeedReconciler>();
         return services;
     }
 }

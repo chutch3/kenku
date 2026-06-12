@@ -88,7 +88,7 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
         {
             if (PostgresConnectionString is not null)
             {
-                // All five contexts go to Postgres: the production startup block (RunStartup=true) calls
+                // Every context goes to Postgres: the production startup block (RunStartup=true) calls
                 // MigrateAsync on every context, which an InMemory provider would reject — silently aborting
                 // startup and the reconcilers with it.
                 UseNpgsql<SeriesContext>(services, PostgresConnectionString, SeriesContextOptions.Configure);
@@ -96,6 +96,7 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
                 UseNpgsql<ActionsContext>(services, PostgresConnectionString);
                 UseNpgsql<NotificationsContext>(services, PostgresConnectionString);
                 UseNpgsql<LibraryContext>(services, PostgresConnectionString);
+                UseNpgsql<global::API.Schema.DiscoveryContext.DiscoveryContext>(services, PostgresConnectionString);
             }
             else
             {
@@ -104,6 +105,7 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
                 UseInMemory<LibraryContext>(services);
                 UseInMemory<ActionsContext>(services);
                 UseInMemory<global::API.Schema.JobsContext.JobsContext>(services);
+                UseInMemory<global::API.Schema.DiscoveryContext.DiscoveryContext>(services);
             }
 
             RouteOutboundHttp<MangaDexVolumeResolver>(services);

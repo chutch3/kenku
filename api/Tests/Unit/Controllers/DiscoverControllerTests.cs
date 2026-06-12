@@ -1,7 +1,9 @@
 using API.Connectors;
 using API.Controllers;
 using API.Discovery;
+using API.Schema.DiscoveryContext;
 using API.Tests.Unit.JobRuntime;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -108,18 +110,32 @@ public class DiscoverControllerTests
         Assert.Equal("FakeComics", Assert.Single(ok.Value!).Source);
     }
 
+    private static DiscoveryContext NewDiscoveryContext() =>
+        new(new DbContextOptionsBuilder<DiscoveryContext>()
+            .UseInMemoryDatabase("discover-feed-" + Guid.NewGuid().ToString("N")).Options);
+
     [Fact]
-    public async Task Feed_SurvivesARateLimitedSubreddit()
+    public async Task Feed_ServesCachedPostsInConfiguredRailOrder()
     {
-        var settings = new KenkuSettings { DiscoveryFeeds = ["limited", "manga"] };
-        var reddit = new Mock<IRedditFeedClient>();
-        reddit.Setup(r => r.GetHotAsync("limited", It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new HttpRequestException("429"));
-        reddit.Setup(r => r.GetHotAsync("manga", It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([Entry with { Source = "r/manga" }]);
+        var settings = new KenkuSettings { DiscoveryFeeds = ["manga", "comicbooks"] };
+        var ctx = NewDiscoveryContext();
+        ctx.Posts.AddRange(
+            new DiscoveryPost("comicbooks", 0, "Saga thread", "c", "u1", "r/comicbooks", null, Clock.UtcNow),
+            new DiscoveryPost("manga", 1, "Second manga thread", "c", "u2", "r/manga", null, Clock.UtcNow),
+            new DiscoveryPost("manga", 0, "First manga thread", "c", "u3", "r/manga", null, Clock.UtcNow));
+        await ctx.SaveChangesAsync();
 
-        var ok = await CreateController(settings).GetFeed(reddit.Object);
+        var ok = await CreateController(settings).GetFeed(ctx);
 
-        Assert.Equal("r/manga", Assert.Single(ok.Value!).Source);
+        Assert.Equal(["First manga thread", "Second manga thread", "Saga thread"],
+            ok.Value!.Select(e => e.Title));
+    }
+
+    [Fact]
+    public async Task Feed_IsEmptyBeforeTheFirstSuccessfulRefresh()
+    {
+        var ok = await CreateController(new KenkuSettings()).GetFeed(NewDiscoveryContext());
+
+        Assert.Empty(ok.Value!);
     }
 }

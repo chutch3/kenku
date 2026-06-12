@@ -1,6 +1,7 @@
 using API.Connectors;
 using API.Discovery;
 using Asp.Versioning;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using static Microsoft.AspNetCore.Http.StatusCodes;
@@ -74,19 +75,22 @@ public class DiscoverController(DiscoveryCache cache, KenkuSettings settings, AP
             return entries;
         }));
 
-    /// <summary>Hot posts from the configured subreddits. One rate-limited subreddit never empties the rail.</summary>
+    /// <summary>
+    /// Hot posts from the configured subreddits, served from the database cache kept fresh by
+    /// <see cref="API.JobRuntime.Handlers.RefreshDiscoveryFeedHandler"/> — so the rail survives
+    /// reddit rate-limiting with its last good batch.
+    /// </summary>
     /// <response code="200"></response>
     [HttpGet("Feed")]
     [ProducesResponseType<List<DiscoveryEntry>>(Status200OK, "application/json")]
-    public async Task<Ok<List<DiscoveryEntry>>> GetFeed([FromServices] IRedditFeedClient reddit)
-        => TypedResults.Ok(await cache.GetOrRefreshAsync("reddit-feed", Ttl, async () =>
-        {
-            var entries = new List<DiscoveryEntry>();
-            foreach (string subreddit in settings.DiscoveryFeeds)
-            {
-                try { entries.AddRange(await reddit.GetHotAsync(subreddit, 10, HttpContext.RequestAborted)); }
-                catch (Exception) { /* cached/empty beats a dead rail; reddit 429s freely */ }
-            }
-            return entries;
-        }));
+    public async Task<Ok<List<DiscoveryEntry>>> GetFeed([FromServices] API.Schema.DiscoveryContext.DiscoveryContext db)
+    {
+        var posts = await db.Posts.ToListAsync(HttpContext.RequestAborted);
+        return TypedResults.Ok(settings.DiscoveryFeeds
+            .SelectMany(rail => posts
+                .Where(p => p.Rail.Equals(rail, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(p => p.Position))
+            .Select(p => new DiscoveryEntry(p.Title, p.CoverUrl, p.Url, p.Source, p.Blurb))
+            .ToList());
+    }
 }

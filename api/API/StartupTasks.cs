@@ -81,6 +81,12 @@ public static class StartupTasks
                 Schema.JobsContext.JobsContext context = scope.ServiceProvider.GetRequiredService<Schema.JobsContext.JobsContext>();
                 await context.Database.MigrateAsync(CancellationToken.None);
             }
+
+            using (IServiceScope scope = app.Services.CreateScope())
+            {
+                Schema.DiscoveryContext.DiscoveryContext context = scope.ServiceProvider.GetRequiredService<Schema.DiscoveryContext.DiscoveryContext>();
+                await context.Database.MigrateAsync(CancellationToken.None);
+            }
         }
         catch (Exception e)
         {
