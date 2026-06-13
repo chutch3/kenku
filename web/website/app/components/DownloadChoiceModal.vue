@@ -46,10 +46,15 @@ watch(
     open,
     async (isOpen) => {
         if (!isOpen) return;
+        const target = props.sourceKey;
         options.value = null;
-        options.value = await $api('/v2/Chapters/{ChapterSourceKey}/DownloadOptions', {
+        const fetched = await $api('/v2/Chapters/{ChapterSourceKey}/DownloadOptions', {
             path: { ChapterSourceKey: props.sourceKey },
         });
+        // A close-and-reopen on another chapter mid-fetch means this response no longer owns the
+        // modal — showing it would offer the wrong chapter's downloads (same guard as DiscoverAddModal).
+        if (props.sourceKey !== target || !open.value) return;
+        options.value = fetched;
     },
     { immediate: true }
 );

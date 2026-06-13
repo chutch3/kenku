@@ -244,6 +244,9 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.ILates
     public override Task<Stream?> DownloadImage(string imageUrl, CancellationToken ct)
         => throw new NotSupportedException("GetComics (direct-archive) sources do not download images.");
 
+    private const string DownloadButtonsXPath =
+        "//div[contains(concat(' ', normalize-space(@class), ' '), ' aio-button-center ')]//a[@title]";
+
     private static readonly Regex PixeldrainShareUrl = new(@"^https?://pixeldrain\.com/u/([A-Za-z0-9]+)", RegexOptions.Compiled);
 
     /// <summary>
@@ -270,7 +273,7 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.ILates
         }
 
         (string Title, string Href)[] buttons = (doc.DocumentNode.SelectNodes(
-                    "//div[contains(concat(' ', normalize-space(@class), ' '), ' aio-button-center ')]//a[@title]")
+                    DownloadButtonsXPath)
                 ?? Enumerable.Empty<HtmlNode>())
             .Select(a => (Title: a.GetAttributeValue("title", "").Trim(), Href: a.GetAttributeValue("href", "")))
             .Where(b => b.Title.Length > 0 && b.Href.Length > 0)
@@ -309,7 +312,7 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.ILates
     {
         var options = new List<DownloadOption>();
         var anchors = doc.DocumentNode.SelectNodes(
-            "//div[contains(concat(' ', normalize-space(@class), ' '), ' aio-button-center ')]//a[@title]")
+            DownloadButtonsXPath)
             ?? Enumerable.Empty<HtmlNode>();
         int unlabeled = 0;
         foreach (HtmlNode anchor in anchors)

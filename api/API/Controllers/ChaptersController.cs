@@ -406,17 +406,24 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
         if (await context.MangaConnectorToChapter.Include(id => id.Obj)
                 .FirstOrDefaultAsync(id => id.Key == ChapterSourceKey, HttpContext.RequestAborted) is not { } chId)
             return TypedResults.NotFound(nameof(ChapterSourceKey));
+        return TypedResults.Ok(await ResolveDownloadOptions(chId));
+    }
+
+    /// <summary>Resolves a chapter's post live into its pickable downloads (shared by the options
+    /// endpoint and the pinned-download validation).</summary>
+    private async Task<DownloadOptionsResponse> ResolveDownloadOptions(API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter> chId)
+    {
         if (connectors.FirstOrDefault(c => c.Name.Equals(chId.MangaConnectorName, StringComparison.OrdinalIgnoreCase))
             is not IArchiveUrlResolver resolver)
-            return TypedResults.Ok(new DownloadOptionsResponse([], "this source resolves its downloads automatically"));
+            return new DownloadOptionsResponse([], "this source resolves its downloads automatically");
 
-        return TypedResults.Ok(await resolver.ResolveArchiveUrl(chId, HttpContext.RequestAborted) switch
+        return await resolver.ResolveArchiveUrl(chId, HttpContext.RequestAborted) switch
         {
             ArchiveResolution.Choice choice => new DownloadOptionsResponse(choice.Options, null),
             ArchiveResolution.Resolved resolved => new DownloadOptionsResponse([new DownloadOption("Download", resolved.Url, null)], null),
             ArchiveResolution.Manual manual => new DownloadOptionsResponse([], manual.Reason),
             _ => new DownloadOptionsResponse([], "unknown resolution"),
-        });
+        };
     }
 
     /// <summary>
@@ -440,16 +447,8 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
                 .FirstOrDefaultAsync(id => id.Key == ChapterSourceKey, HttpContext.RequestAborted) is not { } chId)
             return TypedResults.NotFound(nameof(ChapterSourceKey));
 
-        string[] offered = connectors.FirstOrDefault(c => c.Name.Equals(chId.MangaConnectorName, StringComparison.OrdinalIgnoreCase))
-                is IArchiveUrlResolver resolver
-            ? await resolver.ResolveArchiveUrl(chId, HttpContext.RequestAborted) switch
-            {
-                ArchiveResolution.Choice choice => choice.Options.Select(o => o.Url).ToArray(),
-                ArchiveResolution.Resolved resolved => [resolved.Url],
-                _ => [],
-            }
-            : [];
-        if (!offered.Contains(request.Url, StringComparer.Ordinal))
+        DownloadOptionsResponse offered = await ResolveDownloadOptions(chId);
+        if (!offered.Options.Any(o => o.Url == request.Url))
             return TypedResults.BadRequest("the post no longer offers that download — refresh the options");
 
         await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(

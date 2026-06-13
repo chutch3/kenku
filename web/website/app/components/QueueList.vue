@@ -74,6 +74,7 @@ const choiceOpen = ref(false);
 const canChooseDownload = (job: QueuedJob) =>
     job.type === 'DownloadChapter' && (job.status === 'Failed' || job.status === 'NeedsAttention');
 const chooseDownload = (job: QueuedJob) => {
+    // "ChapterKey" is pinned server-side by DownloadChapterPayloadTests — not a guess at casing.
     const key = (JSON.parse(job.payload ?? '{}') as { ChapterKey?: string }).ChapterKey;
     if (!key) return;
     choiceFor.value = key;
