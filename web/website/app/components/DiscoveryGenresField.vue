@@ -19,8 +19,14 @@ watch(settings, (s) => { if (s) genres.value = [...(s.discoveryGenres ?? [])]; }
 watch(genres, async (next) => {
     const saved = settings.value?.discoveryGenres ?? [];
     if (next.length === saved.length && next.every((g, i) => g === saved[i])) return;
-    await $api('/v2/Settings/DiscoveryGenres', { method: 'PATCH', body: next });
-    await refreshNuxtData(FetchKeys.Settings.All);
-    toast.add({ title: 'Discovery genres saved', icon: 'i-lucide-check', color: 'success', duration: 1500 });
+    try {
+        await $api('/v2/Settings/DiscoveryGenres', { method: 'PATCH', body: next });
+        await refreshNuxtData(FetchKeys.Settings.All);
+        toast.add({ title: 'Discovery genres saved', icon: 'i-lucide-check', color: 'success', duration: 1500 });
+    } catch {
+        // A chip the server never accepted must not sit there looking saved.
+        genres.value = [...saved];
+        toast.add({ title: "Couldn't save discovery genres", icon: 'i-lucide-triangle-alert', color: 'error' });
+    }
 });
 </script>
