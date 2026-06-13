@@ -907,6 +907,29 @@
         }
       }
     },
+    "/v2/Discover/Genres": {
+      "get": {
+        "tags": [
+          "Discover"
+        ],
+        "summary": "AniList's supported genres — the set a genre rail can be configured for.",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/Discover/Manga": {
       "get": {
         "tags": [

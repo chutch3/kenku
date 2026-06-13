@@ -36,6 +36,17 @@ public class DiscoverControllerTests
     }
 
     [Fact]
+    public void Genres_ReturnsAniListSupportedGenres()
+    {
+        var ok = CreateController().GetGenres();
+
+        Assert.Contains("Action", ok.Value!);
+        Assert.Contains("Slice of Life", ok.Value!);
+        // "Gore" is not an AniList genre — it must not be offered.
+        Assert.DoesNotContain("Gore", ok.Value!);
+    }
+
+    [Fact]
     public async Task Manga_ReturnsTheTrendingRail()
     {
         var aniList = new Mock<IAniListClient>();

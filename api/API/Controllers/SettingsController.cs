@@ -325,10 +325,12 @@ public class SettingsController(KenkuSettings settings) : ControllerBase
     [ProducesResponseType(Status200OK)]
     public Ok SetDiscoveryGenres([FromBody] string[] genres)
     {
+        // Keep only real AniList genres, in their canonical casing — anything else (e.g. "Gore")
+        // would just produce an empty rail, so it is dropped rather than persisted.
         settings.SetDiscoveryGenres(genres
-            .Select(g => g.Trim())
-            .Where(g => g.Length > 0)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(API.Discovery.AniListGenres.Canonical)
+            .OfType<string>()
+            .Distinct()
             .ToList());
         return TypedResults.Ok();
     }

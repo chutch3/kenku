@@ -20,6 +20,7 @@ export const FetchKeys = {
         Feed: 'Discover/Feed',
         TopRated: 'Discover/TopRated',
         New: 'Discover/New',
+        Genres: 'Discover/Genres',
         Genre: (genre: string) => `Discover/Genre/${genre}`,
     },
 };

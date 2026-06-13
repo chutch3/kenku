@@ -15,8 +15,9 @@ function stubApi(page: Page, state: { genres: string[] }) {
         page.route('**/v2/**', (r) => r.fulfill({ json: [] })),
         page.route('**/v2/Settings', (r) =>
             r.fulfill({
-                json: { apiKey: '', metronConfigured: false, discoveryGenres: state.genres, syncedIndexers: [], downloadClients: [] },
+                json: { apiKey: '', metronConfigured: false, discoveryGenres: state.genres, discoveryFeeds: ['manga'], syncedIndexers: [], downloadClients: [] },
             })),
+        page.route('**/v2/Discover/Genres', (r) => r.fulfill({ json: ['Action', 'Horror', 'Romance', 'Sci-Fi', 'Thriller'] })),
         page.route('**/v2/Settings/DiscoveryGenres', async (r) => {
             state.genres = r.request().postDataJSON() as string[];
             return r.fulfill({ json: {} });
@@ -27,38 +28,36 @@ function stubApi(page: Page, state: { genres: string[] }) {
     ]);
 }
 
-test('editing discovery genres updates the rails on the next Discover visit', async ({ page }) => {
+test('picking a genre updates the rails on the next Discover visit', async ({ page }) => {
     const state = { genres: ['Action'] };
     await stubApi(page, state);
 
     await page.goto('/discover');
     await expect(page.getByText('Sakamoto Days')).toBeVisible();
 
-    // Edit genres on the settings page (SPA navigation, warm caches). Committing a tag saves it.
+    // Edit genres on the settings page (SPA navigation, warm caches). Picking a genre auto-saves.
     await page.getByRole('link', { name: 'Settings' }).first().click();
     await page.getByRole('tab', { name: 'Discovery' }).click();
-    const tags = page.getByPlaceholder('Add a genre…');
-    await tags.click();
-    await tags.fill('Horror');
-    await tags.press('Enter');
+    await page.getByRole('button', { name: 'Show popup' }).click();
+    await page.getByRole('option', { name: 'Horror', exact: true }).click();
     await expect.poll(() => state.genres).toEqual(['Action', 'Horror']);
 
     // Back to Discover the way a user would — through the nav, not a reload.
+    await page.keyboard.press('Escape');
     await page.getByRole('link', { name: 'Discover' }).first().click();
     await expect(page.getByText('Uzumaki')).toBeVisible();
 });
 
-test('a genre typed but not committed with Enter is still saved', async ({ page }) => {
+test('the genre list offers only AniList genres — no free-text like "Gore"', async ({ page }) => {
     const state = { genres: ['Action'] };
     await stubApi(page, state);
 
     await page.goto('/settings');
     await page.getByRole('tab', { name: 'Discovery' }).click();
-    const tags = page.getByPlaceholder('Add a genre…');
-    await tags.click();
-    await tags.fill('Horror');
-    // No Enter — the user types it and moves on, expecting it to count.
-    await tags.press('Tab');
+    await page.getByRole('button', { name: 'Show popup' }).click();
 
-    await expect.poll(() => state.genres).toEqual(['Action', 'Horror']);
+    // The valid genres are offered; an unsupported genre simply isn't in the list to pick.
+    await expect(page.getByRole('option', { name: 'Horror', exact: true })).toBeVisible();
+    await expect(page.getByRole('option', { name: 'Gore', exact: true })).toHaveCount(0);
+    expect(state.genres).toEqual(['Action']);
 });

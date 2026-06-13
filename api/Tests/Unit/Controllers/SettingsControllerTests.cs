@@ -358,4 +358,16 @@ public class SettingsControllerTests : IDisposable
         Assert.Equal(["Action", "Romance"], _settings.DiscoveryGenres);
         Assert.Contains("Romance", File.ReadAllText(_settings.SettingsFilePath));
     }
+
+    [Fact]
+    public void SetDiscoveryGenres_KeepsOnlyKnownAniListGenres_Canonicalized()
+    {
+        Directory.CreateDirectory(_settings.WorkingDirectory);
+
+        // "Gore" is not an AniList genre and must be dropped; valid genres are canonicalized to
+        // AniList's exact casing ("sci-fi" -> "Sci-Fi") so the rail query actually matches.
+        CreateController().SetDiscoveryGenres(["Gore", "sci-fi", "ACTION"]);
+
+        Assert.Equal(["Sci-Fi", "Action"], _settings.DiscoveryGenres);
+    }
 }

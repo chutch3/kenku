@@ -23,6 +23,12 @@ public class DiscoverController(DiscoveryCache cache, KenkuSettings settings, AP
 {
     private static readonly TimeSpan Ttl = TimeSpan.FromHours(1);
 
+    /// <summary>AniList's supported genres — the set a genre rail can be configured for.</summary>
+    /// <response code="200"></response>
+    [HttpGet("Genres")]
+    [ProducesResponseType<IReadOnlyList<string>>(Status200OK, "application/json")]
+    public Ok<IReadOnlyList<string>> GetGenres() => TypedResults.Ok(AniListGenres.All);
+
     /// <summary>Manga trending on AniList right now.</summary>
     /// <response code="200"></response>
     [HttpGet("Manga")]

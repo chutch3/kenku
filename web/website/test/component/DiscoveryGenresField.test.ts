@@ -11,9 +11,11 @@ registerEndpoint('/v2/Settings', () => ({
     apiKey: '',
     metronConfigured: false,
     discoveryGenres: ['Action', 'Romance'],
+    discoveryFeeds: ['manga'],
     syncedIndexers: [],
     downloadClients: [],
 }));
+registerEndpoint('/v2/Discover/Genres', () => ['Action', 'Horror', 'Romance', 'Sci-Fi', 'Thriller']);
 registerEndpoint('/v2/Settings/DiscoveryGenres', {
     method: 'PATCH',
     handler: async (event) => {
@@ -23,6 +25,9 @@ registerEndpoint('/v2/Settings/DiscoveryGenres', {
     },
 });
 
+const findSelect = (wrapper: Awaited<ReturnType<typeof mountSuspended>>) =>
+    wrapper.findComponent({ name: 'USelectMenu' });
+
 describe('DiscoveryGenresField', () => {
     beforeEach(() => {
         patchedBody = null;
@@ -30,29 +35,32 @@ describe('DiscoveryGenresField', () => {
         clearNuxtData();
     });
 
-    it('reverts the chip when the save fails so the UI never lies about what is saved', async () => {
-        patchFails = true;
+    it('offers only AniList genres and pre-selects the configured ones', async () => {
         const wrapper = await mountSuspended(DiscoveryGenresField);
-        await vi.waitFor(() => expect(wrapper.text()).toContain('Action'));
 
-        const input = wrapper.find('input');
-        await input.setValue('Horror');
-        await input.trigger('keydown', { key: 'Enter' });
-
-        await vi.waitFor(() => expect(wrapper.text()).not.toContain('Horror'));
-        expect(wrapper.text()).toContain('Action');
-        expect(wrapper.text()).toContain('Romance');
+        await vi.waitFor(() => expect(findSelect(wrapper).props('items')).toContain('Action'));
+        const select = findSelect(wrapper);
+        expect(select.props('items')).toEqual(['Action', 'Horror', 'Romance', 'Sci-Fi', 'Thriller']);
+        expect(select.props('items')).not.toContain('Gore');
+        expect(select.props('modelValue')).toEqual(['Action', 'Romance']);
     });
 
-    it('shows the configured genres and saves as soon as one is committed', async () => {
+    it('saves the new selection when genres change', async () => {
         const wrapper = await mountSuspended(DiscoveryGenresField);
-        await vi.waitFor(() => expect(wrapper.text()).toContain('Action'));
-        expect(wrapper.text()).toContain('Romance');
+        await vi.waitFor(() => expect(findSelect(wrapper).props('modelValue')).toEqual(['Action', 'Romance']));
 
-        const input = wrapper.find('input');
-        await input.setValue('Horror');
-        await input.trigger('keydown', { key: 'Enter' });
+        await findSelect(wrapper).vm.$emit('update:modelValue', ['Action', 'Romance', 'Horror']);
 
         await vi.waitFor(() => expect(patchedBody).toEqual(['Action', 'Romance', 'Horror']));
+    });
+
+    it('reverts the selection when the save fails', async () => {
+        patchFails = true;
+        const wrapper = await mountSuspended(DiscoveryGenresField);
+        await vi.waitFor(() => expect(findSelect(wrapper).props('modelValue')).toEqual(['Action', 'Romance']));
+
+        await findSelect(wrapper).vm.$emit('update:modelValue', ['Action', 'Romance', 'Horror']);
+
+        await vi.waitFor(() => expect(findSelect(wrapper).props('modelValue')).toEqual(['Action', 'Romance']));
     });
 });
