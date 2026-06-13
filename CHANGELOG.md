@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.23.0 (2026-06-13)
+
+### Bug Fixes
+
+- Discover manga section hides cleanly when genres are configured but all rails are empty
+  ([`f1beca9`](https://github.com/chutch3/kenku/commit/f1beca9b1248b843895febb6145daa4345a8316f))
+
+### Features
+
+- Discover page rework — dedup rails, lead with fresh, lighter sections, external affordance
+  ([`ddb895b`](https://github.com/chutch3/kenku/commit/ddb895bf6e7419b4197d8f9955956ce729e22aa0))
+
+
 ## v0.22.1 (2026-06-13)
 
 ### Bug Fixes
