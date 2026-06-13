@@ -1,13 +1,13 @@
 ﻿using API.Controllers.DTOs;
+using API.Schema.ActionsContext;
+using API.Schema.NotificationsContext;
 using API.Schema.SeriesContext;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Soenneker.Utils.String.NeedlemanWunsch;
 using static Microsoft.AspNetCore.Http.StatusCodes;
 using Author = API.Controllers.DTOs.Author;
-using Chapter = API.Controllers.DTOs.Chapter;
 
 // ReSharper disable InconsistentNaming
 
@@ -16,7 +16,8 @@ namespace API.Controllers;
 [ApiVersion(2)]
 [ApiController]
 [Route("v{v:apiVersion}/")]
-public class QueryController(SeriesContext mangaContext) : ControllerBase
+public class QueryController(SeriesContext mangaContext, NotificationsContext notificationsContext, ActionsContext actionsContext)
+    : ControllerBase
 {
     /// <summary>
     /// Returns the <see cref="Author"/> with <paramref name="AuthorId"/>
@@ -43,18 +44,18 @@ public class QueryController(SeriesContext mangaContext) : ControllerBase
     [ProducesResponseType<Stats>(Status200OK, "application/json")]
     public async Task<Ok<Stats>> GetStats()
     {
-        Stats stats = await mangaContext.Database.SqlQueryRaw<Stats>($"""
-                                                                   SELECT * FROM
-                                                                                (SELECT count("Key") "{nameof(Stats.NumberManga)}" FROM "Series") a CROSS JOIN
-                                                                                    (SELECT count("Key") "{nameof(Stats.NumberChapters)}" FROM "Chapters") b CROSS JOIN
-                                                                                    (SELECT count("Key") "{nameof(Stats.DownloadedChapters)}" FROM "Chapters" WHERE "Downloaded" = true) c CROSS JOIN
-                                                                                    (SELECT count("Key") "{nameof(Stats.MissingChapters)}" FROM "Chapters" WHERE "Downloaded" = false) d CROSS JOIN
-                                                                                    (SELECT count("Key") "{nameof(Stats.SentNotifications)}" FROM "Notifications" WHERE "IsSent" = true) e CROSS JOIN 
-                                                                                    (SELECT count("Key") "{nameof(Stats.ActionsTaken)}" FROM "Actions") f CROSS JOIN 
-                                                                                    (SELECT count("Key") "{nameof(Stats.NumberAuthors)}" FROM "Authors") g CROSS JOIN
-                                                                                    (SELECT count("Tag") "{nameof(Stats.NumberTags)}" FROM "Tags") h
-                                                                                    
-                                                                   """).FirstAsync(HttpContext.RequestAborted);
+        // Counted via EF per context — the tables live in different DbContexts (and a raw cross-table
+        // query also hardcoded the wrong physical table name for Series, which is mapped to "Mangas").
+        CancellationToken ct = HttpContext.RequestAborted;
+        Stats stats = new(
+            NumberManga: await mangaContext.Series.CountAsync(ct),
+            NumberChapters: await mangaContext.Chapters.CountAsync(ct),
+            MissingChapters: await mangaContext.Chapters.CountAsync(c => !c.Downloaded, ct),
+            DownloadedChapters: await mangaContext.Chapters.CountAsync(c => c.Downloaded, ct),
+            SentNotifications: await notificationsContext.Notifications.CountAsync(n => n.IsSent, ct),
+            ActionsTaken: await actionsContext.Actions.CountAsync(ct),
+            NumberAuthors: await mangaContext.Authors.CountAsync(ct),
+            NumberTags: await mangaContext.Tags.CountAsync(ct));
         return TypedResults.Ok(stats);
     }
 }
