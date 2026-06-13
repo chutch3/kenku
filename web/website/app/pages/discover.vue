@@ -1,8 +1,8 @@
 <template>
     <KenkuPage title="Discover">
-        <div class="reveal flex flex-col gap-8 pt-1 pb-24">
-            <p class="text-sm text-muted -mb-4">
-                What's moving right now — click anything new to add it; anything you already hoard opens in place.
+        <div class="reveal flex flex-col gap-10 pt-1 pb-24">
+            <p class="text-sm text-muted -mb-6">
+                Fresh picks across your sources — click to add, or open something you already have.
             </p>
 
             <div v-if="loading" class="flex gap-3">
@@ -12,11 +12,8 @@
                     class="max-sm:h-[var(--mangacover-height-sm)] h-(--mangacover-height) max-sm:w-[var(--mangacover-width-sm)] w-(--mangacover-width) rounded-lg shrink-0" />
             </div>
 
-            <section v-if="mangaRails.some((r) => r.entries?.length) || genres.length" class="flex flex-col gap-8">
-                <div class="flex items-center gap-3 -mb-2">
-                    <h2 class="font-display text-2xl font-bold text-highlighted">Manga</h2>
-                    <span class="h-px w-16 bg-vermillion-500 shadow-[0_0_8px_var(--color-vermillion-500)]" />
-                </div>
+            <section v-if="mangaRails.some((r) => r.entries.length) || genres.length" class="flex flex-col gap-6">
+                <SectionLabel>Manga</SectionLabel>
                 <DiscoveryRail
                     v-for="rail in mangaRails"
                     :key="rail.title"
@@ -31,15 +28,13 @@
                     :key="genre"
                     :genre="genre"
                     :library="library"
+                    :exclude="mangaSeen"
                     @pick="(e) => pick(e)"
                     @open="openSeries" />
             </section>
 
-            <section v-if="comics?.length" class="flex flex-col gap-8">
-                <div class="flex items-center gap-3 -mb-2">
-                    <h2 class="font-display text-2xl font-bold text-highlighted">Comics</h2>
-                    <span class="h-px w-16 bg-vermillion-500 shadow-[0_0_8px_var(--color-vermillion-500)]" />
-                </div>
+            <section v-if="comics?.length" class="flex flex-col gap-6">
+                <SectionLabel>Comics</SectionLabel>
                 <DiscoveryRail
                     title="Fresh releases"
                     subtitle="GetComics · latest posts"
@@ -49,14 +44,14 @@
                     @open="openSeries" />
             </section>
 
-            <DiscoveryRail title="From the feeds" subtitle="hot on reddit" :entries="feed" external />
-            <div v-if="feedStarved" class="flex items-center gap-2 text-xs text-muted">
-                <UIcon name="i-lucide-rss" />
-                <span>
-                    Nothing from the feeds yet — they're fetched hourly and reddit may be rate-limiting.
-                    Settings → Maintenance can trigger a fetch now.
-                </span>
-            </div>
+            <section v-if="feed?.length || feedStarved" class="flex flex-col gap-6">
+                <SectionLabel>From the community</SectionLabel>
+                <DiscoveryRail title="Hot threads" subtitle="reddit · opens in a new tab" :entries="feed" external />
+                <p v-if="feedStarved" class="flex items-center gap-2 text-xs text-muted">
+                    <UIcon name="i-lucide-rss" class="shrink-0" />
+                    Nothing from the feeds yet — fetched hourly, and reddit may be rate-limiting. Settings → Maintenance can trigger one now.
+                </p>
+            </section>
 
             <div v-if="empty" class="flex flex-col items-center gap-3 py-16 text-center">
                 <KenkuMark :size="52" class="opacity-80" />
@@ -86,11 +81,23 @@ const { data: library } = useApi('/v2/Series', { key: FetchKeys.Series.All, lazy
 const { data: settings } = useApi('/v2/Settings', { key: FetchKeys.Settings.All, lazy: true, server: false });
 const genres = computed(() => settings.value?.discoveryGenres ?? []);
 
-const mangaRails = computed(() => [
-    { title: 'Trending', subtitle: 'AniList · right now', entries: manga.value },
-    { title: 'New & popular', subtitle: 'AniList · started this year', entries: newManga.value },
-    { title: 'Top rated', subtitle: 'AniList · all-time', entries: topRated.value },
-]);
+// De-dupe across the manga rails in order: a title that trended also being "top rated" would just
+// repeat, so each rail only keeps titles no earlier rail already showed.
+const mangaRails = computed(() => {
+    const seen = new Set<string>();
+    const fresh = (list?: Entry[] | null) => {
+        const kept = (list ?? []).filter((e) => !seen.has(normalizeTitle(e.title)));
+        kept.forEach((e) => seen.add(normalizeTitle(e.title)));
+        return kept;
+    };
+    return [
+        { title: 'Trending', subtitle: 'AniList · right now', entries: fresh(manga.value) },
+        { title: 'New & popular', subtitle: 'AniList · started this year', entries: fresh(newManga.value) },
+        { title: 'Top rated', subtitle: 'AniList · all-time', entries: fresh(topRated.value) },
+    ];
+});
+// Titles the manga rails already show — genre rails exclude them so they don't echo the same picks.
+const mangaSeen = computed(() => mangaRails.value.flatMap((r) => r.entries.map((e) => normalizeTitle(e.title))));
 
 const loading = computed(() => (mangaPending.value || comicsPending.value) && !manga.value?.length && !comics.value?.length);
 // Genre rails fetch inside their own components, so the page can't see their entries — any
@@ -98,7 +105,7 @@ const loading = computed(() => (mangaPending.value || comicsPending.value) && !m
 const empty = computed(
     () =>
         !loading.value &&
-        mangaRails.value.every((r) => !r.entries?.length) &&
+        mangaRails.value.every((r) => !r.entries.length) &&
         !comics.value?.length &&
         !feed.value?.length &&
         !genres.value.length

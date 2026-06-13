@@ -103,6 +103,17 @@ describe('discover page', () => {
         expect(headings).toContain('Comics');
     });
 
+    it('does not repeat a title across the manga rails', async () => {
+        // "Vagabond" is what the Top rated endpoint returns; trending returning it too must not
+        // produce two cards — the later rail drops the already-shown title.
+        mangaEntries = [{ title: 'Vagabond', coverUrl: '', url: 'https://anilist.co/manga/3', source: 'AniList', blurb: null }];
+        await mountPage();
+
+        await vi.waitFor(() => expect(wrapper.text()).toContain('Vagabond'));
+        const showing = wrapper.findAll('button').filter((b) => b.text().includes('Vagabond'));
+        expect(showing).toHaveLength(1);
+    });
+
     it('explains an empty feed rail instead of hiding it silently', async () => {
         await mountPage();
 

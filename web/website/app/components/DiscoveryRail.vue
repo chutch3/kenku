@@ -1,9 +1,8 @@
 <template>
     <section v-if="marked.length" class="flex flex-col gap-2">
-        <div class="flex items-center gap-2">
-            <h2 class="font-display text-lg font-semibold text-highlighted">{{ title }}</h2>
-            <span class="h-px w-8 bg-vermillion-500 shadow-[0_0_8px_var(--color-vermillion-500)]" />
-            <span v-if="subtitle" class="font-mono text-[0.6rem] uppercase tracking-[0.2em] text-muted">{{ subtitle }}</span>
+        <div class="flex items-baseline gap-2">
+            <h3 class="font-display text-base font-semibold text-highlighted">{{ title }}</h3>
+            <span v-if="subtitle" class="text-xs text-muted">{{ subtitle }}</span>
         </div>
         <div class="flex gap-3 overflow-x-auto pb-2">
             <component
@@ -35,6 +34,10 @@
                         size="sm"
                         icon="i-lucide-check"
                         class="absolute top-1 right-1">In library</UBadge>
+                    <UIcon
+                        v-else-if="external"
+                        name="i-lucide-external-link"
+                        class="absolute top-1.5 right-1.5 size-4 text-white/90 [filter:drop-shadow(0_1px_4px_rgba(0,0,0,0.8))]" />
                 </div>
             </component>
         </div>
@@ -54,18 +57,26 @@ const props = defineProps<{
     library?: MinimalSeries[] | null;
     /** Feed rails link out (reddit posts aren't series); series rails emit into the add flow. */
     external?: boolean;
+    /** Normalized titles already shown by an earlier rail — dropped here so rails don't repeat. */
+    exclude?: string[];
 }>();
 const emit = defineEmits<{ (e: 'pick', entry: Entry): void; (e: 'open', seriesKey: string): void }>();
 
-// Library-sized covers make a long rail a wall — twelve is a browse.
-const marked = computed(() =>
-    (props.entries ?? []).slice(0, 12).map((entry) => ({
-        entry,
-        inLibrary: props.external
-            ? undefined
-            : (props.library ?? []).find((s) => s.fileLibraryId && normalizeTitle(s.name) === normalizeTitle(entry.title)),
-    }))
-);
+const marked = computed(() => {
+    const excluded = new Set(props.exclude ?? []);
+    return (props.entries ?? [])
+        .filter((entry) => !excluded.has(normalizeTitle(entry.title)))
+        .map((entry) => ({
+            entry,
+            inLibrary: props.external
+                ? undefined
+                : (props.library ?? []).find((s) => s.fileLibraryId && normalizeTitle(s.name) === normalizeTitle(entry.title)),
+        }))
+        // Lead with what you don't have; owned titles sink to the tail. Library-sized covers make a
+        // long rail a wall, so twelve is a browse.
+        .sort((a, b) => Number(!!a.inLibrary) - Number(!!b.inLibrary))
+        .slice(0, 12);
+});
 
 const onClick = (m: { entry: Entry; inLibrary?: MinimalSeries }) => {
     if (props.external) return;
