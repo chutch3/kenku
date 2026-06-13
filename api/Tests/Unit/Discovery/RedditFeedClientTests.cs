@@ -6,6 +6,20 @@ namespace API.Tests.Unit.Discovery;
 /// <summary>Atom shape pinned against a captured live r/manga feed (2026-06-11).</summary>
 public class RedditFeedClientTests
 {
+    [Fact]
+    public void ConfigureClient_SetsTheUserAgent_WithoutTrippingTheStrictHeaderParser()
+    {
+        // Reddit's recommended UA ("kenku:discovery (self-hosted manga manager)") is rejected by the
+        // typed UserAgent parser, which previously threw at client construction and wedged the feed
+        // job in NeedsAttention. It must be set as a raw header instead.
+        using var client = new HttpClient();
+
+        RedditFeedClient.ConfigureClient(client);
+
+        Assert.True(client.DefaultRequestHeaders.TryGetValues("User-Agent", out var values));
+        Assert.Equal(RedditFeedClient.UserAgent, Assert.Single(values!));
+    }
+
     private const string Feed = """
         <?xml version="1.0" encoding="UTF-8"?>
         <feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">

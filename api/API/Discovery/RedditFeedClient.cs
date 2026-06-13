@@ -5,6 +5,15 @@ namespace API.Discovery;
 /// <summary>Reddit's public Atom feeds. Reddit rate-limits aggressively (429), so callers cache and degrade.</summary>
 public class RedditFeedClient(HttpClient http) : IRedditFeedClient
 {
+    /// <summary>Reddit's recommended User-Agent shape (platform:appid (comment)).</summary>
+    public const string UserAgent = "kenku:discovery (self-hosted manga manager)";
+
+    /// <summary>Sets the reddit User-Agent as a raw header — the typed <c>UserAgent.ParseAdd</c> rejects
+    /// this otherwise-valid value and throws at client construction.</summary>
+    public static void ConfigureClient(HttpClient client) =>
+        client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", UserAgent);
+
+
     public async Task<List<DiscoveryEntry>> GetHotAsync(string subreddit, int limit, CancellationToken ct)
     {
         using HttpResponseMessage response = await http.GetAsync(

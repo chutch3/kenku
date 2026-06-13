@@ -141,8 +141,8 @@ public static class ApplicationServiceCollectionExtensions
         // Discovery rails: edge clients own their HTTP; results cache for an hour per rail.
         services.AddSingleton<API.Discovery.DiscoveryCache>();
         services.AddHttpClient<API.Discovery.IAniListClient, API.Discovery.AniListClient>();
-        services.AddHttpClient<API.Discovery.IRedditFeedClient, API.Discovery.RedditFeedClient>(c =>
-            c.DefaultRequestHeaders.UserAgent.ParseAdd("kenku:discovery (self-hosted manga manager)"));
+        services.AddHttpClient<API.Discovery.IRedditFeedClient, API.Discovery.RedditFeedClient>(
+            API.Discovery.RedditFeedClient.ConfigureClient);
         services.AddSingleton<Kenku>();
         return services;
     }
