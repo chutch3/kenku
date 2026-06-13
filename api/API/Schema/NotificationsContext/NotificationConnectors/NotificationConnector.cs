@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
+using API.Services;
 using log4net;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
@@ -28,10 +29,7 @@ public class NotificationConnector(string name, string url, Dictionary<string, s
     internal NotificationConnector(string name, string url, string httpMethod, string body)
         : this(name, url, new Dictionary<string, string>(), httpMethod, body) { }
 
-    [NotMapped] private readonly HttpClient Client = new()
-    {
-        DefaultRequestHeaders = { { "User-Agent", KenkuSettings.DefaultUserAgent } }
-    };
+    [NotMapped] private readonly HttpClient Client = new HttpClient().SetUserAgent(KenkuSettings.DefaultUserAgent);
     
     [JsonIgnore] protected ILog Log = LogManager.GetLogger(name);
 

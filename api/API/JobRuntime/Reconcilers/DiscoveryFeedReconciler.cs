@@ -20,6 +20,22 @@ public class DiscoveryFeedReconciler(IServiceScopeFactory scopeFactory, IClock c
     protected override Task TickAsync(IServiceProvider scope, CancellationToken ct) =>
         EnqueueAsync(scope.GetRequiredService<IJobStore>(), clock.UtcNow, ct);
 
-    public static Task EnqueueAsync(IJobStore store, DateTime now, CancellationToken ct) =>
-        store.EnqueueAsync(new Job(RefreshDiscoveryFeedHandler.Type, "{}", now, dedupKey: DedupKey), ct);
+    public static async Task EnqueueAsync(IJobStore store, DateTime now, CancellationToken ct)
+    {
+        // A periodic refresh must not stay wedged: enqueue dedups onto an active job, and a parked
+        // (NeedsAttention) run counts as active — so a single past hard failure would disable the feed
+        // forever. Re-arm that parked job instead so the next tick runs it.
+        if ((await store.GetAllAsync(ct)).FirstOrDefault(j =>
+                j.DedupKey == DedupKey && j.Status == JobStatus.NeedsAttention) is { } parked)
+        {
+            parked.Status = JobStatus.Queued;
+            parked.Attempts = 0;
+            parked.ScheduledFor = now;
+            parked.Error = null;
+            await store.UpdateAsync(parked, ct);
+            return;
+        }
+
+        await store.EnqueueAsync(new Job(RefreshDiscoveryFeedHandler.Type, "{}", now, dedupKey: DedupKey), ct);
+    }
 }

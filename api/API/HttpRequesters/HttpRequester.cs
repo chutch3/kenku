@@ -1,4 +1,5 @@
 using API.HttpRequesters.Interfaces;
+using API.Services;
 using System.Net;
 using log4net;
 
@@ -19,8 +20,8 @@ internal class HttpRequester : IHttpRequester
         {
             Timeout = Timeout.InfiniteTimeSpan,
             DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher,
-            DefaultRequestHeaders = { { "User-Agent", settings.UserAgent } }
         };
+        _client.SetUserAgent(settings.UserAgent);
         _flareSolverrClient = new FlareSolverrRequester(_client, settings);
     }
 
