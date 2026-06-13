@@ -26,34 +26,47 @@
             {{ chapters.length }} chapter<span v-if="chapters.length > 1">s</span> available from {{ sourceName }}
         </p>
 
-        <div v-if="libraries && libraries.length">
-            <span class="text-xs text-muted">Save to</span>
-            <USelect v-model="libraryId" :items="libraryItems" class="w-full mt-1" />
-        </div>
-        <div v-else-if="libraries" class="flex flex-col gap-2">
-            <p class="text-sm text-muted">A library is the folder where Kenku saves downloaded files — set one up first.</p>
-            <UButton :to="`/settings?return=${$route.fullPath}`" icon="i-lucide-folder-plus" color="primary" class="w-fit">
-                Set up a library
-            </UButton>
-        </div>
+        <template v-if="canAdd">
+            <div v-if="libraries && libraries.length">
+                <span class="text-xs text-muted">Save to</span>
+                <USelect v-model="libraryId" :items="libraryItems" class="w-full mt-1" />
+            </div>
+            <div v-else-if="libraries" class="flex flex-col gap-2">
+                <p class="text-sm text-muted">A library is the folder where Kenku saves downloaded files — set one up first.</p>
+                <UButton :to="`/settings?return=${$route.fullPath}`" icon="i-lucide-folder-plus" color="primary" class="w-fit">
+                    Set up a library
+                </UButton>
+            </div>
+        </template>
 
         <div class="flex gap-2 w-full justify-end">
+            <template v-if="canAdd">
+                <UButton
+                    color="neutral"
+                    variant="outline"
+                    icon="i-lucide-bookmark-plus"
+                    :disabled="!libraryId"
+                    :loading="adding === 'only'"
+                    @click="add(false)">
+                    Add only
+                </UButton>
+                <UButton
+                    color="primary"
+                    icon="i-lucide-cloud-download"
+                    :disabled="!libraryId"
+                    :loading="adding === 'download'"
+                    @click="add(true)">
+                    Add &amp; download
+                </UButton>
+            </template>
+            <!-- Nothing to download here, so adding is blocked — point the user at the full search to
+                 find a source that actually has it. -->
             <UButton
-                color="neutral"
-                variant="outline"
-                icon="i-lucide-bookmark-plus"
-                :disabled="!libraryId"
-                :loading="adding === 'only'"
-                @click="add(false)">
-                Add only
-            </UButton>
-            <UButton
+                v-else-if="!chaptersPending"
                 color="primary"
-                icon="i-lucide-cloud-download"
-                :disabled="!libraryId"
-                :loading="adding === 'download'"
-                @click="add(true)">
-                Add &amp; download
+                icon="i-lucide-search"
+                @click="searchOtherSources">
+                Search other sources
             </UButton>
         </div>
     </div>
@@ -110,6 +123,13 @@ watch(
     },
     { immediate: true }
 );
+
+// Only allow adding once a source has resolved at least one chapter — adding a 0-chapter (or broken)
+// source would download nothing, so we send the user to search a different source instead.
+const canAdd = computed(() => !chaptersPending.value && !chaptersError.value && chapters.value.length > 0);
+const searchOtherSources = () => {
+    void navigateTo(`/search?q=${encodeURIComponent(props.series.name)}`);
+};
 
 const adding = ref<'download' | 'only' | null>(null);
 const add = async (download: boolean) => {

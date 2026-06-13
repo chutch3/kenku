@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime';
+import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime';
 import { createError, getQuery } from 'h3';
 import AddSeriesModal from '~/components/AddSeriesModal.vue';
+
+const { navigateToMock } = vi.hoisted(() => ({ navigateToMock: vi.fn() }));
+mockNuxtImport('navigateTo', () => navigateToMock);
 
 const series = {
     key: 's1',
@@ -66,6 +69,19 @@ describe('AddSeriesModal', () => {
         await mountSuspended(AddSeriesModal, { props: { series, open: true } });
 
         await vi.waitFor(() => expect(bodyText()).toContain('no chapters'));
+    });
+
+    it('blocks adding and offers a search when the source reports no chapters', async () => {
+        chapters = [];
+        await mountSuspended(AddSeriesModal, { props: { series, open: true } });
+
+        await vi.waitFor(() => expect(bodyText()).toContain('no chapters'));
+        // Adding would download nothing, so the add buttons are gone; a search to find another source replaces them.
+        expect([...document.body.querySelectorAll('button')].some((b) => b.textContent?.includes('Add & download'))).toBe(false);
+        expect([...document.body.querySelectorAll('button')].some((b) => b.textContent?.includes('Add only'))).toBe(false);
+
+        findButton('Search other sources').click();
+        await vi.waitFor(() => expect(navigateToMock).toHaveBeenCalledWith('/search?q=Fire%20Punch'));
     });
 
     it('surfaces a broken source instead of a silent empty preview', async () => {
