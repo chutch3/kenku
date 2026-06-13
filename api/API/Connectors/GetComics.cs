@@ -156,7 +156,7 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.ILates
     {
         string seriesTitle = mangaId.Obj.Name;
         var byNumber = new Dictionary<string, (Chapter, SourceId<Chapter>)>();
-        var numberless = new Dictionary<string, Post>(); // by post url — one-shot candidates, deduped
+        var numberless = new Dictionary<string, Post>(); // by url — one-shot candidates, deduped
         foreach (Post post in await FetchPostsFor(seriesTitle))
         {
             ParsedPost parsed = ParseTitle(post.Title);
@@ -172,7 +172,7 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.ILates
             if (parsed.Number is null)
                 numberless[post.Url] = post;
             else
-                AddChapter(byNumber, mangaId, parsed, post.Title, parsed.Number, post.Url);
+                AddChapter(byNumber, mangaId, parsed.Number, parsed.Volume, post.Title, parsed.Number, post.Url);
         }
 
         // A one-shot / OGN carries no issue number. When it is the series' only post (no numbered
@@ -181,7 +181,7 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.ILates
         if (byNumber.Count == 0 && numberless.Count == 1)
         {
             Post post = numberless.Values.Single();
-            AddChapter(byNumber, mangaId, ParseTitle(post.Title) with { Number = "1" }, post.Title, "1", post.Url);
+            AddChapter(byNumber, mangaId, "1", null, post.Title, "1", post.Url);
         }
 
         Log.InfoFormat("Found {0} chapters for {1}", byNumber.Count, seriesTitle);
@@ -230,25 +230,20 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.ILates
                 Log.InfoFormat("Skipping unreadable or unnumbered collection row: {0}", label);
                 continue;
             }
-            AddChapter(byNumber, mangaId, parsed, label, label, post.Url);
+            AddChapter(byNumber, mangaId, parsed.Number, parsed.Volume, label, label, post.Url);
         }
     }
 
     private void AddChapter(Dictionary<string, (Chapter, SourceId<Chapter>)> byNumber, SourceId<Series> mangaId,
-        ParsedPost parsed, string title, string idOnSite, string url)
+        string number, int? volume, string title, string idOnSite, string url)
     {
-        if (parsed.Number is null)
-        {
-            Log.WarnFormat("Skipping post without a parseable issue number: {0}", title);
-            return;
-        }
-        if (byNumber.ContainsKey(parsed.Number))
+        if (byNumber.ContainsKey(number))
             return;
 
-        var chapter = new Chapter(mangaId.Obj, parsed.Number, parsed.Volume, title);
+        var chapter = new Chapter(mangaId.Obj, number, volume, title);
         var chId = new SourceId<Chapter>(chapter, this, idOnSite, url, mangaId.UseForDownload);
         chapter.SourceIds.Add(chId);
-        byNumber[parsed.Number] = (chapter, chId);
+        byNumber[number] = (chapter, chId);
     }
 
     // GetComics posts are finished archives; there are no page images to enumerate or download.

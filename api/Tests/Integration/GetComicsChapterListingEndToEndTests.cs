@@ -42,6 +42,12 @@ public class GetComicsChapterListingEndToEndTests : IAsyncLifetime
         Article("https://getcomics.org/c/saga-61/", "Saga #61 (2024)"),
         Article("https://getcomics.org/c/saga-ed/", "Saga (2024)"));
 
+    // A TPB run: each post is a numbered volume. The one-shot rule's "no numbered chapters" gate
+    // must not fire here — these map to volume chapters, not a single "chapter 1".
+    private static readonly string MonstressPage = ArchivePage(
+        Article("https://getcomics.org/c/monstress-v1/", "Monstress Vol. 1 – Awakening (2016)"),
+        Article("https://getcomics.org/c/monstress-v2/", "Monstress Vol. 2 – The Blood (2017)"));
+
     // The API serializes enums (MinimalSeries.ReleaseStatus) as strings.
     private static readonly JsonSerializerOptions Json =
         new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
@@ -63,6 +69,8 @@ public class GetComicsChapterListingEndToEndTests : IAsyncLifetime
                 return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(OneShotPage) };
             if (url.Contains("saga", StringComparison.OrdinalIgnoreCase))
                 return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(SagaPage) };
+            if (url.Contains("monstress", StringComparison.OrdinalIgnoreCase))
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(MonstressPage) };
             return new HttpResponseMessage(HttpStatusCode.NotFound);
         });
 
@@ -109,5 +117,16 @@ public class GetComicsChapterListingEndToEndTests : IAsyncLifetime
 
         Assert.Equal(["60", "61"], chapters.Select(c => c.ChapterNumber).OrderBy(n => n));
         Assert.DoesNotContain(chapters, c => c.ChapterNumber == "1");
+    }
+
+    [Fact]
+    public async Task VolumeSeries_PreviewsAsVolumeChapters_NotASingleOneShot()
+    {
+        using HttpClient http = _app.CreateClient();
+
+        var chapters = await PreviewChapters(http, "Monstress");
+
+        Assert.Equal(["1", "2"], chapters.Select(c => c.ChapterNumber).OrderBy(n => n));
+        Assert.All(chapters, c => Assert.NotNull(c.VolumeNumber));
     }
 }
