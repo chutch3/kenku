@@ -156,6 +156,7 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.ILates
     {
         string seriesTitle = mangaId.Obj.Name;
         var byNumber = new Dictionary<string, (Chapter, SourceId<Chapter>)>();
+        var numberless = new Dictionary<string, Post>(); // by post url — one-shot candidates, deduped
         foreach (Post post in await FetchPostsFor(seriesTitle))
         {
             ParsedPost parsed = ParseTitle(post.Title);
@@ -168,8 +169,21 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.ILates
                 await ExpandCollectionPost(post, seriesTitle, mangaId, byNumber);
                 continue;
             }
-            AddChapter(byNumber, mangaId, parsed, post.Title, parsed.Number ?? "", post.Url);
+            if (parsed.Number is null)
+                numberless[post.Url] = post;
+            else
+                AddChapter(byNumber, mangaId, parsed, post.Title, parsed.Number, post.Url);
         }
+
+        // A one-shot / OGN carries no issue number. When it is the series' only post (no numbered
+        // issues, no collection rows, exactly one numberless post) it is the readable unit itself —
+        // chapter "1". More than one numberless post is ambiguous, so those stay skipped.
+        if (byNumber.Count == 0 && numberless.Count == 1)
+        {
+            Post post = numberless.Values.Single();
+            AddChapter(byNumber, mangaId, ParseTitle(post.Title) with { Number = "1" }, post.Title, "1", post.Url);
+        }
+
         Log.InfoFormat("Found {0} chapters for {1}", byNumber.Count, seriesTitle);
         return byNumber.Values.ToArray();
     }

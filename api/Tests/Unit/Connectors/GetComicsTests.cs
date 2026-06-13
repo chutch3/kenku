@@ -122,6 +122,58 @@ public class GetComicsTests
     }
 
     [Fact]
+    public async Task GetChapters_TreatsALoneNumberlessPost_AsASingleChapter()
+    {
+        // A one-shot / OGN ("A God Somewhere (2010)") has no issue number in its title. It is the
+        // only post for the series, so it is the readable unit — chapter "1", not zero chapters.
+        string page = SearchPage(Article("https://getcomics.org/other-comics/a-god-somewhere-2010/", "A God Somewhere (2010)"));
+        var connector = CreateConnector(url => url.Contains("/page/") ? Html("", HttpStatusCode.NotFound) : Html(page));
+        var mangaId = SeriesId(connector, "A God Somewhere");
+
+        var chapters = await connector.GetChapters(mangaId);
+
+        var chapter = Assert.Single(chapters);
+        Assert.Equal("1", chapter.Item1.ChapterNumber);
+        // idOnConnectorSite must equal the chapter number so the download path resolves the post's
+        // Main Server button (not treat it as a collection row).
+        Assert.Equal("1", chapter.Item2.IdOnConnectorSite);
+        Assert.Equal("https://getcomics.org/other-comics/a-god-somewhere-2010/", chapter.Item2.WebsiteUrl);
+    }
+
+    [Fact]
+    public async Task GetChapters_SkipsNumberlessPosts_WhenTheSeriesHasNumberedIssues()
+    {
+        // The lone-one-shot rule must not fire when real issues exist: a numberless edition post
+        // sitting beside #60/#61 stays skipped rather than becoming a phantom "chapter 1".
+        string page = SearchPage(
+            Article("https://getcomics.org/c/saga-60/", "Saga #60 (2024)"),
+            Article("https://getcomics.org/c/saga-61/", "Saga #61 (2024)"),
+            Article("https://getcomics.org/c/saga-ed/", "Saga (2024)"));
+        var connector = CreateConnector(url => url.Contains("/page/") ? Html("", HttpStatusCode.NotFound) : Html(page));
+        var mangaId = SeriesId(connector, "Saga");
+
+        var chapters = await connector.GetChapters(mangaId);
+
+        Assert.Equal(["60", "61"], chapters.Select(c => c.Item1.ChapterNumber).OrderBy(n => n));
+    }
+
+    [Fact]
+    public async Task GetChapters_SkipsNumberlessPosts_WhenSeveralAreAmbiguous()
+    {
+        // Two numberless posts and no numbered issue: which is "chapter 1"? Neither — stay empty
+        // and let the preview surface "no chapters" rather than guessing.
+        string page = SearchPage(
+            Article("https://getcomics.org/c/og-a/", "Some Anthology (2020)"),
+            Article("https://getcomics.org/c/og-b/", "Some Anthology (2022)"));
+        var connector = CreateConnector(url => url.Contains("/page/") ? Html("", HttpStatusCode.NotFound) : Html(page));
+        var mangaId = SeriesId(connector, "Some Anthology");
+
+        var chapters = await connector.GetChapters(mangaId);
+
+        Assert.Empty(chapters);
+    }
+
+    [Fact]
     public async Task GetChapters_MapsTheSeriesPostsToChapters_SkippingOtherSeriesAndNumberlessPosts()
     {
         string page1 = SearchPage(
