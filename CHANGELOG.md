@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v0.22.1 (2026-06-13)
+
+### Bug Fixes
+
+- Discovery genres are a constrained AniList multi-select instead of free text
+  ([`b1be127`](https://github.com/chutch3/kenku/commit/b1be127370093725e34bcb349efa24b214163d14))
+
+- Reddit feed user-agent set as raw header so the refresh job no longer fails
+  ([`4dd652c`](https://github.com/chutch3/kenku/commit/4dd652c3df75816c830707043004656a86ca30cb))
+
+### Refactoring
+
+- Guard reddit client DI, self-heal wedged feed job, centralize user-agent setting
+  ([`43ef985`](https://github.com/chutch3/kenku/commit/43ef985eb64ae4e3362e4a089e63508347be279e))
+
+
 ## v0.22.0 (2026-06-13)
 
 ### Bug Fixes
