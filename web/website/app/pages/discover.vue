@@ -12,7 +12,7 @@
                     class="max-sm:h-[var(--mangacover-height-sm)] h-(--mangacover-height) max-sm:w-[var(--mangacover-width-sm)] w-(--mangacover-width) rounded-lg shrink-0" />
             </div>
 
-            <section v-if="mangaRails.some((r) => r.entries.length) || genres.length" class="flex flex-col gap-6">
+            <section v-if="mangaRails.some((r) => r.entries.length) || genresHaveContent" class="flex flex-col gap-6">
                 <SectionLabel>Manga</SectionLabel>
                 <DiscoveryRail
                     v-for="rail in mangaRails"
@@ -30,7 +30,8 @@
                     :library="library"
                     :exclude="mangaSeen"
                     @pick="(e) => pick(e)"
-                    @open="openSeries" />
+                    @open="openSeries"
+                    @content="onGenreContent" />
             </section>
 
             <section v-if="comics?.length" class="flex flex-col gap-6">
@@ -99,16 +100,20 @@ const mangaRails = computed(() => {
 // Titles the manga rails already show — genre rails exclude them so they don't echo the same picks.
 const mangaSeen = computed(() => mangaRails.value.flatMap((r) => r.entries.map((e) => normalizeTitle(e.title))));
 
+// Genre rails self-fetch, so they report up whether they show anything. A genre not yet reported is
+// treated as content (still loading) — so the section/empty state never flash before it resolves.
+const genreContent = reactive<Record<string, boolean>>({});
+const onGenreContent = (genre: string, hasContent: boolean) => { genreContent[genre] = hasContent; };
+const genresHaveContent = computed(() => genres.value.some((g) => genreContent[g] !== false));
+
 const loading = computed(() => (mangaPending.value || comicsPending.value) && !manga.value?.length && !comics.value?.length);
-// Genre rails fetch inside their own components, so the page can't see their entries — any
-// configured genre suppresses the empty state rather than contradicting a populated rail.
 const empty = computed(
     () =>
         !loading.value &&
         mangaRails.value.every((r) => !r.entries.length) &&
+        !genresHaveContent.value &&
         !comics.value?.length &&
-        !feed.value?.length &&
-        !genres.value.length
+        !feed.value?.length
 );
 // An empty feed rail hides itself; with feeds configured that silence is undiagnosable — say why.
 const feedStarved = computed(

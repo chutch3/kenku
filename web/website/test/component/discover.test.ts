@@ -32,17 +32,14 @@ const defaultComics = [
     { title: 'Saga', coverUrl: '', url: 'https://getcomics.org/other-comics/saga-61-2025/', source: 'GetComics', blurb: null },
 ];
 
+let topRatedEntries: object[] = [];
+let newEntries: object[] = [];
+let actionEntries: object[] = [];
 registerEndpoint('/v2/Discover/Manga', () => mangaEntries);
 registerEndpoint('/v2/Discover/Comics', () => comicsEntries);
-registerEndpoint('/v2/Discover/Manga/TopRated', () => [
-    { title: 'Vagabond', coverUrl: '', url: 'https://anilist.co/manga/3', source: 'AniList', blurb: null },
-]);
-registerEndpoint('/v2/Discover/Manga/New', () => [
-    { title: 'Kagurabachi', coverUrl: '', url: 'https://anilist.co/manga/4', source: 'AniList', blurb: null },
-]);
-registerEndpoint('/v2/Discover/Manga/Genre/Action', () => [
-    { title: 'Sakamoto Days', coverUrl: '', url: 'https://anilist.co/manga/5', source: 'AniList', blurb: null },
-]);
+registerEndpoint('/v2/Discover/Manga/TopRated', () => topRatedEntries);
+registerEndpoint('/v2/Discover/Manga/New', () => newEntries);
+registerEndpoint('/v2/Discover/Manga/Genre/Action', () => actionEntries);
 const discoveryGenres = ['Action'];
 let feedEntries: object[] = [];
 registerEndpoint('/v2/Settings', () => ({
@@ -89,9 +86,26 @@ describe('discover page', () => {
         globalSearchQuery = null;
         mangaEntries = defaultManga;
         comicsEntries = defaultComics;
+        topRatedEntries = [{ title: 'Vagabond', coverUrl: '', url: 'https://anilist.co/manga/3', source: 'AniList', blurb: null }];
+        newEntries = [{ title: 'Kagurabachi', coverUrl: '', url: 'https://anilist.co/manga/4', source: 'AniList', blurb: null }];
+        actionEntries = [{ title: 'Sakamoto Days', coverUrl: '', url: 'https://anilist.co/manga/5', source: 'AniList', blurb: null }];
         feedEntries = [];
         navigateToMock.mockClear();
         clearNuxtData();
+    });
+
+    it('hides the Manga header and shows the empty state when every source is empty despite configured genres', async () => {
+        // AniList-down scenario: trending/new/top-rated AND the configured genre rail all return
+        // nothing. The Manga section must not leave a dangling header, and the empty state must show.
+        mangaEntries = [];
+        comicsEntries = [];
+        topRatedEntries = [];
+        newEntries = [];
+        actionEntries = [];
+        await mountPage();
+
+        await vi.waitFor(() => expect(wrapper.text()).toContain('Nothing to show right now'));
+        expect(wrapper.findAll('h2').map((h) => h.text())).not.toContain('Manga');
     });
 
     it('separates manga and comics recommendations under their own section headings', async () => {
