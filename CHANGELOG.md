@@ -2,6 +2,52 @@
 
 <!-- version list -->
 
+## v0.22.0 (2026-06-13)
+
+### Bug Fixes
+
+- Discovery genre auto-save reverts the chip and reports when the save fails
+  ([`9274112`](https://github.com/chutch3/kenku/commit/92741121570ecee1864fde2815d10e2f1334df48))
+
+- Discovery genres save on commit so half-typed entries are never dropped
+  ([`3b5e3de`](https://github.com/chutch3/kenku/commit/3b5e3de1a72b3bcd8fd65bc80bf69672730ae9da))
+
+- GetComics one-shot posts list as a single chapter instead of zero
+  ([`5a02f58`](https://github.com/chutch3/kenku/commit/5a02f5849ca27fcfe89e96535bf81cb9a8867408))
+
+### Continuous Integration
+
+- Web checks run the component and browser e2e suites
+  ([`cb917a5`](https://github.com/chutch3/kenku/commit/cb917a543a0fa10b1dd73ea27f68bcd8ac3a7d5e))
+
+### Features
+
+- Chapter download options endpoint and pinned downloads for multi-option posts
+  ([`c5f69c4`](https://github.com/chutch3/kenku/commit/c5f69c424866eba88b36ba3693dc46f302d8a773))
+
+- Discover page splits manga and comics sections with library-sized covers
+  ([`9ff999f`](https://github.com/chutch3/kenku/commit/9ff999f0809e9b582b5f5c933678bf7a2a281635))
+
+- Failed multi-option downloads offer a chooser in the activity queue
+  ([`b09d91d`](https://github.com/chutch3/kenku/commit/b09d91dbf7233093e5cd7b7f0ccc12dd7561b46a))
+
+- On-demand discovery feed refresh and a visible reason when the feed rail is empty
+  ([`cbb15b5`](https://github.com/chutch3/kenku/commit/cbb15b54789007dd7e101581f2074cc725bd3ddb))
+
+### Refactoring
+
+- AddChapter takes a non-null number, dropping the dead numberless guard and re-parse
+  ([`b3d5add`](https://github.com/chutch3/kenku/commit/b3d5add5fb44c73495df4dfe0bbf9ddd9b7a229d))
+
+- Critique fixes for chooser resolve dedup, stale-options guard, and payload contract pin
+  ([`dd98082`](https://github.com/chutch3/kenku/commit/dd9808248f7036a0b1b9c0a70c6cffcd82b96051))
+
+### Testing
+
+- Prove the discovery feed pipeline through the real container
+  ([`4606561`](https://github.com/chutch3/kenku/commit/4606561647eb8334b935b9b6a01d30be0bfc135e))
+
+
 ## v0.21.0 (2026-06-12)
 
 ### Bug Fixes
