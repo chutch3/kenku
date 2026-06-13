@@ -1,7 +1,8 @@
 name: Web Checks
 
-# Type-checks the Nuxt frontend and runs the API-contract test. Both guard against
-# frontend/backend drift (wrong API path or param name) that is invisible to `nuxt build`.
+# Type-checks the Nuxt frontend, runs the API-contract test, the component suite, and the browser
+# e2e golden flows against the built app. Together they guard against frontend/backend drift and
+# behavioural regressions that are invisible to `nuxt build`.
 # Triggered by web changes and by changes to the OpenAPI spec the client is generated from.
 on:
   push:
@@ -38,3 +39,15 @@ jobs:
 
       - name: API contract test
         run: npm test
+
+      - name: Component tests
+        run: npm run test:component
+
+      - name: Build app for e2e
+        run: npm run build
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser e2e flows
+        run: npm run test:e2e
