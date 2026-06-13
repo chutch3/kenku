@@ -8,8 +8,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace API.JobRuntime.Handlers;
 
-/// <summary>Payload for <see cref="DownloadChapterHandler"/>.</summary>
-public record DownloadChapterPayload(string ChapterKey);
+/// <summary>Payload for <see cref="DownloadChapterHandler"/>. <see cref="DownloadChapterPayload.PinnedArchiveUrl"/> carries
+/// a user-chosen download from a multi-option post, bypassing URL resolution.</summary>
+public record DownloadChapterPayload(string ChapterKey, string? PinnedArchiveUrl = null);
 
 /// <summary>
 /// Downloads one chapter via <see cref="ChapterDownloadService"/> (resolve → acquire .cbz → mark
@@ -22,8 +23,8 @@ public class DownloadChapterHandler(IServiceScopeFactory scopeFactory) : IJobHan
     public const string Type = "DownloadChapter";
     public string JobType => Type;
 
-    public static string PayloadFor(string chapterKey) =>
-        JsonSerializer.Serialize(new DownloadChapterPayload(chapterKey));
+    public static string PayloadFor(string chapterKey, string? pinnedArchiveUrl = null) =>
+        JsonSerializer.Serialize(new DownloadChapterPayload(chapterKey, pinnedArchiveUrl));
 
     public async Task ExecuteAsync(Job job, CancellationToken ct)
     {
@@ -37,7 +38,7 @@ public class DownloadChapterHandler(IServiceScopeFactory scopeFactory) : IJobHan
         DownloadOutcome outcome = await service.DownloadAsync(
             provider.GetRequiredService<SeriesContext>(),
             provider.GetRequiredService<ActionsContext>(),
-            payload.ChapterKey, ct);
+            payload.ChapterKey, ct, payload.PinnedArchiveUrl);
         job.Progress = outcome switch
         {
             DownloadOutcome.Downloaded => "chapter downloaded",

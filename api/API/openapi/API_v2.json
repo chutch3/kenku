@@ -800,6 +800,113 @@
         }
       }
     },
+    "/v2/Chapters/{ChapterSourceKey}/DownloadOptions": {
+      "get": {
+        "tags": [
+          "Chapters"
+        ],
+        "summary": "The pickable downloads for a chapter whose post bundles several (scan variants or a true\nmulti-issue bundle), resolved live from the post so the answer reflects it right now.",
+        "parameters": [
+          {
+            "name": "ChapterSourceKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Options to pick from; empty with a reason when the post needs manual handling",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/DownloadOptionsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Chapter source not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Chapters/{ChapterSourceKey}/Download": {
+      "post": {
+        "tags": [
+          "Chapters"
+        ],
+        "summary": "Enqueues a download pinned to one of the chapter's API.Controllers.Responses.DownloadOptionsResponse\noptions. The URL is re-validated against a live resolve, so a stale pick is rejected rather\nthan fetching something the post no longer offers.",
+        "parameters": [
+          {
+            "name": "ChapterSourceKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PinnedDownloadRequest"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PinnedDownloadRequest"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PinnedDownloadRequest"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/PinnedDownloadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pinned download job enqueued"
+          },
+          "400": {
+            "description": "The post no longer offers that URL",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Chapter source not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/Discover/Manga": {
       "get": {
         "tags": [
@@ -6486,6 +6593,43 @@
         ],
         "type": "string"
       },
+      "DownloadOption": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "size": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "One pickable download from a post that bundles several."
+      },
+      "DownloadOptionsResponse": {
+        "type": "object",
+        "properties": {
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DownloadOption"
+            },
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "The pickable downloads for a chapter whose post bundles several, resolved live from the post.\nEmpty options with a API.Controllers.Responses.DownloadOptionsResponse.Reason means the post genuinely needs manual handling."
+      },
       "EnqueueJobRequest": {
         "required": [
           "type"
@@ -6974,6 +7118,17 @@
         "additionalProperties": false,
         "description": "Request body for PUT /Series/{id}/metadataSource"
       },
+      "PinnedDownloadRequest": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A user-chosen download URL from API.Controllers.Responses.DownloadOptionsResponse."
+      },
       "ProblemDetails": {
         "type": "object",
         "properties": {
@@ -7017,12 +7172,18 @@
           "createdAt",
           "key",
           "maxAttempts",
+          "payload",
           "scheduledFor",
           "status",
           "type"
         ],
         "type": "object",
         "properties": {
+          "payload": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The job's payload (JSON, type-specific) — lets the UI link a job to its subject."
+          },
           "type": {
             "minLength": 1,
             "type": "string",

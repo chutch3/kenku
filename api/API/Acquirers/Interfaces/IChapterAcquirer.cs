@@ -23,11 +23,14 @@ public interface IChapterAcquirer
     /// <param name="source">The connector that originally produced this chapter.</param>
     /// <param name="saveArchiveFilePath">Absolute path the .cbz must be written to.</param>
     /// <param name="ct">Cancellation token.</param>
+    /// <param name="pinnedArchiveUrl">A user-chosen archive URL (from a multi-option post) that
+    /// bypasses URL resolution. Only meaningful to direct-archive acquirers; others ignore it.</param>
     Task<AcquireResult> AcquireAsync(
         SourceId<Chapter> chapter,
         SeriesSource source,
         string saveArchiveFilePath,
-        CancellationToken ct);
+        CancellationToken ct,
+        string? pinnedArchiveUrl = null);
 }
 
 /// <summary>

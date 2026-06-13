@@ -27,7 +27,8 @@ public class ImageListAcquirer(KenkuSettings settings) : IChapterAcquirer
         SourceId<Chapter> chapter,
         SeriesSource source,
         string saveArchiveFilePath,
-        CancellationToken ct)
+        CancellationToken ct,
+        string? pinnedArchiveUrl = null)
     {
         string[] imageUrls;
         try

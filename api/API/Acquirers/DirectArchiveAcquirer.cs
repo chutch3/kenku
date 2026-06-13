@@ -21,16 +21,17 @@ public class DirectArchiveAcquirer(HttpClient http) : IChapterAcquirer
         SourceId<Chapter> chapter,
         SeriesSource source,
         string saveArchiveFilePath,
-        CancellationToken ct)
+        CancellationToken ct,
+        string? pinnedArchiveUrl = null)
     {
-        if (string.IsNullOrWhiteSpace(chapter.WebsiteUrl))
+        if (string.IsNullOrWhiteSpace(chapter.WebsiteUrl) && pinnedArchiveUrl is null)
         {
             Log.ErrorFormat("Cannot acquire chapter {0}: WebsiteUrl is empty (a DirectArchive connector must populate it with the archive URL).", chapter);
             return new AcquireResult.Failed("the connector did not provide an archive URL for this chapter");
         }
 
-        string archiveUrl = chapter.WebsiteUrl;
-        if (source is IArchiveUrlResolver resolver)
+        string archiveUrl = pinnedArchiveUrl ?? chapter.WebsiteUrl!;
+        if (pinnedArchiveUrl is null && source is IArchiveUrlResolver resolver)
         {
             switch (await resolver.ResolveArchiveUrl(chapter, ct))
             {
@@ -40,6 +41,10 @@ public class DirectArchiveAcquirer(HttpClient http) : IChapterAcquirer
                 case ArchiveResolution.Manual manual:
                     Log.InfoFormat("Chapter {0} needs manual handling: {1}", chapter, manual.Reason);
                     return new AcquireResult.Failed(manual.Reason);
+                case ArchiveResolution.Choice choice:
+                    Log.InfoFormat("Chapter {0} offers {1} downloads; the user picks one.", chapter, choice.Options.Count);
+                    return new AcquireResult.Failed(
+                        $"the post offers {choice.Options.Count} downloads — choose one from the failed job in Activity");
             }
         }
 

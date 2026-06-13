@@ -30,7 +30,8 @@ public class TorrentAcquirer(
         SourceId<Chapter> chapter,
         SeriesSource source,
         string saveArchiveFilePath,
-        CancellationToken ct)
+        CancellationToken ct,
+        string? pinnedArchiveUrl = null)
     {
         Chapter ch = chapter.Obj;
         Series series = ch.ParentManga;

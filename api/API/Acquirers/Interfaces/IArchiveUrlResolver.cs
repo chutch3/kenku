@@ -19,4 +19,11 @@ public abstract record ArchiveResolution
 {
     public sealed record Resolved(string Url) : ArchiveResolution;
     public sealed record Manual(string Reason) : ArchiveResolution;
+
+    /// <summary>The post offers several equally-fetchable downloads (scan variants, or a true
+    /// multi-issue bundle) — the user picks one rather than Kenku guessing.</summary>
+    public sealed record Choice(IReadOnlyList<DownloadOption> Options) : ArchiveResolution;
 }
+
+/// <summary>One pickable download from a post that bundles several.</summary>
+public record DownloadOption(string Label, string Url, string? Size);

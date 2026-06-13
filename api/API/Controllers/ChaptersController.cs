@@ -1,5 +1,7 @@
 using API.Services.Interfaces;
+using API.Acquirers.Interfaces;
 using API.Controllers.DTOs;
+using API.Controllers.Responses;
 using API.Controllers.Requests;
 using API.Connectors;
 using API.Schema.SeriesContext;
@@ -388,5 +390,74 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
 
         var thumbnailStream = new FileStream(cachePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         return TypedResults.Stream(thumbnailStream, "image/jpeg");
+    }
+
+    /// <summary>
+    /// The pickable downloads for a chapter whose post bundles several (scan variants or a true
+    /// multi-issue bundle), resolved live from the post so the answer reflects it right now.
+    /// </summary>
+    /// <response code="200">Options to pick from; empty with a reason when the post needs manual handling</response>
+    /// <response code="404">Chapter source not found</response>
+    [HttpGet("{ChapterSourceKey}/DownloadOptions")]
+    [ProducesResponseType<DownloadOptionsResponse>(Status200OK, "application/json")]
+    [ProducesResponseType<string>(Status404NotFound, "text/plain")]
+    public async Task<Results<Ok<DownloadOptionsResponse>, NotFound<string>>> GetDownloadOptions(string ChapterSourceKey)
+    {
+        if (await context.MangaConnectorToChapter.Include(id => id.Obj)
+                .FirstOrDefaultAsync(id => id.Key == ChapterSourceKey, HttpContext.RequestAborted) is not { } chId)
+            return TypedResults.NotFound(nameof(ChapterSourceKey));
+        if (connectors.FirstOrDefault(c => c.Name.Equals(chId.MangaConnectorName, StringComparison.OrdinalIgnoreCase))
+            is not IArchiveUrlResolver resolver)
+            return TypedResults.Ok(new DownloadOptionsResponse([], "this source resolves its downloads automatically"));
+
+        return TypedResults.Ok(await resolver.ResolveArchiveUrl(chId, HttpContext.RequestAborted) switch
+        {
+            ArchiveResolution.Choice choice => new DownloadOptionsResponse(choice.Options, null),
+            ArchiveResolution.Resolved resolved => new DownloadOptionsResponse([new DownloadOption("Download", resolved.Url, null)], null),
+            ArchiveResolution.Manual manual => new DownloadOptionsResponse([], manual.Reason),
+            _ => new DownloadOptionsResponse([], "unknown resolution"),
+        });
+    }
+
+    /// <summary>
+    /// Enqueues a download pinned to one of the chapter's <see cref="DownloadOptionsResponse"/>
+    /// options. The URL is re-validated against a live resolve, so a stale pick is rejected rather
+    /// than fetching something the post no longer offers.
+    /// </summary>
+    /// <response code="200">Pinned download job enqueued</response>
+    /// <response code="400">The post no longer offers that URL</response>
+    /// <response code="404">Chapter source not found</response>
+    [HttpPost("{ChapterSourceKey}/Download")]
+    [ProducesResponseType(Status200OK)]
+    [ProducesResponseType<string>(Status400BadRequest, "text/plain")]
+    [ProducesResponseType<string>(Status404NotFound, "text/plain")]
+    public async Task<Results<Ok, BadRequest<string>, NotFound<string>>> Download(string ChapterSourceKey,
+        [FromBody] PinnedDownloadRequest request,
+        [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore,
+        [FromServices] API.JobRuntime.Interfaces.IClock clock)
+    {
+        if (await context.MangaConnectorToChapter.Include(id => id.Obj)
+                .FirstOrDefaultAsync(id => id.Key == ChapterSourceKey, HttpContext.RequestAborted) is not { } chId)
+            return TypedResults.NotFound(nameof(ChapterSourceKey));
+
+        string[] offered = connectors.FirstOrDefault(c => c.Name.Equals(chId.MangaConnectorName, StringComparison.OrdinalIgnoreCase))
+                is IArchiveUrlResolver resolver
+            ? await resolver.ResolveArchiveUrl(chId, HttpContext.RequestAborted) switch
+            {
+                ArchiveResolution.Choice choice => choice.Options.Select(o => o.Url).ToArray(),
+                ArchiveResolution.Resolved resolved => [resolved.Url],
+                _ => [],
+            }
+            : [];
+        if (!offered.Contains(request.Url, StringComparer.Ordinal))
+            return TypedResults.BadRequest("the post no longer offers that download — refresh the options");
+
+        await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
+            API.JobRuntime.Handlers.DownloadChapterHandler.Type,
+            API.JobRuntime.Handlers.DownloadChapterHandler.PayloadFor(chId.Key, request.Url),
+            clock.UtcNow,
+            resourceKey: chId.Obj.ParentMangaId,
+            dedupKey: $"pinned-download:{chId.Key}"), HttpContext.RequestAborted);
+        return TypedResults.Ok();
     }
 }

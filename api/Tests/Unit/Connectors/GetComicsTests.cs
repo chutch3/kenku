@@ -482,6 +482,40 @@ public class GetComicsTests
     }
 
     [Fact]
+    public async Task ResolveArchiveUrl_OffersLabeledChoices_WhenThePostBundlesSeveralDownloads()
+    {
+        // Mirrors the live markup of multi-scan posts (Spawn #376, 2026-06): each variant is a
+        // centered <p> whose first <strong> is the label, with the size in the same paragraph,
+        // followed by its own button block.
+        const string html = """
+            <html><body>
+            <h1 class="post-title">Spawn #376 (2026)</h1>
+            <section class="post-contents">
+            <p style="text-align: center;"><strong>Spawn #376 (Empire)</strong><br />
+            <strong>Language :</strong> English | <strong>Image Format :</strong> JPG | <strong>Year :</strong> 2026 | <strong>Size :</strong> 89 MB</p>
+            <p style="text-align: center;"><div class="aio-button-center"><div class="aio-pulse"><a rel="nofollow" href="https://getcomics.org/dls/empire" class="aio-red" title="DOWNLOAD NOW">DOWNLOAD NOW</a></div></div>
+            <p style="text-align: center;"><div class="aio-button-center"><div class="aio-pulse"><a href="https://1024terabox.com/s/x" class="aio-blue" title="TERABOX" rel="nofollow">TERABOX</a></div></div>
+            <p style="text-align: center;"><strong>Spawn #376</strong><br />
+            <strong>Language :</strong> English | <strong>Image Format :</strong> JPG | <strong>Year :</strong> 2026 | <strong>Size :</strong> 67 MB</p>
+            <p style="text-align: center;"><div class="aio-button-center"><div class="aio-pulse"><a rel="nofollow" href="https://getcomics.org/dls/series" class="aio-red" title="DOWNLOAD NOW">DOWNLOAD NOW</a></div></div>
+            </section>
+            </body></html>
+            """;
+        var connector = CreateConnector(_ => Html(html));
+
+        var resolution = await connector.ResolveArchiveUrl(ChapterId(connector, "https://getcomics.org/c/spawn-376/"), CancellationToken.None);
+
+        var choice = Assert.IsType<ArchiveResolution.Choice>(resolution);
+        Assert.Equal(2, choice.Options.Count);
+        Assert.Equal("Spawn #376 (Empire)", choice.Options[0].Label);
+        Assert.Equal("https://getcomics.org/dls/empire", choice.Options[0].Url);
+        Assert.Equal("89 MB", choice.Options[0].Size);
+        Assert.Equal("Spawn #376", choice.Options[1].Label);
+        Assert.Equal("https://getcomics.org/dls/series", choice.Options[1].Url);
+        Assert.Equal("67 MB", choice.Options[1].Size);
+    }
+
+    [Fact]
     public async Task ResolveArchiveUrl_PrefersTheMainServerLink()
     {
         string html = PostPage(
@@ -555,10 +589,10 @@ public class GetComicsTests
     }
 
     [Fact]
-    public async Task ResolveArchiveUrl_ParksPostsThatBundleSeveralDownloads()
+    public async Task ResolveArchiveUrl_StillOffersChoices_WhenBundledButtonsCarryNoLabels()
     {
-        // A multi-single post carries one Download Now per bundled issue; fetching just the first
-        // would silently drop the rest, so the whole post goes to manual handling instead.
+        // Even without the labelled section paragraphs, every Download Now must remain pickable —
+        // numbered fallback labels beat parking the chapter.
         string html = PostPage(
             Button("Download Now", "https://getcomics.org/dls/one"),
             Button("DOWNLOAD NOW", "https://getcomics.org/dls/two"));
@@ -566,7 +600,9 @@ public class GetComicsTests
 
         var resolution = await connector.ResolveArchiveUrl(ChapterId(connector, "https://getcomics.org/c/saga-60/"), CancellationToken.None);
 
-        Assert.Contains("2 separate downloads", Assert.IsType<ArchiveResolution.Manual>(resolution).Reason);
+        var choice = Assert.IsType<ArchiveResolution.Choice>(resolution);
+        Assert.Equal(["Download 1", "Download 2"], choice.Options.Select(o => o.Label));
+        Assert.Equal(["https://getcomics.org/dls/one", "https://getcomics.org/dls/two"], choice.Options.Select(o => o.Url));
     }
 
     [Fact]

@@ -28,6 +28,69 @@ public class DirectArchiveAcquirerTests
         return (series, chapter, sourceId, source, settings, tempRoot);
     }
 
+    private sealed class ChoiceResolvingSource(KenkuSettings settings, ArchiveResolution resolution)
+        : SeriesSource("FakeArchive", ["en"], ["fake.test"], "icon", settings), IArchiveUrlResolver
+    {
+        public override AcquisitionKind Kind => AcquisitionKind.DirectArchive;
+        public Task<ArchiveResolution> ResolveArchiveUrl(SourceId<Chapter> chapter, CancellationToken ct) =>
+            Task.FromResult(resolution);
+        public override Task<(Series, SourceId<Series>)[]> SearchManga(string m) => throw new NotSupportedException();
+        public override Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string url) => throw new NotSupportedException();
+        public override Task<(Series, SourceId<Series>)?> GetMangaFromId(string id) => throw new NotSupportedException();
+        public override Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> id, string? language = null) => throw new NotSupportedException();
+        internal override Task<string[]> GetChapterImageUrls(SourceId<Chapter> id) => throw new NotSupportedException();
+    }
+
+    [Fact]
+    public async Task AcquireAsync_Fails_WithAnActionableMessage_WhenResolutionOffersChoices()
+    {
+        var (_, _, sourceId, _, settings, tempRoot) = BuildFixture("https://getcomics.org/c/spawn-376/");
+        try
+        {
+            var source = new ChoiceResolvingSource(settings, new ArchiveResolution.Choice(
+            [
+                new DownloadOption("Spawn #376 (Empire)", "https://getcomics.org/dls/empire", "89 MB"),
+                new DownloadOption("Spawn #376", "https://getcomics.org/dls/series", "67 MB"),
+            ]));
+            using var http = new HttpClient(new FakeHttpMessageHandler(_ => throw new InvalidOperationException("must not download")));
+            var acquirer = new DirectArchiveAcquirer(http);
+
+            AcquireResult result = await acquirer.AcquireAsync(sourceId, source, Path.Combine(tempRoot, "out.cbz"), CancellationToken.None);
+
+            var failed = Assert.IsType<AcquireResult.Failed>(result);
+            Assert.Contains("2 downloads", failed.Reason);
+            Assert.Contains("choose", failed.Reason, StringComparison.OrdinalIgnoreCase);
+        }
+        finally { try { Directory.Delete(tempRoot, recursive: true); } catch { } }
+    }
+
+    [Fact]
+    public async Task AcquireAsync_DownloadsThePinnedUrl_WithoutResolving()
+    {
+        byte[] archiveBytes = [0x50, 0x4B, 0x03, 0x04];
+        var (_, _, sourceId, _, settings, tempRoot) = BuildFixture("https://getcomics.org/c/spawn-376/");
+        try
+        {
+            // A resolver that would park the chapter — the pin must bypass it entirely.
+            var source = new ChoiceResolvingSource(settings, new ArchiveResolution.Manual("nope"));
+            string saveTo = Path.Combine(tempRoot, "out.cbz");
+            string capturedUrl = "";
+            using var http = new HttpClient(new FakeHttpMessageHandler(req =>
+            {
+                capturedUrl = req.RequestUri!.ToString();
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(archiveBytes) };
+            }));
+            var acquirer = new DirectArchiveAcquirer(http);
+
+            AcquireResult result = await acquirer.AcquireAsync(sourceId, source, saveTo, CancellationToken.None,
+                pinnedArchiveUrl: "https://getcomics.org/dls/series");
+
+            Assert.Equal(saveTo, Assert.IsType<AcquireResult.Acquired>(result).Path);
+            Assert.Equal("https://getcomics.org/dls/series", capturedUrl);
+        }
+        finally { try { Directory.Delete(tempRoot, recursive: true); } catch { } }
+    }
+
     [Fact]
     public async Task AcquireAsync_DownloadsArchiveFromChapterWebsiteUrl_AndReturnsPath()
     {

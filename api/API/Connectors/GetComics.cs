@@ -281,7 +281,7 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.ILates
         if (mainServer.Length == 1)
             return new ArchiveResolution.Resolved(mainServer[0].Href);
         if (mainServer.Length > 1)
-            return new ArchiveResolution.Manual($"the post bundles {mainServer.Length} separate downloads — download manually");
+            return new ArchiveResolution.Choice(ParseDownloadOptions(doc));
 
         foreach ((string title, string href) in buttons)
         {
@@ -297,6 +297,40 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.ILates
         return new ArchiveResolution.Manual(hosts.Length == 0
             ? "the post has no download links — download manually"
             : $"only available via {string.Join(", ", hosts)} — download manually");
+    }
+
+    /// <summary>
+    /// A multi-button post is several download sections — scan variants of one issue, or a true
+    /// multi-issue bundle. Each section is a centered paragraph whose first &lt;strong&gt; is the
+    /// label (with the size in the same paragraph), followed by its own button block; the nearest
+    /// such paragraph above each Main Server button names that button's download.
+    /// </summary>
+    private static List<DownloadOption> ParseDownloadOptions(HtmlDocument doc)
+    {
+        var options = new List<DownloadOption>();
+        var anchors = doc.DocumentNode.SelectNodes(
+            "//div[contains(concat(' ', normalize-space(@class), ' '), ' aio-button-center ')]//a[@title]")
+            ?? Enumerable.Empty<HtmlNode>();
+        int unlabeled = 0;
+        foreach (HtmlNode anchor in anchors)
+        {
+            if (!anchor.GetAttributeValue("title", "").Trim().Equals("Download Now", StringComparison.OrdinalIgnoreCase))
+                continue;
+            string href = anchor.GetAttributeValue("href", "");
+            if (href.Length == 0)
+                continue;
+
+            HtmlNode? section = anchor.SelectSingleNode("preceding::p[strong][1]");
+            string label = HtmlEntity.DeEntitize(section?.SelectSingleNode(".//strong[1]")?.InnerText ?? "").Trim();
+            if (label.Length == 0)
+                label = $"Download {++unlabeled}";
+            string? size = null;
+            if (section?.SelectSingleNode(".//strong[contains(., 'Size')]") is { NextSibling: { } sizeText })
+                size = HtmlEntity.DeEntitize(sizeText.InnerText).Trim(' ', '|');
+
+            options.Add(new DownloadOption(label, href, string.IsNullOrEmpty(size) ? null : size));
+        }
+        return options;
     }
 
     /// <summary>The button links to the share page (often via a getcomics redirect); the file itself

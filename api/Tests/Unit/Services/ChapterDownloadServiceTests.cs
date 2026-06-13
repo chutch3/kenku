@@ -378,9 +378,13 @@ public class ChapterDownloadServiceTests
 
     private sealed class StubAcquirer(AcquireResult result) : IChapterAcquirer
     {
+        public string? SeenPinnedUrl;
         public AcquisitionKind Kind => AcquisitionKind.ImageList;
-        public Task<AcquireResult> AcquireAsync(SourceId<Chapter> c, SeriesSource s, string p, CancellationToken ct)
-            => Task.FromResult(result);
+        public Task<AcquireResult> AcquireAsync(SourceId<Chapter> c, SeriesSource s, string p, CancellationToken ct, string? pinnedArchiveUrl = null)
+        {
+            SeenPinnedUrl = pinnedArchiveUrl;
+            return Task.FromResult(result);
+        }
     }
 
     private static (ServiceProvider provider, SeriesContext context, SourceId<Chapter> connectorId, Mock<SeriesSource> connector, KenkuSettings settings)
@@ -443,5 +447,23 @@ public class ChapterDownloadServiceTests
             p.GetRequiredService<API.Schema.ActionsContext.ActionsContext>(), connectorId.Key, CancellationToken.None));
 
         Assert.Contains("no seeders to be found", ex.Message);
+    }
+
+    [Fact]
+    public async Task DownloadAsync_PassesThePinnedUrlToTheAcquirer()
+    {
+        var (provider, context, connectorId, connector, settings) =
+            BuildAcquirerFixture(new AcquireResult.Deferred(), "DownloadPinned");
+        using var scope = provider.CreateScope();
+        var p = scope.ServiceProvider;
+        var stub = new StubAcquirer(new AcquireResult.Deferred());
+        var service = new ChapterDownloadService(settings, [connector.Object], p.GetRequiredService<IJobStore>(),
+            p.GetRequiredService<IClock>(), [stub], new LibraryLayoutResolver());
+
+        await service.DownloadAsync(context,
+            p.GetRequiredService<API.Schema.ActionsContext.ActionsContext>(), connectorId.Key, CancellationToken.None,
+            pinnedArchiveUrl: "https://getcomics.org/dls/series");
+
+        Assert.Equal("https://getcomics.org/dls/series", stub.SeenPinnedUrl);
     }
 }

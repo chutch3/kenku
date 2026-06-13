@@ -45,7 +45,8 @@ public class ChapterDownloadService(
 
     private static readonly ILog Log = LogManager.GetLogger(typeof(ChapterDownloadService));
 
-    public async Task<DownloadOutcome> DownloadAsync(SeriesContext seriesContext, ActionsContext actionsContext, string chapterKey, CancellationToken ct)
+    public async Task<DownloadOutcome> DownloadAsync(SeriesContext seriesContext, ActionsContext actionsContext,
+        string chapterKey, CancellationToken ct, string? pinnedArchiveUrl = null)
     {
         Log.Debug($"Downloading chapter for SourceId {chapterKey}...");
         if (await seriesContext.MangaConnectorToChapter
@@ -87,7 +88,7 @@ public class ChapterDownloadService(
         IChapterAcquirer acquirer = _acquirers.FirstOrDefault(a => a.Kind == seriesSource.Kind) ?? new ImageListAcquirer(settings);
 
         string acquiredPath;
-        switch (await acquirer.AcquireAsync(mangaConnectorId, seriesSource, saveArchiveFilePath, ct))
+        switch (await acquirer.AcquireAsync(mangaConnectorId, seriesSource, saveArchiveFilePath, ct, pinnedArchiveUrl))
         {
             case AcquireResult.Acquired acquired:
                 acquiredPath = acquired.Path;

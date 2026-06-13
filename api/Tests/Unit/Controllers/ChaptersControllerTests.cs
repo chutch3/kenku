@@ -1,5 +1,9 @@
 using API.Services.Interfaces;
+using API.Acquirers;
+using API.Acquirers.Interfaces;
 using API.Controllers;
+using API.Controllers.Responses;
+using API.JobRuntime.Handlers;
 using API.Controllers.Requests;
 using API.Controllers.DTOs;
 using API.Schema.SeriesContext;
@@ -276,5 +280,96 @@ public class ChaptersControllerTests: IDisposable
 
         var exception = Record.Exception(action);
         Assert.Null(exception);
+    }
+
+    private sealed class ChoiceResolvingSource(API.KenkuSettings settings, ArchiveResolution resolution)
+        : API.Connectors.SeriesSource("FakeArchive", ["en"], ["fake.test"], "icon", settings), IArchiveUrlResolver
+    {
+        public override AcquisitionKind Kind => AcquisitionKind.DirectArchive;
+        public Task<ArchiveResolution> ResolveArchiveUrl(API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter> chapter, CancellationToken ct) =>
+            Task.FromResult(resolution);
+        public override Task<(API.Schema.SeriesContext.Series, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series>)[]> SearchManga(string m) => throw new NotSupportedException();
+        public override Task<(API.Schema.SeriesContext.Series, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series>)?> GetMangaFromUrl(string url) => throw new NotSupportedException();
+        public override Task<(API.Schema.SeriesContext.Series, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series>)?> GetMangaFromId(string id) => throw new NotSupportedException();
+        public override Task<(API.Schema.SeriesContext.Chapter, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>)[]> GetChapters(API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series> id, string? language = null) => throw new NotSupportedException();
+        internal override Task<string[]> GetChapterImageUrls(API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter> id) => throw new NotSupportedException();
+    }
+
+    private static readonly DownloadOption Empire = new("Spawn #376 (Empire)", "https://getcomics.org/dls/empire", "89 MB");
+    private static readonly DownloadOption Series376 = new("Spawn #376", "https://getcomics.org/dls/series", "67 MB");
+
+    private async Task<(SeriesContext ctx, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter> chId)> SeedArchiveChapter()
+    {
+        var ctx = CreateContext();
+        var manga = MakeTestManga("Spawn");
+        var chapter = new API.Schema.SeriesContext.Chapter(manga, "376", null);
+        var chId = new API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>(chapter, "FakeArchive", "376", "https://getcomics.org/c/spawn-376/", true);
+        ctx.Series.Add(manga);
+        ctx.Chapters.Add(chapter);
+        ctx.MangaConnectorToChapter.Add(chId);
+        await ctx.SaveChangesAsync();
+        return (ctx, chId);
+    }
+
+    [Fact]
+    public async Task DownloadOptions_ReturnsTheResolvedChoices()
+    {
+        var (ctx, chId) = await SeedArchiveChapter();
+        var source = new ChoiceResolvingSource(new API.KenkuSettings { AppData = _testWorkDir },
+            new ArchiveResolution.Choice([Empire, Series376]));
+
+        var result = await CreateController(ctx, connectors: [source]).GetDownloadOptions(chId.Key);
+
+        var ok = Assert.IsType<Ok<DownloadOptionsResponse>>(result.Result);
+        Assert.Equal([Empire, Series376], ok.Value!.Options);
+        Assert.Null(ok.Value.Reason);
+    }
+
+    [Fact]
+    public async Task DownloadOptions_ExplainsAPostThatTrulyNeedsManualHandling()
+    {
+        var (ctx, chId) = await SeedArchiveChapter();
+        var source = new ChoiceResolvingSource(new API.KenkuSettings { AppData = _testWorkDir },
+            new ArchiveResolution.Manual("only available via MEGA - download manually"));
+
+        var result = await CreateController(ctx, connectors: [source]).GetDownloadOptions(chId.Key);
+
+        var ok = Assert.IsType<Ok<DownloadOptionsResponse>>(result.Result);
+        Assert.Empty(ok.Value!.Options);
+        Assert.Contains("MEGA", ok.Value.Reason);
+    }
+
+    [Fact]
+    public async Task Download_EnqueuesAPinnedJob_WhenTheUrlIsStillOffered()
+    {
+        var (ctx, chId) = await SeedArchiveChapter();
+        var source = new ChoiceResolvingSource(new API.KenkuSettings { AppData = _testWorkDir },
+            new ArchiveResolution.Choice([Empire, Series376]));
+        var store = new InMemoryJobStore();
+
+        var result = await CreateController(ctx, connectors: [source])
+            .Download(chId.Key, new PinnedDownloadRequest(Series376.Url), store, new SystemClock());
+
+        Assert.IsType<Ok>(result.Result);
+        var job = Assert.Single(await store.GetAllAsync());
+        Assert.Equal(DownloadChapterHandler.Type, job.Type);
+        var payload = System.Text.Json.JsonSerializer.Deserialize<DownloadChapterPayload>(job.Payload)!;
+        Assert.Equal(chId.Key, payload.ChapterKey);
+        Assert.Equal(Series376.Url, payload.PinnedArchiveUrl);
+    }
+
+    [Fact]
+    public async Task Download_RejectsAUrlThePostNoLongerOffers()
+    {
+        var (ctx, chId) = await SeedArchiveChapter();
+        var source = new ChoiceResolvingSource(new API.KenkuSettings { AppData = _testWorkDir },
+            new ArchiveResolution.Choice([Empire]));
+        var store = new InMemoryJobStore();
+
+        var result = await CreateController(ctx, connectors: [source])
+            .Download(chId.Key, new PinnedDownloadRequest("https://evil.test/whatever"), store, new SystemClock());
+
+        Assert.IsType<BadRequest<string>>(result.Result);
+        Assert.Empty(await store.GetAllAsync());
     }
 }
