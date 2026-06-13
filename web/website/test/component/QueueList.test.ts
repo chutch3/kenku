@@ -17,6 +17,7 @@ interface QueuedJob {
     startedAt: string | null;
     finishedAt: string | null;
     progress: string | null;
+    payload: string;
 }
 
 function job(overrides: Partial<QueuedJob>): QueuedJob {
@@ -25,6 +26,7 @@ function job(overrides: Partial<QueuedJob>): QueuedJob {
         resourceKey: 'series-1', error: null,
         createdAt: '2026-06-06T00:00:00Z', scheduledFor: '2026-06-06T00:00:00Z',
         startedAt: null, finishedAt: null, progress: null,
+        payload: '{"ChapterKey":"src-1"}',
         ...overrides,
     };
 }
@@ -33,6 +35,18 @@ function job(overrides: Partial<QueuedJob>): QueuedJob {
 beforeEach(() => clearNuxtData());
 
 describe('QueueList', () => {
+    it('offers a download chooser on failed chapter downloads only', async () => {
+        registerEndpoint('/v2/JobQueue', () => [
+            job({ key: 'a', type: 'DownloadChapter', status: 'NeedsAttention', error: 'the post offers 2 downloads — choose one from the failed job in Activity' }),
+            job({ key: 'b', type: 'ResolveSeriesVolumes', status: 'NeedsAttention', error: 'boom' }),
+        ]);
+        const wrapper = await mountSuspended(QueueList);
+        await vi.waitFor(() => expect(wrapper.text()).toContain('NeedsAttention'));
+
+        const chooseButtons = wrapper.findAll('button').filter((b) => b.text().includes('Choose download'));
+        expect(chooseButtons).toHaveLength(1);
+    });
+
     it('lists each runtime job with its status', async () => {
         registerEndpoint('/v2/JobQueue', () => [
             job({ key: 'a', type: 'DownloadChapter', status: 'Running' }),
@@ -73,7 +87,8 @@ describe('QueueList', () => {
         registerEndpoint('/v2/JobQueue/needs/Retry', { method: 'POST', handler: () => { retried = true; return {}; } });
 
         const wrapper = await mountSuspended(QueueList);
-        await wrapper.find('button').trigger('click');
+        const retryButton = wrapper.findAll('button').find((b) => b.text().includes('Retry'));
+        await retryButton!.trigger('click');
         await flushPromises();
 
         expect(retried).toBe(true);

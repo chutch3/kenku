@@ -24,6 +24,11 @@
                     <span v-if="whenLabel(job)" class="text-muted text-xs w-24 text-right">{{ whenLabel(job) }}</span>
                     <span v-if="job.error" class="text-error truncate max-w-80">{{ job.error }}</span>
                     <UButton
+                        v-if="canChooseDownload(job)"
+                        size="xs" variant="soft" color="secondary" @click.stop="chooseDownload(job)">
+                        Choose download
+                    </UButton>
+                    <UButton
                         v-if="job.status === 'NeedsAttention'"
                         size="xs" color="primary" :loading="busy === job.key" @click.stop="retry(job.key)">
                         Retry
@@ -50,6 +55,7 @@
         <p v-if="jobs.length > displayedJobs.length" class="text-xs text-muted">
             Showing {{ displayedJobs.length }} of {{ jobs.length }} jobs, most recent first.
         </p>
+        <DownloadChoiceModal v-if="choiceFor" v-model:open="choiceOpen" :source-key="choiceFor" @queued="refresh()" />
     </div>
 </template>
 
@@ -61,6 +67,18 @@ const { $api } = useNuxtApp();
 const { data, refresh } = await useApi('/v2/JobQueue', { key: FetchKeys.JobQueue.All, server: false });
 const jobs = computed<QueuedJob[]>(() => data.value ?? []);
 const busy = ref<string | null>(null);
+
+// A failed chapter download may just need a human pick (multi-option post) — offer the chooser.
+const choiceFor = ref<string | null>(null);
+const choiceOpen = ref(false);
+const canChooseDownload = (job: QueuedJob) =>
+    job.type === 'DownloadChapter' && (job.status === 'Failed' || job.status === 'NeedsAttention');
+const chooseDownload = (job: QueuedJob) => {
+    const key = (JSON.parse(job.payload ?? '{}') as { ChapterKey?: string }).ChapterKey;
+    if (!key) return;
+    choiceFor.value = key;
+    choiceOpen.value = true;
+};
 
 // Make rows readable: a friendly verb instead of the handler type name, the series the job belongs
 // to (the resource key is the series for series-scoped jobs), and the recorded outcome.
