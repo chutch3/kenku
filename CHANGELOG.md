@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.24.0 (2026-06-13)
+
+### Bug Fixes
+
+- /v2/Stats counts via EF across contexts instead of raw SQL with a wrong table name
+  ([`8616fc4`](https://github.com/chutch3/kenku/commit/8616fc4c62020792530784b81d746c45512ad33b))
+
+### Features
+
+- Block adding a series with no chapters and offer a search for another source
+  ([`cfa5cb7`](https://github.com/chutch3/kenku/commit/cfa5cb7d69c4461a33e434cf765c4614b9ae35d8))
+
+
 ## v0.23.0 (2026-06-13)
 
 ### Bug Fixes
