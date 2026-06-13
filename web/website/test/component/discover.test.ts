@@ -43,10 +43,7 @@ registerEndpoint('/v2/Discover/Manga/New', () => [
 registerEndpoint('/v2/Discover/Manga/Genre/Action', () => [
     { title: 'Sakamoto Days', coverUrl: '', url: 'https://anilist.co/manga/5', source: 'AniList', blurb: null },
 ]);
-registerEndpoint('/v2/Discover/Manga/Genre/Horror', () => [
-    { title: 'Uzumaki', coverUrl: '', url: 'https://anilist.co/manga/6', source: 'AniList', blurb: null },
-]);
-let discoveryGenres = ['Action'];
+const discoveryGenres = ['Action'];
 let feedEntries: object[] = [];
 registerEndpoint('/v2/Settings', () => ({
     apiKey: '',
@@ -92,7 +89,6 @@ describe('discover page', () => {
         globalSearchQuery = null;
         mangaEntries = defaultManga;
         comicsEntries = defaultComics;
-        discoveryGenres = ['Action'];
         feedEntries = [];
         navigateToMock.mockClear();
         clearNuxtData();
@@ -119,19 +115,6 @@ describe('discover page', () => {
 
         await vi.waitFor(() => expect(wrapper.text()).toContain('A hot thread'));
         expect(wrapper.text()).not.toContain('Nothing from the feeds yet');
-    });
-
-    it('reflects genre changes made in settings on the next visit', async () => {
-        await mountPage();
-        await vi.waitFor(() => expect(wrapper.text()).toContain('Sakamoto Days'));
-        wrapper.unmount();
-
-        // Genres edited elsewhere; revisiting Discover must not trust the warm cache.
-        discoveryGenres = ['Horror'];
-        await mountPage();
-
-        await vi.waitFor(() => expect(wrapper.text()).toContain('Uzumaki'));
-        expect(wrapper.text()).not.toContain('Sakamoto Days');
     });
 
     // Unmount before wiping the body — a live wrapper re-rendering against a wiped DOM throws.

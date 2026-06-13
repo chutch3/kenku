@@ -82,6 +82,9 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("Kenku:RunStartup", RunStartup ? "true" : "false");
+        // Each hosted test app otherwise starts config-reload FileSystemWatchers; across the suite
+        // they exhaust the kernel's inotify instance limit and unrelated tests fail with IOExceptions.
+        builder.UseSetting("hostBuilder:reloadConfigOnChange", "false");
         // Isolated, writable settings location — never touches the real path or the global APP_DATA env.
         builder.UseSetting("Kenku:AppData", Path.Combine(Path.GetTempPath(), "kenku-test-" + _id));
         builder.ConfigureTestServices(services =>
@@ -164,6 +167,7 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
             sp.GetRequiredService<ActionsContext>().Database.MigrateAsync().GetAwaiter().GetResult();
             sp.GetRequiredService<NotificationsContext>().Database.MigrateAsync().GetAwaiter().GetResult();
             sp.GetRequiredService<LibraryContext>().Database.MigrateAsync().GetAwaiter().GetResult();
+            sp.GetRequiredService<global::API.Schema.DiscoveryContext.DiscoveryContext>().Database.MigrateAsync().GetAwaiter().GetResult();
         }
         return host;
     }

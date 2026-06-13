@@ -1,7 +1,9 @@
 using API.Controllers;
 using API.JobRuntime;
 using API.JobRuntime.Handlers;
+using API.JobRuntime.Reconcilers;
 using API.Services;
+using API.Tests.Unit.JobRuntime;
 using API.Schema.ActionsContext;
 using API.Schema.SeriesContext;
 using API.MetadataResolvers;
@@ -44,12 +46,12 @@ public class MaintenanceControllerTests
         var (mangaCtx, actionsCtx) = CreateContexts();
         var store = new InMemoryJobStore();
 
-        await CreateController(mangaCtx, actionsCtx).RefreshDiscoveryFeeds(store, new API.Tests.Unit.JobRuntime.FakeClock());
-        await CreateController(mangaCtx, actionsCtx).RefreshDiscoveryFeeds(store, new API.Tests.Unit.JobRuntime.FakeClock());
+        await CreateController(mangaCtx, actionsCtx).RefreshDiscoveryFeeds(store, new FakeClock());
+        await CreateController(mangaCtx, actionsCtx).RefreshDiscoveryFeeds(store, new FakeClock());
 
         var job = Assert.Single(await store.GetAllAsync());
         Assert.Equal(RefreshDiscoveryFeedHandler.Type, job.Type);
-        Assert.Equal(API.JobRuntime.Reconcilers.DiscoveryFeedReconciler.DedupKey, job.DedupKey);
+        Assert.Equal(DiscoveryFeedReconciler.DedupKey, job.DedupKey);
     }
 
     [Fact]
