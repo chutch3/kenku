@@ -1,5 +1,6 @@
 using API.JobRuntime.Interfaces;
 using API.Schema.JobsContext;
+using log4net;
 
 namespace API.JobRuntime;
 
@@ -11,6 +12,7 @@ namespace API.JobRuntime;
 /// </summary>
 public class Dispatcher
 {
+    private static readonly ILog Log = LogManager.GetLogger(typeof(Dispatcher));
     private readonly IJobStore _store;
     private readonly HandlerRegistry _registry;
     private readonly IClock _clock;
@@ -86,11 +88,13 @@ public class Dispatcher
         {
             job.Status = JobStatus.Queued;
             job.ScheduledFor = _clock.UtcNow + _backoff.Delay(job.Attempts);
+            Log.Warn($"Job {job.Key} ({job.Type}) failed (attempt {job.Attempts}/{job.MaxAttempts}), retrying: {error}");
         }
         else
         {
             job.Status = JobStatus.NeedsAttention;
             job.FinishedAt = _clock.UtcNow;
+            Log.Error($"Job {job.Key} ({job.Type}) needs attention after {job.Attempts} attempt(s): {error}");
         }
     }
 }

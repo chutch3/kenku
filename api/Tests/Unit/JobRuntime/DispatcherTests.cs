@@ -179,4 +179,28 @@ public class DispatcherTests
         Assert.Equal(JobStatus.NeedsAttention, job.Status);
         Assert.Contains("ghost", job.Error);
     }
+
+    [Fact]
+    public async Task FailingJob_IsLogged_SoFailuresAreVisibleInTheServiceLogsNotOnlyInTheJobRow()
+    {
+        var appender = new log4net.Appender.MemoryAppender();
+        var repo = (log4net.Repository.Hierarchy.Hierarchy)log4net.LogManager.GetRepository(typeof(Dispatcher).Assembly);
+        repo.Root.AddAppender(appender);
+        repo.Root.Level = log4net.Core.Level.All;
+        repo.Configured = true;
+        try
+        {
+            var (dispatcher, store, clock) = Build([new AlwaysFailsHandler("fail")]);
+            var job = await store.EnqueueAsync(new Job("fail", "{}", clock.UtcNow));
+
+            Assert.True(await dispatcher.RunOnceAsync());
+
+            var events = appender.GetEvents();
+            Assert.Contains(events, e => e.RenderedMessage.Contains(job.Key) && e.RenderedMessage.Contains("nope"));
+        }
+        finally
+        {
+            repo.Root.RemoveAppender(appender);
+        }
+    }
 }

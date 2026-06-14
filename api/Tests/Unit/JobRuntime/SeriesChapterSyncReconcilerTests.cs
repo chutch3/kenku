@@ -1,6 +1,7 @@
 using API.JobRuntime.Reconcilers;
 using API.JobRuntime;
 using API.JobRuntime.Handlers;
+using API.Schema.JobsContext;
 using API.Schema.SeriesContext;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -39,6 +40,58 @@ public class SeriesChapterSyncReconcilerTests : IDisposable
         ctx.MangaConnectorToManga.Add(new SourceId<Series>(untracked, "MockConnector", "u1", "url", useForDownload: false));
         await ctx.SaveChangesAsync();
         return ctx;
+    }
+
+    private async Task<SeriesContext> SeedTracked(int count)
+    {
+        var ctx = NewContext();
+        var library = new FileLibrary(_root, "Lib");
+        ctx.FileLibraries.Add(library);
+        for (int i = 0; i < count; i++)
+        {
+            var s = new Series($"Tracked {i}", "", "u", SeriesReleaseStatus.Continuing, [], [], [], [], library);
+            ctx.Series.Add(s);
+            ctx.MangaConnectorToManga.Add(new SourceId<Series>(s, "MockConnector", $"t{i}", "url", useForDownload: true));
+        }
+        await ctx.SaveChangesAsync();
+        return ctx;
+    }
+
+    [Fact]
+    public async Task Scan_ReArmsAWedgedSyncJob_SoATransientUpstreamFailureDoesNotFreezeSyncing()
+    {
+        using var ctx = await Seed();
+        var trackedSource = await ctx.MangaConnectorToManga.FirstAsync(id => id.UseForDownload);
+        var store = new InMemoryJobStore();
+        // A prior sync failed all the way to NeedsAttention (e.g. an HTTP 500 from the source).
+        var parked = await store.EnqueueAsync(new Job(SyncSeriesChaptersHandler.Type, "{}", DateTime.UtcNow,
+            dedupKey: SeriesChapterSyncReconciler.DedupKey(trackedSource.Key)));
+        parked.Status = JobStatus.NeedsAttention;
+        parked.Attempts = 5;
+        parked.Error = "WeebCentral chapter list request failed: HTTP 500";
+        await store.UpdateAsync(parked);
+
+        await SeriesChapterSyncReconciler.ScanAndEnqueueAsync(ctx, store, "en", DateTime.UtcNow, default);
+
+        var job = Assert.Single(await store.GetAllAsync());
+        Assert.Equal(JobStatus.Queued, job.Status);
+        Assert.Equal(0, job.Attempts);
+        Assert.Null(job.Error);
+    }
+
+    [Fact]
+    public async Task Scan_StaggersTheEnqueuedJobs_SoATickDoesNotBurstEverySourceAtOnce()
+    {
+        using var ctx = await SeedTracked(4);
+        var store = new InMemoryJobStore();
+
+        await SeriesChapterSyncReconciler.ScanAndEnqueueAsync(ctx, store, "en", DateTime.UtcNow, default);
+
+        var due = (await store.GetAllAsync()).Select(j => j.ScheduledFor).OrderBy(d => d).ToList();
+        Assert.Equal(4, due.Count);
+        // Spread out, not all due at the same instant.
+        Assert.True(due[0] < due[^1], "sync jobs should be staggered across a window");
+        Assert.Equal(due.Count, due.Distinct().Count());
     }
 
     [Fact]
