@@ -147,6 +147,38 @@ public class SeriesChapterSyncServiceTests : IDisposable
         Assert.Contains("GoneConnector", ex.Message);
     }
 
+    // A duplicate-key (or any) save failure left the job "Succeeded" while the series sat empty with no
+    // signal — exactly how Ultimatum's chapters silently vanished. A failed save must surface.
+    private sealed class SaveFailingSeriesContext(DbContextOptions<SeriesContext> options) : SeriesContext(options)
+    {
+        internal override Task<(bool success, string? exceptionMessage)> Sync(
+            CancellationToken token, Type? trigger = null, string? reason = null) =>
+            Task.FromResult<(bool, string?)>((false, "duplicate key value violates unique constraint"));
+    }
+
+    [Fact]
+    public async Task Sync_Throws_WhenSavingTheChaptersFails()
+    {
+        using var failing = new SaveFailingSeriesContext(
+            new DbContextOptionsBuilder<SeriesContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+        var manga = new Series("Test Series", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], []);
+        failing.Series.Add(manga);
+        var mockConnector = new Mock<SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
+        var mangaMcId = new SourceId(manga, "MangaDex", "manga-id", "url");
+        manga.SourceIds.Add(mangaMcId);
+        failing.MangaConnectorToManga.Add(mangaMcId);
+        await failing.SaveChangesAsync();
+
+        var ch1 = new Chapter(manga, "1", null, null);
+        mockConnector.Setup(c => c.GetChapters(It.IsAny<SourceId>(), It.IsAny<string>()))
+            .ReturnsAsync([(ch1, new ChapterConnectorId(ch1, "MangaDex", "c1", "u1"))]);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            new SeriesChapterSyncService([mockConnector.Object])
+                .SyncAsync(failing, _actionsContext, mangaMcId.Key, "en", CancellationToken.None));
+        Assert.Contains("duplicate key", ex.Message);
+    }
+
     [Fact]
     public async Task Sync_RecordsTheRetrievedChapterCount_OnTheActionRecord()
     {

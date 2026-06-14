@@ -165,6 +165,26 @@ public class ComicHubFreeTests
     }
 
     [Fact]
+    public async Task GetChapters_ScopesTheChapterIdToTheSeries_SoTwoComicsDoNotCollideOnTheSameIssueNumber()
+    {
+        // Issue numbers repeat across comics (every series has an issue 1). The chapter source-id must
+        // carry the series, or two ComicHubFree comics produce the same SourceId<Chapter> key and the
+        // second one's chapters fail to save (the Ultimatum-vs-The-Boys collision).
+        var connector = CreateConnector(url => Html(url.Contains("ultimatum")
+            ? SeriesPage("Ultimatum", IssueRow("ultimatum", "1", "Ultimatum Issue #1"))
+            : SeriesPage("The Boys", IssueRow("the-boys", "1", "The Boys Issue #1"))));
+
+        var boys = await connector.GetChapters(SeriesId(connector, "The Boys", "the-boys"));
+        var ultimatum = await connector.GetChapters(SeriesId(connector, "Ultimatum", "ultimatum"));
+
+        string boysId = Assert.Single(boys).Item2.IdOnConnectorSite;
+        string ultimatumId = Assert.Single(ultimatum).Item2.IdOnConnectorSite;
+        Assert.NotEqual(boysId, ultimatumId);
+        Assert.Contains("the-boys", boysId);
+        Assert.Contains("ultimatum", ultimatumId);
+    }
+
+    [Fact]
     public async Task GetChapters_WalksThePaginatedIssueList()
     {
         string page1 = SeriesPage("The Boys", IssueRow("the-boys", "72", "The Boys Issue #72"),

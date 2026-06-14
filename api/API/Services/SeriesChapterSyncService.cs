@@ -100,8 +100,12 @@ public class SeriesChapterSyncService(IEnumerable<SeriesSource> connectors)
                 chapterId.UseForDownload = mangaConnectorId.UseForDownload;
         }
 
+        // Throw, don't swallow: a failed save (e.g. a colliding chapter source-id) must fail the job so it
+        // surfaces as NeedsAttention instead of "Succeeded" over a series that persisted nothing.
+        // Throw, don't swallow: a failed save (e.g. a colliding chapter source-id) must fail the job so it
+        // surfaces as NeedsAttention instead of "Succeeded" over a series that persisted nothing.
         if (await seriesContext.Sync(ct, typeof(SeriesChapterSyncService), "Chapters retrieved") is { success: false } mangaContextException)
-            Log.ErrorFormat("Failed to save database changes: {0}", mangaContextException.exceptionMessage);
+            throw new InvalidOperationException($"Failed to save chapters for {manga.Name}: {mangaContextException.exceptionMessage}");
 
         actionsContext.Actions.Add(new ChaptersRetrievedActionRecord(manga, allChapters.Length));
         if (await actionsContext.Sync(ct, typeof(SeriesChapterSyncService), "Chapters retrieved") is { success: false } actionsContextException)

@@ -115,7 +115,10 @@ public class ComicHubFree : SeriesSource
                     continue;
 
                 var chapter = new Chapter(mangaId.Obj, number, null, HtmlEntity.DeEntitize(link.InnerText).Trim());
-                var chId = new SourceId<Chapter>(chapter, this, $"issue-{number}", href, mangaId.UseForDownload);
+                // Scope the id to the series: issue numbers repeat across comics, and the SourceId key is
+                // derived from (connector, idOnConnectorSite) only — an unscoped "issue-N" collides with
+                // every other ComicHubFree comic's issue N and the second series' save fails.
+                var chId = new SourceId<Chapter>(chapter, this, $"{slug}/issue-{number}", href, mangaId.UseForDownload);
                 chapter.SourceIds.Add(chId);
                 chapters.Add((chapter, chId));
             }
