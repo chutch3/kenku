@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.25.0 (2026-06-14)
+
+### Features
+
+- Self-heal wedged chapter syncs, stagger sync ticks, and log job failures
+  ([`40b599f`](https://github.com/chutch3/kenku/commit/40b599ff3438d8028e2f3ee19cb3339aeb28d0df))
+
+
 ## v0.24.0 (2026-06-13)
 
 ### Bug Fixes
