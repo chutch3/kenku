@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.25.1 (2026-06-14)
+
+### Bug Fixes
+
+- Scope ComicHubFree chapter ids per series and fail sync on save errors
+  ([`481af0f`](https://github.com/chutch3/kenku/commit/481af0f9cff0b8eeb77fea647c7004c3c2f1e197))
+
+
 ## v0.25.0 (2026-06-14)
 
 ### Features
