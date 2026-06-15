@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.27.2 (2026-06-15)
+
+### Bug Fixes
+
+- Backfill scan groups and titles on existing chapters during sync
+  ([`9bdc76d`](https://github.com/chutch3/kenku/commit/9bdc76de69ea0c6b342322ddd2fed3d3b880703e))
+
+
 ## v0.27.1 (2026-06-15)
 
 ### Bug Fixes
