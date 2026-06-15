@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.27.1 (2026-06-15)
+
+### Bug Fixes
+
+- Clear chapter title when uploads of the same number disagree
+  ([`4c68029`](https://github.com/chutch3/kenku/commit/4c68029a960694f31eea8833cc8870323b861d7f))
+
+### Refactoring
+
+- Drop orphaned chapter download endpoint and align per-source route
+  ([`d02a098`](https://github.com/chutch3/kenku/commit/d02a0980ef99aefc5e02df5e9c15795516ee7214))
+
+
 ## v0.27.0 (2026-06-15)
 
 ### Bug Fixes
