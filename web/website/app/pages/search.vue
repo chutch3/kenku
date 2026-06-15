@@ -26,19 +26,22 @@
                     </div>
                     <div class="flex flex-wrap items-center gap-1.5">
                         <span class="text-xs text-muted mr-1">Source</span>
-                        <UButton
+                        <UTooltip
                             v-for="c in connectors"
                             :key="c.key"
-                            size="sm"
-                            :color="selectedConnector?.key == c.key ? 'primary' : 'neutral'"
-                            :variant="selectedConnector?.key == c.key ? 'soft' : 'outline'"
-                            :disabled="busy"
-                            @click="connectorClick(c)">
-                            <template #leading>
-                                <FallbackImage :src="c.iconUrl" :alt="`${c.name} icon`" class="h-lh" />
-                            </template>
-                            {{ c.name === 'Global' ? 'All sources' : c.name }}
-                        </UButton>
+                            :text="c.name === 'Global' ? 'Search every enabled source at once' : `Search only ${c.name}`">
+                            <UButton
+                                size="sm"
+                                :color="selectedConnector?.key == c.key ? 'primary' : 'neutral'"
+                                :variant="selectedConnector?.key == c.key ? 'soft' : 'outline'"
+                                :disabled="busy"
+                                @click="connectorClick(c)">
+                                <template #leading>
+                                    <FallbackImage :src="c.iconUrl" :alt="`${c.name} icon`" class="h-lh" />
+                                </template>
+                                {{ c.name === 'Global' ? 'All sources' : c.name }}
+                            </UButton>
+                        </UTooltip>
                     </div>
                 </div>
             </UCard>
@@ -78,6 +81,7 @@
                 <p class="text-muted max-w-md">
                     Search across your connectors by title, or paste a series URL and Kenku will detect the source automatically.
                 </p>
+                <UButton to="/discover" color="neutral" variant="soft" icon="i-lucide-compass" class="mt-1">Or browse Discover</UButton>
             </div>
 
             <AddSeriesModal v-if="pendingAdd" v-model:open="addModalOpen" :series="pendingAdd" @added="onAdded" />
@@ -102,15 +106,7 @@ const selectedConnector = computed(
 );
 const busy = ref(false);
 const searched = ref(false);
-
-const isUrl = (input: string): boolean => {
-    try {
-        new URL(input);
-        return true;
-    } catch {
-        return false;
-    }
-};
+const toast = useToast();
 
 const connectorClick = (c: MangaConnector) => {
     connector.value = c;
@@ -128,6 +124,7 @@ const performSearch = async () => {
         searchResult.value = await search(query.value);
     } catch {
         searchResult.value = [];
+        toast.add({ title: 'Search failed', description: 'Could not reach the source. Try again or pick another.', icon: 'i-lucide-triangle-alert', color: 'error' });
     } finally {
         searched.value = true;
         busy.value = false;

@@ -34,13 +34,9 @@ const requestData = ref<CreateKomgaRecord>({ url: '', apiKey: '' });
 const allowSend = computed(() => requestData.value.url && requestData.value.apiKey);
 
 const apiLink = computed(() => {
-    if (!requestData.value.url) return undefined;
-    try {
-        const url = new URL(requestData.value.url);
-        return `${url}${url.href.endsWith('/') ? '' : '/'}account/api-keys`;
-    } catch {
-        return undefined;
-    }
+    const url = requestData.value.url ? parseUrl(requestData.value.url) : null;
+    if (!url) return undefined;
+    return `${url}${url.href.endsWith('/') ? '' : '/'}account/api-keys`;
 });
 
 const emit = defineEmits<{ close: [boolean] }>();
