@@ -100,6 +100,80 @@ public class MangaDexTests
     }
 
     [Fact]
+    public async Task GetChapters_RequestsScanlationGroupRelationship()
+    {
+        // The chooser distinguishes uploads by scan group, so the feed must embed that relationship —
+        // otherwise MangaDex returns no group attributes and every upload is unlabelled.
+        var json = "{\"result\":\"ok\",\"total\":0,\"data\":[]}";
+        string capturedUrl = "";
+        var mock = new Mock<IHttpRequester>();
+        mock
+            .Setup(c => c.MakeRequest(It.IsAny<string>(), It.IsAny<RequestType>(), It.IsAny<string>(), It.IsAny<CancellationToken?>()))
+            .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json")
+            })
+            .Callback<string, RequestType, string, CancellationToken?>((url, _, _, _) => capturedUrl = url);
+
+        var mangaDex = new MangaDex(CreateSettings(), mock.Object);
+        await mangaDex.GetChapters(CreateDummyManga(mangaDex));
+
+        Assert.Contains("includes%5B%5D=scanlation_group", capturedUrl);
+    }
+
+    [Fact]
+    public async Task GetChapters_CapturesScanlationGroupAndLanguage()
+    {
+        var json = """
+        {
+            "result": "ok",
+            "total": 1,
+            "data": [
+                {
+                    "id": "chap-1",
+                    "attributes": { "chapter": "384", "volume": "44", "title": "T", "translatedLanguage": "en" },
+                    "relationships": [
+                        { "id": "g1", "type": "scanlation_group", "attributes": { "name": "Cool Scans" } }
+                    ]
+                }
+            ]
+        }
+        """;
+
+        var mangaDex = new MangaDex(CreateSettings(), CreateMockClient(json).Object);
+        var chapters = await mangaDex.GetChapters(CreateDummyManga(mangaDex));
+
+        Assert.Single(chapters);
+        Assert.Equal("Cool Scans", chapters[0].Item2.ScanGroup);
+        Assert.Equal("en", chapters[0].Item2.Language);
+    }
+
+    [Fact]
+    public async Task GetChapters_LeavesScanGroupNull_WhenNoGroupRelationship()
+    {
+        var json = """
+        {
+            "result": "ok",
+            "total": 1,
+            "data": [
+                {
+                    "id": "chap-1",
+                    "attributes": { "chapter": "1", "volume": "1", "title": "T", "translatedLanguage": "en" },
+                    "relationships": []
+                }
+            ]
+        }
+        """;
+
+        var mangaDex = new MangaDex(CreateSettings(), CreateMockClient(json).Object);
+        var chapters = await mangaDex.GetChapters(CreateDummyManga(mangaDex));
+
+        Assert.Single(chapters);
+        Assert.Null(chapters[0].Item2.ScanGroup);
+        Assert.Equal("en", chapters[0].Item2.Language);
+    }
+
+    [Fact]
     public async Task SearchManga_IncludesDownloadLanguageInQuery()
     {
         var json = "{\"result\":\"ok\",\"data\":[]}";

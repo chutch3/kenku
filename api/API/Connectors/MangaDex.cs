@@ -147,7 +147,7 @@ public class MangaDex : SeriesSource
                 $"https://api.mangadex.org/manga/{mangaId.IdOnConnectorSite}/feed?limit={Limit}&offset={offset}&" +
                 $"translatedLanguage%5B%5D={language}&" +
                 $"contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&" +
-                $"includeFutureUpdates=0&includes%5B%5D=&" +
+                $"includeFutureUpdates=0&includes%5B%5D=scanlation_group&" +
                 $"includeEmptyPages=0"; // remove entries with no available pages e.g. externally hosted chapters
             offset += Limit;
 
@@ -339,15 +339,21 @@ public class MangaDex : SeriesSource
         string? volumeStr = attributes?.Value<string>("volume");
         int? volumeNumber = null;
         string? title = attributes?.Value<string>("title");
+        string? language = attributes?.Value<string>("translatedLanguage");
 
         if(id is null || chapterStr is null)
             throw new ParsingException("jToken was not in expected format");
         if(!string.IsNullOrWhiteSpace(volumeStr) && int.TryParse(volumeStr, out int parsedVol))
             volumeNumber = parsedVol;
 
+        // The scanlation group distinguishes uploads of the same chapter number so the user can pick one.
+        string? scanGroup = (jToken["relationships"] as JArray)
+            ?.FirstOrDefault(r => r.Value<string>("type") == "scanlation_group")
+            ?["attributes"]?.Value<string>("name");
+
         string websiteUrl = $"https://mangadex.org/chapter/{id}";
         Chapter chapter = new (mcIdManga.Obj, chapterStr, volumeNumber, title);
-        SourceId<Chapter> mcId = new(chapter, this, id, websiteUrl);
+        SourceId<Chapter> mcId = new(chapter, this, id, websiteUrl, scanGroup: scanGroup, language: language);
         chapter.SourceIds.Add(mcId);
         return (chapter, mcId);
     }
