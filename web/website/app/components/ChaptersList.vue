@@ -143,7 +143,7 @@ const { data, refresh } = useAsyncData(
 // Download a specific upload by its source key — unambiguous when one chapter has several uploads
 // (e.g. MangaDex scan groups), where a connector-name toggle could not tell them apart.
 const setDownloadFromSource = async (sourceKey: string, requested: boolean) => {
-    await $api('/v2/Chapters/Source/{ChapterSourceKey}/Download/{IsRequested}', {
+    await $api('/v2/Chapters/Source/{ChapterSourceKey}/DownloadFrom/{IsRequested}', {
         method: 'PATCH',
         path: { ChapterSourceKey: sourceKey, IsRequested: requested },
     });

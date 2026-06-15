@@ -65,7 +65,7 @@ public class ChaptersControllerTests: IDisposable
         => new(name, "", "http://example.com/img.jpg", SeriesReleaseStatus.Continuing, [], [], [], []);
 
     [Fact]
-    public async Task MarkAsRequested_StampsTheConfiguredAttemptBudget_OnTheDownloadJob()
+    public async Task MarkSourceAsRequested_StampsTheConfiguredAttemptBudget_OnTheDownloadJob()
     {
         using var ctx = CreateContext();
         var manga = MakeTestManga("Berserk");
@@ -79,9 +79,8 @@ public class ChaptersControllerTests: IDisposable
 
         var settings = new API.KenkuSettings { AppData = Path.GetTempPath(), DownloadMaxAttempts = 9 };
         var store = new InMemoryJobStore();
-        var connector = new API.Tests.FakeSeriesSource("Src", settings);
 
-        await CreateController(ctx, settings, [connector]).MarkAsRequested(chapter.Key, "Src", true, store, new SystemClock());
+        await CreateController(ctx, settings).MarkSourceAsRequested(chId.Key, true, store, new SystemClock());
 
         var job = Assert.Single(await store.GetAllAsync());
         Assert.Equal(9, job.MaxAttempts);

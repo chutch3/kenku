@@ -271,61 +271,17 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
     }
 
     /// <summary>
-    /// (Un-)Marks <see cref="Chapter"/> as requested for Download from <see cref="API.Connectors.SeriesSource"/>
-    /// </summary>
-    /// <param name="ChapterId"><see cref="Chapter"/> with <paramref name="ChapterId"/></param>
-    /// <param name="MangaConnectorName"><see cref="API.Connectors.SeriesSource"/> with <paramref name="MangaConnectorName"/></param>
-    /// <param name="IsRequested">true to mark as requested, false to mark as not-requested</param>
-    /// <response code="200"></response>
-    /// <response code="404"><paramref name="ChapterId"/> or <paramref name="MangaConnectorName"/> not found</response>
-    /// <response code="428"><see cref="Chapter"/> is not linked to <see cref="API.Connectors.SeriesSource"/> yet. Search for <see cref="Chapter"/> on <see cref="API.Connectors.SeriesSource"/> first (to create a <see cref="DTOs.SourceId{T}"/>).</response>
-    /// <response code="500">Error during Database Operation</response>
-    [HttpPatch("{ChapterId}/DownloadFrom/{MangaConnectorName}/{IsRequested}")]
-    [ProducesResponseType(Status200OK)]
-    [ProducesResponseType<string>(Status404NotFound,  "text/plain")]
-    [ProducesResponseType<string>(Status428PreconditionRequired,  "text/plain")]
-    [ProducesResponseType<string>(Status500InternalServerError,  "text/plain")]
-    public async Task<Results<Ok, NotFound<string>, StatusCodeHttpResult, InternalServerError<string>>> MarkAsRequested(string ChapterId, string MangaConnectorName, bool IsRequested, [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock)
-    {
-        if (await context.Chapters.FirstOrDefaultAsync(ch => ch.Key == ChapterId, HttpContext.RequestAborted) is not { } chapter)
-            return TypedResults.NotFound(nameof(ChapterId));
-        if(!connectors.Any(c => c.Name.Equals(MangaConnectorName, StringComparison.InvariantCultureIgnoreCase)))
-            return TypedResults.NotFound(nameof(MangaConnectorName));
-
-        if (await context.MangaConnectorToChapter
-                .FirstOrDefaultAsync(id => id.MangaConnectorName == MangaConnectorName && id.ObjId == ChapterId, HttpContext.RequestAborted)
-            is not { } chId)
-        {
-            return TypedResults.StatusCode(Status428PreconditionRequired);
-        }
-
-        chId.UseForDownload = IsRequested;
-        if(await context.Sync(HttpContext.RequestAborted, GetType(), System.Reflection.MethodBase.GetCurrentMethod()?.Name) is { success: false } result)
-            return TypedResults.InternalServerError(result.exceptionMessage);
-
-        if (IsRequested)
-            await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
-                API.JobRuntime.Handlers.DownloadChapterHandler.Type,
-                API.JobRuntime.Handlers.DownloadChapterHandler.PayloadFor(chId.Key), clock.UtcNow,
-                resourceKey: chapter.ParentMangaId, dedupKey: API.JobRuntime.Reconcilers.DownloadReconciler.DedupKey(chId.Key),
-                maxAttempts: settings.DownloadMaxAttempts),
-                HttpContext.RequestAborted);
-
-        return TypedResults.Ok();
-    }
-
-    /// <summary>
-    /// Selects one specific upload of a chapter for download, addressed by its source key. Unlike
-    /// <see cref="MarkAsRequested"/> (keyed by connector name), this disambiguates several uploads of
-    /// the same chapter from one aggregator (e.g. MangaDex scan groups). Picking one clears the other
-    /// uploads of the same chapter so it is fetched once.
+    /// Selects one specific upload of a chapter for download, addressed by its source key. Keying on the
+    /// source (rather than the connector name) disambiguates several uploads of the same chapter from one
+    /// aggregator (e.g. MangaDex scan groups). Picking one clears the other uploads of the same chapter
+    /// so it is fetched once.
     /// </summary>
     /// <param name="ChapterSourceKey"><see cref="Schema.SeriesContext.SourceId{Chapter}"/>.Key</param>
     /// <param name="IsRequested">Whether this upload should be downloaded</param>
     /// <response code="200">Selection saved (and a download enqueued when requested)</response>
     /// <response code="404">Chapter source not found</response>
     /// <response code="500">Error during Database Operation</response>
-    [HttpPatch("Source/{ChapterSourceKey}/Download/{IsRequested}")]
+    [HttpPatch("Source/{ChapterSourceKey}/DownloadFrom/{IsRequested}")]
     [ProducesResponseType(Status200OK)]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType<string>(Status500InternalServerError, "text/plain")]

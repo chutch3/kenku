@@ -618,84 +618,12 @@
         }
       }
     },
-    "/v2/Chapters/{ChapterId}/DownloadFrom/{MangaConnectorName}/{IsRequested}": {
+    "/v2/Chapters/Source/{ChapterSourceKey}/DownloadFrom/{IsRequested}": {
       "patch": {
         "tags": [
           "Chapters"
         ],
-        "summary": "(Un-)Marks API.Controllers.DTOs.Chapter as requested for Download from API.Connectors.SeriesSource",
-        "parameters": [
-          {
-            "name": "ChapterId",
-            "in": "path",
-            "description": "API.Controllers.DTOs.Chapter with ChapterId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "MangaConnectorName",
-            "in": "path",
-            "description": "API.Connectors.SeriesSource with MangaConnectorName",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "IsRequested",
-            "in": "path",
-            "description": "true to mark as requested, false to mark as not-requested",
-            "required": true,
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          },
-          "404": {
-            "description": "ChapterId or MangaConnectorName not found",
-            "content": {
-              "text/plain; x-version=2.0": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Error during Database Operation",
-            "content": {
-              "text/plain; x-version=2.0": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "428": {
-            "description": "API.Controllers.DTOs.Chapter is not linked to API.Connectors.SeriesSource yet. Search for API.Controllers.DTOs.Chapter on API.Connectors.SeriesSource first (to create a API.Controllers.DTOs.SourceId`1).",
-            "content": {
-              "text/plain; x-version=2.0": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v2/Chapters/Source/{ChapterSourceKey}/Download/{IsRequested}": {
-      "patch": {
-        "tags": [
-          "Chapters"
-        ],
-        "summary": "Selects one specific upload of a chapter for download, addressed by its source key. Unlike\nM:API.Controllers.ChaptersController.MarkAsRequested(System.String,System.String,System.Boolean,API.JobRuntime.Interfaces.IJobStore,API.JobRuntime.Interfaces.IClock) (keyed by connector name), this disambiguates several uploads of\nthe same chapter from one aggregator (e.g. MangaDex scan groups). Picking one clears the other\nuploads of the same chapter so it is fetched once.",
+        "summary": "Selects one specific upload of a chapter for download, addressed by its source key. Keying on the\nsource (rather than the connector name) disambiguates several uploads of the same chapter from one\naggregator (e.g. MangaDex scan groups). Picking one clears the other uploads of the same chapter\nso it is fetched once.",
         "parameters": [
           {
             "name": "ChapterSourceKey",

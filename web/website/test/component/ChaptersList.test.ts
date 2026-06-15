@@ -26,8 +26,8 @@ registerEndpoint('/v2/Chapters/Series/multi-1', {
 });
 
 let pickedSource: string | null = null;
-registerEndpoint('/v2/Chapters/Source/src-b/Download/true', { method: 'PATCH', handler: () => ((pickedSource = 'src-b'), {}) });
-registerEndpoint('/v2/Chapters/Source/src-only/Download/true', { method: 'PATCH', handler: () => ((pickedSource = 'src-only'), {}) });
+registerEndpoint('/v2/Chapters/Source/src-b/DownloadFrom/true', { method: 'PATCH', handler: () => ((pickedSource = 'src-b'), {}) });
+registerEndpoint('/v2/Chapters/Source/src-only/DownloadFrom/true', { method: 'PATCH', handler: () => ((pickedSource = 'src-only'), {}) });
 
 function mount(mangaId: string, kind?: string) {
     return mountSuspended(ChaptersList, { props: { mangaId, kind }, global: { stubs: tooltipStub } });
