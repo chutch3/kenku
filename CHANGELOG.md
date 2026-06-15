@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.27.3 (2026-06-15)
+
+### Bug Fixes
+
+- Reconcile duplicate chapter sources left by connector id rescoping
+  ([`a9b2ff5`](https://github.com/chutch3/kenku/commit/a9b2ff59c2f717b343f8d2d2a23fa70084e96ade))
+
+
 ## v0.27.2 (2026-06-15)
 
 ### Bug Fixes
