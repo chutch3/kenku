@@ -54,9 +54,10 @@ public class SeriesChapterSyncService(IEnumerable<SeriesSource> connectors)
             Log.WarnFormat("Could not refresh the cover URL for {0}: {1}", manga.Name, e.Message);
         }
 
-        // Retrieve available Chapters from Connector
+        // Retrieve available Chapters from Connector, collapsing the several uploads a connector may
+        // return for one chapter number into one chapter (and clearing the title when they disagree).
         (Chapter chapter, SourceId<Chapter> chapterId)[] allChapters =
-            (await seriesSource.GetChapters(mangaConnectorId, language)).DistinctBy(c => c.Item1.Key).ToArray();
+            ChapterTitleReconciler.Reconcile(await seriesSource.GetChapters(mangaConnectorId, language));
         Log.DebugFormat("Got {0} chapters from connector.", allChapters.Length);
 
         // Filter for new Chapters

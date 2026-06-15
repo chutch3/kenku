@@ -21,7 +21,7 @@ public class Chapter : Identifiable, IComparable<Chapter>
     public int? VolumeNumber { get; internal set; }
     [StringLength(10)] public string ChapterNumber { get; private set; }
 
-    [StringLength(256)] public string? Title { get; private set; }
+    [StringLength(256)] public string? Title { get; internal set; }
 
     [StringLength(256)] public string? FileName { get; internal set; }
 
