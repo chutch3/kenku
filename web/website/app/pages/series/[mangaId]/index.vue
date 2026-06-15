@@ -3,6 +3,46 @@
         <div class="grid gap-3 max-xl:grid-flow-row-dense min-2xl:grid-cols-[70%_auto] min-xl:grid-cols-[60%_auto] relative min-xl:h-full">
             <ChaptersList :manga-id="mangaId" :kind="kind" class="min-xl:h-full min-xl:overflow-y-scroll" />
             <div class="flex flex-col gap-3">
+                <!-- Download sources lead: turning a source on is the primary control on this page. -->
+                <UCard v-if="series">
+                    <template #header>
+                        <div>
+                            <h2 class="font-display text-lg font-semibold text-highlighted">Download sources</h2>
+                            <p class="text-xs text-muted">Sites Kenku pulls chapters from — toggle which to use.</p>
+                        </div>
+                    </template>
+                    <div class="flex flex-col gap-2">
+                        <div
+                            v-for="src in sortedSources"
+                            :key="src.key"
+                            class="flex items-center gap-3 bg-elevated rounded-lg px-3 py-2">
+                            <SourceIcon v-bind="src" />
+                            <span class="text-sm grow truncate">{{ src.mangaConnectorName }}</span>
+                            <span
+                                class="font-mono text-[0.65rem] uppercase tracking-wide"
+                                :class="src.useForDownload ? 'text-success' : 'text-dimmed'">
+                                {{ src.useForDownload ? 'On' : 'Off' }}
+                            </span>
+                            <UTooltip text="Re-match this link (fix a wrong entry)">
+                                <UButton size="xs" variant="ghost" color="neutral" icon="i-lucide-link-2" aria-label="Re-match source" @click="rematchSource = src" />
+                            </UTooltip>
+                            <USwitch
+                                :model-value="src.useForDownload"
+                                :disabled="!series?.fileLibraryId"
+                                :aria-label="`Download from ${src.mangaConnectorName}`"
+                                @update:model-value="(v) => setRequestedFrom(src.mangaConnectorName, v)" />
+                        </div>
+                    </div>
+                    <RematchSourceModal
+                        v-if="rematchSource"
+                        :open="!!rematchSource"
+                        :manga-id="mangaId"
+                        :source="rematchSource"
+                        :series-name="series?.name"
+                        @update:open="(v) => { if (!v) rematchSource = null; }"
+                        @rematched="onRematched" />
+                </UCard>
+
                 <!-- Storage: where files land. -->
                 <UCard>
                     <template #header>
@@ -26,48 +66,23 @@
                     <LooseChapters v-if="series?.fileLibraryId" :manga-id="mangaId" :kind="kind" class="w-full mt-2" />
                 </UCard>
 
-                <!-- Download sources: which sites to pull from. -->
-                <UCard v-if="series">
-                    <template #header>
-                        <div>
-                            <h2 class="font-display text-lg font-semibold text-highlighted">Download sources</h2>
-                            <p class="text-xs text-muted">Sites Kenku pulls chapters from — toggle which to use.</p>
-                        </div>
-                    </template>
-                    <div class="flex flex-col gap-2">
-                        <div
-                            v-for="src in [...series.sourceIds].sort((a, b) => (a.mangaConnectorName < b.mangaConnectorName ? -1 : 1))"
-                            :key="src.key"
-                            class="flex items-center gap-3 bg-elevated rounded-lg px-3 py-2">
-                            <SourceIcon v-bind="src" />
-                            <span class="text-sm grow truncate">{{ src.mangaConnectorName }}</span>
-                            <span
-                                class="font-mono text-[0.65rem] uppercase tracking-wide"
-                                :class="src.useForDownload ? 'text-success' : 'text-dimmed'">
-                                {{ src.useForDownload ? 'On' : 'Off' }}
-                            </span>
-                            <UTooltip text="Re-match this link (fix a wrong entry)">
-                                <UButton size="xs" variant="ghost" color="neutral" icon="i-lucide-link-2" @click="rematchSource = src" />
-                            </UTooltip>
-                            <USwitch
-                                :model-value="src.useForDownload"
-                                :disabled="!series?.fileLibraryId"
-                                @update:model-value="(v) => setRequestedFrom(src.mangaConnectorName, v)" />
-                        </div>
+                <!-- Advanced metadata is collapsed so the primary controls above aren't crowded. -->
+                <UCard>
+                    <button
+                        type="button"
+                        class="flex w-full items-center gap-2 text-left"
+                        :aria-expanded="advancedOpen"
+                        @click="advancedOpen = !advancedOpen">
+                        <UIcon name="i-lucide-sliders-horizontal" class="size-4 text-muted" />
+                        <span class="font-display text-lg font-semibold text-highlighted grow">Advanced</span>
+                        <UIcon :name="advancedOpen ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" class="text-dimmed" />
+                    </button>
+                    <div v-show="advancedOpen" class="flex flex-col gap-3 mt-3">
+                        <!-- Volume mapping is a manga concept; comics enrich via Metron instead. -->
+                        <MetadataSourceLink v-if="kind === 'manga'" :manga-id="mangaId" :series-name="series?.name" />
+                        <SeriesMetadataFetcherTable :manga-id="mangaId" :kind="kind" />
                     </div>
-                    <RematchSourceModal
-                        v-if="rematchSource"
-                        :open="!!rematchSource"
-                        :manga-id="mangaId"
-                        :source="rematchSource"
-                        :series-name="series?.name"
-                        @update:open="(v) => { if (!v) rematchSource = null; }"
-                        @rematched="onRematched" />
                 </UCard>
-
-                <!-- Metadata: volume mapping is a manga concept; comics enrich via Metron instead. -->
-                <MetadataSourceLink v-if="kind === 'manga'" :manga-id="mangaId" :series-name="series?.name" />
-                <SeriesMetadataFetcherTable :manga-id="mangaId" :kind="kind" />
             </div>
         </div>
         <template #actions>
@@ -96,63 +111,22 @@
 <script setup lang="ts">
 import SeriesDetailPage from '~/components/SeriesDetailPage.vue';
 import type { components } from '#open-fetch-schemas/api';
-const { $api } = useNuxtApp();
 const route = useRoute();
 const mangaId = route.params.mangaId as string;
+const toast = useToast();
 
-const series = ref<components['schemas']['Series'] | null>(null);
+const { series, rollup, kind, refreshingData, refreshData, refreshRollups, setRequestedFrom, syncNow } = useSeriesDetail(mangaId);
 
-const { data: rollups, refresh: refreshRollups } = await useApi('/v2/Series/Rollup', {
-    key: FetchKeys.Series.Rollup,
-    lazy: true,
-    server: false,
-});
-onMounted(() => refreshRollups());
-const rollup = computed(() => (rollups.value ?? []).find((r) => r.mangaId === mangaId) ?? null);
+const sortedSources = computed(() =>
+    [...(series.value?.sourceIds ?? [])].sort((a, b) => a.mangaConnectorName.localeCompare(b.mangaConnectorName)));
 
-const { data: connectors } = await useApi('/v2/SeriesSource', { key: FetchKeys.MangaConnector.All, lazy: true, server: false });
-const kind = computed(() => (series.value ? seriesKind(series.value, connectors.value) : 'manga'));
-
-if (import.meta.client) {
-    const { data } = await useApi('/v2/Series/{MangaId}', {
-        path: { MangaId: mangaId },
-        key: FetchKeys.Series.Id(mangaId),
-        onResponseError: (e) => {
-            console.error(e);
-            navigateTo('/');
-        },
-        lazy: true,
-        server: false,
-    });
-    watch(
-        data,
-        (v) => {
-            series.value = v ?? null;
-        },
-        { immediate: true }
-    );
-}
-
-const setRequestedFrom = async (MangaConnectorName: string, IsRequested: boolean) => {
-    await $api('/v2/Series/{MangaId}/DownloadFrom/{MangaConnectorName}/{IsRequested}', {
-        method: 'PATCH',
-        path: { MangaId: mangaId, MangaConnectorName: MangaConnectorName, IsRequested: IsRequested },
-    });
-    await refreshNuxtData(FetchKeys.Series.Id(mangaId));
-};
+const advancedOpen = ref(false);
 
 const deleteOpen = ref(false);
 const onDeleted = async () => {
     toast.add({ title: `Deleted ${series.value?.name ?? 'series'}`, icon: 'i-lucide-trash', color: 'neutral' });
     await refreshNuxtData(FetchKeys.Series.All);
     navigateTo('/');
-};
-
-const toast = useToast();
-const syncNow = async () => {
-    await $api('/v2/Series/{MangaId}/Sync', { method: 'POST', path: { MangaId: mangaId } });
-    toast.add({ title: 'Sync queued', description: 'Chapters and cover refresh from your sources.', icon: 'i-lucide-cloud-download', color: 'success' });
-    await refreshRollups();
 };
 
 const rematchSource = ref<components['schemas']['SeriesSourceId'] | null>(null);
@@ -162,25 +136,6 @@ const onRematched = async () => {
     await refreshData();
     await refreshRollups();
 };
-
-const refreshingData = ref(false);
-const refreshData = async (quiet = false) => {
-    refreshingData.value = true;
-    await refreshNuxtData([
-        FetchKeys.Series.Id(mangaId),
-        FetchKeys.Series.Rollup,
-        FetchKeys.Metadata.Series(mangaId),
-        FetchKeys.FileLibraries,
-        FetchKeys.Chapters.Series(mangaId),
-    ]);
-    refreshingData.value = false;
-    if (!quiet) toast.add({ title: 'Series refreshed', icon: 'i-lucide-check', color: 'neutral', duration: 1500 });
-};
-
-// While jobs for this series are in flight (e.g. after "Sync now"), poll the rollup and refresh the
-// page when they drain — updates land without leaving and coming back.
-const activeJobs = computed(() => (rollup.value ? rollup.value.queuedJobs + rollup.value.runningJobs : 0));
-useSeriesActivity(activeJobs, { poll: () => refreshRollups(), onDrained: () => refreshData(true) });
 
 defineShortcuts({ meta_r: { usingInput: true, handler: () => refreshData() } });
 
