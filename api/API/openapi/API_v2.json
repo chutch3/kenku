@@ -690,6 +690,59 @@
         }
       }
     },
+    "/v2/Chapters/Source/{ChapterSourceKey}/Download/{IsRequested}": {
+      "patch": {
+        "tags": [
+          "Chapters"
+        ],
+        "summary": "Selects one specific upload of a chapter for download, addressed by its source key. Unlike\nM:API.Controllers.ChaptersController.MarkAsRequested(System.String,System.String,System.Boolean,API.JobRuntime.Interfaces.IJobStore,API.JobRuntime.Interfaces.IClock) (keyed by connector name), this disambiguates several uploads of\nthe same chapter from one aggregator (e.g. MangaDex scan groups). Picking one clears the other\nuploads of the same chapter so it is fetched once.",
+        "parameters": [
+          {
+            "name": "ChapterSourceKey",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.SourceId`1.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "IsRequested",
+            "in": "path",
+            "description": "Whether this upload should be downloaded",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Selection saved (and a download enqueued when requested)"
+          },
+          "404": {
+            "description": "Chapter source not found",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Database Operation",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/Chapters/{ChapterId}/volume": {
       "put": {
         "tags": [
@@ -6288,6 +6341,16 @@
             "type": "boolean",
             "description": "Whether this Link is used for downloads"
           },
+          "scanGroup": {
+            "type": "string",
+            "description": "Scan/translation group for this upload (aggregators like MangaDex); null for single-version connectors",
+            "nullable": true
+          },
+          "language": {
+            "type": "string",
+            "description": "Translated language of this upload (ISO code), when the connector exposes it",
+            "nullable": true
+          },
           "key": {
             "maxLength": 64,
             "minLength": 16,
@@ -7605,6 +7668,16 @@
           "useForDownload": {
             "type": "boolean",
             "description": "Whether this Link is used for downloads"
+          },
+          "scanGroup": {
+            "type": "string",
+            "description": "Scan/translation group for this upload (aggregators like MangaDex); null for single-version connectors",
+            "nullable": true
+          },
+          "language": {
+            "type": "string",
+            "description": "Translated language of this upload (ISO code), when the connector exposes it",
+            "nullable": true
           },
           "key": {
             "maxLength": 64,

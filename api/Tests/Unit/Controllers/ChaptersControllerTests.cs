@@ -88,6 +88,69 @@ public class ChaptersControllerTests: IDisposable
     }
 
     [Fact]
+    public async Task GetChapters_ExposesScanGroupAndLanguageOnSources()
+    {
+        using var ctx = CreateContext();
+        var manga = MakeTestManga("Berserk");
+        var chapter = new API.Schema.SeriesContext.Chapter(manga, "384", 44);
+        var src = new API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>(
+            chapter, "MangaDex", "uuid-a", null, useForDownload: false, scanGroup: "Cool Scans", language: "en");
+        chapter.SourceIds.Add(src);
+        ctx.Series.Add(manga);
+        ctx.Chapters.Add(chapter);
+        ctx.MangaConnectorToChapter.Add(src);
+        await ctx.SaveChangesAsync();
+
+        var result = await CreateController(ctx).GetChapters(manga.Key, null, 1, 10);
+
+        var ok = Assert.IsType<Ok<PagedResponse<API.Controllers.DTOs.Chapter>>>(result.Result);
+        var dtoChapter = Assert.Single(ok.Value.Data);
+        var dtoSource = Assert.Single(dtoChapter.SourceIds);
+        Assert.Equal("Cool Scans", dtoSource.ScanGroup);
+        Assert.Equal("en", dtoSource.Language);
+    }
+
+    [Fact]
+    public async Task MarkSourceAsRequested_PicksOneUpload_ClearsSiblings_AndEnqueuesThatSource()
+    {
+        using var ctx = CreateContext();
+        var manga = MakeTestManga("Berserk");
+        var chapter = new API.Schema.SeriesContext.Chapter(manga, "384", 44);
+        var a = new API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>(
+            chapter, "MangaDex", "uuid-a", null, useForDownload: true, scanGroup: "Group A", language: "en");
+        var b = new API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>(
+            chapter, "MangaDex", "uuid-b", null, useForDownload: false, scanGroup: "Group B", language: "en");
+        chapter.SourceIds.Add(a);
+        chapter.SourceIds.Add(b);
+        ctx.Series.Add(manga);
+        ctx.Chapters.Add(chapter);
+        ctx.MangaConnectorToChapter.AddRange(a, b);
+        await ctx.SaveChangesAsync();
+
+        var store = new InMemoryJobStore();
+        var result = await CreateController(ctx).MarkSourceAsRequested(b.Key, true, store, new SystemClock());
+
+        Assert.IsType<Ok>(result.Result);
+        var reloadedA = await ctx.MangaConnectorToChapter.FindAsync(a.Key);
+        var reloadedB = await ctx.MangaConnectorToChapter.FindAsync(b.Key);
+        Assert.True(reloadedB!.UseForDownload, "picked upload should be requested");
+        Assert.False(reloadedA!.UseForDownload, "sibling upload should be cleared so the chapter downloads once");
+        var job = Assert.Single(await store.GetAllAsync());
+        // The key's generic-type token contains a backtick that JSON-escapes; compare on its unique
+        // hash suffix, which is unescaped, to prove the job pins to the picked upload and not the sibling.
+        Assert.Contains(b.Key.Split('-')[^1], job.Payload);
+        Assert.DoesNotContain(a.Key.Split('-')[^1], job.Payload);
+    }
+
+    [Fact]
+    public async Task MarkSourceAsRequested_UnknownSourceKey_ReturnsNotFound()
+    {
+        using var ctx = CreateContext();
+        var result = await CreateController(ctx).MarkSourceAsRequested("missing-key", true, new InMemoryJobStore(), new SystemClock());
+        Assert.IsType<NotFound<string>>(result.Result);
+    }
+
+    [Fact]
     public async Task UpdateChapter_KnownChapter_UpdatesFileNameAndVolumeNumber()
     {
         // This test now implicitly checks that the absolute path logic inside

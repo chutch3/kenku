@@ -9,7 +9,7 @@ namespace API.Controllers.DTOs;
 /// the referenced object, IdOnConnectorSite is the object's id on the connector site. (They were
 /// historically swapped on the wire, which made connector-id bugs invisible.)
 /// </summary>
-public sealed record SourceId<T>(string Key, string MangaConnectorName, string ObjId, string IdOnConnectorSite, string? WebsiteUrl, bool UseForDownload) : Identifiable(Key) where T : class
+public sealed record SourceId<T>(string Key, string MangaConnectorName, string ObjId, string IdOnConnectorSite, string? WebsiteUrl, bool UseForDownload, string? ScanGroup = null, string? Language = null) : Identifiable(Key) where T : class
 {
     /// <summary>
     /// Name of the Connector
@@ -45,6 +45,18 @@ public sealed record SourceId<T>(string Key, string MangaConnectorName, string O
     [Description("Whether this Link is used for downloads")]
     public bool UseForDownload { get; init; } = UseForDownload;
 
+    /// <summary>
+    /// Scan/translation group for this upload (aggregators like MangaDex); null for single-version connectors
+    /// </summary>
+    [Description("Scan/translation group for this upload, when the connector aggregates several")]
+    public string? ScanGroup { get; init; } = ScanGroup;
+
+    /// <summary>
+    /// Translated language of this upload (ISO code), when the connector exposes it
+    /// </summary>
+    [Description("Translated language of this upload, when the connector exposes it")]
+    public string? Language { get; init; } = Language;
+
     public static SourceId<T> From<TEntity>(Schema.SeriesContext.SourceId<TEntity> id) where TEntity : Schema.Identifiable =>
-        new(id.Key, id.MangaConnectorName, id.ObjId, id.IdOnConnectorSite, id.WebsiteUrl, id.UseForDownload);
+        new(id.Key, id.MangaConnectorName, id.ObjId, id.IdOnConnectorSite, id.WebsiteUrl, id.UseForDownload, id.ScanGroup, id.Language);
 }

@@ -315,6 +315,55 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
     }
 
     /// <summary>
+    /// Selects one specific upload of a chapter for download, addressed by its source key. Unlike
+    /// <see cref="MarkAsRequested"/> (keyed by connector name), this disambiguates several uploads of
+    /// the same chapter from one aggregator (e.g. MangaDex scan groups). Picking one clears the other
+    /// uploads of the same chapter so it is fetched once.
+    /// </summary>
+    /// <param name="ChapterSourceKey"><see cref="Schema.SeriesContext.SourceId{Chapter}"/>.Key</param>
+    /// <param name="IsRequested">Whether this upload should be downloaded</param>
+    /// <response code="200">Selection saved (and a download enqueued when requested)</response>
+    /// <response code="404">Chapter source not found</response>
+    /// <response code="500">Error during Database Operation</response>
+    [HttpPatch("Source/{ChapterSourceKey}/Download/{IsRequested}")]
+    [ProducesResponseType(Status200OK)]
+    [ProducesResponseType<string>(Status404NotFound, "text/plain")]
+    [ProducesResponseType<string>(Status500InternalServerError, "text/plain")]
+    public async Task<Results<Ok, NotFound<string>, InternalServerError<string>>> MarkSourceAsRequested(
+        string ChapterSourceKey, bool IsRequested,
+        [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock)
+    {
+        if (await context.MangaConnectorToChapter.Include(id => id.Obj)
+                .FirstOrDefaultAsync(id => id.Key == ChapterSourceKey, HttpContext.RequestAborted) is not { } chId)
+            return TypedResults.NotFound(nameof(ChapterSourceKey));
+
+        chId.UseForDownload = IsRequested;
+        if (IsRequested)
+        {
+            // Picking one upload makes it the chapter's download; clear the siblings so the same chapter
+            // isn't fetched several times into one file.
+            List<Schema.SeriesContext.SourceId<Schema.SeriesContext.Chapter>> siblings = await context.MangaConnectorToChapter
+                .Where(id => id.ObjId == chId.ObjId && id.Key != chId.Key)
+                .ToListAsync(HttpContext.RequestAborted);
+            foreach (var sibling in siblings)
+                sibling.UseForDownload = false;
+        }
+
+        if (await context.Sync(HttpContext.RequestAborted, GetType(), System.Reflection.MethodBase.GetCurrentMethod()?.Name) is { success: false } result)
+            return TypedResults.InternalServerError(result.exceptionMessage);
+
+        if (IsRequested)
+            await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
+                API.JobRuntime.Handlers.DownloadChapterHandler.Type,
+                API.JobRuntime.Handlers.DownloadChapterHandler.PayloadFor(chId.Key), clock.UtcNow,
+                resourceKey: chId.Obj.ParentMangaId, dedupKey: API.JobRuntime.Reconcilers.DownloadReconciler.DedupKey(chId.Key),
+                maxAttempts: settings.DownloadMaxAttempts),
+                HttpContext.RequestAborted);
+
+        return TypedResults.Ok();
+    }
+
+    /// <summary>
     /// Manually assigns a volume number to a <see cref="Schema.SeriesContext.Chapter"/>.
     /// Passing null clears the volume assignment and confidence.
     /// </summary>
