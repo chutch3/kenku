@@ -16,6 +16,9 @@ registerEndpoint('/v2/SeriesSource', () => connectors);
 registerEndpoint('/v2/SeriesSource/WeebCentral', () => connectors[0]);
 registerEndpoint('/v2/SeriesSource/GetComics', () => connectors[1]);
 
+let syncedManga: string | null = null;
+registerEndpoint('/v2/Series/s1/Sync', { method: 'POST', handler: () => ((syncedManga = 's1'), {}) });
+
 function series(connectorName: string, fileLibraryId: string | null = null) {
     return {
         key: 's1',
@@ -68,5 +71,30 @@ describe('SeriesCard', () => {
         };
         const broken = await mount({ series: series('GetComics', 'lib1'), rollup: attention });
         expect(statusBar(broken).classes()).toContain('bg-vermillion-500');
+    });
+
+    it('shows downloaded / wanted progress from the rollup, no extra fetch', async () => {
+        const rollup: Partial<SeriesRollup> = {
+            mangaId: 's1', needsAttentionJobs: 0, queuedJobs: 1, runningJobs: 0, downloadedChapters: 5, wantedChapters: 12,
+        };
+        const wrapper = await mount({ series: series('WeebCentral', 'lib1'), rollup });
+
+        await vi.waitFor(() => expect(wrapper.find('[data-test="card-progress"]').exists()).toBe(true));
+        expect(wrapper.find('[data-test="card-progress"]').text()).toContain('5/12');
+    });
+
+    it('offers a Retry that re-syncs the series when it needs attention', async () => {
+        syncedManga = null;
+        const rollup: Partial<SeriesRollup> = {
+            mangaId: 's1', needsAttentionJobs: 1, queuedJobs: 0, runningJobs: 0, downloadedChapters: 1, wantedChapters: 12,
+            lastError: 'WeebCentral returned 403',
+        };
+        const wrapper = await mount({ series: series('WeebCentral', 'lib1'), rollup });
+
+        await vi.waitFor(() => expect(wrapper.text()).toContain('WeebCentral returned 403'));
+        const retry = wrapper.findAll('button').find((b) => b.text().includes('Retry'));
+        expect(retry, 'Retry button').toBeTruthy();
+        await retry!.trigger('click');
+        await vi.waitFor(() => expect(syncedManga).toBe('s1'));
     });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { seriesTrackState } from '~/composables/useSeriesStatus';
+import { seriesTrackState, trackStateMeta } from '~/composables/useSeriesStatus';
 import type { components } from '#open-fetch-schemas/api';
 
 type MinimalSeries = components['schemas']['MinimalSeries'];
@@ -64,5 +64,11 @@ describe('seriesTrackState', () => {
 
     it('falls back to downloading when no rollup is available yet', () => {
         expect(seriesTrackState(series())).toBe('downloading');
+    });
+
+    it('carries the bar color in the status meta — single source of truth for the card', () => {
+        expect(trackStateMeta(series(), rollup({ needsAttentionJobs: 1 })).bar).toContain('vermillion');
+        expect(trackStateMeta(series(), rollup()).bar).toContain('jade');
+        expect(trackStateMeta(series({ fileLibraryId: null })).bar).toContain('sumi');
     });
 });

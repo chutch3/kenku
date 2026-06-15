@@ -13,6 +13,8 @@ export interface StatusMeta {
     color: BadgeColor;
     icon: string;
     hint: string;
+    /** Tailwind class for the track-state bar along a card's bottom edge. Only set on track states. */
+    bar?: string;
 }
 
 export function seriesTrackState(series: AnySeries, rollup?: SeriesRollup | null): TrackState {
@@ -30,26 +32,36 @@ export const TRACK_STATE_META: Record<TrackState, StatusMeta> = {
         color: 'neutral',
         icon: 'i-lucide-bookmark-plus',
         hint: 'Add this series to a library to start tracking it.',
+        bar: 'bg-sumi-400/60',
     },
     attention: {
         label: 'Needs attention',
         color: 'error',
         icon: 'i-lucide-triangle-alert',
         hint: 'A job for this series failed and is waiting on you — check the queue.',
+        bar: 'bg-vermillion-500',
     },
     downloading: {
         label: 'Downloading',
         color: 'success',
         icon: 'i-lucide-cloud-download',
         hint: 'Kenku is pulling new chapters from your selected sources.',
+        bar: 'bg-sky-500',
     },
     upToDate: {
         label: 'Up to date',
         color: 'secondary',
         icon: 'i-lucide-check',
         hint: 'All wanted chapters are downloaded.',
+        bar: 'bg-jade-500',
     },
-    paused: { label: 'Paused', color: 'neutral', icon: 'i-lucide-pause', hint: 'Tracked, but no download source is turned on.' },
+    paused: {
+        label: 'Paused',
+        color: 'neutral',
+        icon: 'i-lucide-pause',
+        hint: 'Tracked, but no download source is turned on.',
+        bar: 'bg-sumi-400/60',
+    },
 };
 
 /** Publication status from the connector — distinct from Kenku's tracking state. */
