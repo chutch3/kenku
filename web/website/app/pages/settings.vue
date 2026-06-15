@@ -1,14 +1,16 @@
 <template>
     <KenkuPage title="Settings">
         <!-- API unreachable -->
-        <div v-if="settingsStatus === 'error'" class="mt-2 rounded-lg ring-1 ring-warning/40 bg-warning/10 px-4 py-3">
+        <div v-if="settingsStatus === 'error' && !settingsData" class="mt-2 rounded-lg ring-1 ring-warning/40 bg-warning/10 px-4 py-3">
             <p class="text-warning font-medium">Unable to connect to the Kenku API.</p>
             <p class="text-sm text-muted mt-1">
                 NUXT_PUBLIC_OPEN_FETCH_API_BASE_URL: <code>{{ $config.public.openFetch.api.baseURL }}</code>
             </p>
         </div>
 
-        <template v-else-if="settingsStatus === 'success'">
+        <!-- Gate on data presence, not fetch status: a background refetch (e.g. after saving a genre)
+             keeps `settingsData` populated, so the tabs stay mounted instead of flashing the spinner. -->
+        <template v-else-if="settingsData">
             <SettingsStatsStrip />
 
             <UTabs :items="tabs" variant="link" color="primary" class="w-full" :ui="{ list: 'mb-4' }">
@@ -83,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-const { settingsStatus } = useSettings();
+const { settingsStatus, settingsData } = useSettings();
 
 const tabs = [
     { label: 'Library', icon: 'i-lucide-folder-tree', slot: 'library' as const },

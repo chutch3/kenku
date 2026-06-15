@@ -13,10 +13,14 @@ function stubApi(page: Page, state: { genres: string[] }) {
     return Promise.all([
         // Catch-all first (Playwright checks the most recent route first).
         page.route('**/v2/**', (r) => r.fulfill({ json: [] })),
-        page.route('**/v2/Settings', (r) =>
-            r.fulfill({
+        // A touch of latency so the post-save refetch has a real 'pending' window — that's what used
+        // to collapse the settings tabs and bounce the user back to the first tab.
+        page.route('**/v2/Settings', async (r) => {
+            await new Promise((resolve) => setTimeout(resolve, 250));
+            return r.fulfill({
                 json: { apiKey: '', metronConfigured: false, discoveryGenres: state.genres, discoveryFeeds: ['manga'], syncedIndexers: [], downloadClients: [] },
-            })),
+            });
+        }),
         page.route('**/v2/Discover/Genres', (r) => r.fulfill({ json: ['Action', 'Horror', 'Romance', 'Sci-Fi', 'Thriller'] })),
         page.route('**/v2/Settings/DiscoveryGenres', async (r) => {
             state.genres = r.request().postDataJSON() as string[];
@@ -40,6 +44,16 @@ test('picking a genre updates the rails on the next Discover visit', async ({ pa
     await page.getByRole('tab', { name: 'Discovery' }).click();
     await page.getByRole('button', { name: 'Show popup' }).click();
     await page.getByRole('option', { name: 'Horror', exact: true }).click();
+
+    // The auto-save refetches Settings; that must not collapse the whole tab UI to the loading spinner
+    // (which flashes and scrolls you back to the top). Poll across the refetch window for the spinner.
+    let sawLoadingSpinner = false;
+    for (let i = 0; i < 20; i++) {
+        if (await page.locator('div.py-24').count()) sawLoadingSpinner = true;
+        await page.waitForTimeout(40);
+    }
+    expect(sawLoadingSpinner, 'settings collapsed to the loading spinner during the auto-save refetch').toBe(false);
+
     await expect.poll(() => state.genres).toEqual(['Action', 'Horror']);
 
     // Back to Discover the way a user would — through the nav, not a reload.
