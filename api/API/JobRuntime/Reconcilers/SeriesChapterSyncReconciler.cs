@@ -38,9 +38,20 @@ public class SeriesChapterSyncReconciler(
     public static async Task<int> ScanAndEnqueueAsync(SeriesContext series, IJobStore store, string language,
         DateTime now, CancellationToken ct)
     {
-        List<SourceId<Series>> tracked = await series.MangaConnectorToManga
+        // Only sync series that aren't "done": still publishing, OR not yet fully downloaded. A finished
+        // (Completed/Cancelled) series whose wanted chapters are all on disk will never yield anything
+        // new, so re-syncing it every tick is wasted connector load — the dominant cost at library scale.
+        HashSet<string> syncableSeries = (await series.Series
+            .Where(s => (s.ReleaseStatus != SeriesReleaseStatus.Completed && s.ReleaseStatus != SeriesReleaseStatus.Cancelled)
+                || s.Chapters.Any(c => !(c.Downloaded || c.IsBundled) && c.SourceIds.Any(sid => sid.UseForDownload)))
+            .Select(s => s.Key)
+            .ToListAsync(ct)).ToHashSet();
+
+        List<SourceId<Series>> tracked = (await series.MangaConnectorToManga
             .Where(id => id.UseForDownload)
-            .ToListAsync(ct);
+            .ToListAsync(ct))
+            .Where(id => syncableSeries.Contains(id.ObjId))
+            .ToList();
 
         Dictionary<string, Job> parked = (await store.GetAllAsync(ct))
             .Where(j => j.Type == SyncSeriesChaptersHandler.Type && j.Status == JobStatus.NeedsAttention && j.DedupKey != null)

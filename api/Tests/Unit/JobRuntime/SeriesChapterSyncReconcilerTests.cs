@@ -107,6 +107,46 @@ public class SeriesChapterSyncReconcilerTests : IDisposable
         Assert.Equal(SyncSeriesChaptersHandler.Type, job.Type);
     }
 
+    private Series AddSeries(SeriesContext ctx, FileLibrary library, string name, SeriesReleaseStatus status,
+        params (bool downloaded, bool wanted)[] chapters)
+    {
+        var s = new Series(name, "", "u", status, [], [], [], [], library);
+        ctx.Series.Add(s);
+        ctx.MangaConnectorToManga.Add(new SourceId<Series>(s, "MockConnector", name, "url", useForDownload: true));
+        int n = 0;
+        foreach (var (downloaded, wanted) in chapters)
+        {
+            var ch = new Chapter(s, (++n).ToString(), null, "T");
+            ch.Downloaded = downloaded;
+            var src = new SourceId<Chapter>(ch, "MockConnector", $"{name}-c{n}", "url", useForDownload: wanted);
+            ch.SourceIds.Add(src);
+            ctx.Chapters.Add(ch);
+            ctx.MangaConnectorToChapter.Add(src);
+        }
+        return s;
+    }
+
+    [Fact]
+    public async Task Scan_SkipsSeriesThatAreFinishedPublishingAndFullyDownloaded()
+    {
+        using var ctx = NewContext();
+        var library = new FileLibrary(_root, "Lib");
+        ctx.FileLibraries.Add(library);
+
+        var ongoing = AddSeries(ctx, library, "Ongoing", SeriesReleaseStatus.Continuing, (downloaded: true, wanted: true));
+        AddSeries(ctx, library, "DoneComplete", SeriesReleaseStatus.Completed, (downloaded: true, wanted: true));
+        var doneMissing = AddSeries(ctx, library, "DoneMissing", SeriesReleaseStatus.Completed, (downloaded: false, wanted: true));
+        AddSeries(ctx, library, "CancelledComplete", SeriesReleaseStatus.Cancelled, (downloaded: true, wanted: true));
+        await ctx.SaveChangesAsync();
+
+        var store = new InMemoryJobStore();
+        await SeriesChapterSyncReconciler.ScanAndEnqueueAsync(ctx, store, "en", DateTime.UtcNow, default);
+
+        var syncedSeries = (await store.GetAllAsync()).Select(j => j.ResourceKey).ToHashSet();
+        // Ongoing publishing OR not-fully-downloaded → synced. Finished AND complete → skipped.
+        Assert.Equal(new HashSet<string?> { ongoing.Key, doneMissing.Key }, syncedSeries);
+    }
+
     [Fact]
     public async Task Scan_IsDeduped_SoTicksDoNotPileUp()
     {
