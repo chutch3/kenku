@@ -23,7 +23,7 @@
                         :alt="m.entry.title ?? ''"
                         class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                     <div class="absolute inset-x-0 bottom-0 pt-10 pb-2 px-2 bg-gradient-to-t from-black/90 via-black/55 to-transparent">
-                        <p class="text-sm/tight font-medium text-white line-clamp-3 [text-shadow:0_1px_8px_rgba(0,0,0,0.6)]">
+                        <p class="text-sm/tight font-semibold text-white line-clamp-3 [text-shadow:0_1px_8px_rgba(0,0,0,0.6)]">
                             {{ m.entry.title }}
                         </p>
                     </div>
@@ -38,6 +38,14 @@
                         v-else-if="external"
                         name="i-lucide-external-link"
                         class="absolute top-1.5 right-1.5 size-4 text-white/90 [filter:drop-shadow(0_1px_4px_rgba(0,0,0,0.8))]" />
+                    <!-- Persistent add affordance: discoverable on touch, where hover never fires. -->
+                    <UBadge
+                        v-else
+                        color="primary"
+                        variant="solid"
+                        size="sm"
+                        icon="i-lucide-plus"
+                        class="absolute top-1 right-1 opacity-95">Add</UBadge>
                 </div>
             </component>
         </div>

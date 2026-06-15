@@ -50,6 +50,22 @@ describe('DiscoveryRail', () => {
         expect(wrapper.text()).not.toContain('Berserk');
     });
 
+    it('shows a persistent Add affordance on entries not yet in the library', async () => {
+        const wrapper = await mountSuspended(DiscoveryRail, { props: { title: 'Trending manga', entries, library } });
+
+        // "Pick Me Up" is new → a visible Add badge; "Berserk" is owned → In library.
+        expect(wrapper.text()).toContain('Add');
+        const icons = wrapper.findAllComponents({ name: 'UIcon' }).map((c) => c.props('name'));
+        expect(icons).toContain('i-lucide-plus');
+    });
+
+    it('does not show an Add affordance on external feed rails', async () => {
+        const wrapper = await mountSuspended(DiscoveryRail, { props: { title: 'From the feeds', entries, external: true } });
+
+        const icons = wrapper.findAllComponents({ name: 'UIcon' }).map((c) => c.props('name'));
+        expect(icons).not.toContain('i-lucide-plus');
+    });
+
     it('external rails link out and signal that they leave the app', async () => {
         const wrapper = await mountSuspended(DiscoveryRail, { props: { title: 'From the feeds', entries, external: true } });
 
