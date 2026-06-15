@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.28.1 (2026-06-15)
+
+### Bug Fixes
+
+- Replace default settings collections on load instead of appending
+  ([`d92f133`](https://github.com/chutch3/kenku/commit/d92f133b5a06c1815b48fe4af78d91078f3bfb0f))
+
+
 ## v0.28.0 (2026-06-15)
 
 ### Features
