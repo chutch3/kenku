@@ -16,17 +16,22 @@ public static class ChapterTitleReconciler
             .GroupBy(u => u.chapter.Key)
             .Select(group =>
             {
-                List<string> distinctTitles = group
-                    .Select(u => u.chapter.Title)
-                    .Where(title => !string.IsNullOrWhiteSpace(title))
-                    .Distinct()
-                    .ToList()!;
-
                 (Chapter chapter, SourceId<Chapter> chapterId) representative = group.First();
-                // One agreed title is kept; zero or conflicting titles leave the chapter showing just its number.
-                representative.chapter.Title = distinctTitles.Count == 1 ? distinctTitles[0] : null;
+                representative.chapter.Title = ResolveTitle(group.Select(u => u.chapter.Title));
                 return representative;
             })
             .ToArray();
+    }
+
+    /// <summary>The title to show for a chapter given its uploads' titles: a single agreed title is kept;
+    /// zero or conflicting titles resolve to null, so the chapter shows just its number rather than a
+    /// guess. Shared by new-chapter creation and the self-healing backfill of existing chapters.</summary>
+    public static string? ResolveTitle(IEnumerable<string?> uploadTitles)
+    {
+        List<string> distinctTitles = uploadTitles
+            .Where(title => !string.IsNullOrWhiteSpace(title))
+            .Distinct()
+            .ToList()!;
+        return distinctTitles.Count == 1 ? distinctTitles[0] : null;
     }
 }

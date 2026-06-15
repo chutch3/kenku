@@ -39,6 +39,45 @@ public class SeriesChapterSyncServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Sync_BackfillsScanGroups_AndClearsConflictingTitle_OnExistingChapters()
+    {
+        // An existing chapter from before scan-group capture: two uploads, no group/language, and a title
+        // that one upload disagrees with. The sync must heal it without the chapter being "new".
+        var manga = new Series("Berserk", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], []);
+        _mangaContext.Series.Add(manga);
+        var mockConnector = new Mock<SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
+        var mangaMcId = new SourceId(manga, "MangaDex", "manga-id", "url");
+        manga.SourceIds.Add(mangaMcId);
+        _mangaContext.MangaConnectorToManga.Add(mangaMcId);
+
+        var existing = new Chapter(manga, "384", 44, "The Shifting Water Mirror");
+        var existingA = new ChapterConnectorId(existing, "MangaDex", "uuid-a", "url");
+        var existingB = new ChapterConnectorId(existing, "MangaDex", "uuid-b", "url");
+        existing.SourceIds.Add(existingA);
+        existing.SourceIds.Add(existingB);
+        _mangaContext.Chapters.Add(existing);
+        _mangaContext.MangaConnectorToChapter.AddRange(existingA, existingB);
+        await _mangaContext.SaveChangesAsync();
+
+        // The connector now returns the same two uploads, with groups + conflicting titles.
+        var fA = new Chapter(manga, "384", 44, "Tomb");
+        var fAId = new ChapterConnectorId(fA, "MangaDex", "uuid-a", "url", false, "Evil Genius", "en");
+        var fB = new Chapter(manga, "384", 44, "The Shifting Water Mirror");
+        var fBId = new ChapterConnectorId(fB, "MangaDex", "uuid-b", "url", false, "Aqua Scans", "en");
+        mockConnector.Setup(c => c.GetChapters(It.IsAny<SourceId>(), It.IsAny<string>()))
+            .ReturnsAsync([(fA, fAId), (fB, fBId)]);
+
+        await new SeriesChapterSyncService([mockConnector.Object])
+            .SyncAsync(_mangaContext, _actionsContext, mangaMcId.Key, "en", CancellationToken.None);
+
+        var healed = await _mangaContext.MangaConnectorToChapter.ToListAsync();
+        Assert.Equal("Evil Genius", healed.Single(s => s.IdOnConnectorSite == "uuid-a").ScanGroup);
+        Assert.Equal("Aqua Scans", healed.Single(s => s.IdOnConnectorSite == "uuid-b").ScanGroup);
+        Assert.Equal("en", healed.Single(s => s.IdOnConnectorSite == "uuid-a").Language);
+        Assert.Null((await _mangaContext.Chapters.SingleAsync()).Title);
+    }
+
+    [Fact]
     public async Task DoWork_UpdatesExistingChapterWithMissingVolume()
     {
         var manga = new Series("Test Series", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], []);
