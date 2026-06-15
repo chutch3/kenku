@@ -2,6 +2,45 @@
 
 <!-- version list -->
 
+## v0.26.0 (2026-06-15)
+
+### Features
+
+- Add recently-updated and needs-attention library sorts
+  ([`6b34998`](https://github.com/chutch3/kenku/commit/6b34998015224075b5a2dbcd6669a1866e1734a5))
+
+- Clarify search sources, surface errors, and add a discover prompt
+  ([`03585e7`](https://github.com/chutch3/kenku/commit/03585e7c17628597a30726ae8ff9ab9fc6652a9c))
+
+- Hoist download sources and collapse advanced on series detail
+  ([`ef165b7`](https://github.com/chutch3/kenku/commit/ef165b73121753f864e76fd7b3ab612ec4bcb709))
+
+- Make queue rows keyboard-operable and label icon-only buttons
+  ([`1692083`](https://github.com/chutch3/kenku/commit/1692083c34cdcf325fc6553f0cd62693e34c8699))
+
+- Show a persistent Add affordance on discover cards
+  ([`ef619a6`](https://github.com/chutch3/kenku/commit/ef619a60b53d783061f60628c744f63ad1ab4a4e))
+
+- Show status badge, progress, and retry on library cards
+  ([`5d5b6a3`](https://github.com/chutch3/kenku/commit/5d5b6a3175f832adf1efcd4fb348114c761e7b1b))
+
+- Surface connector save failures as toasts via shared modal flow
+  ([`9a87e13`](https://github.com/chutch3/kenku/commit/9a87e13e2abeaca61032fac79e085c508ef38594))
+
+### Refactoring
+
+- Decompose settings page into composable and per-card components
+  ([`67ca481`](https://github.com/chutch3/kenku/commit/67ca4813ae58f4737abd56c23995538d51d3abf3))
+
+- Extract job queue into composable and util with gated polling
+  ([`2fd76aa`](https://github.com/chutch3/kenku/commit/2fd76aa083eb8aeb9804690d49740e1ee78916ad))
+
+### Testing
+
+- Cover duration formatting and the add-series flow
+  ([`710b968`](https://github.com/chutch3/kenku/commit/710b968e17c7fe0909a1e32d1e727c8c7c1c5e28))
+
+
 ## v0.25.1 (2026-06-14)
 
 ### Bug Fixes
