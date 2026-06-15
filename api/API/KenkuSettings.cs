@@ -167,9 +167,18 @@ public class KenkuSettings
         // 2. Load the file. If the file has a different "AppData" inside it,
         // the json deserializer will overwrite the default value.
         var json = File.ReadAllText(discoveryPath);
-        return JsonConvert.DeserializeObject<KenkuSettings>(json, new StringEnumConverter())
-               ?? new KenkuSettings();
+        return FromJson(json) ?? new KenkuSettings();
     }
+
+    /// <summary>Deserialize settings JSON. Collections REPLACE the in-code defaults rather than append
+    /// to them — Newtonsoft otherwise reuses the initialized list (e.g. DiscoveryGenres = ["Action",
+    /// "Romance"]) and merges the saved values in, which re-seeded those defaults on every restart.</summary>
+    internal static KenkuSettings? FromJson(string json) =>
+        JsonConvert.DeserializeObject<KenkuSettings>(json, new JsonSerializerSettings
+        {
+            ObjectCreationHandling = ObjectCreationHandling.Replace,
+            Converters = { new StringEnumConverter() },
+        });
 
     public void Save()
     {

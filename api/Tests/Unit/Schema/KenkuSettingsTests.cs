@@ -97,6 +97,18 @@ public class KenkuSettingsTests : IDisposable
     }
 
     [Fact]
+    public void FromJson_ReplacesDefaultedCollections_InsteadOfAppending()
+    {
+        // Saved settings.json has the user's choices; loading must REPLACE the in-code defaults
+        // (["Action","Romance"], ["manga","comicbooks"]) — Newtonsoft's default reuses the initialized
+        // list and appends, which re-added Action/Romance to the genre rails on every restart.
+        var settings = KenkuSettings.FromJson("{\"DiscoveryGenres\":[\"Horror\"],\"DiscoveryFeeds\":[\"manga\"]}")!;
+
+        Assert.Equal(new[] { "Horror" }, settings.DiscoveryGenres);
+        Assert.Equal(new[] { "manga" }, settings.DiscoveryFeeds);
+    }
+
+    [Fact]
     public void Serialization_ShouldRespectCustomPaths()
     {
         var original = new KenkuSettings { AppData = "/mnt/nas/kenku" };
