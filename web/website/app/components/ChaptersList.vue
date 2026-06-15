@@ -68,38 +68,54 @@
                                 size="20"
                                 :class="chapter.downloaded ? 'text-success' : 'text-dimmed'" />
                         </UTooltip>
+                        <!-- One upload: a plain toggle. -->
                         <div
-                            v-for="mangaconnectorId in chapter.sourceIds.sort((a, b) =>
-                                a.mangaConnectorName < b.mangaConnectorName ? -1 : 1
-                            )"
-                            :key="mangaconnectorId.key"
+                            v-if="chapter.sourceIds.length === 1"
                             class="bg-elevated p-1 rounded-lg w-fit flex items-center justify-center gap-2">
-                            <SourceIcon v-bind="mangaconnectorId" />
-                            <UTooltip
-                                :text="
-                                    mangaconnectorId.useForDownload ? 'Stop downloading from this website' : 'Download from this website'
-                                ">
+                            <SourceIcon v-bind="chapter.sourceIds[0]!" />
+                            <UTooltip :text="chapter.sourceIds[0]!.useForDownload ? 'Stop downloading from this website' : 'Download from this website'">
                                 <UButton
-                                    :icon="mangaconnectorId.useForDownload ? 'i-lucide-cloud-off' : 'i-lucide-cloud-download'"
+                                    :data-test="`download-${chapter.sourceIds[0]!.key}`"
+                                    :icon="chapter.sourceIds[0]!.useForDownload ? 'i-lucide-cloud-off' : 'i-lucide-cloud-download'"
                                     variant="ghost"
                                     loading-auto
-                                    @click="
-                                        setDownload(chapter.key, mangaconnectorId.mangaConnectorName, !mangaconnectorId.useForDownload)
-                                    " />
+                                    :aria-label="chapter.sourceIds[0]!.useForDownload ? 'Stop downloading' : 'Download'"
+                                    @click="setDownloadFromSource(chapter.sourceIds[0]!.key, !chapter.sourceIds[0]!.useForDownload)" />
                             </UTooltip>
                         </div>
+
+                        <!-- Several uploads (e.g. MangaDex scan groups): pick which one to download. -->
+                        <UButton
+                            v-else-if="chapter.sourceIds.length > 1"
+                            data-test="choose-download"
+                            icon="i-lucide-list-checks"
+                            size="xs"
+                            variant="soft"
+                            color="secondary"
+                            @click="openChooser(chapter)">
+                            Choose download ({{ chapter.sourceIds.length }})
+                        </UButton>
+
                         <!-- TODO: Not implemented yet -->
                         <UButton variant="outline" color="secondary" class="ml-auto" disabled>Force (re)download</UButton>
                     </div>
                 </template>
             </UPageCard>
         </UPageList>
+
+        <ChapterDownloadChoiceModal
+            v-if="chooserChapter"
+            v-model:open="chooserOpen"
+            :sources="chooserChapter.sourceIds"
+            :chapter-label="chooserLabel"
+            @pick="onPick" />
     </div>
 </template>
 
 <script setup lang="ts">
 import type { components } from '#open-fetch-schemas/api';
 type ChapterFilterRecord = components['schemas']['ChapterFilterRecord'];
+type Chapter = components['schemas']['Chapter'];
 
 const filter = ref<Partial<ChapterFilterRecord>>({});
 
@@ -124,11 +140,30 @@ const { data, refresh } = useAsyncData(
     { watch: [pagination.value, filter.value], lazy: true, server: false }
 );
 
-const setDownload = async (chapterId: string, mangaConnector: string, requested: boolean) => {
-    await $api('/v2/Chapters/{ChapterId}/DownloadFrom/{MangaConnectorName}/{IsRequested}', {
+// Download a specific upload by its source key — unambiguous when one chapter has several uploads
+// (e.g. MangaDex scan groups), where a connector-name toggle could not tell them apart.
+const setDownloadFromSource = async (sourceKey: string, requested: boolean) => {
+    await $api('/v2/Chapters/Source/{ChapterSourceKey}/Download/{IsRequested}', {
         method: 'PATCH',
-        path: { ChapterId: chapterId, MangaConnectorName: mangaConnector, IsRequested: requested },
+        path: { ChapterSourceKey: sourceKey, IsRequested: requested },
     });
     await refresh();
+};
+
+const chooserChapter = ref<Chapter | null>(null);
+const chooserOpen = ref(false);
+const chooserLabel = computed(() => {
+    const c = chooserChapter.value;
+    if (!c) return '';
+    const vol = c.volume ? `Vol. ${c.volume} ` : '';
+    return `${vol}${props.kind === 'comic' ? `#${c.chapterNumber}` : `Ch. ${c.chapterNumber}`}`;
+});
+const openChooser = (chapter: Chapter) => {
+    chooserChapter.value = chapter;
+    chooserOpen.value = true;
+};
+const onPick = async (sourceKey: string) => {
+    chooserOpen.value = false;
+    await setDownloadFromSource(sourceKey, true);
 };
 </script>
