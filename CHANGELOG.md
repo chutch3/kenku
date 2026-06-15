@@ -2,6 +2,25 @@
 
 <!-- version list -->
 
+## v0.27.0 (2026-06-15)
+
+### Bug Fixes
+
+- Keep settings tabs mounted during background refetch
+  ([`1c18609`](https://github.com/chutch3/kenku/commit/1c1860921f08264ed2bccec6e225283b136c5e21))
+
+### Features
+
+- Capture mangadex scan group and language per chapter source
+  ([`1c01d53`](https://github.com/chutch3/kenku/commit/1c01d53c50aaa4733e69ef735ca5f56c08e9b669))
+
+- Let users choose which chapter upload to download
+  ([`2ebc6c0`](https://github.com/chutch3/kenku/commit/2ebc6c080529531bc8b8be227a1a844369bac331))
+
+- Select a specific chapter upload to download by source key
+  ([`444a264`](https://github.com/chutch3/kenku/commit/444a2649c158f74929b582a9e5ef0c0053bba588))
+
+
 ## v0.26.0 (2026-06-15)
 
 ### Features
