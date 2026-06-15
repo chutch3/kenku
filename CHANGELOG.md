@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.28.0 (2026-06-15)
+
+### Features
+
+- Skip syncing series that are finished publishing and fully downloaded
+  ([`3de65b0`](https://github.com/chutch3/kenku/commit/3de65b08eef860994897b5f9be6faf47ec0a578e))
+
+
 ## v0.27.3 (2026-06-15)
 
 ### Bug Fixes
