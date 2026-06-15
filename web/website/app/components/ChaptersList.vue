@@ -5,7 +5,7 @@
                 <p class="text-dimmed">{{ data?.totalCount }} {{ kind === 'comic' ? 'issues' : 'chapters' }}</p>
                 <UFieldGroup>
                     <UInput v-model="filter.name" placeholder="Name" />
-                    <UButton icon="i-lucide-rotate-ccw" variant="outline" size="xs" @click="filter.name = undefined" />
+                    <UButton icon="i-lucide-rotate-ccw" variant="outline" size="xs" aria-label="Clear name filter" @click="filter.name = undefined" />
                 </UFieldGroup>
             </div>
             <UPagination
@@ -27,17 +27,18 @@
                             "
                             variant="outline"
                             color="neutral"
+                            aria-label="Toggle downloaded filter"
                             @click="filter.downloaded = !filter.downloaded" />
                     </UTooltip>
-                    <UButton icon="i-lucide-rotate-ccw" variant="outline" size="xs" @click="filter.downloaded = undefined" />
+                    <UButton icon="i-lucide-rotate-ccw" variant="outline" size="xs" aria-label="Clear downloaded filter" @click="filter.downloaded = undefined" />
                 </UFieldGroup>
                 <UFieldGroup v-if="kind !== 'comic'">
                     <UInputNumber v-model="filter.volumeNumber" placeholder="Vol" class="w-30" />
-                    <UButton icon="i-lucide-rotate-ccw" variant="outline" size="xs" @click="filter.volumeNumber = undefined" />
+                    <UButton icon="i-lucide-rotate-ccw" variant="outline" size="xs" aria-label="Clear volume filter" @click="filter.volumeNumber = undefined" />
                 </UFieldGroup>
                 <UFieldGroup>
                     <UInput v-model="filter.chapterNumber" :placeholder="kind === 'comic' ? '#' : 'Ch'" class="w-30" />
-                    <UButton icon="i-lucide-rotate-ccw" variant="outline" size="xs" @click="filter.chapterNumber = undefined" />
+                    <UButton icon="i-lucide-rotate-ccw" variant="outline" size="xs" aria-label="Clear chapter filter" @click="filter.chapterNumber = undefined" />
                 </UFieldGroup>
             </div>
         </div>

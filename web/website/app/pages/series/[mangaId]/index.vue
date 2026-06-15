@@ -91,16 +91,17 @@
                     icon="i-lucide-brick-wall-shield"
                     :to="`/actions?mangaId=${mangaId}&return=${$route.fullPath}`"
                     variant="soft"
-                    color="secondary" />
+                    color="secondary"
+                    aria-label="Series actions log" />
                 <UButton trailing-icon="i-lucide-merge" :to="`/series/${series?.key}/merge?return=${$route.fullPath}`" color="secondary"
                     >Merge</UButton
                 >
                 <UTooltip text="Sync chapters & cover now">
-                    <UButton variant="soft" color="secondary" icon="i-lucide-cloud-download" loading-auto @click="syncNow" />
+                    <UButton variant="soft" color="secondary" icon="i-lucide-cloud-download" loading-auto aria-label="Sync now" @click="syncNow" />
                 </UTooltip>
-                <UButton variant="soft" color="warning" icon="i-lucide-trash" @click="deleteOpen = true" />
+                <UButton variant="soft" color="warning" icon="i-lucide-trash" aria-label="Delete series" @click="deleteOpen = true" />
                 <UTooltip text="Reload" :kbds="['meta', 'R']">
-                    <UButton variant="soft" color="secondary" icon="i-lucide-refresh-ccw" :loading="refreshingData" @click="refreshData()" />
+                    <UButton variant="soft" color="secondary" icon="i-lucide-refresh-ccw" :loading="refreshingData" aria-label="Reload" @click="refreshData()" />
                 </UTooltip>
                 <DeleteSeriesModal v-model:open="deleteOpen" :manga-id="mangaId" :series-name="series?.name" @deleted="onDeleted" />
             </template>

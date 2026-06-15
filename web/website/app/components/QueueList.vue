@@ -8,7 +8,15 @@
         <p v-if="!jobs.length" class="text-sm text-muted">No jobs in the queue.</p>
         <ul v-else class="flex flex-col gap-1">
             <li v-for="job in displayed" :key="job.key" class="flex flex-col text-sm rounded-md border-s-2 ps-2" :class="rowAccent(job)">
-                <div class="flex items-center gap-2 cursor-pointer py-1" @click="toggle(job.key)">
+                <div
+                    class="flex items-center gap-2 cursor-pointer py-1"
+                    role="button"
+                    tabindex="0"
+                    :aria-expanded="expanded.has(job.key)"
+                    :aria-label="`${jobLabel(job)} — ${job.status}`"
+                    @click="toggle(job.key)"
+                    @keydown.enter.self="toggle(job.key)"
+                    @keydown.space.self.prevent="toggle(job.key)">
                     <UBadge :color="jobStatusColor(job.status)" variant="subtle" class="w-32 justify-center">{{ job.status }}</UBadge>
                     <span class="grow truncate" :title="job.type">
                         {{ jobLabel(job) }}

@@ -21,7 +21,7 @@
                         class="grow min-w-50"
                         :ui="{ trailing: 'pe-1' }">
                         <template v-if="filterText" #trailing>
-                            <UButton color="neutral" variant="link" size="sm" icon="i-lucide-x" @click="filterText = ''" />
+                            <UButton color="neutral" variant="link" size="sm" icon="i-lucide-x" aria-label="Clear filter" @click="filterText = ''" />
                         </template>
                     </UInput>
                     <USelect v-model="statusFilter" :items="statusOptions" icon="i-lucide-filter" class="w-44" />

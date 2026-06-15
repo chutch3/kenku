@@ -155,6 +155,21 @@ describe('QueueList', () => {
         expect(rows.findIndex((t) => t.includes('Running'))).toBeLessThan(rows.findIndex((t) => t.includes('NeedsAttention')));
     });
 
+    it('exposes the row as a keyboard-operable button that toggles on Enter', async () => {
+        registerEndpoint('/v2/JobQueue', () => [job({ key: 'needs', status: 'NeedsAttention', error: 'boom', startedAt: '2026-06-06T00:00:30Z' })]);
+
+        const wrapper = await mountSuspended(QueueList);
+        const row = wrapper.find('li > div');
+        expect(row.attributes('role')).toBe('button');
+        expect(row.attributes('tabindex')).toBe('0');
+        expect(row.attributes('aria-expanded')).toBe('false');
+
+        await row.trigger('keydown.enter');
+
+        expect(wrapper.find('li > div').attributes('aria-expanded')).toBe('true');
+        expect(wrapper.text()).toContain('Queued:');
+    });
+
     it('expands a row to the full error and lifecycle, collapsed by default', async () => {
         const longError = 'chapter list request failed: HTTP 429 — the indexer is rate limiting; retry after the cooldown elapses';
         registerEndpoint('/v2/JobQueue', () => [

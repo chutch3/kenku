@@ -26,14 +26,16 @@
                         v-if="metadata.find((me) => me.metadataFetcherName === row.original)"
                         icon="i-lucide-unlink"
                         loading-auto
+                        :aria-label="`Unlink ${row.original}`"
                         @click="unlinkMetadataFetcher(row.original)" />
                     <UTooltip v-if="metadata.find((me) => me.metadataFetcherName === row.original)" text="Update Metadata">
-                        <UButton icon="i-lucide-refresh-ccw-dot" loading-auto @click="updateMetadata(row.original)" />
+                        <UButton icon="i-lucide-refresh-ccw-dot" loading-auto :aria-label="`Update ${row.original} metadata`" @click="updateMetadata(row.original)" />
                     </UTooltip>
                     <UButton
                         v-if="metadata.find((me) => me.metadataFetcherName === row.original) === undefined"
                         :to="`/series/${mangaId}/linkMetadata/${row.original}?return=${$route.fullPath}`"
                         loading-auto
+                        :aria-label="`Link ${row.original}`"
                         icon="i-lucide-link" />
                 </div>
             </template>

@@ -2,7 +2,7 @@
     <KenkuPage title="Activity">
         <template #actions>
             <UTooltip text="Reload" :kbds="['meta', 'R']">
-                <UButton variant="soft" color="secondary" icon="i-lucide-refresh-ccw" loading-auto @click="reload" />
+                <UButton variant="soft" color="secondary" icon="i-lucide-refresh-ccw" loading-auto aria-label="Reload queue" @click="reload" />
             </UTooltip>
         </template>
         <ActivityTabs active="operations" class="mb-3" />
