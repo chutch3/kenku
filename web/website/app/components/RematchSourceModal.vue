@@ -41,6 +41,7 @@ const open = defineModel<boolean>('open', { default: false });
 const emit = defineEmits<{ (e: 'rematched'): void }>();
 
 const { $api } = useNuxtApp();
+const toast = useToast();
 
 const query = ref(props.seriesName ?? '');
 const searching = ref(false);
@@ -58,6 +59,7 @@ const performSearch = async () => {
             })) ?? [];
     } catch {
         results.value = [];
+        toast.add({ title: 'Search failed', description: `Could not reach ${props.source.mangaConnectorName}.`, icon: 'i-lucide-triangle-alert', color: 'error' });
     } finally {
         searched.value = true;
         searching.value = false;
@@ -76,6 +78,8 @@ const rematch = async (result: MinimalSeries) => {
         });
         emit('rematched');
         open.value = false;
+    } catch {
+        toast.add({ title: 'Re-link failed', description: 'The source could not be re-linked. Try again.', icon: 'i-lucide-triangle-alert', color: 'error' });
     } finally {
         linking.value = null;
     }

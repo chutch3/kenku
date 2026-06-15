@@ -34,7 +34,7 @@
                 :class="['mt-2 float-right', success === false ? 'animate-[shake_0.2s] bg-error' : '']"
                 loading-auto
                 :disabled="!allowSend"
-                @click="save"
+                @click="submit"
                 >Save</UButton
             >
         </template>
@@ -68,21 +68,11 @@ const requestData = ref<SetDownloadClientRecord>({
 
 const allowSend = computed(() => !!requestData.value.name && !!requestData.value.baseUrl);
 
-const success = ref<boolean | undefined>(undefined);
 const emit = defineEmits<{ close: [boolean] }>();
-
-const save = async () => {
-    try {
-        await $api('/v2/Settings/DownloadClients', {
-            method: isEdit.value ? 'PUT' : 'POST',
-            body: requestData.value,
-        });
-        await refreshNuxtData(FetchKeys.Settings.All);
-        emit('close', false);
-        success.value = true;
-    } catch {
-        success.value = false;
-        setTimeout(() => (success.value = undefined), 200);
-    }
-};
+const { success, submit } = useConnectorModal({
+    action: () => $api('/v2/Settings/DownloadClients', { method: isEdit.value ? 'PUT' : 'POST', body: requestData.value }),
+    refreshKeys: FetchKeys.Settings.All,
+    successTitle: isEdit.value ? 'Download client updated' : 'Download client added',
+    onClose: () => emit('close', false),
+});
 </script>

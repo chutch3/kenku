@@ -9,10 +9,10 @@
             </UFormField>
             <UButton
                 icon="i-lucide-link"
-                :class="['mt-2 float-right', success == false ? 'animate-[shake_0.2s] bg-error' : '']"
+                :class="['mt-2 float-right', success === false ? 'animate-[shake_0.2s] bg-error' : '']"
                 loading-auto
                 :disabled="!allowSend"
-                @click="connect"
+                @click="submit"
                 >Connect</UButton
             >
         </template>
@@ -28,17 +28,11 @@ const requestData = ref<CreateKavitaRecord>({ url: '', apiKey: '' });
 
 const allowSend = computed(() => requestData.value.url && requestData.value.apiKey);
 
-const success = ref<boolean | undefined>(undefined);
 const emit = defineEmits<{ close: [boolean] }>();
-const connect = async () => {
-    try {
-        await $api('/v2/LibraryConnector/Kavita', { method: 'PUT', body: requestData.value });
-        await refreshNuxtData(FetchKeys.Libraries.All);
-        emit('close', false);
-        success.value = true;
-    } catch {
-        success.value = false;
-        setTimeout(() => (success.value = undefined), 200);
-    }
-};
+const { success, submit } = useConnectorModal({
+    action: () => $api('/v2/LibraryConnector/Kavita', { method: 'PUT', body: requestData.value }),
+    refreshKeys: FetchKeys.Libraries.All,
+    successTitle: 'Kavita connected',
+    onClose: () => emit('close', false),
+});
 </script>

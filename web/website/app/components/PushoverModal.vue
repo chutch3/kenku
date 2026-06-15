@@ -12,10 +12,10 @@
             </UFormField>
             <UButton
                 icon="i-lucide-link"
-                :class="['mt-2 float-right', success == false ? 'animate-[shake_0.2s] bg-error' : '']"
+                :class="['mt-2 float-right', success === false ? 'animate-[shake_0.2s] bg-error' : '']"
                 loading-auto
                 :disabled="!allowSend"
-                @click="connect"
+                @click="submit"
                 >Connect</UButton
             >
         </template>
@@ -31,17 +31,11 @@ const requestData = ref<CreatePushoverConnectorRecord>({ name: 'Pushover', appTo
 
 const allowSend = computed(() => requestData.value.name && requestData.value.appToken && requestData.value.username);
 
-const success = ref<boolean | undefined>(undefined);
 const emit = defineEmits<{ close: [boolean] }>();
-const connect = async () => {
-    try {
-        await $api('/v2/NotificationConnector/Pushover', { method: 'PUT', body: requestData.value });
-        await refreshNuxtData(FetchKeys.NotificationConnectors.All);
-        emit('close', false);
-        success.value = true;
-    } catch {
-        success.value = false;
-        setTimeout(() => (success.value = undefined), 200);
-    }
-};
+const { success, submit } = useConnectorModal({
+    action: () => $api('/v2/NotificationConnector/Pushover', { method: 'PUT', body: requestData.value }),
+    refreshKeys: FetchKeys.NotificationConnectors.All,
+    successTitle: 'Pushover connected',
+    onClose: () => emit('close', false),
+});
 </script>
