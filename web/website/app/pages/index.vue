@@ -60,7 +60,7 @@ const rollupsByKey = computed(() => Object.fromEntries((rollups.value ?? []).map
 
 const filterText = ref('');
 const statusFilter = ref<'all' | TrackState>('all');
-const sortBy = ref<'name-asc' | 'name-desc'>('name-asc');
+const sortBy = ref<SeriesSort>('name-asc');
 
 const statusOptions = [
     { label: 'All series', value: 'all' },
@@ -71,6 +71,8 @@ const statusOptions = [
     { label: 'Not tracked', value: 'untracked' },
 ];
 const sortOptions = [
+    { label: 'Needs attention first', value: 'attention' },
+    { label: 'Recently updated', value: 'updated' },
     { label: 'Name A → Z', value: 'name-asc' },
     { label: 'Name Z → A', value: 'name-desc' },
 ];
@@ -80,9 +82,7 @@ const filtered = computed(() => {
     const q = filterText.value.trim().toLowerCase();
     if (q) list = list.filter((s) => s.name.toLowerCase().includes(q));
     if (statusFilter.value !== 'all') list = list.filter((s) => seriesTrackState(s, rollupsByKey.value[s.key]) === statusFilter.value);
-    list = [...list].sort((a, b) => a.name.localeCompare(b.name));
-    if (sortBy.value === 'name-desc') list.reverse();
-    return list;
+    return sortSeries(list, rollupsByKey.value, sortBy.value);
 });
 
 const resetFilters = () => {
