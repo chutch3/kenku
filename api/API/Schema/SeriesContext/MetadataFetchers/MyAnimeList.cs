@@ -101,11 +101,10 @@ public class MyAnimeList : MetadataFetcher
         dbManga.AltTitles = resultData.Titles.Select(t => new AltTitle(t.Type, t.Title)).ToList();
         dbManga.Authors.Clear();
         dbManga.Authors = await dbContext.ResolveAuthorsAsync(resultData.Authors.Select(a => a.Name), token);
-        // Fallback only — a connector cover always wins. This is what rescues series whose connector
-        // page yields no cover URL (the Chainsaw Man / Berserk case): once backfilled, the cover
-        // refresh path fetches it like any other cover.
-        if (string.IsNullOrWhiteSpace(dbManga.CoverUrl) && resultData.Images?.JPG?.ImageUrl is { Length: > 0 } imageUrl)
-            dbManga.CoverUrl = imageUrl;
+        // Provider-ranked backfill: fills only when no higher-ranked (connector/user) cover exists. This
+        // rescues series whose connector page yields no cover URL (the Chainsaw Man / Berserk case).
+        if (resultData.Images?.JPG?.ImageUrl is { Length: > 0 } imageUrl)
+            dbManga.SetCover(imageUrl, CoverSource.Provider);
 
         if (await dbContext.Sync(token, GetType(), "Update metadata") is { success: true })
         {

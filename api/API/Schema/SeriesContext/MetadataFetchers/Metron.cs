@@ -70,8 +70,8 @@ public class Metron : MetadataFetcher
             dbManga.Name = detail.Name;
         if (!string.IsNullOrWhiteSpace(detail.Description))
             dbManga.Description = detail.Description;
-        if (!string.IsNullOrWhiteSpace(detail.CoverUrl))
-            dbManga.CoverUrl = detail.CoverUrl;
+        // Provider-ranked backfill: won't clobber a connector/user cover (was an unconditional overwrite).
+        dbManga.SetCover(detail.CoverUrl, CoverSource.Provider);
 
         if (await dbContext.Sync(token, GetType(), "Update metadata") is { success: true })
             Log.InfoFormat("Updated Metadata from Metron: {0}", metadataEntry.MangaId);

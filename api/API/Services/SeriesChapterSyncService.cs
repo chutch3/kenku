@@ -43,11 +43,8 @@ public class SeriesChapterSyncService(IEnumerable<SeriesSource> connectors)
         try
         {
             if (await seriesSource.GetMangaFromId(mangaConnectorId.IdOnConnectorSite) is ({ } fresh, _)
-                && !string.IsNullOrEmpty(fresh.CoverUrl) && fresh.CoverUrl != manga.CoverUrl)
-            {
+                && manga.SetCover(fresh.CoverUrl, CoverSource.Connector))
                 Log.InfoFormat("Cover URL for {0} changed; updating from the connector.", manga.Name);
-                manga.CoverUrl = fresh.CoverUrl;
-            }
         }
         catch (Exception e)
         {

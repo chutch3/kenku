@@ -15,6 +15,8 @@ public class Series : Identifiable
     [StringLength(512)] public string Name { get; internal set; }
     [Required] public string Description { get; internal set; }
     [Url] [StringLength(512)] public string CoverUrl { get; internal set; }
+    /// <summary>Which ranked source last set <see cref="CoverUrl"/> — drives <see cref="SetCover"/> precedence.</summary>
+    public CoverSource CoverSource { get; internal set; }
     public SeriesReleaseStatus ReleaseStatus { get; internal set; }
     [StringLength(64)] public string? LibraryId { get; private set; }
     public FileLibrary? Library = null!;
@@ -61,6 +63,8 @@ public class Series : Identifiable
         this.Name = name;
         this.Description = description;
         this.CoverUrl = coverUrl;
+        // A series is born from a connector's data, so an initial cover is connector-ranked.
+        this.CoverSource = string.IsNullOrWhiteSpace(coverUrl) ? CoverSource.None : CoverSource.Connector;
         this.ReleaseStatus = releaseStatus;
         this.Library = library;
         this.Authors = authors;
@@ -74,6 +78,22 @@ public class Series : Identifiable
         this.Chapters = [];
         this.SourceIds = [];
         this.MetadataSource = new MetadataSource(this.Key, MetadataSourceType.Connector, MetadataSourceStatus.Unlinked);
+    }
+
+    /// <summary>
+    /// Sets the cover under precedence: an empty cover is filled by any <paramref name="source"/>, but a
+    /// present cover is only replaced by an equal-or-higher-ranked one (so a provider backfill never
+    /// clobbers a connector cover, and a connector sync never clobbers a user-chosen one). Returns whether
+    /// the cover changed.
+    /// </summary>
+    public bool SetCover(string? url, CoverSource source)
+    {
+        if (string.IsNullOrWhiteSpace(url) || url == CoverUrl) return false;
+        // A present cover only yields to an equal-or-higher rank; an empty one is filled by anyone.
+        if (!string.IsNullOrWhiteSpace(CoverUrl) && source < CoverSource) return false;
+        CoverUrl = url;
+        CoverSource = source;
+        return true;
     }
 
     /// <summary>
