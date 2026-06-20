@@ -1,7 +1,7 @@
 <template>
     <UModal v-model:open="open" :title="entry.title ?? 'Add series'">
         <template #body>
-            <AddSeriesForm v-if="match" :series="match" @added="onFormAdded" />
+            <AddSeriesForm v-if="match" :series="match" :cover-url="entry.coverUrl ?? undefined" @added="onFormAdded" />
             <div v-else class="flex flex-col gap-3">
                 <div class="flex gap-4">
                     <FallbackImage :src="entry.coverUrl" :alt="entry.title ?? ''" class="w-24 rounded-md shrink-0 self-start" />

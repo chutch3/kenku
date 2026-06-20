@@ -212,10 +212,11 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [ProducesResponseType<string>(Status500InternalServerError,  "text/plain")]
     public async Task<Results<Ok, NotFound<string>, InternalServerError<string>>> ChangeLibrary(string MangaId, string LibraryId,
         [FromServices] API.Services.SeriesLibraryService libraryService,
-        [FromQuery] string? connectorName = null, [FromQuery] string? connectorSeriesId = null, [FromQuery] bool download = false)
+        [FromQuery] string? connectorName = null, [FromQuery] string? connectorSeriesId = null, [FromQuery] bool download = false,
+        [FromQuery] string? coverUrl = null)
     {
         (API.Services.ChangeLibraryStatus status, string? error) = await libraryService.ChangeLibraryAsync(
-            context, actionsContext, MangaId, LibraryId, connectorName, connectorSeriesId, download, HttpContext.RequestAborted);
+            context, actionsContext, MangaId, LibraryId, connectorName, connectorSeriesId, download, HttpContext.RequestAborted, coverUrl);
         return status switch
         {
             API.Services.ChangeLibraryStatus.Ok => TypedResults.Ok(),

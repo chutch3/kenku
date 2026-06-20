@@ -2,7 +2,7 @@
     <div class="flex flex-col gap-4">
         <p class="text-sm text-muted">{{ description }}</p>
         <div class="flex gap-4">
-            <FallbackImage :src="series.coverUrl" :alt="series.name" class="w-24 rounded-md shrink-0 self-start" />
+            <FallbackImage :src="coverUrl || series.coverUrl" :alt="series.name" class="w-24 rounded-md shrink-0 self-start" />
             <MDC v-if="series.description" :value="series.description" class="text-sm text-muted line-clamp-6 min-w-0" />
         </div>
 
@@ -77,7 +77,9 @@ import type { components } from '#open-fetch-schemas/api';
 type MinimalSeries = components['schemas']['MinimalSeries'];
 type ChapterPreview = components['schemas']['ChapterPreview'];
 
-const props = defineProps<{ series: MinimalSeries }>();
+// coverUrl: the image the user saw when picking this (e.g. a Discover feed cover) — anchored here and
+// seeded server-side so the cover never swaps to the connector's between picking and the first sync.
+const props = defineProps<{ series: MinimalSeries; coverUrl?: string }>();
 const emit = defineEmits<{ (e: 'added', payload: { libraryId: string; download: boolean }): void }>();
 
 const { $api } = useNuxtApp();
@@ -143,6 +145,7 @@ const add = async (download: boolean) => {
                 connectorName: source.value.mangaConnectorName,
                 connectorSeriesId: source.value.idOnConnectorSite,
                 download,
+                coverUrl: props.coverUrl,
             },
         });
         emit('added', { libraryId: libraryId.value, download });

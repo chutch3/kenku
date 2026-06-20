@@ -79,7 +79,7 @@ public class SeriesLibraryService(KenkuSettings settings, IEnumerable<SeriesSour
 
     public async Task<(ChangeLibraryStatus status, string? error)> ChangeLibraryAsync(
         SeriesContext context, ActionsContext actionsContext, string mangaId, string libraryId,
-        string? connectorName, string? connectorSeriesId, bool download, CancellationToken ct)
+        string? connectorName, string? connectorSeriesId, bool download, CancellationToken ct, string? coverUrl = null)
     {
         if (await context.FileLibraries.FirstOrDefaultAsync(l => l.Key == libraryId, ct) is not { } library)
             return (ChangeLibraryStatus.LibraryNotFound, null);
@@ -106,6 +106,11 @@ public class SeriesLibraryService(KenkuSettings settings, IEnumerable<SeriesSour
                 return (ChangeLibraryStatus.SaveFailed, "Could not add Series to context");
 
             manga = added.manga;
+
+            // Added from Discover: the user picked it seeing the feed cover, so seed that as a User-ranked
+            // cover. F4-A precedence then keeps it from being swapped out by the connector on the first sync.
+            if (!string.IsNullOrWhiteSpace(coverUrl))
+                manga.SetCover(coverUrl, CoverSource.User);
         }
 
         manga.IsTracked = true;

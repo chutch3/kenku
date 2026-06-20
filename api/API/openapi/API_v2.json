@@ -3757,6 +3757,13 @@
               "type": "boolean",
               "default": false
             }
+          },
+          {
+            "name": "coverUrl",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {

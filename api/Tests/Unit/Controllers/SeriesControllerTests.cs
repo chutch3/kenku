@@ -42,8 +42,8 @@ public class MangaControllerTests
         return controller;
     }
 
-    private static API.Schema.SeriesContext.Series MakeTestManga(string name)
-        => new(name, "", "http://example.com/img.jpg", SeriesReleaseStatus.Continuing, [], [], [], []);
+    private static API.Schema.SeriesContext.Series MakeTestManga(string name, string coverUrl = "http://example.com/img.jpg")
+        => new(name, "", coverUrl, SeriesReleaseStatus.Continuing, [], [], [], []);
 
     [Fact]
     public async Task GetAllManga_ExcludesSearchOnlyManga()
@@ -83,5 +83,34 @@ public class MangaControllerTests
         Assert.NotNull(mangaInDb);
         Assert.True(mangaInDb.IsTracked);
         Assert.Equal(library.Key, mangaInDb.LibraryId);
+    }
+
+    [Fact]
+    public async Task ChangeLibrary_SeedsTheProvidedCover_AsAUserChoiceThatOutranksTheConnector()
+    {
+        var (ctx, actionsCtx) = CreateContexts();
+        var library = new API.Schema.SeriesContext.FileLibrary(Path.GetTempPath(), "TestLib");
+        ctx.FileLibraries.Add(library);
+        await ctx.SaveChangesAsync();
+
+        // The connector supplies its own cover, but the user added from Discover seeing a different one —
+        // that feed cover must win and stick (User rank), so the cover doesn't swap on the first sync.
+        var manga = MakeTestManga("New Series", "https://connector/cover.jpg");
+        var connectorId = new ConnectorId(manga, "MangaDex", "ext-id", null);
+        var mockConnector = new Mock<API.Connectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
+        mockConnector.Setup(c => c.GetMangaFromId("ext-id")).ReturnsAsync((manga, connectorId));
+
+        var controller = CreateController(ctx, actionsCtx, [mockConnector.Object]);
+        var libraryService = new API.Services.SeriesLibraryService(
+            new KenkuSettings(), [mockConnector.Object], new InMemoryJobStore(), new SystemClock(), new RunningJobRegistry());
+
+        var result = await controller.ChangeLibrary(manga.Key, library.Key, libraryService, "MangaDex", "ext-id",
+            coverUrl: "https://discover/feed-cover.jpg");
+
+        Assert.IsType<Ok>(result.Result);
+        var mangaInDb = await ctx.Series.FirstOrDefaultAsync(m => m.Key == manga.Key);
+        Assert.NotNull(mangaInDb);
+        Assert.Equal("https://discover/feed-cover.jpg", mangaInDb.CoverUrl);
+        Assert.Equal(CoverSource.User, mangaInDb.CoverSource);
     }
 }
