@@ -66,6 +66,9 @@
                     <LooseChapters v-if="series?.fileLibraryId" :manga-id="mangaId" :kind="kind" class="w-full mt-2" />
                 </UCard>
 
+                <!-- Per-series slice of the audit trail — the story of what Kenku did with this series. -->
+                <SeriesHistory :manga-id="mangaId" />
+
                 <!-- Advanced metadata is collapsed so the primary controls above aren't crowded. -->
                 <UCard>
                     <button
