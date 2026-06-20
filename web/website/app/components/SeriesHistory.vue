@@ -27,6 +27,5 @@ const { data, status } = await useAsyncData(
 );
 
 const events = computed(() => data.value?.data ?? []);
-const humanizeAction = (action?: string) => (action ?? '').replace(/([a-z])([A-Z])/g, '$1 $2');
 const when = (iso?: string | null) => (iso ? formatRelative(Date.parse(iso), Date.now()) : '');
 </script>

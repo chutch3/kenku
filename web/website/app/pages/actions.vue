@@ -37,7 +37,7 @@
             </div>
             <UTable ref="table" :data="data?.data" :columns="columns" :sticky="'header'" :loading="status === 'pending'" class="h-full">
                 <template #action-cell="{ row }">
-                    {{ row.original.action.split(/(?=[A-Z])/).join(' ') }}
+                    {{ humanizeAction(row.original.action) }}
                 </template>
                 <template #timestamp-cell="{ row }">
                     {{ new Date(row.original.performedAt).toLocaleString() }}

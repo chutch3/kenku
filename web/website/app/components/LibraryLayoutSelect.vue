@@ -1,7 +1,7 @@
 <template>
     <USelect
         v-model="layout"
-        :items="layoutOptions"
+        :items="LAYOUT_OPTIONS"
         placeholder="Layout"
         icon="i-lucide-folder-tree"
         color="secondary"
@@ -10,10 +10,6 @@
 </template>
 
 <script setup lang="ts">
-import type { components } from '#open-fetch-schemas/api';
-
-type LibraryLayout = components['schemas']['LibraryLayout'];
-
 const { $api } = useNuxtApp();
 
 export interface LibraryLayoutSelectProps {
@@ -22,12 +18,6 @@ export interface LibraryLayoutSelectProps {
 
 const props = defineProps<LibraryLayoutSelectProps>();
 const emit = defineEmits<{ (e: 'layoutChanged', layout: LibraryLayout): void }>();
-
-const layoutOptions = [
-    { label: 'Flat — all chapters in one folder', value: 'Flat' },
-    { label: 'Volume folders — chapters grouped in Vol N/', value: 'VolumeFolder' },
-    { label: 'Volume CBZ — one .cbz per volume', value: 'VolumeCBZ' },
-];
 
 const layout = ref<LibraryLayout>('Flat');
 

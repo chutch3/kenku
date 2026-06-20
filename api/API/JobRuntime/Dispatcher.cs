@@ -43,6 +43,9 @@ public class Dispatcher
         if (job is null)
             return false;
 
+        // Each attempt starts with a clean failure reason; only this run's outcome may set one (NeedsChoice).
+        job.FailureKind = JobFailureKind.None;
+
         IJobHandler? handler = _registry.Resolve(job.Type);
         if (handler is null)
         {
@@ -58,7 +61,6 @@ public class Dispatcher
                 await handler.ExecuteAsync(job, jobCts.Token);
             job.Status = JobStatus.Succeeded;
             job.Error = null;
-            job.FailureKind = JobFailureKind.None;
             job.LeasedUntil = null;
             job.FinishedAt = _clock.UtcNow;
         }

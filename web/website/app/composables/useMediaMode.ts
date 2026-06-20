@@ -1,4 +1,7 @@
-export type MediaMode = 'manga' | 'comic';
+import type { SeriesKind } from './useSeriesKind';
+
+// The mode is exactly a series kind (manga | comic) — reuse the one definition.
+export type MediaMode = SeriesKind;
 
 /** The app-wide content axis the user is working in. Directional intent: it filters search/discover to
  * the matching sources and the library view. Persisted in a cookie so it survives reloads (and is

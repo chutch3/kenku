@@ -64,7 +64,7 @@ const { data: connectors } = await useApi('/v2/SeriesSource', { key: FetchKeys.M
 const filterText = ref('');
 const statusFilter = ref<'all' | TrackState>('all');
 // The library defaults to 'all' so owned content is never hidden; the manga/comics narrowing is opt-in here.
-const modeFilter = ref<'all' | 'manga' | 'comic'>('all');
+const modeFilter = ref<MediaFilter>('all');
 const sortBy = ref<SeriesSort>('name-asc');
 
 const modeOptions = [
