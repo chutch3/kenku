@@ -12,5 +12,8 @@ export function useMediaMode() {
         cookie.value = m;
     };
 
-    return { mode, setMode };
+    /** The API ContentType for the active mode — feeds search/discover source filtering. */
+    const contentType = computed<'Manga' | 'Comic'>(() => (mode.value === 'comic' ? 'Comic' : 'Manga'));
+
+    return { mode, setMode, contentType };
 }

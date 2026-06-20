@@ -27,7 +27,7 @@
                     <div class="flex flex-wrap items-center gap-1.5">
                         <span class="text-xs text-muted mr-1">Source</span>
                         <UTooltip
-                            v-for="c in connectors"
+                            v-for="c in visibleConnectors"
                             :key="c.key"
                             :text="c.name === 'Global' ? 'Search every enabled source at once' : `Search only ${c.name}`">
                             <UButton
@@ -100,9 +100,15 @@ const gridClass =
 const { data: connectors } = await useApi('/v2/SeriesSource', { key: FetchKeys.MangaConnector.All, server: false });
 
 const query = ref<string>();
+const { mode, contentType } = useMediaMode();
 const connector = useState<MangaConnector | undefined>('search-connector', () => undefined);
+// Only the active mode's sources are pickable (plus All-sources); a comic source in manga mode would
+// just return nothing, so don't offer it.
+const visibleConnectors = computed(
+    () => connectors.value?.filter((c) => c.name === 'Global' || c.contentType === contentType.value) ?? []
+);
 const selectedConnector = computed(
-    () => connector.value ?? connectors.value?.find((c) => c.name === 'Global') ?? connectors.value?.find((c) => c.enabled)
+    () => connector.value ?? connectors.value?.find((c) => c.name === 'Global') ?? visibleConnectors.value.find((c) => c.enabled)
 );
 const busy = ref(false);
 const searched = ref(false);
@@ -141,7 +147,7 @@ const search = async (q: string): Promise<MinimalSeries[]> => {
         return [data];
     }
     if (!selectedConnector.value?.name) return [];
-    return await searchByConnector(selectedConnector.value.name, q);
+    return await searchByConnector(selectedConnector.value.name, q, { contentType: contentType.value });
 };
 
 // Deep links (e.g. Discover cards) land here with ?q= and optionally ?source=; run the search
@@ -154,6 +160,14 @@ onMounted(() => {
     if (typeof source === 'string')
         connector.value = connectors.value?.find((c) => c.name === source) ?? connector.value;
     performSearch();
+});
+
+// Flipping the mode invalidates a picked source that isn't in it; fall back to All-sources and re-run
+// so the results follow the toggle.
+watch(mode, () => {
+    if (connector.value && connector.value.name !== 'Global' && connector.value.contentType !== contentType.value)
+        connector.value = undefined;
+    if (query.value) performSearch();
 });
 
 const { pendingAdd, addModalOpen, startAdd, onAdded } = useAddSeriesFlow();
