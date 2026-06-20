@@ -2,6 +2,62 @@
 
 <!-- version list -->
 
+## v0.29.0 (2026-06-20)
+
+### Bug Fixes
+
+- Keep the discover cover when adding a series instead of swapping to the connector's
+  ([`2b8b853`](https://github.com/chutch3/kenku/commit/2b8b85365133d74501d736f4810f9588586b71b6))
+
+- Only show the download chooser for choice-parked jobs, not transient failures
+  ([`359803f`](https://github.com/chutch3/kenku/commit/359803fb9c16dca37490809017e0f22c11d3a0d6))
+
+### Features
+
+- Add a manga/comics mode toggle in the header
+  ([`a0ede2c`](https://github.com/chutch3/kenku/commit/a0ede2c223f2a7f4f576305f1edd10179d52ccad))
+
+- Add a master torrent feature toggle, off by default
+  ([`a824688`](https://github.com/chutch3/kenku/commit/a82468844f366b6857c626faba4606d42b0065d3))
+
+- Add a media-type filter to the library, defaulting to all
+  ([`b8926f5`](https://github.com/chutch3/kenku/commit/b8926f51ea90f45906ef412b0e5149e31b837c10))
+
+- Choose the manga library layout when adding a series
+  ([`8c8cb78`](https://github.com/chutch3/kenku/commit/8c8cb78cf86899f5a974a01cab2459743f6302cf))
+
+- Collapse duplicate search results across sources into one row
+  ([`54298fd`](https://github.com/chutch3/kenku/commit/54298fd3edb9f5d28d7f445aff828ef325da2d9e))
+
+- Filter search sources by download language instead of just sorting
+  ([`c4a4dcb`](https://github.com/chutch3/kenku/commit/c4a4dcbd0b01f7a7e72c54829123bd530dca52f5))
+
+- Rank cover writes by source so backfills don't clobber connector or user covers
+  ([`2e1237f`](https://github.com/chutch3/kenku/commit/2e1237f7d8e365936261aa5f9c20e8da0d7494bb))
+
+- Scope discover to the active manga/comics mode
+  ([`1c93049`](https://github.com/chutch3/kenku/commit/1c930492e368d1ab33ebabb16138a8a6feca06b2))
+
+- Scope search to the active manga/comics mode
+  ([`aa0a65b`](https://github.com/chutch3/kenku/commit/aa0a65b1bc5111eab0810d25ef221363042982f4))
+
+- Skip metadata refresh for completed and cancelled series
+  ([`056d112`](https://github.com/chutch3/kenku/commit/056d11245715dcfa6c9bdcc688db3c4efd607612))
+
+- Surface a per-series history timeline on the series page
+  ([`fc9f5e5`](https://github.com/chutch3/kenku/commit/fc9f5e59e1de5d8decdb49299c8b0f30e8df30a5))
+
+### Refactoring
+
+- Remove cross-slice duplication and reset job failure kind per attempt
+  ([`8c6dc55`](https://github.com/chutch3/kenku/commit/8c6dc5540737828a03ba204913580606810bc555))
+
+### Testing
+
+- Include contentType in the add-series e2e connector stub
+  ([`6e9f954`](https://github.com/chutch3/kenku/commit/6e9f9541a851627368dd9705519399770d1324b1))
+
+
 ## v0.28.1 (2026-06-15)
 
 ### Bug Fixes
