@@ -12,7 +12,7 @@
                     class="max-sm:h-[var(--mangacover-height-sm)] h-(--mangacover-height) max-sm:w-[var(--mangacover-width-sm)] w-(--mangacover-width) rounded-lg shrink-0" />
             </div>
 
-            <section v-if="mangaRails.some((r) => r.entries.length) || genresHaveContent" class="flex flex-col gap-6">
+            <section v-if="mode === 'manga' && (mangaRails.some((r) => r.entries.length) || genresHaveContent)" class="flex flex-col gap-6">
                 <SectionLabel>Manga</SectionLabel>
                 <DiscoveryRail
                     v-for="rail in mangaRails"
@@ -34,7 +34,7 @@
                     @content="onGenreContent" />
             </section>
 
-            <section v-if="comics?.length" class="flex flex-col gap-6">
+            <section v-if="mode === 'comic' && comics?.length" class="flex flex-col gap-6">
                 <SectionLabel>Comics</SectionLabel>
                 <DiscoveryRail
                     title="Fresh releases"
@@ -72,6 +72,8 @@
 <script setup lang="ts">
 import type { components } from '#open-fetch-schemas/api';
 type Entry = components['schemas']['DiscoveryEntry'];
+
+const { mode } = useMediaMode();
 
 const { data: manga, pending: mangaPending } = useApi('/v2/Discover/Manga', { key: FetchKeys.Discover.Manga, lazy: true, server: false });
 const { data: comics, pending: comicsPending } = useApi('/v2/Discover/Comics', { key: FetchKeys.Discover.Comics, lazy: true, server: false });
