@@ -64,20 +64,23 @@ public class SearchController(
             _ => await connector.SearchManga(Query),
         };
 
-        IEnumerable<MinimalSeries> result = mangas.Select(kv =>
-        {
-            Series m = kv.manga;
-            Schema.SeriesContext.SourceId<Series> id = kv.id;
-            IEnumerable<DTOs.SourceId<DTOs.Series>> ids =
-            [
-                DTOs.SourceId<DTOs.Series>.From(id)
-            ];
-            return new MinimalSeries(
-                m.Key, m.Name, m.Description, m.ReleaseStatus, ids,
-                FileLibraryId: m.Library?.Key,
-                Language: connector.SupportedLanguages.FirstOrDefault(),
-                CoverUrl: m.CoverUrl);
-        });
+        // The same series found on several sources shares a Series.Key (derived from its name), so collapse
+        // those into one row carrying every source — the user sees one entry and can pick any source from it,
+        // instead of a near-duplicate per connector.
+        IEnumerable<MinimalSeries> result = mangas
+            .GroupBy(kv => kv.manga.Key)
+            .Select(group =>
+            {
+                Series m = group.First().manga;
+                IEnumerable<DTOs.SourceId<DTOs.Series>> ids =
+                    group.Select(kv => DTOs.SourceId<DTOs.Series>.From(kv.id)).ToList();
+                string cover = group.Select(kv => kv.manga.CoverUrl).FirstOrDefault(c => !string.IsNullOrEmpty(c)) ?? m.CoverUrl;
+                return new MinimalSeries(
+                    m.Key, m.Name, m.Description, m.ReleaseStatus, ids,
+                    FileLibraryId: m.Library?.Key,
+                    Language: connector.SupportedLanguages.FirstOrDefault(),
+                    CoverUrl: cover);
+            });
 
         return TypedResults.Ok(result.ToList());
     }

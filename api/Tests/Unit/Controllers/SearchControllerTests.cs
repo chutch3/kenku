@@ -210,6 +210,44 @@ public class SearchControllerTests
     }
 
     [Fact]
+    public async Task SearchManga_Global_CollapsesTheSameSeriesAcrossSources_IntoOneRowWithEverySource()
+    {
+        using var ctx = CreateContext();
+        var settings = new KenkuSettings { DownloadLanguage = "en" };
+
+        // Both sources return a series with the same name → same Series.Key. The user should see one row,
+        // not a duplicate per source, with both sources attached so either can be picked.
+        var weeb = new Mock<API.Connectors.SeriesSource>("WeebCentral", new[] { "en" }, new[] { "weebcentral.com" }, "i", settings);
+        var fromWeeb = MakeTestManga("Naruto");
+        weeb.Setup(c => c.SearchManga(It.IsAny<string>())).ReturnsAsync([(fromWeeb, MakeConnectorId(fromWeeb, "WeebCentral", "w1"))]);
+        weeb.Setup(c => c.ContentType).Returns(ContentType.Manga);
+        weeb.Setup(c => c.Kind).Returns(AcquisitionKind.ImageList);
+
+        var dex = new Mock<API.Connectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "i", settings);
+        var fromDex = MakeTestManga("Naruto");
+        dex.Setup(c => c.SearchManga(It.IsAny<string>())).ReturnsAsync([(fromDex, MakeConnectorId(fromDex, "MangaDex", "d1"))]);
+        dex.Setup(c => c.ContentType).Returns(ContentType.Manga);
+        dex.Setup(c => c.Kind).Returns(AcquisitionKind.ImageList);
+
+        var services = new ServiceCollection();
+        services.AddSingleton(weeb.Object);
+        services.AddSingleton(dex.Object);
+        var global = new Global(settings, services.BuildServiceProvider());
+
+        var controller = new SearchController(ctx, [global, weeb.Object, dex.Object]);
+        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
+
+        var result = await controller.SearchManga("Global", "naruto");
+
+        var ok = Assert.IsType<Ok<List<MinimalSeries>>>(result.Result);
+        var single = Assert.Single(ok.Value!);
+        Assert.Equal("Naruto", single.Name);
+        Assert.Equal(2, single.SourceIds.Count());
+        Assert.Contains(single.SourceIds, s => s.MangaConnectorName == "WeebCentral");
+        Assert.Contains(single.SourceIds, s => s.MangaConnectorName == "MangaDex");
+    }
+
+    [Fact]
     public async Task SearchManga_WithScope_ReturnsEmptyForAMismatchedSingleConnector()
     {
         using var ctx = CreateContext();
