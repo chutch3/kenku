@@ -60,6 +60,8 @@ public class DirectArchiveAcquirerTests
             var failed = Assert.IsType<AcquireResult.Failed>(result);
             Assert.Contains("2 downloads", failed.Reason);
             Assert.Contains("choose", failed.Reason, StringComparison.OrdinalIgnoreCase);
+            // Marks the failure as a user pick, so the job parks for choice instead of retrying.
+            Assert.True(failed.NeedsChoice);
         }
         finally { try { Directory.Delete(tempRoot, recursive: true); } catch { } }
     }

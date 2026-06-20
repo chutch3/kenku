@@ -58,8 +58,15 @@ public class Dispatcher
                 await handler.ExecuteAsync(job, jobCts.Token);
             job.Status = JobStatus.Succeeded;
             job.Error = null;
+            job.FailureKind = JobFailureKind.None;
             job.LeasedUntil = null;
             job.FinishedAt = _clock.UtcNow;
+        }
+        catch (JobChoiceRequiredException e)
+        {
+            // Not a retry candidate: only a user pick can resolve it, so park it now and tag why.
+            job.FailureKind = JobFailureKind.NeedsChoice;
+            Fail(job, e.Message, retryable: false);
         }
         catch (OperationCanceledException) when (jobCts.IsCancellationRequested)
         {

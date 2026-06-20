@@ -8,6 +8,7 @@ interface QueuedJob {
     key: string;
     type: string;
     status: string;
+    failureKind: string;
     attempts: number;
     maxAttempts: number;
     resourceKey: string | null;
@@ -22,7 +23,7 @@ interface QueuedJob {
 
 function job(overrides: Partial<QueuedJob>): QueuedJob {
     return {
-        key: 'k1', type: 'DownloadChapter', status: 'Queued', attempts: 1, maxAttempts: 5,
+        key: 'k1', type: 'DownloadChapter', status: 'Queued', failureKind: 'None', attempts: 1, maxAttempts: 5,
         resourceKey: 'series-1', error: null,
         createdAt: '2026-06-06T00:00:00Z', scheduledFor: '2026-06-06T00:00:00Z',
         startedAt: null, finishedAt: null, progress: null,
@@ -35,9 +36,11 @@ function job(overrides: Partial<QueuedJob>): QueuedJob {
 beforeEach(() => clearNuxtData());
 
 describe('QueueList', () => {
-    it('offers a download chooser on failed chapter downloads only', async () => {
+    it('offers a download chooser only on a download parked needing a user pick', async () => {
         registerEndpoint('/v2/JobQueue', () => [
-            job({ key: 'a', type: 'DownloadChapter', status: 'NeedsAttention', error: 'the post offers 2 downloads — choose one from the failed job in Activity' }),
+            job({ key: 'a', type: 'DownloadChapter', status: 'NeedsAttention', failureKind: 'NeedsChoice', error: 'the post offers 2 downloads — choose one from the parked job in Activity' }),
+            // Same status, but a transient failure (not a choice) — no chooser, just Retry.
+            job({ key: 'c', type: 'DownloadChapter', status: 'NeedsAttention', failureKind: 'None', error: 'archive download failed: HTTP 503' }),
             job({ key: 'b', type: 'ResolveSeriesVolumes', status: 'NeedsAttention', error: 'boom' }),
         ]);
         const wrapper = await mountSuspended(QueueList);

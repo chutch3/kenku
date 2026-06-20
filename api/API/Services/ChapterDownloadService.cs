@@ -97,6 +97,9 @@ public class ChapterDownloadService(
                 // Handed off to an external client; the completion path marks Downloaded later.
                 Log.InfoFormat("Chapter {0} handed off to an external client; deferring completion.", chapter);
                 return DownloadOutcome.Deferred;
+            case AcquireResult.Failed { NeedsChoice: true } failed:
+                // A genuine multi-option post: park for a user pick, don't burn retries re-deriving it.
+                throw new JobChoiceRequiredException($"Download failed for chapter {chapter}: {failed.Reason}");
             case AcquireResult.Failed failed:
                 throw new InvalidOperationException($"Download failed for chapter {chapter}: {failed.Reason}");
             default:

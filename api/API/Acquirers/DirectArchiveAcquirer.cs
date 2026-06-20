@@ -44,7 +44,8 @@ public class DirectArchiveAcquirer(HttpClient http) : IChapterAcquirer
                 case ArchiveResolution.Choice choice:
                     Log.InfoFormat("Chapter {0} offers {1} downloads; the user picks one.", chapter, choice.Options.Count);
                     return new AcquireResult.Failed(
-                        $"the post offers {choice.Options.Count} downloads — choose one from the failed job in Activity");
+                        $"the post offers {choice.Options.Count} downloads — choose one from the parked job in Activity",
+                        NeedsChoice: true);
             }
         }
 

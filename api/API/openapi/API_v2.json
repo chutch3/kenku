@@ -6721,6 +6721,14 @@
         "additionalProperties": false,
         "description": "Represents a single file move operation in a reorganize preview."
       },
+      "JobFailureKind": {
+        "enum": [
+          "None",
+          "NeedsChoice"
+        ],
+        "type": "string",
+        "description": "Why a parked job is parked, so the UI can offer the right affordance. API.Schema.JobsContext.JobFailureKind.None is an\nordinary failure (offer Retry); API.Schema.JobsContext.JobFailureKind.NeedsChoice means the job can't proceed until the user\npicks between genuine options (e.g. a multi-download post) — distinct from a transient failure that\nmerely happens to land in the same API.Schema.JobsContext.JobStatus.NeedsAttention state."
+      },
       "JobStatus": {
         "enum": [
           "Queued",
@@ -7184,6 +7192,7 @@
         "required": [
           "attempts",
           "createdAt",
+          "failureKind",
           "key",
           "maxAttempts",
           "payload",
@@ -7205,6 +7214,9 @@
           },
           "status": {
             "$ref": "#/components/schemas/JobStatus"
+          },
+          "failureKind": {
+            "$ref": "#/components/schemas/JobFailureKind"
           },
           "attempts": {
             "type": "integer",

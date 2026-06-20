@@ -23,6 +23,13 @@ public class DispatcherTests
         public Task ExecuteAsync(Job job, CancellationToken ct) => throw new InvalidOperationException("nope");
     }
 
+    private sealed class NeedsChoiceHandler(string jobType) : IJobHandler
+    {
+        public string JobType => jobType;
+        public Task ExecuteAsync(Job job, CancellationToken ct) =>
+            throw new JobChoiceRequiredException("the post offers 2 downloads — choose one");
+    }
+
     private static (Dispatcher dispatcher, InMemoryJobStore store, FakeClock clock) Build(
         IEnumerable<IJobHandler> handlers, BackoffPolicy? backoff = null)
     {
@@ -109,6 +116,36 @@ public class DispatcherTests
         Assert.Equal(3, job.Attempts);
         // No infinite loop: a NeedsAttention job is never re-claimed.
         Assert.False(await dispatcher.RunOnceAsync());
+    }
+
+    [Fact]
+    public async Task JobNeedingAChoice_ParksAsNeedsChoice_WithoutRetrying()
+    {
+        var backoff = new BackoffPolicy(TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(0));
+        var (dispatcher, store, clock) = Build([new NeedsChoiceHandler("choice")], backoff);
+        var job = await store.EnqueueAsync(new Job("choice", "{}", clock.UtcNow, maxAttempts: 3));
+
+        Assert.True(await dispatcher.RunOnceAsync());
+
+        // A user-choice failure is not a transient error: park it at once and tag why, don't burn retries.
+        Assert.Equal(JobStatus.NeedsAttention, job.Status);
+        Assert.Equal(JobFailureKind.NeedsChoice, job.FailureKind);
+        Assert.Equal(1, job.Attempts);
+        Assert.NotNull(job.FinishedAt);
+        Assert.False(await dispatcher.RunOnceAsync());
+    }
+
+    [Fact]
+    public async Task OrdinaryFailure_LeavesFailureKindNone()
+    {
+        var backoff = new BackoffPolicy(TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(0));
+        var (dispatcher, store, clock) = Build([new AlwaysFailsHandler("fail")], backoff);
+        var job = await store.EnqueueAsync(new Job("fail", "{}", clock.UtcNow, maxAttempts: 1));
+
+        Assert.True(await dispatcher.RunOnceAsync());
+
+        Assert.Equal(JobStatus.NeedsAttention, job.Status);
+        Assert.Equal(JobFailureKind.None, job.FailureKind);
     }
 
     [Fact]

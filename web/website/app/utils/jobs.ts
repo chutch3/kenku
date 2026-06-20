@@ -59,9 +59,10 @@ export const jobTimingTitle = (job: QueuedJob): string => {
     return parts.join('\n');
 };
 
-/** A failed chapter download may just need a human pick (multi-option post) — offer the chooser. */
+/** Offer the chooser only when the backend parked the download needing a user pick (a multi-option
+ * post) — a transient failure parks as NeedsAttention too, but must show Retry, not a phantom chooser. */
 export const canChooseDownload = (job: QueuedJob) =>
-    job.type === 'DownloadChapter' && (job.status === 'Failed' || job.status === 'NeedsAttention');
+    job.type === 'DownloadChapter' && job.failureKind === 'NeedsChoice';
 
 /** "ChapterKey" is pinned server-side by DownloadChapterPayloadTests — not a guess at casing. */
 export const chapterChoiceKey = (job: QueuedJob): string | undefined =>

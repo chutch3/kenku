@@ -80,6 +80,7 @@ public class JobQueueController(IJobStore store, HandlerRegistry registry, ICloc
         job.Attempts = 0;
         job.ScheduledFor = clock.UtcNow;
         job.Error = null;
+        job.FailureKind = JobFailureKind.None;
         await store.UpdateAsync(job);
         return TypedResults.Ok(QueuedJob.From(job));
     }

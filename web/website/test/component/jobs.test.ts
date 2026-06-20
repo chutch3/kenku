@@ -9,7 +9,7 @@ type QueuedJob = components['schemas']['QueuedJob'];
 
 function job(overrides: Partial<QueuedJob> = {}): QueuedJob {
     return {
-        key: 'k1', type: 'DownloadChapter', status: 'Queued', attempts: 1, maxAttempts: 5,
+        key: 'k1', type: 'DownloadChapter', status: 'Queued', failureKind: 'None', attempts: 1, maxAttempts: 5,
         resourceKey: 'series-1', error: null, createdAt: '2026-06-06T00:00:00Z', scheduledFor: '2026-06-06T00:00:00Z',
         startedAt: null, finishedAt: null, progress: null, payload: '{"ChapterKey":"src-1"}', ...overrides,
     } as QueuedJob;
@@ -49,10 +49,12 @@ describe('jobs util', () => {
         expect(title).toContain('Finished:');
     });
 
-    it('offers the chooser only for failed chapter downloads, and reads its key', () => {
-        expect(canChooseDownload(job({ type: 'DownloadChapter', status: 'NeedsAttention' }))).toBe(true);
-        expect(canChooseDownload(job({ type: 'DownloadChapter', status: 'Running' }))).toBe(false);
-        expect(canChooseDownload(job({ type: 'ResolveSeriesVolumes', status: 'NeedsAttention' }))).toBe(false);
+    it('offers the chooser only when a chapter download is parked needing a user pick', () => {
+        expect(canChooseDownload(job({ type: 'DownloadChapter', status: 'NeedsAttention', failureKind: 'NeedsChoice' }))).toBe(true);
+        // A transient failure parks the same way but isn't a choice — no chooser, just Retry.
+        expect(canChooseDownload(job({ type: 'DownloadChapter', status: 'NeedsAttention', failureKind: 'None' }))).toBe(false);
+        expect(canChooseDownload(job({ type: 'DownloadChapter', status: 'Running', failureKind: 'None' }))).toBe(false);
+        expect(canChooseDownload(job({ type: 'ResolveSeriesVolumes', status: 'NeedsAttention', failureKind: 'NeedsChoice' }))).toBe(false);
         expect(chapterChoiceKey(job({ payload: '{"ChapterKey":"abc"}' }))).toBe('abc');
         expect(chapterChoiceKey(job({ payload: '{}' }))).toBeUndefined();
     });

@@ -13,6 +13,18 @@ public enum JobStatus
 }
 
 /// <summary>
+/// Why a parked job is parked, so the UI can offer the right affordance. <see cref="None"/> is an
+/// ordinary failure (offer Retry); <see cref="NeedsChoice"/> means the job can't proceed until the user
+/// picks between genuine options (e.g. a multi-download post) — distinct from a transient failure that
+/// merely happens to land in the same <see cref="JobStatus.NeedsAttention"/> state.
+/// </summary>
+public enum JobFailureKind
+{
+    None,
+    NeedsChoice
+}
+
+/// <summary>
 /// A first-class unit of work for the job runtime: a declared input (<see cref="Type"/> + <see cref="Payload"/>),
 /// a recorded outcome (<see cref="Status"/>/<see cref="Error"/>), bounded retries (<see cref="Attempts"/>),
 /// and the scheduling metadata the dispatcher needs (<see cref="ScheduledFor"/>, <see cref="ResourceKey"/>
@@ -36,6 +48,7 @@ public class Job : Identifiable
     public DateTime? FinishedAt { get; set; }
     [StringLength(2048)] public string? Error { get; set; }
     [StringLength(512)] public string? Progress { get; set; }
+    public JobFailureKind FailureKind { get; set; }
 
     public Job(string type, string payload, DateTime createdAt, string? resourceKey = null,
         string? dedupKey = null, int priority = 0, int maxAttempts = 5)

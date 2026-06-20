@@ -42,5 +42,9 @@ public abstract record AcquireResult
 {
     public sealed record Acquired(string Path) : AcquireResult;
     public sealed record Deferred : AcquireResult;
-    public sealed record Failed(string Reason) : AcquireResult;
+
+    /// <summary><paramref name="NeedsChoice"/> marks a failure that only a user pick can resolve (a
+    /// multi-download post) rather than a transient error — so the job is parked, not retried, and the
+    /// UI offers the chooser instead of Retry.</summary>
+    public sealed record Failed(string Reason, bool NeedsChoice = false) : AcquireResult;
 }
