@@ -3764,6 +3764,13 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "layout",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/LibraryLayout"
+            }
           }
         ],
         "responses": {

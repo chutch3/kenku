@@ -79,7 +79,8 @@ public class SeriesLibraryService(KenkuSettings settings, IEnumerable<SeriesSour
 
     public async Task<(ChangeLibraryStatus status, string? error)> ChangeLibraryAsync(
         SeriesContext context, ActionsContext actionsContext, string mangaId, string libraryId,
-        string? connectorName, string? connectorSeriesId, bool download, CancellationToken ct, string? coverUrl = null)
+        string? connectorName, string? connectorSeriesId, bool download, CancellationToken ct, string? coverUrl = null,
+        LibraryLayout? layout = null)
     {
         if (await context.FileLibraries.FirstOrDefaultAsync(l => l.Key == libraryId, ct) is not { } library)
             return (ChangeLibraryStatus.LibraryNotFound, null);
@@ -111,6 +112,10 @@ public class SeriesLibraryService(KenkuSettings settings, IEnumerable<SeriesSour
             // cover. F4-A precedence then keeps it from being swapped out by the connector on the first sync.
             if (!string.IsNullOrWhiteSpace(coverUrl))
                 manga.SetCover(coverUrl, CoverSource.User);
+
+            // Apply the on-disk layout the user chose at add-time (manga only; the form hides it for comics).
+            if (layout is { } chosenLayout)
+                manga.LibraryLayout = chosenLayout;
         }
 
         manga.IsTracked = true;

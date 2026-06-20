@@ -113,4 +113,30 @@ public class MangaControllerTests
         Assert.Equal("https://discover/feed-cover.jpg", mangaInDb.CoverUrl);
         Assert.Equal(CoverSource.User, mangaInDb.CoverSource);
     }
+
+    [Fact]
+    public async Task ChangeLibrary_AppliesTheChosenLibraryLayout()
+    {
+        var (ctx, actionsCtx) = CreateContexts();
+        var library = new API.Schema.SeriesContext.FileLibrary(Path.GetTempPath(), "TestLib");
+        ctx.FileLibraries.Add(library);
+        await ctx.SaveChangesAsync();
+
+        var manga = MakeTestManga("New Series");
+        var connectorId = new ConnectorId(manga, "MangaDex", "ext-id", null);
+        var mockConnector = new Mock<API.Connectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
+        mockConnector.Setup(c => c.GetMangaFromId("ext-id")).ReturnsAsync((manga, connectorId));
+
+        var controller = CreateController(ctx, actionsCtx, [mockConnector.Object]);
+        var libraryService = new API.Services.SeriesLibraryService(
+            new KenkuSettings(), [mockConnector.Object], new InMemoryJobStore(), new SystemClock(), new RunningJobRegistry());
+
+        var result = await controller.ChangeLibrary(manga.Key, library.Key, libraryService, "MangaDex", "ext-id",
+            layout: LibraryLayout.VolumeFolder);
+
+        Assert.IsType<Ok>(result.Result);
+        var mangaInDb = await ctx.Series.FirstOrDefaultAsync(m => m.Key == manga.Key);
+        Assert.NotNull(mangaInDb);
+        Assert.Equal(LibraryLayout.VolumeFolder, mangaInDb.LibraryLayout);
+    }
 }

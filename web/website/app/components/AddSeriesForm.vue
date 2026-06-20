@@ -31,6 +31,10 @@
                 <span class="text-xs text-muted">Save to</span>
                 <USelect v-model="libraryId" :items="libraryItems" class="w-full mt-1" />
             </div>
+            <div v-if="kind !== 'comic' && libraries && libraries.length">
+                <span class="text-xs text-muted">Library layout</span>
+                <USelect v-model="layout" :items="layoutOptions" class="w-full mt-1" />
+            </div>
             <div v-else-if="libraries" class="flex flex-col gap-2">
                 <p class="text-sm text-muted">A library is the folder where Kenku saves downloaded files — set one up first.</p>
                 <UButton :to="`/settings?return=${$route.fullPath}`" icon="i-lucide-folder-plus" color="primary" class="w-fit">
@@ -100,6 +104,14 @@ const libraryItems = computed(() => (libraries.value ?? []).map((l) => ({ label:
 const libraryId = ref<string>();
 watch(libraries, (libs) => (libraryId.value ??= libs?.[0]?.key), { immediate: true });
 
+// Manga-only: how the chapters are organised on disk. Chosen per-add; comics are always flat.
+const layout = ref<'Flat' | 'VolumeFolder' | 'VolumeCBZ'>('Flat');
+const layoutOptions = [
+    { label: 'Flat — all chapters in one folder', value: 'Flat' },
+    { label: 'Volume folders — chapters grouped in Vol N/', value: 'VolumeFolder' },
+    { label: 'Volume CBZ — one .cbz per volume', value: 'VolumeCBZ' },
+];
+
 // Live preview from the connector: '0 chapters' or a broken source must be visible while a
 // different source can still be picked — not after the series sits silently in the library.
 const chapters = ref<ChapterPreview[]>([]);
@@ -146,6 +158,7 @@ const add = async (download: boolean) => {
                 connectorSeriesId: source.value.idOnConnectorSite,
                 download,
                 coverUrl: props.coverUrl,
+                layout: kind.value === 'comic' ? undefined : layout.value,
             },
         });
         emit('added', { libraryId: libraryId.value, download });
