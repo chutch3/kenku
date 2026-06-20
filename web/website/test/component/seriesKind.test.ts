@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { seriesKind } from '~/composables/useSeriesKind';
+import { seriesKind, matchesMediaFilter } from '~/composables/useSeriesKind';
 import type { components } from '#open-fetch-schemas/api';
 
 type MinimalSeries = components['schemas']['MinimalSeries'];
@@ -66,5 +66,22 @@ describe('seriesKind', () => {
     it('defaults to manga without sources or connector data', () => {
         expect(seriesKind(withSources(), connectors)).toBe('manga');
         expect(seriesKind(withSources('Indexers'), null)).toBe('manga');
+    });
+});
+
+describe('matchesMediaFilter', () => {
+    const comic = withSources('GetComics');
+    const manga = withSources('WeebCentral');
+
+    it("'all' keeps everything — the library never hides owned content by default", () => {
+        expect(matchesMediaFilter(comic, 'all', connectors)).toBe(true);
+        expect(matchesMediaFilter(manga, 'all', connectors)).toBe(true);
+    });
+
+    it('a specific filter keeps only that kind', () => {
+        expect(matchesMediaFilter(comic, 'comic', connectors)).toBe(true);
+        expect(matchesMediaFilter(comic, 'manga', connectors)).toBe(false);
+        expect(matchesMediaFilter(manga, 'manga', connectors)).toBe(true);
+        expect(matchesMediaFilter(manga, 'comic', connectors)).toBe(false);
     });
 });

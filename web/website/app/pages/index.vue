@@ -24,6 +24,7 @@
                             <UButton color="neutral" variant="link" size="sm" icon="i-lucide-x" aria-label="Clear filter" @click="filterText = ''" />
                         </template>
                     </UInput>
+                    <USelect v-model="modeFilter" :items="modeOptions" icon="i-lucide-book-open" class="w-36" />
                     <USelect v-model="statusFilter" :items="statusOptions" icon="i-lucide-filter" class="w-44" />
                     <USelect v-model="sortBy" :items="sortOptions" icon="i-lucide-arrow-down-up" class="w-40" />
                     <p class="font-mono text-xs text-dimmed text-nowrap ml-auto">
@@ -58,9 +59,19 @@ onMounted(() => {
 
 const rollupsByKey = computed(() => Object.fromEntries((rollups.value ?? []).map((r) => [r.mangaId, r])));
 
+const { data: connectors } = await useApi('/v2/SeriesSource', { key: FetchKeys.MangaConnector.All, server: false });
+
 const filterText = ref('');
 const statusFilter = ref<'all' | TrackState>('all');
+// The library defaults to 'all' so owned content is never hidden; the manga/comics narrowing is opt-in here.
+const modeFilter = ref<'all' | 'manga' | 'comic'>('all');
 const sortBy = ref<SeriesSort>('name-asc');
+
+const modeOptions = [
+    { label: 'All types', value: 'all' },
+    { label: 'Manga', value: 'manga' },
+    { label: 'Comics', value: 'comic' },
+];
 
 const statusOptions = [
     { label: 'All series', value: 'all' },
@@ -82,12 +93,14 @@ const filtered = computed(() => {
     const q = filterText.value.trim().toLowerCase();
     if (q) list = list.filter((s) => s.name.toLowerCase().includes(q));
     if (statusFilter.value !== 'all') list = list.filter((s) => seriesTrackState(s, rollupsByKey.value[s.key]) === statusFilter.value);
+    if (modeFilter.value !== 'all') list = list.filter((s) => matchesMediaFilter(s, modeFilter.value, connectors.value));
     return sortSeries(list, rollupsByKey.value, sortBy.value);
 });
 
 const resetFilters = () => {
     filterText.value = '';
     statusFilter.value = 'all';
+    modeFilter.value = 'all';
 };
 
 useHead({ title: 'Kenku' });
