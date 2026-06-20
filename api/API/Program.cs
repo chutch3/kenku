@@ -36,6 +36,9 @@ log.Debug("Loading Settings...");
 var settings = builder.Configuration["Kenku:AppData"] is { } appDataOverride
     ? new KenkuSettings { AppData = appDataOverride }
     : KenkuSettings.Load();
+// Integration tests exercise the torrent path; let them flip the master switch via config (like RunStartup).
+if (builder.Configuration.GetValue<bool?>("Kenku:TorrentEnabled") is { } torrentOverride)
+    settings.TorrentEnabled = torrentOverride;
 builder.Services.AddSingleton(settings);
 
 builder.Services.AddCors(options =>

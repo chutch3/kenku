@@ -32,6 +32,14 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddTorrentAcquisitionPath(this IServiceCollection services, KenkuSettings settings, ILog log)
     {
+        // Master switch: with the torrent feature off, register nothing — no search source, no acquirer —
+        // so torrents simply don't exist until the download/import flow is designed. Restart to flip.
+        if (!settings.TorrentEnabled)
+        {
+            log.Info("Torrent feature disabled (KenkuSettings.TorrentEnabled is false). Skipping all torrent registration.");
+            return services;
+        }
+
         // ---- Search path (always on) ----
 
         // IClock is normally registered by the job runtime; TryAdd so this path also composes standalone.

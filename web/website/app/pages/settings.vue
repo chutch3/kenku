@@ -34,10 +34,13 @@
                             <SourcesTable />
                             <DownloadLanguageField class="mt-4" />
                         </UCard>
-                        <IndexersCard />
-                        <DownloadClientsCard />
+                        <TorrentFeatureCard />
+                        <template v-if="torrentEnabled">
+                            <IndexersCard />
+                            <DownloadClientsCard />
+                            <ReleaseSelectionCard />
+                        </template>
                         <DownloadsCard />
-                        <ReleaseSelectionCard />
                         <MetronCard />
                     </div>
                 </template>
@@ -85,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-const { settingsStatus, settingsData } = useSettings();
+const { settingsStatus, settingsData, torrentEnabled } = useSettings();
 
 const tabs = [
     { label: 'Library', icon: 'i-lucide-folder-tree', slot: 'library' as const },

@@ -4688,6 +4688,50 @@
         }
       }
     },
+    "/v2/Settings/TorrentEnabled": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Whether the torrent feature (search + acquisition) is enabled.",
+        "responses": {
+          "200": {
+            "description": "True if enabled",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Settings/TorrentEnabled/{enabled}": {
+      "patch": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Enable/disable the torrent feature. Applied at startup — the server must restart to take effect.",
+        "parameters": [
+          {
+            "name": "enabled",
+            "in": "path",
+            "description": "true to enable",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/v2/Settings/ChapterNamingScheme": {
       "get": {
         "tags": [
@@ -7698,6 +7742,9 @@
             "nullable": true
           },
           "metronConfigured": {
+            "type": "boolean"
+          },
+          "torrentEnabled": {
             "type": "boolean"
           },
           "discoveryGenres": {

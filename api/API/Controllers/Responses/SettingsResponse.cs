@@ -9,6 +9,7 @@ namespace API.Controllers.Responses;
 public record SettingsResponse(
     string ApiKey,
     bool MetronConfigured,
+    bool TorrentEnabled,
     IReadOnlyList<string> DiscoveryGenres,
     IReadOnlyList<string> DiscoveryFeeds,
     IReadOnlyList<SyncedIndexerResponse> SyncedIndexers,
@@ -17,6 +18,7 @@ public record SettingsResponse(
     public static SettingsResponse From(KenkuSettings s, API.Indexers.IndexerCooldown cooldowns) => new(
         s.ApiKey,
         !string.IsNullOrWhiteSpace(s.MetronUsername),
+        s.TorrentEnabled,
         s.DiscoveryGenres,
         s.DiscoveryFeeds,
         s.SnapshotSyncedIndexers()

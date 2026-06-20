@@ -34,6 +34,9 @@ public class KenkuSettings
     public string UserAgent { get; set; } = DefaultUserAgent;
     public int ImageCompression{ get; set; } = 40;
     public bool BlackWhiteImages { get; set; } = false;
+    /// <summary>Master switch for the torrent feature (search + acquisition). Off by default until the
+    /// download/import flow is properly designed. Applied at startup, so toggling it needs a restart.</summary>
+    public bool TorrentEnabled { get; set; } = false;
     public string FlareSolverrUrl { get; set; } = Environment.GetEnvironmentVariable("FLARESOLVERR_URL") ?? string.Empty;
     /// <summary>
     /// Placeholders:
@@ -205,6 +208,12 @@ public class KenkuSettings
     public void SetBlackWhiteImageEnabled(bool enabled)
     {
         this.BlackWhiteImages = enabled;
+        Save();
+    }
+
+    public void SetTorrentEnabled(bool enabled)
+    {
+        this.TorrentEnabled = enabled;
         Save();
     }
 

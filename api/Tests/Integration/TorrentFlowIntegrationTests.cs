@@ -24,7 +24,7 @@ public class TorrentFlowIntegrationTests
     private static readonly ILog Log = LogManager.GetLogger(typeof(TorrentFlowIntegrationTests));
 
     private static KenkuSettings NewSettings() =>
-        new() { AppData = Path.Combine(Path.GetTempPath(), $"kenku-test-{Guid.NewGuid():N}") };
+        new() { AppData = Path.Combine(Path.GetTempPath(), $"kenku-test-{Guid.NewGuid():N}"), TorrentEnabled = true };
 
     private static ServiceProvider Build(KenkuSettings settings)
     {

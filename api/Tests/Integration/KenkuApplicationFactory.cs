@@ -74,6 +74,10 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
     /// hermetic — call DrainJobsAsync() manually to drive the dispatcher.</summary>
     public bool RunStartup { get; init; } = false;
 
+    /// <summary>Torrent feature master switch. Defaults on for tests (production default is off) so the
+    /// torrent search/acquisition paths stay exercised; a test sets false to assert the gated-off state.</summary>
+    public bool TorrentEnabled { get; init; } = true;
+
     /// <summary>Last-applied service overrides for anything without a dedicated hook (e.g. a stub
     /// <c>IDownloadClient</c> + acquirer for the torrent path, which production only registers when a
     /// download client is configured).</summary>
@@ -82,6 +86,7 @@ public sealed class KenkuApplicationFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("Kenku:RunStartup", RunStartup ? "true" : "false");
+        builder.UseSetting("Kenku:TorrentEnabled", TorrentEnabled ? "true" : "false");
         // Each hosted test app otherwise starts config-reload FileSystemWatchers; across the suite
         // they exhaust the kernel's inotify instance limit and unrelated tests fail with IOExceptions.
         builder.UseSetting("hostBuilder:reloadConfigOnChange", "false");

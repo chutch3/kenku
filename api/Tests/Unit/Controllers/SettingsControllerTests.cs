@@ -139,6 +139,25 @@ public class SettingsControllerTests : IDisposable
     }
 
     [Fact]
+    public void GetTorrentEnabled_ReturnsCurrentState()
+    {
+        _settings.TorrentEnabled = true;
+
+        var result = CreateController().GetTorrentEnabled();
+
+        var ok = Assert.IsType<Ok<bool>>(result);
+        Assert.True(ok.Value);
+    }
+
+    [Fact]
+    public void SetTorrentEnabled_UpdatesState()
+    {
+        CreateController().SetTorrentEnabled(true);
+
+        Assert.True(_settings.TorrentEnabled);
+    }
+
+    [Fact]
     public void GetCustomNamingScheme_ReturnsCurrentScheme()
     {
         _settings.ChapterNamingScheme = "%M - Ch.%C";

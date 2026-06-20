@@ -17,6 +17,7 @@ export function useSettings() {
     const komgaConnected = computed(() => libraries.value?.find((l) => l.type === 'Komga'));
     const kavitaConnected = computed(() => libraries.value?.find((l) => l.type === 'Kavita'));
     const metronConnected = computed(() => !!settingsData.value?.metronConfigured);
+    const torrentEnabled = computed(() => !!settingsData.value?.torrentEnabled);
     const apiKey = computed(() => settingsData.value?.apiKey ?? '');
     const syncedIndexers = computed(() => settingsData.value?.syncedIndexers ?? []);
     const downloadClients = computed(() => settingsData.value?.downloadClients ?? []);
@@ -41,6 +42,10 @@ export function useSettings() {
         await $api('/v2/Settings/DownloadClients/{id}', { method: 'DELETE', path: { id } });
         await refreshSettings();
     };
+    const setTorrentEnabled = async (enabled: boolean) => {
+        await $api('/v2/Settings/TorrentEnabled/{enabled}', { method: 'PATCH', path: { enabled } });
+        await refreshSettings();
+    };
 
     const copy = async (value: string) => {
         try {
@@ -53,7 +58,8 @@ export function useSettings() {
 
     return {
         settingsStatus, settingsData, libraries, stats,
-        komgaConnected, kavitaConnected, metronConnected, apiKey, syncedIndexers, downloadClients,
-        refreshLibraries, refreshSettings, disconnectLibrary, regenerateApiKey, disconnectMetron, removeDownloadClient, copy,
+        komgaConnected, kavitaConnected, metronConnected, torrentEnabled, apiKey, syncedIndexers, downloadClients,
+        refreshLibraries, refreshSettings, disconnectLibrary, regenerateApiKey, disconnectMetron, removeDownloadClient,
+        setTorrentEnabled, copy,
     };
 }

@@ -112,6 +112,23 @@ public class SettingsController(KenkuSettings settings) : ControllerBase
         settings.SetBlackWhiteImageEnabled(enabled);
         return TypedResults.Ok();
     }
+
+    /// <summary>Whether the torrent feature (search + acquisition) is enabled.</summary>
+    /// <response code="200">True if enabled</response>
+    [HttpGet("TorrentEnabled")]
+    [ProducesResponseType<bool>(Status200OK, "text/plain")]
+    public Ok<bool> GetTorrentEnabled() => TypedResults.Ok(settings.TorrentEnabled);
+
+    /// <summary>Enable/disable the torrent feature. Applied at startup — the server must restart to take effect.</summary>
+    /// <param name="enabled">true to enable</param>
+    /// <response code="200"></response>
+    [HttpPatch("TorrentEnabled/{enabled}")]
+    [ProducesResponseType(Status200OK)]
+    public Ok SetTorrentEnabled(bool enabled)
+    {
+        settings.SetTorrentEnabled(enabled);
+        return TypedResults.Ok();
+    }
     
     /// <summary>
     /// Gets the Chapter Naming Scheme
