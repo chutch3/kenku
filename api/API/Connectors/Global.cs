@@ -34,7 +34,10 @@ public class Global : SeriesSource
         SeriesSource[] enabledConnectors = GetConnectors()
             .Where(c => c.Enabled
                         && (contentType is null || c.ContentType == contentType)
-                        && (includeTorrents || c.Kind != AcquisitionKind.Torrent))
+                        && (includeTorrents || c.Kind != AcquisitionKind.Torrent)
+                        // Skip sources that can't serve the download language at all (e.g. an Italian-only
+                        // site when downloading in English) — they only add noise and latency to All-sources.
+                        && (c.SupportedLanguages.Contains(Settings.DownloadLanguage) || c.SupportedLanguages.Contains("all")))
             .ToArray();
         Log.Debug(string.Join(", ", enabledConnectors.Select(c => c.Name)));
 
@@ -43,15 +46,10 @@ public class Global : SeriesSource
         
         await Task.WhenAll(tasks);
 
+        // Sources that can't serve the download language are already filtered out above, so every result
+        // here is language-appropriate — no further ranking needed.
         (Series, SourceId<Series>)[] ret = tasks.Select(t => t.IsCompletedSuccessfully ? t.Result : [])
             .SelectMany(i => i)
-            .OrderByDescending(m =>
-            {
-                var connector = GetConnectors().FirstOrDefault(c => c.Name == m.Item2.MangaConnectorName);
-                if (connector == null) return -1;
-                if (connector.SupportedLanguages.Contains(Settings.DownloadLanguage) || connector.SupportedLanguages.Contains("all")) return 1;
-                return 0;
-            })
             .ToArray();
         Log.DebugFormat("Got {0} results.", ret.Length);
         return ret;

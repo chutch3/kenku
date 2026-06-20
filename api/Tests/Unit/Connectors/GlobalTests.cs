@@ -41,11 +41,13 @@ public class GlobalTests
     }
 
     [Fact]
-    public async Task SearchManga_SortsByDownloadLanguage()
+    public async Task SearchManga_DropsSourcesThatCannotServeTheDownloadLanguage()
     {
         var settings = new KenkuSettings { DownloadLanguage = "en" };
         var services = new ServiceCollection();
 
+        // Italian-only source: with the download language English it must be skipped entirely (not just
+        // sorted lower) so it adds no noise.
         var mockItConnector = new Mock<SeriesSource>("Mangaworld", new[] { "it" }, new[] { "mangaworld.mx" }, "icon", settings);
         var mangaIt = new Series("Dan Da Dan IT", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], []);
         var idIt = new SourceId<Series>(mangaIt, mockItConnector.Object, "it-id", "url");
@@ -58,19 +60,15 @@ public class GlobalTests
         mockEnConnector.Setup(c => c.SearchManga(It.IsAny<string>())).ReturnsAsync([(mangaEn, idEn)]);
         mockEnConnector.Object.Enabled = true;
 
-        var mockAllConnector = new Mock<SeriesSource>("Global", new[] { "all" }, new[] { "" }, "icon", settings);
-
         services.AddSingleton(mockItConnector.Object);
         services.AddSingleton(mockEnConnector.Object);
-        services.AddSingleton(mockAllConnector.Object);
 
         var sp = services.BuildServiceProvider();
         var global = new Global(settings, sp);
 
         var results = await global.SearchManga("Dan Da Dan");
 
-        Assert.Equal(2, results.Length);
-        Assert.Equal("Dan Da Dan EN", results[0].Item1.Name);
-        Assert.Equal("Dan Da Dan IT", results[1].Item1.Name);
+        Assert.Equal("Dan Da Dan EN", Assert.Single(results).Item1.Name);
+        mockItConnector.Verify(c => c.SearchManga(It.IsAny<string>()), Times.Never);
     }
 }

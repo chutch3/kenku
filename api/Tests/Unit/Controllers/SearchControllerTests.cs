@@ -248,6 +248,40 @@ public class SearchControllerTests
     }
 
     [Fact]
+    public async Task SearchManga_Global_DropsSourcesThatCannotServeTheDownloadLanguage()
+    {
+        using var ctx = CreateContext();
+        var settings = new KenkuSettings { DownloadLanguage = "en" };
+
+        var english = new Mock<API.Connectors.SeriesSource>("WeebCentral", new[] { "en" }, new[] { "weebcentral.com" }, "i", settings);
+        var enHit = MakeTestManga("English Hit");
+        english.Setup(c => c.SearchManga(It.IsAny<string>())).ReturnsAsync([(enHit, MakeConnectorId(enHit, "WeebCentral", "e1"))]);
+        english.Setup(c => c.ContentType).Returns(ContentType.Manga);
+        english.Setup(c => c.Kind).Returns(AcquisitionKind.ImageList);
+
+        // Mangaworld only serves Italian — with the download language English it should never be queried.
+        var italian = new Mock<API.Connectors.SeriesSource>("Mangaworld", new[] { "it" }, new[] { "mangaworld.test" }, "i", settings);
+        var itHit = MakeTestManga("Italian Hit");
+        italian.Setup(c => c.SearchManga(It.IsAny<string>())).ReturnsAsync([(itHit, MakeConnectorId(itHit, "Mangaworld", "i1"))]);
+        italian.Setup(c => c.ContentType).Returns(ContentType.Manga);
+        italian.Setup(c => c.Kind).Returns(AcquisitionKind.ImageList);
+
+        var services = new ServiceCollection();
+        services.AddSingleton(english.Object);
+        services.AddSingleton(italian.Object);
+        var global = new Global(settings, services.BuildServiceProvider());
+
+        var controller = new SearchController(ctx, [global, english.Object, italian.Object]);
+        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
+
+        var result = await controller.SearchManga("Global", "q", ContentType.Manga);
+
+        var ok = Assert.IsType<Ok<List<MinimalSeries>>>(result.Result);
+        Assert.Equal("English Hit", Assert.Single(ok.Value!).Name);
+        italian.Verify(c => c.SearchManga(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
     public async Task SearchManga_WithScope_ReturnsEmptyForAMismatchedSingleConnector()
     {
         using var ctx = CreateContext();
