@@ -25,14 +25,24 @@ public class MetadataRefreshReconciler(IServiceScopeFactory scopeFactory, IClock
             scope.GetRequiredService<IJobStore>(),
             clock.UtcNow, ct);
 
-    /// <summary>Enqueues a metadata-refresh job for each tracked series with a metadata entry, deduped.</summary>
+    /// <summary>Enqueues a metadata-refresh job for each tracked series with a metadata entry, deduped.
+    /// Finished (Completed/Cancelled) series are skipped: a series only has an entry once it's been linked
+    /// (which fetches inline), so its external metadata is already on hand and won't change — re-enqueuing
+    /// it every 12h is wasted load. Mirrors <see cref="SeriesChapterSyncReconciler"/>'s finished-series gate.</summary>
     public static async Task<int> ScanAndEnqueueAsync(SeriesContext series, IJobStore store, DateTime now, CancellationToken ct)
     {
-        List<string> mangaIds = await series.MangaConnectorToManga
+        HashSet<string> finished = (await series.Series
+            .Where(s => s.ReleaseStatus == SeriesReleaseStatus.Completed || s.ReleaseStatus == SeriesReleaseStatus.Cancelled)
+            .Select(s => s.Key)
+            .ToListAsync(ct)).ToHashSet();
+
+        List<string> mangaIds = (await series.MangaConnectorToManga
             .Where(m => m.UseForDownload)
             .Join(series.MetadataEntries, mcId => mcId.ObjId, e => e.MangaId, (_, e) => e.MangaId)
             .Distinct()
-            .ToListAsync(ct);
+            .ToListAsync(ct))
+            .Where(id => !finished.Contains(id))
+            .ToList();
 
         foreach (string mangaId in mangaIds)
             await store.EnqueueAsync(new Job(RefreshExternalMetadataHandler.Type,

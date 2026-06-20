@@ -60,6 +60,36 @@ public class MetadataRefreshReconcilerTests : IDisposable
     }
 
     [Fact]
+    public async Task Scan_SkipsFinishedSeries_SoCompletedOnesAreNotRefetched()
+    {
+        // A series only gets a MetadataEntry once it's been linked (which fetches inline), so a
+        // Completed/Cancelled series with an entry has already been fetched and its external metadata
+        // is stable — re-enqueuing it every 12h is wasted load. Mirrors the chapter-sync finished gate.
+        using var ctx = NewContext();
+        var library = new FileLibrary(_root, "Lib");
+        ctx.FileLibraries.Add(library);
+        var continuing = new Series("Continuing", "", "u", SeriesReleaseStatus.Continuing, [], [], [], [], library);
+        var completed = new Series("Completed", "", "u", SeriesReleaseStatus.Completed, [], [], [], [], library);
+        var cancelled = new Series("Cancelled", "", "u", SeriesReleaseStatus.Cancelled, [], [], [], [], library);
+        ctx.Series.AddRange(continuing, completed, cancelled);
+        ctx.MangaConnectorToManga.Add(new SourceId<Series>(continuing, "MockConnector", "c1", "url", useForDownload: true));
+        ctx.MangaConnectorToManga.Add(new SourceId<Series>(completed, "MockConnector", "c2", "url", useForDownload: true));
+        ctx.MangaConnectorToManga.Add(new SourceId<Series>(cancelled, "MockConnector", "c3", "url", useForDownload: true));
+        var fetcher = new Mock<MetadataFetcher>("MyAnimeList").Object;
+        ctx.Set<MetadataEntry>().Add(new MetadataEntry(fetcher, continuing, "mal-1"));
+        ctx.Set<MetadataEntry>().Add(new MetadataEntry(fetcher, completed, "mal-2"));
+        ctx.Set<MetadataEntry>().Add(new MetadataEntry(fetcher, cancelled, "mal-3"));
+        await ctx.SaveChangesAsync();
+        var store = new InMemoryJobStore();
+
+        int enqueued = await MetadataRefreshReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow, default);
+
+        Assert.Equal(1, enqueued);
+        var job = Assert.Single(await store.GetAllAsync());
+        Assert.Equal(continuing.Key, job.ResourceKey);
+    }
+
+    [Fact]
     public async Task Scan_IsDeduped_SoTicksDoNotPileUp()
     {
         using var ctx = await Seed();
