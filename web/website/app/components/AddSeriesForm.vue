@@ -45,8 +45,14 @@
             </div>
         </template>
 
+        <!-- Spell out the two paths so the choice isn't a guess: one just tracks, one starts fetching now. -->
+        <p v-if="canAdd && libraries?.length" class="text-xs text-muted">
+            Track only saves it to your library; Add &amp; download also starts fetching all
+            {{ chapters.length }} chapter<span v-if="chapters.length > 1">s</span> now.
+        </p>
+
         <div class="flex gap-2 w-full justify-end">
-            <template v-if="canAdd">
+            <template v-if="canAdd && libraries?.length">
                 <UButton
                     color="neutral"
                     variant="outline"
@@ -54,7 +60,7 @@
                     :disabled="!libraryId"
                     :loading="adding === 'only'"
                     @click="add(false)">
-                    Add only
+                    Track only
                 </UButton>
                 <UButton
                     color="primary"
@@ -68,7 +74,7 @@
             <!-- Nothing to download here, so adding is blocked — point the user at the full search to
                  find a source that actually has it. -->
             <UButton
-                v-else-if="!chaptersPending"
+                v-else-if="!canAdd && !chaptersPending"
                 color="primary"
                 icon="i-lucide-search"
                 @click="searchOtherSources">

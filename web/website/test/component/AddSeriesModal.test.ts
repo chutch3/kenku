@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime';
+import { clearNuxtData } from '#imports';
 import { createError, getQuery } from 'h3';
 import AddSeriesModal from '~/components/AddSeriesModal.vue';
 
@@ -21,8 +22,9 @@ const series = {
 
 let chapters: object[] | null = [];
 let changeLibraryQuery: Record<string, string> | null = null;
+let libraries: object[] = [{ key: 'lib1', libraryName: 'Manga', basePath: '/data/manga' }];
 
-registerEndpoint('/v2/FileLibrary', () => [{ key: 'lib1', libraryName: 'Manga', basePath: '/data/manga' }]);
+registerEndpoint('/v2/FileLibrary', () => libraries);
 registerEndpoint('/v2/SeriesSource', () => [
     { key: 'WeebCentral', name: 'WeebCentral', enabled: true, iconUrl: '', supportedLanguages: ['en'], kind: 'ImageList', contentType: 'Manga' },
     { key: 'Indexers', name: 'Indexers', enabled: true, iconUrl: '', supportedLanguages: ['en'], kind: 'Torrent', contentType: 'Comic' },
@@ -58,6 +60,8 @@ describe('AddSeriesModal', () => {
     beforeEach(() => {
         chapters = [];
         changeLibraryQuery = null;
+        libraries = [{ key: 'lib1', libraryName: 'Manga', basePath: '/data/manga' }];
+        clearNuxtData();
         document.body.innerHTML = '';
     });
 
@@ -82,7 +86,7 @@ describe('AddSeriesModal', () => {
         await vi.waitFor(() => expect(bodyText()).toContain('no chapters'));
         // Adding would download nothing, so the add buttons are gone; a search to find another source replaces them.
         expect([...document.body.querySelectorAll('button')].some((b) => b.textContent?.includes('Add & download'))).toBe(false);
-        expect([...document.body.querySelectorAll('button')].some((b) => b.textContent?.includes('Add only'))).toBe(false);
+        expect([...document.body.querySelectorAll('button')].some((b) => b.textContent?.includes('Track only'))).toBe(false);
 
         findButton('Search other sources').click();
         await vi.waitFor(() => expect(navigateToMock).toHaveBeenCalledWith('/search?q=Fire%20Punch'));
@@ -142,13 +146,37 @@ describe('AddSeriesModal', () => {
         await vi.waitFor(() => expect(bodyText()).toContain('From Indexers — comic, delivered via your indexers'));
     });
 
-    it('Add only sends download=false', async () => {
+    it('Track only sends download=false', async () => {
         chapters = [{ chapterNumber: '1', volumeNumber: null, title: null }];
         await mountSuspended(AddSeriesModal, { props: { series, open: true } });
         await vi.waitFor(() => expect(bodyText()).toContain('1 chapter'));
 
-        findButton('Add only').click();
+        findButton('Track only').click();
 
         await vi.waitFor(() => expect(changeLibraryQuery).toMatchObject({ download: 'false' }));
+    });
+
+    it('spells out what each add button does, in plain language', async () => {
+        chapters = Array.from({ length: 22 }, (_, i) => ({ chapterNumber: `${i + 1}`, volumeNumber: null, title: null }));
+        await mountSuspended(AddSeriesModal, { props: { series, open: true } });
+
+        await vi.waitFor(() => expect(bodyText()).toContain('22 chapters'));
+        // Track only = no download; Add & download names its consequence (fetch all chapters now).
+        expect(findButton('Track only')).toBeTruthy();
+        expect(bodyText()).not.toContain('Add only');
+        expect(bodyText().toLowerCase()).toContain('saves it to your library');
+        expect(bodyText()).toContain('all 22 chapters');
+    });
+
+    it('hides the add buttons until a library exists, pointing the user to set one up', async () => {
+        chapters = [{ chapterNumber: '1', volumeNumber: null, title: null }];
+        libraries = [];
+        await mountSuspended(AddSeriesModal, { props: { series, open: true } });
+
+        await vi.waitFor(() => expect(bodyText()).toContain('1 chapter'));
+        expect(bodyText()).toContain('Set up a library');
+        // A disabled "Add" with nowhere to save is dead UI — it shouldn't render at all.
+        expect([...document.body.querySelectorAll('button')].some((b) => b.textContent?.includes('Add & download'))).toBe(false);
+        expect([...document.body.querySelectorAll('button')].some((b) => b.textContent?.includes('Track only'))).toBe(false);
     });
 });
