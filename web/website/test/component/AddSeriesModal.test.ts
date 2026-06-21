@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime';
 import { clearNuxtData } from '#imports';
 import { createError, getQuery } from 'h3';
@@ -57,31 +57,40 @@ function findButton(label: string): HTMLButtonElement {
 }
 
 describe('AddSeriesModal', () => {
+    let wrapper: Awaited<ReturnType<typeof mountSuspended>> | undefined;
+
     beforeEach(() => {
         chapters = [];
         changeLibraryQuery = null;
         libraries = [{ key: 'lib1', libraryName: 'Manga', basePath: '/data/manga' }];
         clearNuxtData();
+    });
+
+    // Unmount before wiping the DOM — a live component re-rendering against a wiped body throws
+    // (Cannot read 'nextSibling'), which Vitest surfaces as unhandled rejections that fail CI.
+    afterEach(() => {
+        wrapper?.unmount();
+        wrapper = undefined;
         document.body.innerHTML = '';
     });
 
     it('previews how many chapters the source will actually yield', async () => {
         chapters = Array.from({ length: 22 }, (_, i) => ({ chapterNumber: `${i + 1}`, volumeNumber: null, title: null }));
-        await mountSuspended(AddSeriesModal, { props: { series, open: true } });
+        wrapper = await mountSuspended(AddSeriesModal, { props: { series, open: true } });
 
         await vi.waitFor(() => expect(bodyText()).toContain('22 chapters'));
     });
 
     it('warns when the source reports no chapters, before the user commits', async () => {
         chapters = [];
-        await mountSuspended(AddSeriesModal, { props: { series, open: true } });
+        wrapper = await mountSuspended(AddSeriesModal, { props: { series, open: true } });
 
         await vi.waitFor(() => expect(bodyText()).toContain('no chapters'));
     });
 
     it('blocks adding and offers a search when the source reports no chapters', async () => {
         chapters = [];
-        await mountSuspended(AddSeriesModal, { props: { series, open: true } });
+        wrapper = await mountSuspended(AddSeriesModal, { props: { series, open: true } });
 
         await vi.waitFor(() => expect(bodyText()).toContain('no chapters'));
         // Adding would download nothing, so the add buttons are gone; a search to find another source replaces them.
@@ -94,14 +103,14 @@ describe('AddSeriesModal', () => {
 
     it('surfaces a broken source instead of a silent empty preview', async () => {
         chapters = null;
-        await mountSuspended(AddSeriesModal, { props: { series, open: true } });
+        wrapper = await mountSuspended(AddSeriesModal, { props: { series, open: true } });
 
         await vi.waitFor(() => expect(bodyText()).toContain('could not deliver a chapter list'));
     });
 
     it('Add & download adds to the chosen library with download=true and emits added', async () => {
         chapters = [{ chapterNumber: '1', volumeNumber: null, title: null }];
-        const wrapper = await mountSuspended(AddSeriesModal, { props: { series, open: true } });
+        wrapper = await mountSuspended(AddSeriesModal, { props: { series, open: true } });
         await vi.waitFor(() => expect(bodyText()).toContain('1 chapter'));
 
         findButton('Add & download').click();
@@ -117,7 +126,7 @@ describe('AddSeriesModal', () => {
             ...series,
             sourceIds: [{ ...series.sourceIds[0], mangaConnectorName: 'GetComics' }],
         };
-        await mountSuspended(AddSeriesModal, { props: { series: comicSeries, open: true } });
+        wrapper = await mountSuspended(AddSeriesModal, { props: { series: comicSeries, open: true } });
 
         await vi.waitFor(() => expect(bodyText()).toContain('From GetComics — comic'));
         expect(bodyText()).not.toContain('indexers');
@@ -128,7 +137,7 @@ describe('AddSeriesModal', () => {
         // "set one up first" fallback (which only belongs when there are NO libraries) must not.
         chapters = [{ chapterNumber: '1', volumeNumber: null, title: null }];
         const comicSeries = { ...series, sourceIds: [{ ...series.sourceIds[0], mangaConnectorName: 'GetComics' }] };
-        await mountSuspended(AddSeriesModal, { props: { series: comicSeries, open: true } });
+        wrapper = await mountSuspended(AddSeriesModal, { props: { series: comicSeries, open: true } });
 
         await vi.waitFor(() => expect(bodyText()).toContain('1 chapter'));
         expect(bodyText()).toContain('Save to');
@@ -141,14 +150,14 @@ describe('AddSeriesModal', () => {
             ...series,
             sourceIds: [{ ...series.sourceIds[0], mangaConnectorName: 'Indexers' }],
         };
-        await mountSuspended(AddSeriesModal, { props: { series: comicSeries, open: true } });
+        wrapper = await mountSuspended(AddSeriesModal, { props: { series: comicSeries, open: true } });
 
         await vi.waitFor(() => expect(bodyText()).toContain('From Indexers — comic, delivered via your indexers'));
     });
 
     it('Track only sends download=false', async () => {
         chapters = [{ chapterNumber: '1', volumeNumber: null, title: null }];
-        await mountSuspended(AddSeriesModal, { props: { series, open: true } });
+        wrapper = await mountSuspended(AddSeriesModal, { props: { series, open: true } });
         await vi.waitFor(() => expect(bodyText()).toContain('1 chapter'));
 
         findButton('Track only').click();
@@ -158,7 +167,7 @@ describe('AddSeriesModal', () => {
 
     it('spells out what each add button does, in plain language', async () => {
         chapters = Array.from({ length: 22 }, (_, i) => ({ chapterNumber: `${i + 1}`, volumeNumber: null, title: null }));
-        await mountSuspended(AddSeriesModal, { props: { series, open: true } });
+        wrapper = await mountSuspended(AddSeriesModal, { props: { series, open: true } });
 
         await vi.waitFor(() => expect(bodyText()).toContain('22 chapters'));
         // Track only = no download; Add & download names its consequence (fetch all chapters now).
@@ -171,7 +180,7 @@ describe('AddSeriesModal', () => {
     it('hides the add buttons until a library exists, pointing the user to set one up', async () => {
         chapters = [{ chapterNumber: '1', volumeNumber: null, title: null }];
         libraries = [];
-        await mountSuspended(AddSeriesModal, { props: { series, open: true } });
+        wrapper = await mountSuspended(AddSeriesModal, { props: { series, open: true } });
 
         await vi.waitFor(() => expect(bodyText()).toContain('1 chapter'));
         expect(bodyText()).toContain('Set up a library');
