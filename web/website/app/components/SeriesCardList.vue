@@ -8,8 +8,13 @@
             :rollup="rollups?.[m.key]"
             :expanded="i === expanded"
             :style="{ '--rev-i': Math.min(i, 24) }"
-            class="reveal cursor-pointer"
-            @click="$emit('click', m)" />
+            class="reveal cursor-pointer rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            role="button"
+            tabindex="0"
+            :aria-label="m.name"
+            @click="$emit('click', m)"
+            @keydown.enter="$emit('click', m)"
+            @keydown.space.prevent="$emit('click', m)" />
     </div>
 </template>
 
