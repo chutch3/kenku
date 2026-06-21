@@ -27,14 +27,16 @@
         </p>
 
         <template v-if="canAdd">
-            <div v-if="libraries && libraries.length">
-                <span class="text-xs text-muted">Save to</span>
-                <USelect v-model="libraryId" :items="libraryItems" class="w-full mt-1" />
-            </div>
-            <div v-if="kind !== 'comic' && libraries && libraries.length">
-                <span class="text-xs text-muted">Library layout</span>
-                <USelect v-model="layout" :items="LAYOUT_OPTIONS" class="w-full mt-1" />
-            </div>
+            <template v-if="libraries?.length">
+                <div>
+                    <span class="text-xs text-muted">Save to</span>
+                    <USelect v-model="libraryId" :items="libraryItems" class="w-full mt-1" />
+                </div>
+                <div v-if="kind !== 'comic'">
+                    <span class="text-xs text-muted">Library layout</span>
+                    <USelect v-model="layout" :items="LAYOUT_OPTIONS" class="w-full mt-1" />
+                </div>
+            </template>
             <div v-else-if="libraries" class="flex flex-col gap-2">
                 <p class="text-sm text-muted">A library is the folder where Kenku saves downloaded files — set one up first.</p>
                 <UButton :to="`/settings?return=${$route.fullPath}`" icon="i-lucide-folder-plus" color="primary" class="w-fit">

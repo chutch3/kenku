@@ -32,6 +32,10 @@ registerEndpoint('/v2/Search/WeebCentral/Chapters', (event) => {
     if (chapters === null) throw createError({ statusCode: 500, statusMessage: 'chapter list request failed: HTTP 404' });
     return chapters;
 });
+registerEndpoint('/v2/Search/GetComics/Chapters', () => {
+    if (chapters === null) throw createError({ statusCode: 500, statusMessage: 'chapter list request failed: HTTP 404' });
+    return chapters;
+});
 registerEndpoint('/v2/Series/s1/ChangeLibrary/lib1', {
     method: 'POST',
     handler: (event) => {
@@ -113,6 +117,18 @@ describe('AddSeriesModal', () => {
 
         await vi.waitFor(() => expect(bodyText()).toContain('From GetComics — comic'));
         expect(bodyText()).not.toContain('indexers');
+    });
+
+    it('does not tell a comic with a configured library to set one up', async () => {
+        // lib1 is configured, so the "Save to" picker should show — and the contradictory
+        // "set one up first" fallback (which only belongs when there are NO libraries) must not.
+        chapters = [{ chapterNumber: '1', volumeNumber: null, title: null }];
+        const comicSeries = { ...series, sourceIds: [{ ...series.sourceIds[0], mangaConnectorName: 'GetComics' }] };
+        await mountSuspended(AddSeriesModal, { props: { series: comicSeries, open: true } });
+
+        await vi.waitFor(() => expect(bodyText()).toContain('1 chapter'));
+        expect(bodyText()).toContain('Save to');
+        expect(bodyText()).not.toContain('set one up first');
     });
 
     it('still explains indexer delivery for torrent-backed comics', async () => {
