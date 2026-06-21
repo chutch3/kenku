@@ -32,19 +32,21 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddTorrentAcquisitionPath(this IServiceCollection services, KenkuSettings settings, ILog log)
     {
-        // Master switch: with the torrent feature off, register nothing — no search source, no acquirer —
-        // so torrents simply don't exist until the download/import flow is designed. Restart to flip.
+        // IClock is normally registered by the job runtime; TryAdd so this path also composes standalone.
+        services.TryAddSingleton<API.JobRuntime.Interfaces.IClock, API.JobRuntime.SystemClock>();
+        // IndexerCooldown is consumed by the Settings endpoint regardless of the torrent feature, so it
+        // must be registered even when torrents are off — otherwise GET /v2/Settings 500s on its default.
+        services.AddSingleton<IndexerCooldown>();
+
+        // Master switch: with the torrent feature off, register no search source / acquirer — torrents
+        // simply don't exist until the download/import flow is designed. Restart to flip.
         if (!settings.TorrentEnabled)
         {
-            log.Info("Torrent feature disabled (KenkuSettings.TorrentEnabled is false). Skipping all torrent registration.");
+            log.Info("Torrent feature disabled (KenkuSettings.TorrentEnabled is false). Skipping torrent registration.");
             return services;
         }
 
-        // ---- Search path (always on) ----
-
-        // IClock is normally registered by the job runtime; TryAdd so this path also composes standalone.
-        services.TryAddSingleton<API.JobRuntime.Interfaces.IClock, API.JobRuntime.SystemClock>();
-        services.AddSingleton<IndexerCooldown>();
+        // ---- Search path (always on when the feature is enabled) ----
 
         if (settings.ManualIndexers.Count > 0)
             services.AddSingleton<IIndexerProvider>(sp =>

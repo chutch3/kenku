@@ -1,6 +1,7 @@
 using API;
 using API.Connectors;
 using API.Extensions;
+using API.Indexers;
 using log4net;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -35,5 +36,15 @@ public class TorrentAcquisitionPathTests
         var services = new ServiceCollection();
         services.AddTorrentAcquisitionPath(Settings(true), Log);
         Assert.Contains(services, d => d.ServiceType == typeof(SeriesSource));
+    }
+
+    [Fact]
+    public void IndexerCooldown_IsRegistered_EvenWhenTorrentDisabled()
+    {
+        // The Settings endpoint injects IndexerCooldown regardless of the torrent feature, so the master
+        // gate must NOT skip it — otherwise GET /v2/Settings 500s with torrents off (the default).
+        var services = new ServiceCollection();
+        services.AddTorrentAcquisitionPath(Settings(false), Log);
+        Assert.Contains(services, d => d.ServiceType == typeof(IndexerCooldown));
     }
 }

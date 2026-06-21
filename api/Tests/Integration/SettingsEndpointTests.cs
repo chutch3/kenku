@@ -48,6 +48,21 @@ public class SettingsEndpointTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GetSettings_Works_WhenTorrentFeatureIsDisabled()
+    {
+        // Regression guard: IndexerCooldown is registered inside the torrent path but consumed by the
+        // Settings endpoint unconditionally. With torrents off (the PRODUCTION default), it must still
+        // resolve — otherwise GET /v2/Settings 500s, which is exactly how the deployed app broke. The
+        // other settings tests use the factory default (torrents on), which masked this.
+        using var app = new KenkuApplicationFactory { TorrentEnabled = false };
+        using var client = app.CreateClient();
+
+        var response = await client.GetAsync("/v2/Settings");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
     public async Task PatchCompletedJobRetentionDays_PersistsAndReadsBack()
     {
         using var client = _app.CreateClient();
