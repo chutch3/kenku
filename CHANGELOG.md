@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.30.1 (2026-06-21)
+
+### Bug Fixes
+
+- Register IndexerCooldown before the torrent gate so Settings works with torrents off
+  ([`6ce10f6`](https://github.com/chutch3/kenku/commit/6ce10f628949b6919d451d0c1e74d755e7f4c2f1))
+
+
 ## v0.30.0 (2026-06-21)
 
 ### Bug Fixes
