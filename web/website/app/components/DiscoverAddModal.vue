@@ -38,7 +38,6 @@ const open = defineModel<boolean>('open', { default: false });
 const emit = defineEmits<{ (e: 'added', series: MinimalSeries, payload: { libraryId: string; download: boolean }): void }>();
 
 const { searchByUrl, searchByConnector } = useSeriesSearch();
-const { contentType } = useMediaMode();
 
 // Cap the lookup well below the patience threshold — past it, the full search page is the better tool.
 const RESOLVE_TIMEOUT_MS = 8000;
@@ -61,7 +60,9 @@ watch(
                 props.source && props.entry.url
                     ? await searchByUrl(props.entry.url, { timeoutMs: RESOLVE_TIMEOUT_MS })
                     : ((await searchByConnector('Global', props.entry.title ?? '', {
-                          contentType: contentType.value,
+                          // Source-less discover entries only ever come from manga (AniList) rails; comic
+                          // posts always carry a source and take the by-URL path above.
+                          contentType: 'Manga',
                           includeTorrents: false,
                           timeoutMs: RESOLVE_TIMEOUT_MS,
                       })).find((s) => normalizeTitle(s.name) === normalizeTitle(props.entry.title)) ?? null);

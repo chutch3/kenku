@@ -2,17 +2,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime';
 import { clearNuxtData } from '#imports';
 import { createError, getQuery } from 'h3';
-import { ref } from 'vue';
 import Discover from '~/pages/discover.vue';
 
-const { navigateToMock, mediaMode } = vi.hoisted(() => ({ navigateToMock: vi.fn(), mediaMode: { value: 'manga' } }));
+const { navigateToMock } = vi.hoisted(() => ({ navigateToMock: vi.fn() }));
 mockNuxtImport('navigateTo', () => navigateToMock);
-// Drive the media-mode toggle per test (the page gates its manga/comics sections on it).
-mockNuxtImport('useMediaMode', () => () => ({
-    mode: ref(mediaMode.value),
-    setMode: () => {},
-    contentType: ref(mediaMode.value === 'comic' ? 'Comic' : 'Manga'),
-}));
 
 const sagaSeries = {
     key: 'saga-key',
@@ -97,7 +90,6 @@ describe('discover page', () => {
         newEntries = [{ title: 'Kagurabachi', coverUrl: '', url: 'https://anilist.co/manga/4', source: 'AniList', blurb: null }];
         actionEntries = [{ title: 'Sakamoto Days', coverUrl: '', url: 'https://anilist.co/manga/5', source: 'AniList', blurb: null }];
         feedEntries = [];
-        mediaMode.value = 'manga';
         navigateToMock.mockClear();
         clearNuxtData();
     });
@@ -116,20 +108,12 @@ describe('discover page', () => {
         expect(wrapper.findAll('h2').map((h) => h.text())).not.toContain('Manga');
     });
 
-    it('shows only the active mode section: manga in manga mode, comics in comic mode', async () => {
+    it('shows both manga and comics sections together — the toggle does not gate Discover', async () => {
         await mountPage();
         await vi.waitFor(() => expect(wrapper.text()).toContain('Berserk'));
-        let headings = wrapper.findAll('h2').map((h) => h.text());
+        const headings = wrapper.findAll('h2').map((h) => h.text());
         expect(headings).toContain('Manga');
-        expect(headings).not.toContain('Comics');
-
-        mediaMode.value = 'comic';
-        wrapper.unmount();
-        await mountPage();
-        await vi.waitFor(() => expect(wrapper.text()).toContain('Saga'));
-        headings = wrapper.findAll('h2').map((h) => h.text());
         expect(headings).toContain('Comics');
-        expect(headings).not.toContain('Manga');
     });
 
     it('does not repeat a title across the manga rails', async () => {
@@ -184,7 +168,6 @@ describe('discover page', () => {
     });
 
     it('opens the modal immediately and resolves the comic post inside it', async () => {
-        mediaMode.value = 'comic';
         await mountPage();
 
         await clickCard('Saga');
@@ -225,7 +208,6 @@ describe('discover page', () => {
 
     it('offers the source-scoped search page when URL resolution fails', async () => {
         urlResolution = null;
-        mediaMode.value = 'comic';
         await mountPage();
 
         await clickCard('Saga');

@@ -35,7 +35,9 @@
                             <DownloadLanguageField class="mt-4" />
                         </UCard>
                         <TorrentFeatureCard />
-                        <template v-if="torrentEnabled">
+                        <!-- Show the torrent config when the feature is on OR there's existing config to
+                             manage — so a clean install isn't cluttered, but a user's setup is never hidden. -->
+                        <template v-if="showTorrentConfig">
                             <IndexersCard />
                             <DownloadClientsCard />
                             <ReleaseSelectionCard />
@@ -88,7 +90,13 @@
 </template>
 
 <script setup lang="ts">
-const { settingsStatus, settingsData, torrentEnabled } = useSettings();
+const { settingsStatus, settingsData, torrentEnabled, syncedIndexers, downloadClients } = useSettings();
+
+// Existing indexer/client config means the user already uses torrents, so keep their config reachable
+// even with the feature toggled off; otherwise hide the cards until they enable it.
+const showTorrentConfig = computed(
+    () => torrentEnabled.value || syncedIndexers.value.length > 0 || downloadClients.value.length > 0
+);
 
 const tabs = [
     { label: 'Library', icon: 'i-lucide-folder-tree', slot: 'library' as const },

@@ -16,4 +16,13 @@ describe('MediaModeToggle', () => {
         expect(comics.attributes('aria-pressed')).toBe('true');
         expect(manga.attributes('aria-pressed')).toBe('false');
     });
+
+    it("describes its real scope — search — and does not claim to filter the library", async () => {
+        // The toggle drives only search (the library has its own independent filter); the tooltip must
+        // not over-claim, which is exactly how a misleading "filters your library" label slipped in once.
+        const wrapper = await mountSuspended(MediaModeToggle);
+        const tip = wrapper.find('[title]').attributes('title') ?? '';
+        expect(tip.toLowerCase()).toContain('search');
+        expect(tip.toLowerCase()).not.toContain('library');
+    });
 });
