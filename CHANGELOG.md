@@ -2,6 +2,38 @@
 
 <!-- version list -->
 
+## v0.30.0 (2026-06-21)
+
+### Bug Fixes
+
+- Don't let the manga/comics toggle hide settings config or discover rails
+  ([`167a390`](https://github.com/chutch3/kenku/commit/167a390fee381fb1b792ba24b872f5c77ec6177b))
+
+- Make series result cards keyboard-operable
+  ([`82cd5c5`](https://github.com/chutch3/kenku/commit/82cd5c5a77d147fe6eb4ed3b5246900a52c32a12))
+
+- Polish add modal — chapter pluralization, clamped errors, toggle a11y group
+  ([`0be67d5`](https://github.com/chutch3/kenku/commit/0be67d5c20c596691795cfef274333a45ad20ace))
+
+- Stop telling comics with a configured library to set one up
+  ([`f5b25fc`](https://github.com/chutch3/kenku/commit/f5b25fcd8d70d87fc4b512394fd13964c90968ae))
+
+### Features
+
+- Clarify the add buttons and hide them until a library is set up
+  ([`88be1a4`](https://github.com/chutch3/kenku/commit/88be1a46d842008c8c60452d0fa7fc4b47154e67))
+
+### Refactoring
+
+- Always show the torrent config cards instead of gating their visibility
+  ([`d6d13d9`](https://github.com/chutch3/kenku/commit/d6d13d9b182e6827ef569737eb8200b6a12662e2))
+
+### Testing
+
+- Unmount the add-series modal between cases to avoid teardown rejections
+  ([`ec18378`](https://github.com/chutch3/kenku/commit/ec18378bfe2f45df11cd9f4fa9ab899d0dd85789))
+
+
 ## v0.29.0 (2026-06-20)
 
 ### Bug Fixes
