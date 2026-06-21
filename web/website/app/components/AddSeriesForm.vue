@@ -12,8 +12,12 @@
             color="error"
             variant="subtle"
             icon="i-lucide-triangle-alert"
-            :title="`${sourceName} could not deliver a chapter list`"
-            :description="chaptersError" />
+            :title="`${sourceName} could not deliver a chapter list`">
+            <template #description>
+                <!-- Clamp so a long upstream error/stack can't blow up the modal; full text on hover. -->
+                <span class="line-clamp-4 break-words" :title="chaptersError">{{ chaptersError }}</span>
+            </template>
+        </UAlert>
         <UAlert
             v-else-if="chapters.length === 0"
             color="warning"
@@ -23,7 +27,8 @@
             description="Adding it now would download nothing — consider a different source." />
         <p v-else class="text-sm flex items-center gap-1.5">
             <UIcon name="i-lucide-book-open" class="text-secondary" />
-            {{ chapters.length }} chapter<span v-if="chapters.length > 1">s</span> available from {{ sourceName }}
+            <!-- One span, so the gap on this flex row doesn't split the pluralized "chapter(s)". -->
+            <span>{{ chapters.length }} chapter<span v-if="chapters.length > 1">s</span> available from {{ sourceName }}</span>
         </p>
 
         <template v-if="canAdd">

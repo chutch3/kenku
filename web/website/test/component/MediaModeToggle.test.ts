@@ -17,6 +17,13 @@ describe('MediaModeToggle', () => {
         expect(manga.attributes('aria-pressed')).toBe('false');
     });
 
+    it('groups the buttons with an accessible label for screen readers', async () => {
+        const wrapper = await mountSuspended(MediaModeToggle);
+        const group = wrapper.find('[role="group"]');
+        expect(group.exists()).toBe(true);
+        expect(group.attributes('aria-label')?.toLowerCase()).toContain('manga');
+    });
+
     it("describes its real scope — search — and does not claim to filter the library", async () => {
         // The toggle drives only search (the library has its own independent filter); the tooltip must
         // not over-claim, which is exactly how a misleading "filters your library" label slipped in once.

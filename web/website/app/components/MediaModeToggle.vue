@@ -1,5 +1,5 @@
 <template>
-    <div title="Scope search to manga or comics">
+    <div role="group" aria-label="Content type: manga or comics — scopes search" title="Scope search to manga or comics">
         <UButtonGroup size="sm">
             <UButton
                 :variant="mode === 'manga' ? 'solid' : 'outline'"
