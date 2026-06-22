@@ -353,6 +353,19 @@ public class SettingsController(KenkuSettings settings) : ControllerBase
     }
 
     /// <summary>
+    /// Sets which Discover rails are turned OFF (a denylist of rail ids). Empty ⇒ all rails show.
+    /// No vocabulary check: an id matching no rail is a harmless no-op, so unknown ids aren't dropped.
+    /// </summary>
+    /// <response code="200"></response>
+    [HttpPatch("DiscoveryRails")]
+    [ProducesResponseType(Status200OK)]
+    public Ok SetDiscoveryRails([FromBody] string[] disabledRailIds)
+    {
+        settings.SetDiscoveryRails(disabledRailIds.Distinct().ToList());
+        return TypedResults.Ok();
+    }
+
+    /// <summary>
     /// Sets Metron (metron.cloud) metadata credentials
     /// </summary>
     /// <response code="200"></response>

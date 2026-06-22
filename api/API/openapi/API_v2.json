@@ -5172,6 +5172,55 @@
         }
       }
     },
+    "/v2/Settings/DiscoveryRails": {
+      "patch": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Sets which Discover rails are turned OFF (a denylist of rail ids). Empty ⇒ all rails show.\nNo vocabulary check: an id matching no rail is a harmless no-op, so unknown ids aren't dropped.",
+        "requestBody": {
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/v2/Settings/Metron": {
       "patch": {
         "tags": [
@@ -7769,6 +7818,13 @@
             "nullable": true
           },
           "discoveryFeeds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "discoveryRails": {
             "type": "array",
             "items": {
               "type": "string"

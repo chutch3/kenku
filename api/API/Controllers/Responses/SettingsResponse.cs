@@ -12,6 +12,7 @@ public record SettingsResponse(
     bool TorrentEnabled,
     IReadOnlyList<string> DiscoveryGenres,
     IReadOnlyList<string> DiscoveryFeeds,
+    IReadOnlyList<string> DiscoveryRails,
     IReadOnlyList<SyncedIndexerResponse> SyncedIndexers,
     IReadOnlyList<DownloadClientResponse> DownloadClients)
 {
@@ -21,6 +22,7 @@ public record SettingsResponse(
         s.TorrentEnabled,
         s.DiscoveryGenres,
         s.DiscoveryFeeds,
+        s.DiscoveryRails,
         s.SnapshotSyncedIndexers()
             .Select(i => new SyncedIndexerResponse(i.Id, i.Name, i.Url, i.Categories, i.Protocol, i.Enabled,
                 cooldowns.CooldownUntil(i.Name)))

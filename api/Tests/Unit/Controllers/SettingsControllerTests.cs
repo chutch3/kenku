@@ -51,6 +51,7 @@ public class SettingsControllerTests : IDisposable
         Assert.Equal("qbit", ok.Value.DownloadClients[0].Name);
         Assert.Equal(["Action", "Romance"], ok.Value.DiscoveryGenres);
         Assert.Equal(["manga", "comicbooks"], ok.Value.DiscoveryFeeds);
+        Assert.Empty(ok.Value.DiscoveryRails);
     }
 
     [Fact]
@@ -388,5 +389,18 @@ public class SettingsControllerTests : IDisposable
         CreateController().SetDiscoveryGenres(["Gore", "sci-fi", "ACTION"]);
 
         Assert.Equal(["Sci-Fi", "Action"], _settings.DiscoveryGenres);
+    }
+
+    [Fact]
+    public void SetDiscoveryRails_DedupesAndPersistsTheDisabledIds()
+    {
+        Directory.CreateDirectory(_settings.WorkingDirectory);
+
+        // A denylist of disabled rail ids — stored as-is (deduped). No vocabulary validation: an id that
+        // matches no rail is a harmless no-op, so unknown ids don't need dropping.
+        CreateController().SetDiscoveryRails(["mangadex-popular", "comics-fresh", "mangadex-popular"]);
+
+        Assert.Equal(["mangadex-popular", "comics-fresh"], _settings.DiscoveryRails);
+        Assert.Contains("comics-fresh", File.ReadAllText(_settings.SettingsFilePath));
     }
 }

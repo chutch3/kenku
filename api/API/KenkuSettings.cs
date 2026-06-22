@@ -108,6 +108,10 @@ public class KenkuSettings
 
     /// <summary>AniList genre names that each get their own rail on the Discover page.</summary>
     public List<string> DiscoveryGenres { get; set; } = ["Action", "Romance"];
+    /// <summary>Discover rails the user has turned OFF (a denylist of rail ids). Default empty ⇒ every
+    /// rail shows, and any rail added later shows automatically. Inverse of <see cref="DiscoveryGenres"/>
+    /// (an opt-in allowlist) because rails are default-on.</summary>
+    public List<string> DiscoveryRails { get; set; } = [];
 
     /// <summary>
     /// Fallback comic category IDs for indexer searches, used ONLY for indexers that carry no
@@ -352,6 +356,12 @@ public class KenkuSettings
     public void SetDiscoveryGenres(List<string> genres)
     {
         this.DiscoveryGenres = genres;
+        Save();
+    }
+
+    public void SetDiscoveryRails(List<string> disabledRailIds)
+    {
+        this.DiscoveryRails = disabledRailIds;
         Save();
     }
 

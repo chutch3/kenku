@@ -109,6 +109,15 @@ public class KenkuSettingsTests : IDisposable
     }
 
     [Fact]
+    public void DiscoveryRails_DefaultsEmpty_AndRoundTripsThroughJson()
+    {
+        // The rail denylist defaults to empty (everything on); a persisted list must load as-is.
+        Assert.Empty(new KenkuSettings().DiscoveryRails);
+        var settings = KenkuSettings.FromJson("{\"DiscoveryRails\":[\"comics-fresh\",\"mangadex-popular\"]}")!;
+        Assert.Equal(new[] { "comics-fresh", "mangadex-popular" }, settings.DiscoveryRails);
+    }
+
+    [Fact]
     public void Serialization_ShouldRespectCustomPaths()
     {
         var original = new KenkuSettings { AppData = "/mnt/nas/kenku" };
