@@ -198,6 +198,37 @@ public class MangaDexTests
         Assert.Contains("availableTranslatedLanguage%5B%5D=fr", capturedUrl);
     }
 
+    [Fact]
+    public void Rails_DeclaresPopularAndLatest_AsManga()
+    {
+        var rails = new MangaDex(CreateSettings(), CreateMockClient("{}").Object).Rails;
+
+        Assert.Equal(["mangadex-popular", "mangadex-latest"], rails.Select(r => r.Id));
+        Assert.All(rails, r => Assert.Equal(ContentType.Manga, r.ContentType));
+    }
+
+    [Fact]
+    public async Task GetRailAsync_Popular_ScopesToLanguage_AndBuildsByUrlResolvableEntries()
+    {
+        var settings = CreateSettings();
+        settings.DownloadLanguage = "en";
+        string capturedUrl = "";
+        var mock = new Mock<IHttpRequester>();
+        mock.Setup(c => c.MakeRequest(It.IsAny<string>(), It.IsAny<RequestType>(), It.IsAny<string>(), It.IsAny<CancellationToken?>()))
+            .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(OneMangaPage(1), Encoding.UTF8, "application/json") })
+            .Callback<string, RequestType, string, CancellationToken?>((url, _, _, _) => capturedUrl = url);
+
+        var entries = await new MangaDex(settings, mock.Object).GetRailAsync("mangadex-popular", default);
+
+        Assert.Contains("order%5BfollowedCount%5D=desc", capturedUrl);
+        Assert.Contains("availableTranslatedLanguage%5B%5D=en", capturedUrl); // scoped to the download language
+        var entry = Assert.Single(entries);
+        Assert.Equal("First Page Series", entry.Title);
+        // by-URL resolvable: a real mangadex.org title URL the connector's GetMangaFromUrl handles.
+        Assert.Equal("https://mangadex.org/title/manga-1", entry.Url);
+        Assert.Equal("MangaDex", entry.Source);
+    }
+
     private static string OneMangaPage(int total) => $$"""
         {
             "result": "ok",

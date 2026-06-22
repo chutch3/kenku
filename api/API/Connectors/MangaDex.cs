@@ -10,7 +10,7 @@ using API.Acquirers;
 
 namespace API.Connectors;
 
-public class MangaDex : SeriesSource
+public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
 {
     //https://api.mangadex.org/docs/3-enumerations/#language-codes--localization
     //https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes
@@ -21,6 +21,54 @@ public class MangaDex : SeriesSource
         "https://mangadex.org/favicon.ico", settings)
     {
         this.downloadClient = downloadClient;
+    }
+
+    public IReadOnlyList<API.Discovery.DiscoveryRail> Rails =>
+    [
+        new("mangadex-popular", "Popular", ContentType.Manga, 20),
+        new("mangadex-latest", "Latest updates", ContentType.Manga, 30),
+    ];
+
+    public async Task<List<API.Discovery.DiscoveryEntry>> GetRailAsync(string railId, CancellationToken ct)
+    {
+        string? order = railId switch
+        {
+            "mangadex-popular" => "followedCount",
+            "mangadex-latest" => "latestUploadedChapter",
+            _ => null,
+        };
+        if (order is null)
+            return [];
+
+        // No content-rating filter (surface everything); scope to the user's download language so the
+        // rail only shows series actually readable for them.
+        string requestUrl =
+            $"https://api.mangadex.org/manga?limit=20&order%5B{order}%5D=desc" +
+            $"&availableTranslatedLanguage%5B%5D={Settings.DownloadLanguage}&hasAvailableChapters=true" +
+            "&includes%5B%5D=cover_art&includes%5B%5D=author&includes%5B%5D=artist&includes%5B%5D=tag";
+
+        using HttpResponseMessage result = await downloadClient.MakeRequest(requestUrl, RequestType.MangaDexFeed);
+        if ((int)result.StatusCode < 200 || (int)result.StatusCode >= 300)
+            return [];
+
+        JObject jObject = JObject.Parse(await result.Content.ReadAsStringAsync());
+        if (jObject.Value<string>("result") != "ok" || jObject.Value<JArray>("data") is not { } data)
+            return [];
+
+        var entries = new List<API.Discovery.DiscoveryEntry>();
+        foreach (JToken item in data)
+        {
+            try
+            {
+                (Series manga, SourceId<Series> id) = ParseMangaFromJToken(item);
+                // A real mangadex.org/title URL → the add flow resolves it exactly through this connector
+                // (no fuzzy title match), so the cover never swaps between discover and the library.
+                entries.Add(new API.Discovery.DiscoveryEntry(manga.Name, manga.CoverUrl,
+                    $"https://mangadex.org/title/{id.IdOnConnectorSite}", Name, manga.Description));
+            }
+            catch (ParsingException) { /* skip a malformed entry rather than drop the whole rail */ }
+        }
+        return entries;
     }
 
     private const int Limit = 100;
