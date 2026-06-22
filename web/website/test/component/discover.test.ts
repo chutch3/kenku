@@ -69,6 +69,7 @@ registerEndpoint('/v2/Search/Global/Berserk', (event) => {
 registerEndpoint('/v2/SeriesSource', () => [
     { key: 'Global', name: 'Global', enabled: true, iconUrl: '', supportedLanguages: ['en'], kind: 'ImageList', contentType: 'Manga' },
     { key: 'GetComics', name: 'GetComics', enabled: true, iconUrl: '', supportedLanguages: ['en'], kind: 'DirectArchive', contentType: 'Comic' },
+    { key: 'MangaDex', name: 'MangaDex', enabled: true, iconUrl: '', supportedLanguages: ['en'], kind: 'ImageList', contentType: 'Manga' },
 ]);
 registerEndpoint('/v2/FileLibrary', () => [{ key: 'lib1', libraryName: 'Comics', basePath: '/data/comics' }]);
 registerEndpoint('/v2/Search/GetComics/Chapters', () => [{ chapterNumber: '61', volumeNumber: null, title: null }]);
@@ -169,6 +170,28 @@ describe('discover page', () => {
             expect(wrapper.text()).toContain('Sakamoto Days');
         });
         expect(wrapper.text()).toContain('Action');
+    });
+
+    it('proxies connector-sourced covers through the backend but leaves AniList covers direct', async () => {
+        // MangaDex's image CDN blocks cross-origin hotlinks, so its covers must load via the backend
+        // proxy. AniList has no connector and its CDN allows hotlinking — it stays a direct URL.
+        const mdCover = 'https://uploads.mangadex.org/covers/abc/def.jpg';
+        const alCover = 'https://s4.anilist.co/cover/berserk.jpg';
+        mangaEntries = [
+            { title: 'Chainsaw Man', coverUrl: mdCover, url: 'https://mangadex.org/title/abc', source: 'MangaDex', blurb: null },
+            { title: 'Berserk', coverUrl: alCover, url: 'https://anilist.co/manga/1', source: 'AniList', blurb: null },
+        ];
+        await mountPage();
+        await vi.waitFor(() => expect(wrapper.text()).toContain('Chainsaw Man'));
+
+        const srcs = wrapper.findAll('img').map((i) => i.attributes('src'));
+        const proxied = srcs.find((s) => s?.includes('/v2/Discover/Cover'));
+        expect(proxied, 'proxied MangaDex cover').toBeTruthy();
+        expect(proxied).toContain('source=MangaDex');
+        expect(proxied).toContain(encodeURIComponent(mdCover));
+        // AniList cover is served straight from its CDN, never proxied.
+        expect(srcs).toContain(alCover);
+        expect(srcs.some((s) => s?.includes('/v2/Discover/Cover') && s.includes(encodeURIComponent(alCover)))).toBe(false);
     });
 
     it('opens the modal immediately and resolves the comic post inside it', async () => {

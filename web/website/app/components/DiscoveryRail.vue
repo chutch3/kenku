@@ -19,7 +19,8 @@
                     class="relative max-sm:h-[var(--mangacover-height-sm)] h-(--mangacover-height) max-sm:w-[var(--mangacover-width-sm)] w-(--mangacover-width) rounded-lg overflow-clip ring-1"
                     :class="m.inLibrary ? 'ring-jade-500/70' : 'ring-default'">
                     <FallbackImage
-                        :src="m.entry.coverUrl"
+                        :src="coverProxy ? coverProxy(m.entry) : m.entry.coverUrl"
+                        :fallbacks="[m.entry.coverUrl]"
                         :alt="m.entry.title ?? ''"
                         class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                     <div class="absolute inset-x-0 bottom-0 pt-10 pb-2 px-2 bg-gradient-to-t from-black/90 via-black/55 to-transparent">
@@ -73,6 +74,9 @@ const props = defineProps<{
     external?: boolean;
     /** Normalized titles already shown by an earlier rail — dropped here so rails don't repeat. */
     exclude?: string[];
+    /** Display-only cover override (e.g. a backend proxy for hotlink-blocked CDNs). The entry's own
+     *  coverUrl is left untouched for the add flow, and is the fallback if the override fails. */
+    coverProxy?: (entry: Entry) => string | null | undefined;
 }>();
 const emit = defineEmits<{ (e: 'pick', entry: Entry): void; (e: 'open', seriesKey: string): void }>();
 

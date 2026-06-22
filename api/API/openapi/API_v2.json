@@ -1010,6 +1010,66 @@
         }
       }
     },
+    "/v2/Discover/Cover": {
+      "get": {
+        "tags": [
+          "Discover"
+        ],
+        "summary": "Streams a discovery entry's cover through the backend. MangaDex's image CDN serves an anti-bot\n\"Unsupported Browser\" page to cross-origin <img> hotlinks, so its rail covers blank;\nfetching server-side via the connector (the same path that fills the library cover cache) gets\nthrough. Only the connector's own image hosts are fetched — a foreign host (ComicHubFree's\nblogspot covers), a direct-archive source that can't fetch images (GetComics), or an unknown\nsource falls back to a redirect, so the browser hotlinks the original where that already works.",
+        "parameters": [
+          {
+            "name": "source",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "url",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "No URL given.",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "The cover, streamed.",
+            "content": {
+              "image/jpeg; x-version=2.0": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "Redirect to the original URL (not proxied)."
+          }
+        }
+      }
+    },
     "/v2/Discover/Feed": {
       "get": {
         "tags": [

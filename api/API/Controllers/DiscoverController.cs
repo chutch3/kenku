@@ -80,6 +80,48 @@ public class DiscoverController(DiscoveryCache cache, KenkuSettings settings) : 
         [FromServices] IEnumerable<IDiscoveryRailProvider> standaloneProviders)
         => TypedResults.Ok(OrderedRails(connectors, standaloneProviders).Select(x => x.Rail).ToList());
 
+    /// <summary>
+    /// Streams a discovery entry's cover through the backend. MangaDex's image CDN serves an anti-bot
+    /// "Unsupported Browser" page to cross-origin &lt;img&gt; hotlinks, so its rail covers blank;
+    /// fetching server-side via the connector (the same path that fills the library cover cache) gets
+    /// through. Only the connector's own image hosts are fetched — a foreign host (ComicHubFree's
+    /// blogspot covers), a direct-archive source that can't fetch images (GetComics), or an unknown
+    /// source falls back to a redirect, so the browser hotlinks the original where that already works.
+    /// </summary>
+    /// <response code="200">The cover, streamed.</response>
+    /// <response code="302">Redirect to the original URL (not proxied).</response>
+    /// <response code="400">No URL given.</response>
+    [HttpGet("Cover")]
+    [ProducesResponseType<FileStreamResult>(Status200OK, "image/jpeg")]
+    [ProducesResponseType(Status302Found)]
+    [ProducesResponseType(Status400BadRequest)]
+    public async Task<Results<FileStreamHttpResult, RedirectHttpResult, BadRequest>> GetCover(
+        [FromQuery] string source, [FromQuery] string url, [FromServices] IEnumerable<SeriesSource> connectors)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+            return TypedResults.BadRequest();
+
+        SeriesSource? connector = connectors.FirstOrDefault(c => c.Name == source);
+        // Proxy only the connector's own image hosts (subdomains included); never an open proxy.
+        bool hostUnderConnector = connector is not null && connector.BaseUris.Any(b =>
+            uri.Host.Equals(b, StringComparison.OrdinalIgnoreCase) || uri.Host.EndsWith("." + b, StringComparison.OrdinalIgnoreCase));
+        if (!hostUnderConnector)
+            return TypedResults.Redirect(url);
+
+        try
+        {
+            if (await connector!.DownloadImage(url, HttpContext.RequestAborted) is not { } image)
+                return TypedResults.Redirect(url);
+            HttpContext.Response.Headers.CacheControl = "public, max-age=86400";
+            return TypedResults.Stream(image, "image/jpeg");
+        }
+        catch (NotSupportedException)
+        {
+            // Direct-archive sources (GetComics) can't fetch images — let the browser hotlink it.
+            return TypedResults.Redirect(url);
+        }
+    }
+
     /// <summary>All providers' rails (connector-backed + standalone), in fixed global order with an Id
     /// tie-break. The single aggregation both rail endpoints share.</summary>
     private static List<(IDiscoveryRailProvider Provider, DiscoveryRail Rail)> OrderedRails(

@@ -20,6 +20,7 @@
                     :title="rail.label"
                     :entries="rail.entries"
                     :library="library"
+                    :cover-proxy="coverProxy"
                     @pick="(e) => pick(e, sourceFor(e))"
                     @open="openSeries" />
                 <DiscoveryGenreRail
@@ -41,6 +42,7 @@
                     :title="rail.label"
                     :entries="rail.entries"
                     :library="library"
+                    :cover-proxy="coverProxy"
                     @pick="(e) => pick(e, sourceFor(e))"
                     @open="openSeries" />
             </section>
@@ -81,6 +83,7 @@ const { data: library } = useApi('/v2/Series', { key: FetchKeys.Series.All, lazy
 const { data: settings } = useApi('/v2/Settings', { key: FetchKeys.Settings.All, lazy: true, server: false });
 const { data: connectors } = useApi('/v2/SeriesSource', { key: FetchKeys.MangaConnector.All, lazy: true, server: false });
 const genres = computed(() => settings.value?.discoveryGenres ?? []);
+const config = useRuntimeConfig();
 
 // De-dupe across the manga rails in order: a title that trended and is also "top rated" only shows in
 // the first rail. (Rails arrive already ordered from the endpoint.)
@@ -99,6 +102,16 @@ const comicRails = computed(() =>
         .filter((r) => r.contentType === 'Comic')
         .map((r) => ({ id: r.id ?? '', label: r.label ?? '', entries: r.entries ?? [] }))
 );
+
+// Connector image CDNs (MangaDex's especially) serve an anti-bot page to cross-origin <img> hotlinks,
+// so a rail's raw cover blanks. Render connector-sourced covers through the backend, which fetches them
+// server-side; AniList entries have no connector and its CDN allows hotlinking, so they stay direct.
+// Display-only: the entry keeps its original coverUrl, which the add flow seeds server-side.
+const coverProxy = (e: Entry): string | null | undefined => {
+    const source = sourceFor(e);
+    if (!source || !e.coverUrl) return e.coverUrl;
+    return `${config.public.openFetch.api.baseURL}v2/Discover/Cover?source=${encodeURIComponent(source)}&url=${encodeURIComponent(e.coverUrl)}`;
+};
 
 // Titles the manga rails already show — genre rails exclude them so they don't echo the same picks.
 const mangaSeen = computed(() => mangaRails.value.flatMap((r) => r.entries.map((e) => normalizeTitle(e.title))));

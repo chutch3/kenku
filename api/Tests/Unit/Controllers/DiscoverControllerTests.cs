@@ -36,6 +36,66 @@ public class DiscoverControllerTests
         internal override Task<string[]> GetChapterImageUrls(API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter> id) => throw new NotSupportedException();
     }
 
+    // A connector whose DownloadImage is controllable, to exercise the cover proxy without HTTP.
+    private sealed class FakeImageSource(KenkuSettings s, byte[]? image)
+        : SeriesSource("MangaFake", ["en"], ["mangafake.test"], "icon", s)
+    {
+        public override API.Acquirers.AcquisitionKind Kind => API.Acquirers.AcquisitionKind.ImageList;
+        public override Task<Stream?> DownloadImage(string imageUrl, CancellationToken ct) =>
+            Task.FromResult<Stream?>(image is null ? null : new MemoryStream(image));
+        public override Task<(API.Schema.SeriesContext.Series, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series>)[]> SearchManga(string m) => throw new NotSupportedException();
+        public override Task<(API.Schema.SeriesContext.Series, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series>)?> GetMangaFromUrl(string url) => throw new NotSupportedException();
+        public override Task<(API.Schema.SeriesContext.Series, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series>)?> GetMangaFromId(string id) => throw new NotSupportedException();
+        public override Task<(API.Schema.SeriesContext.Chapter, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>)[]> GetChapters(API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series> id, string? language = null) => throw new NotSupportedException();
+        internal override Task<string[]> GetChapterImageUrls(API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter> id) => throw new NotSupportedException();
+    }
+
+    [Fact]
+    public async Task Cover_StreamsImageFromTheConnector_WhenTheHostIsUnderItsDomain()
+    {
+        byte[] bytes = [1, 2, 3, 4];
+        var connector = new FakeImageSource(new KenkuSettings(), bytes);
+
+        var result = await CreateController().GetCover("MangaFake", "https://uploads.mangafake.test/c.jpg", [connector]);
+
+        var file = Assert.IsType<FileStreamHttpResult>(result.Result);
+        Assert.Equal("image/jpeg", file.ContentType);
+        using var ms = new MemoryStream();
+        await file.FileStream.CopyToAsync(ms);
+        Assert.Equal(bytes, ms.ToArray());
+    }
+
+    [Fact]
+    public async Task Cover_RedirectsToTheOrigin_ForAnUnknownSource()
+    {
+        var result = await CreateController().GetCover("Nope", "https://img.example.com/a.jpg", []);
+
+        var redirect = Assert.IsType<RedirectHttpResult>(result.Result);
+        Assert.Equal("https://img.example.com/a.jpg", redirect.Url);
+    }
+
+    [Fact]
+    public async Task Cover_RedirectsToTheOrigin_WhenTheCoverHostIsNotUnderTheConnectorDomain()
+    {
+        // ComicHubFree serves covers from blogspot.com — not its own host. Don't proxy a foreign host
+        // (SSRF); redirect so the browser hotlinks it directly (where hotlinking already works).
+        var connector = new FakeImageSource(new KenkuSettings(), [9]);
+
+        var result = await CreateController().GetCover("MangaFake", "https://3.bp.blogspot.com/x.jpg", [connector]);
+
+        Assert.IsType<RedirectHttpResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task Cover_RedirectsToTheOrigin_WhenTheConnectorReturnsNoImage()
+    {
+        var connector = new FakeImageSource(new KenkuSettings(), image: null);
+
+        var result = await CreateController().GetCover("MangaFake", "https://uploads.mangafake.test/c.jpg", [connector]);
+
+        Assert.IsType<RedirectHttpResult>(result.Result);
+    }
+
     [Fact]
     public void Genres_ReturnsAniListSupportedGenres()
     {
