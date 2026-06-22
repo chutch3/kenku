@@ -70,17 +70,31 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.IDisco
     }
 
     public IReadOnlyList<API.Discovery.DiscoveryRail> Rails =>
-        [new("comics-fresh", "Fresh releases", ContentType.Comic, 100)];
+    [
+        new("comics-fresh", "Fresh releases", ContentType.Comic, 100),
+        new("comics-dc", "DC Comics", ContentType.Comic, 120),
+        new("comics-marvel", "Marvel Comics", ContentType.Comic, 130),
+    ];
 
-    public Task<List<API.Discovery.DiscoveryEntry>> GetRailAsync(string railId, CancellationToken ct) =>
-        railId == "comics-fresh" ? FetchFreshAsync(ct) : Task.FromResult(new List<API.Discovery.DiscoveryEntry>());
-
-    /// <summary>The front page is the newest-posts archive — the "fresh comics" discovery rail.
-    /// Posts collapse into series the same way search results do.</summary>
-    private async Task<List<API.Discovery.DiscoveryEntry>> FetchFreshAsync(CancellationToken ct)
+    public Task<List<API.Discovery.DiscoveryEntry>> GetRailAsync(string railId, CancellationToken ct)
     {
-        Post[] posts = await FetchSearchPage(LatestUrl(1))
-            ?? throw new HttpRequestException("GetComics front page yielded no post list — markup drift?");
+        // The front page is the newest-posts archive; the per-publisher category archives share its
+        // markup — each rail is just a different first-page URL through the same collapse.
+        string? url = railId switch
+        {
+            "comics-fresh" => LatestUrl(1),
+            "comics-dc" => CategoryUrl("dc"),
+            "comics-marvel" => CategoryUrl("marvel"),
+            _ => null,
+        };
+        return url is null ? Task.FromResult(new List<API.Discovery.DiscoveryEntry>()) : FetchRailAsync(url);
+    }
+
+    /// <summary>An archive page's posts collapsed into series the same way search results are.</summary>
+    private async Task<List<API.Discovery.DiscoveryEntry>> FetchRailAsync(string url)
+    {
+        Post[] posts = await FetchSearchPage(url)
+            ?? throw new HttpRequestException($"GetComics archive {url} yielded no post list — markup drift?");
         var entries = new List<API.Discovery.DiscoveryEntry>();
         foreach (var group in posts
                      .Select(p => (Post: p, Parsed: ParseTitle(p.Title)))
@@ -95,6 +109,7 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.IDisco
     }
 
     private static string LatestUrl(int page) => $"https://getcomics.org/page/{page}/";
+    private static string CategoryUrl(string slug) => $"https://getcomics.org/cat/{slug}/";
 
     public override async Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName)
     {

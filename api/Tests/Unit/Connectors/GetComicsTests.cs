@@ -68,6 +68,32 @@ public class GetComicsTests
         Assert.Equal("Saga", latest[1].Title);
     }
 
+    [Fact]
+    public void Rails_DeclaresFreshAndPublisherRails()
+    {
+        var rails = CreateConnector(_ => Html("")).Rails;
+
+        Assert.Equal(["comics-fresh", "comics-dc", "comics-marvel"], rails.Select(r => r.Id));
+        Assert.All(rails, r => Assert.Equal(ContentType.Comic, r.ContentType));
+    }
+
+    [Fact]
+    public async Task GetRailAsync_PublisherRails_FetchTheCategoryArchive_AndCollapsePosts()
+    {
+        // The DC/Marvel category archives use the same post-list markup as the front page, so a
+        // publisher rail is just a different URL through the same collapse.
+        var connector = CreateConnector(url =>
+            url.Contains("/cat/dc/") ? Html(SearchPage(Article("https://getcomics.org/dc/batman-1", "Batman #1 (2026)")))
+            : url.Contains("/cat/marvel/") ? Html(SearchPage(Article("https://getcomics.org/marvel/x-men-1", "X-Men #1 (2026)")))
+            : Html("wrong page", HttpStatusCode.InternalServerError));
+
+        var dc = await connector.GetRailAsync("comics-dc", CancellationToken.None);
+        var marvel = await connector.GetRailAsync("comics-marvel", CancellationToken.None);
+
+        Assert.Equal("Batman", Assert.Single(dc).Title);
+        Assert.Equal("X-Men", Assert.Single(marvel).Title);
+    }
+
     private static GetComics CreateConnector(Func<string, HttpResponseMessage> route) =>
         new(CreateSettings(), RoutedClient(route).Object);
 
