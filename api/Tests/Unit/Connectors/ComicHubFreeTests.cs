@@ -239,4 +239,40 @@ public class ComicHubFreeTests
         Assert.Equal("https://comichubfree.com/the-boys/issue-1/225753/2.jpg", imageUrls[1]);
         Assert.Equal("https://comichubfree.com/the-boys/issue-1/all", requestedUrl);
     }
+
+    [Fact]
+    public void Rails_DeclaresAPopularComicRail()
+    {
+        var rail = Assert.Single(((API.Discovery.IDiscoveryRailProvider)CreateConnector(_ => Html(""))).Rails);
+
+        Assert.Equal("comichub-popular", rail.Id);
+        Assert.Equal(ContentType.Comic, rail.ContentType);
+    }
+
+    [Fact]
+    public async Task GetRailAsync_PopularRail_ParsesTheListingCardsIntoEntries()
+    {
+        // /popular-comic reuses the same div.cartoon-box cards as search — the popular browse listing.
+        string page = SearchPage(
+            SearchCard("invincible", "Invincible", "https://3.bp.blogspot.com/inv.jpg"),
+            SearchCard("the-boys", "The Boys", "https://3.bp.blogspot.com/boys.jpg"));
+        string? requested = null;
+        var connector = CreateConnector(url => { requested = url; return Html(page); });
+
+        var entries = await ((API.Discovery.IDiscoveryRailProvider)connector).GetRailAsync("comichub-popular", CancellationToken.None);
+
+        Assert.Equal("https://comichubfree.com/popular-comic", requested);
+        Assert.Equal(["Invincible", "The Boys"], entries.Select(e => e.Title));
+        Assert.Equal("https://3.bp.blogspot.com/inv.jpg", entries[0].CoverUrl);
+        Assert.Equal("https://comichubfree.com/comic/invincible", entries[0].Url);
+        Assert.Equal("ComicHubFree", entries[0].Source);
+    }
+
+    [Fact]
+    public async Task GetRailAsync_UnknownRail_ReturnsEmpty()
+    {
+        var connector = CreateConnector(_ => Html("", HttpStatusCode.InternalServerError));
+
+        Assert.Empty(await ((API.Discovery.IDiscoveryRailProvider)connector).GetRailAsync("nope", CancellationToken.None));
+    }
 }

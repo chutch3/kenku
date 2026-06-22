@@ -14,7 +14,7 @@ namespace API.Connectors;
 /// model as the manga scrapers, pointed at western comics. Complements GetComics with per-issue
 /// granularity for back-catalogue runs that only exist there as packs.
 /// </summary>
-public class ComicHubFree : SeriesSource
+public class ComicHubFree : SeriesSource, API.Discovery.IDiscoveryRailProvider
 {
     // The issue list paginates at 50 rows; 20 pages bounds a sync at 1000 issues.
     private const int MaxListPages = 20;
@@ -34,6 +34,26 @@ public class ComicHubFree : SeriesSource
 
     public override ContentType ContentType => ContentType.Comic;
 
+    public IReadOnlyList<API.Discovery.DiscoveryRail> Rails =>
+        [new("comichub-popular", "Popular comics", ContentType.Comic, 110)];
+
+    /// <summary>The site's "/popular-comic" browse listing reuses the same cartoon-box cards as search,
+    /// so a second comic source joins the Comics section with no new parsing. Each card's comic URL
+    /// resolves cleanly back through this connector at add time.</summary>
+    public async Task<List<API.Discovery.DiscoveryEntry>> GetRailAsync(string railId, CancellationToken ct)
+    {
+        if (railId != "comichub-popular")
+            return [];
+
+        HtmlDocument doc = await FetchDocument("https://comichubfree.com/popular-comic");
+        HtmlNodeCollection? cards = doc.DocumentNode.SelectNodes("//div[contains(@class, 'cartoon-box')]");
+        if (cards is null)
+            return [];
+        return ParseCards(cards)
+            .Select(c => new API.Discovery.DiscoveryEntry(c.Name, c.CoverUrl, SeriesUrl(c.Slug), Name, null))
+            .ToList();
+    }
+
     public override async Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName)
     {
         string requestUrl = $"https://comichubfree.com/search-comic?key={HttpUtility.UrlEncode(mangaSearchName)}";
@@ -43,11 +63,17 @@ public class ComicHubFree : SeriesSource
         if (cards is null)
             throw new HttpRequestException($"ComicHubFree search page {requestUrl} has no result cards — the selectors may have drifted or an error page was served.");
 
-        var results = new List<(Series, SourceId<Series>)>();
+        var results = ParseCards(cards).Select(c => BuildSeries(c.Name, c.Slug, c.CoverUrl, c.Year)).ToArray();
+        Log.InfoFormat("Search '{0}' yielded {1} results.", mangaSearchName, results.Length);
+        return results;
+    }
+
+    /// <summary>The cartoon-box card shape shared by search and the popular-browse listing: an h3 link
+    /// (the no-results card has none — skipped), a lazyloaded cover, and an optional release year.</summary>
+    private static IEnumerable<(string Name, string Slug, string CoverUrl, uint? Year)> ParseCards(HtmlNodeCollection cards)
+    {
         foreach (HtmlNode card in cards)
         {
-            // The no-results page renders one card whose heading has no link; that is a legitimate
-            // empty result, not drift.
             HtmlNode? link = card.SelectSingleNode(".//h3/a");
             if (link is null)
                 continue;
@@ -59,10 +85,8 @@ public class ComicHubFree : SeriesSource
             string coverUrl = LazyImageUrl(card.SelectSingleNode(".//a[contains(@class, 'image')]//img"));
             Match released = ReleasedRx.Match(HtmlEntity.DeEntitize(card.InnerText));
             uint? year = released.Success ? uint.Parse(released.Groups[1].Value) : null;
-            results.Add(BuildSeries(name, urlMatch.Groups["slug"].Value, coverUrl, year));
+            yield return (name, urlMatch.Groups["slug"].Value, coverUrl, year);
         }
-        Log.InfoFormat("Search '{0}' yielded {1} results.", mangaSearchName, results.Count);
-        return results.ToArray();
     }
 
     public override async Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string url)
