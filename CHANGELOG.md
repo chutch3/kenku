@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v0.32.0 (2026-06-22)
+
+### Bug Fixes
+
+- Proxy MangaDex discover covers through the backend so they stop blanking
+  ([`7b4f4de`](https://github.com/chutch3/kenku/commit/7b4f4de6c3748b7ec28bcd18506f912160c5c70d))
+
+### Features
+
+- Add a Popular comics discovery rail from ComicHubFree
+  ([`2522aef`](https://github.com/chutch3/kenku/commit/2522aef07b76be05ee76c060dff36aca8a835258))
+
+- Add DC and Marvel discovery rails from GetComics category archives
+  ([`5febe9a`](https://github.com/chutch3/kenku/commit/5febe9a27828c085652e640980cf9cbe67e86e82))
+
+
 ## v0.31.0 (2026-06-22)
 
 ### Features
