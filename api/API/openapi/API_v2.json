@@ -5152,6 +5152,55 @@
         }
       }
     },
+    "/v2/Settings/DiscoveryFeeds": {
+      "patch": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Sets the subreddits whose hot posts feed the Discover \"From the community\" rail.",
+        "requestBody": {
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/v2/Settings/Metron": {
       "patch": {
         "tags": [

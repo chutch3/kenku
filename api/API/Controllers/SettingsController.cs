@@ -365,6 +365,16 @@ public class SettingsController(KenkuSettings settings) : ControllerBase
         return TypedResults.Ok();
     }
 
+    /// <summary>Sets the subreddits whose hot posts feed the Discover "From the community" rail.</summary>
+    /// <response code="200"></response>
+    [HttpPatch("DiscoveryFeeds")]
+    [ProducesResponseType(Status200OK)]
+    public Ok SetDiscoveryFeeds([FromBody] string[] feeds)
+    {
+        settings.SetDiscoveryFeeds(feeds.Select(f => f.Trim()).Where(f => f.Length > 0).Distinct().ToList());
+        return TypedResults.Ok();
+    }
+
     /// <summary>
     /// Sets Metron (metron.cloud) metadata credentials
     /// </summary>

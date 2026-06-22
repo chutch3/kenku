@@ -403,4 +403,15 @@ public class SettingsControllerTests : IDisposable
         Assert.Equal(["mangadex-popular", "comics-fresh"], _settings.DiscoveryRails);
         Assert.Contains("comics-fresh", File.ReadAllText(_settings.SettingsFilePath));
     }
+
+    [Fact]
+    public void SetDiscoveryFeeds_DedupesAndPersists()
+    {
+        Directory.CreateDirectory(_settings.WorkingDirectory);
+
+        CreateController().SetDiscoveryFeeds(["manga", "comicbooks", "manga"]);
+
+        Assert.Equal(["manga", "comicbooks"], _settings.DiscoveryFeeds);
+        Assert.Contains("comicbooks", File.ReadAllText(_settings.SettingsFilePath));
+    }
 }

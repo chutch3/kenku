@@ -365,6 +365,12 @@ public class KenkuSettings
         Save();
     }
 
+    public void SetDiscoveryFeeds(List<string> feeds)
+    {
+        this.DiscoveryFeeds = feeds;
+        Save();
+    }
+
     public void SetMaxConcurrentDownloads(int value)
     {
         this.MaxConcurrentDownloads = value;
