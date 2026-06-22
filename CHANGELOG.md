@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.30.2 (2026-06-22)
+
+### Continuous Integration
+
+- Allow forcing a release level via release workflow dispatch
+  ([`4ffcfe6`](https://github.com/chutch3/kenku/commit/4ffcfe60d36489a73f59391aadffa97c24f708f4))
+
+### Refactoring
+
+- Move the manga/comics toggle from the header onto the Add Series page
+  ([`1196e60`](https://github.com/chutch3/kenku/commit/1196e6097d33294aa399f96014ee08ab1085536d))
+
+
 ## v0.30.1 (2026-06-21)
 
 ### Bug Fixes
