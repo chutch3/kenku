@@ -71,6 +71,34 @@ public class DiscoverController(DiscoveryCache cache, KenkuSettings settings, AP
             () => aniList.GetMangaListAsync(AniListShelf.ForGenre(genre), 20, HttpContext.RequestAborted)));
     }
 
+    /// <summary>
+    /// Every enabled Discover rail — all providers' declared rails minus the <see cref="KenkuSettings.DiscoveryRails"/>
+    /// denylist — in fixed global order, each with its entries. The data-driven endpoint the page renders
+    /// from; adding a rail is provider-only work. Genre rails and the reddit feed remain their own endpoints.
+    /// </summary>
+    /// <response code="200"></response>
+    [HttpGet("Rails")]
+    [ProducesResponseType<List<DiscoveryRailResponse>>(Status200OK, "application/json")]
+    public async Task<Ok<List<DiscoveryRailResponse>>> GetRails(
+        [FromServices] IEnumerable<SeriesSource> connectors,
+        [FromServices] IEnumerable<IDiscoveryRailProvider> standaloneProviders)
+    {
+        var enabled = connectors.OfType<IDiscoveryRailProvider>().Concat(standaloneProviders).Distinct()
+            .SelectMany(p => p.Rails.Select(rail => (Provider: p, Rail: rail)))
+            .Where(x => !settings.DiscoveryRails.Contains(x.Rail.Id))
+            .OrderBy(x => x.Rail.Order)
+            .ToList();
+
+        var result = new List<DiscoveryRailResponse>();
+        foreach (var (provider, rail) in enabled)
+        {
+            List<DiscoveryEntry> entries = await cache.GetOrRefreshAsync($"rail-{rail.Id}", Ttl,
+                () => provider.GetRailAsync(rail.Id, HttpContext.RequestAborted));
+            result.Add(new DiscoveryRailResponse(rail.Id, rail.Label, rail.ContentType, entries));
+        }
+        return TypedResults.Ok(result);
+    }
+
     /// <summary>Fresh comics from the latest posts of archive sources (currently GetComics).</summary>
     /// <response code="200"></response>
     [HttpGet("Comics")]

@@ -1033,6 +1033,29 @@
         }
       }
     },
+    "/v2/Discover/Rails": {
+      "get": {
+        "tags": [
+          "Discover"
+        ],
+        "summary": "Every enabled Discover rail — all providers' declared rails minus the API.KenkuSettings.DiscoveryRails\ndenylist — in fixed global order, each with its entries. The data-driven endpoint the page renders\nfrom; adding a rail is provider-only work. Genre rails and the reddit feed remain their own endpoints.",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DiscoveryRailResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/Discover/Comics": {
       "get": {
         "tags": [
@@ -6670,6 +6693,31 @@
         },
         "additionalProperties": false,
         "description": "One discovery-rail card: a series someone might want to add, regardless of which rail found it."
+      },
+      "DiscoveryRailResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "label": {
+            "type": "string",
+            "nullable": true
+          },
+          "contentType": {
+            "$ref": "#/components/schemas/ContentType"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiscoveryEntry"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "One Discover rail with its entries — the unit returned by the data-driven\n            `GET /v2/Discover/Rails` endpoint. The frontend renders these generically, splitting on\n            API.Discovery.DiscoveryRailResponse.ContentType."
       },
       "DownloadClientResponse": {
         "type": "object",

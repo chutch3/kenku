@@ -123,6 +123,41 @@ public class DiscoverControllerTests
     }
 
     [Fact]
+    public async Task Rails_AggregatesProviders_OrdersByRailOrder_AndAppliesTheDenylist()
+    {
+        var settings = new KenkuSettings { DiscoveryRails = ["fake-rail"] }; // disable the comic fake rail
+        var aniList = new Mock<IAniListClient>();
+        aniList.Setup(a => a.GetMangaListAsync(It.IsAny<AniListShelf>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([Entry]);
+        SeriesSource[] connectors = [new FakeRailSource(settings, [Entry with { Source = "FakeComics" }])];
+        IDiscoveryRailProvider[] standalone = [new AniListRailProvider(aniList.Object, Clock)];
+
+        var ok = await CreateController(settings).GetRails(connectors, standalone);
+
+        var rails = ok.Value!;
+        // fake-rail (order 1) is denylisted → gone; the 3 AniList rails (10/40/50) remain, in order.
+        Assert.Equal(["manga-trending", "manga-new", "manga-top-rated"], rails.Select(r => r.Id));
+        Assert.All(rails, r => Assert.Equal(ContentType.Manga, r.ContentType));
+        Assert.Equal("Berserk", Assert.Single(rails[0].Entries).Title);
+    }
+
+    [Fact]
+    public async Task Rails_IncludesEnabledRailsFromEveryProvider_InGlobalOrder()
+    {
+        var settings = new KenkuSettings();
+        var aniList = new Mock<IAniListClient>();
+        aniList.Setup(a => a.GetMangaListAsync(It.IsAny<AniListShelf>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([Entry]);
+        SeriesSource[] connectors = [new FakeRailSource(settings, [Entry with { Source = "FakeComics" }])]; // fake-rail order 1
+        IDiscoveryRailProvider[] standalone = [new AniListRailProvider(aniList.Object, Clock)];
+
+        var ok = await CreateController(settings).GetRails(connectors, standalone);
+
+        // Global order is by Rail.Order: fake-rail (1) before the AniList shelves (10/40/50).
+        Assert.Equal(["fake-rail", "manga-trending", "manga-new", "manga-top-rated"], ok.Value!.Select(r => r.Id));
+    }
+
+    [Fact]
     public async Task Comics_ServesOnlyComicRails_NotMangaOnesFromTheSameSeam()
     {
         var settings = new KenkuSettings();
