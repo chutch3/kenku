@@ -2,6 +2,46 @@
 
 <!-- version list -->
 
+## v0.31.0 (2026-06-22)
+
+### Features
+
+- Add a DiscoveryRails denylist setting for toggling discover rails
+  ([`9ab6a83`](https://github.com/chutch3/kenku/commit/9ab6a832f0dcd8c0b70b934f94a0baf930c5b08b))
+
+- Add a rail toggle list in settings backed by a RailCatalog endpoint
+  ([`71afdc1`](https://github.com/chutch3/kenku/commit/71afdc1a523ae93a54f7eb0035b95ee99d13b4f1))
+
+- Add AniListRailProvider exposing the AniList shelves as discovery rails
+  ([`ae15e12`](https://github.com/chutch3/kenku/commit/ae15e12dd674e5837f14efe6409595a5cbe3e22d))
+
+- Add GET /v2/Discover/Rails returning enabled rails in fixed order
+  ([`e106b45`](https://github.com/chutch3/kenku/commit/e106b451d3f39b5121f5e4a17f32725ac4e1c1a3))
+
+- Add MangaDex Popular and Latest discovery rails via the connector
+  ([`3f8f9b2`](https://github.com/chutch3/kenku/commit/3f8f9b2929ffee32d19fb9cc9fb6252ac6b5eda2))
+
+- Make the discover community feeds editable in settings
+  ([`9133745`](https://github.com/chutch3/kenku/commit/91337453adcb87468434bf88226e9869cdf657d9))
+
+- Render discover from the data-driven /Discover/Rails endpoint
+  ([`9b80e32`](https://github.com/chutch3/kenku/commit/9b80e322999dee69b0c8797fb290565387ecce10))
+
+- Surface genre/theme tags as chips on discovery cards
+  ([`3e71243`](https://github.com/chutch3/kenku/commit/3e7124326aafa6377358eaa92b799e862a55646d))
+
+### Refactoring
+
+- Delete the per-rail discover endpoints replaced by /Discover/Rails
+  ([`c51283b`](https://github.com/chutch3/kenku/commit/c51283b825da61f2c9ba3e24d2319a90389ca632))
+
+- Drop dead clock param, add rail-order tie-break, clarify mangadex rating comment
+  ([`82c40a1`](https://github.com/chutch3/kenku/commit/82c40a1a4766b765d3b03412fdb13bdd479cf078))
+
+- Generalize ILatestSeriesProvider to IDiscoveryRailProvider with declared rails
+  ([`08e8f18`](https://github.com/chutch3/kenku/commit/08e8f188bcca6e7f1bb475b926ad1f28b440ebbf))
+
+
 ## v0.30.2 (2026-06-22)
 
 ### Continuous Integration
