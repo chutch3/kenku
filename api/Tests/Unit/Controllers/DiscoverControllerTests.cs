@@ -48,42 +48,6 @@ public class DiscoverControllerTests
     }
 
     [Fact]
-    public async Task Manga_ReturnsTheTrendingRail()
-    {
-        var aniList = new Mock<IAniListClient>();
-        aniList.Setup(a => a.GetMangaListAsync(AniListShelf.Trending, It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([Entry]);
-
-        var ok = await CreateController().GetTrendingManga(aniList.Object);
-
-        Assert.Equal("Berserk", Assert.Single(ok.Value!).Title);
-    }
-
-    [Fact]
-    public async Task TopRated_ReturnsTheTopRatedShelf()
-    {
-        var aniList = new Mock<IAniListClient>();
-        aniList.Setup(a => a.GetMangaListAsync(AniListShelf.TopRated, It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([Entry]);
-
-        var ok = await CreateController().GetTopRatedManga(aniList.Object);
-
-        Assert.Equal("Berserk", Assert.Single(ok.Value!).Title);
-    }
-
-    [Fact]
-    public async Task New_RequestsPopularMangaStartedInTheClockYear()
-    {
-        var aniList = new Mock<IAniListClient>();
-        aniList.Setup(a => a.GetMangaListAsync(AniListShelf.NewThisYear(2026), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([Entry]);
-
-        var ok = await CreateController().GetNewManga(aniList.Object);
-
-        Assert.Equal("Berserk", Assert.Single(ok.Value!).Title);
-    }
-
-    [Fact]
     public async Task Genre_ServesAConfiguredGenre_CaseInsensitively()
     {
         var settings = new KenkuSettings { DiscoveryGenres = ["Action"] };
@@ -105,21 +69,6 @@ public class DiscoverControllerTests
         var result = await CreateController(settings).GetGenreManga("Horror", new Mock<IAniListClient>().Object);
 
         Assert.IsType<NotFound>(result.Result);
-    }
-
-    [Fact]
-    public async Task Comics_CollectsComicRailProviders_IgnoringOtherConnectors()
-    {
-        var settings = new KenkuSettings();
-        SeriesSource[] connectors =
-        [
-            new FakeSeriesSource("Plain", settings),
-            new FakeRailSource(settings, [Entry with { Source = "FakeComics" }]),
-        ];
-
-        var ok = await CreateController(settings).GetFreshComics(connectors);
-
-        Assert.Equal("FakeComics", Assert.Single(ok.Value!).Source);
     }
 
     [Fact]
@@ -155,21 +104,6 @@ public class DiscoverControllerTests
 
         // Global order is by Rail.Order: fake-rail (1) before the AniList shelves (10/40/50).
         Assert.Equal(["fake-rail", "manga-trending", "manga-new", "manga-top-rated"], ok.Value!.Select(r => r.Id));
-    }
-
-    [Fact]
-    public async Task Comics_ServesOnlyComicRails_NotMangaOnesFromTheSameSeam()
-    {
-        var settings = new KenkuSettings();
-        SeriesSource[] connectors =
-        [
-            new FakeRailSource(settings, [Entry with { Source = "MangaRail" }], ContentType.Manga),
-        ];
-
-        var ok = await CreateController(settings).GetFreshComics(connectors);
-
-        // A provider declaring a Manga rail must not leak into the comics endpoint.
-        Assert.Empty(ok.Value!);
     }
 
     private static DiscoveryContext NewDiscoveryContext() =>

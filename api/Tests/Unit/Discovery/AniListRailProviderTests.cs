@@ -32,4 +32,28 @@ public class AniListRailProviderTests
 
         Assert.Equal("Berserk", Assert.Single(entries).Title);
     }
+
+    [Fact]
+    public async Task GetRailAsync_New_HitsTheNewThisYearShelfForTheClockYear()
+    {
+        var aniList = new Mock<IAniListClient>();
+        aniList.Setup(a => a.GetMangaListAsync(AniListShelf.NewThisYear(2026), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new DiscoveryEntry("Berserk", "c", "u", "AniList", null)]);
+
+        var entries = await new AniListRailProvider(aniList.Object, Clock).GetRailAsync("manga-new", default);
+
+        Assert.Equal("Berserk", Assert.Single(entries).Title);
+    }
+
+    [Fact]
+    public async Task GetRailAsync_TopRated_HitsTheTopRatedShelf()
+    {
+        var aniList = new Mock<IAniListClient>();
+        aniList.Setup(a => a.GetMangaListAsync(AniListShelf.TopRated, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new DiscoveryEntry("Berserk", "c", "u", "AniList", null)]);
+
+        var entries = await new AniListRailProvider(aniList.Object, Clock).GetRailAsync("manga-top-rated", default);
+
+        Assert.Equal("Berserk", Assert.Single(entries).Title);
+    }
 }

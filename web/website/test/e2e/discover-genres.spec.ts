@@ -26,7 +26,6 @@ function stubApi(page: Page, state: { genres: string[] }) {
             state.genres = r.request().postDataJSON() as string[];
             return r.fulfill({ json: {} });
         }),
-        page.route('**/v2/Discover/Manga', (r) => r.fulfill({ json: [entry('Berserk', 1)] })),
         page.route('**/v2/Discover/Manga/Genre/Action', (r) => r.fulfill({ json: [entry('Sakamoto Days', 5)] })),
         page.route('**/v2/Discover/Manga/Genre/Horror', (r) => r.fulfill({ json: [entry('Uzumaki', 6)] })),
     ]);
