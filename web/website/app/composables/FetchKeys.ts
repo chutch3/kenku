@@ -15,11 +15,8 @@ export const FetchKeys = {
     NotificationConnectors: { All: 'All' },
     Version: 'Version',
     Discover: {
-        Manga: 'Discover/Manga',
-        Comics: 'Discover/Comics',
+        Rails: 'Discover/Rails',
         Feed: 'Discover/Feed',
-        TopRated: 'Discover/TopRated',
-        New: 'Discover/New',
         Genres: 'Discover/Genres',
         Genre: (genre: string) => `Discover/Genre/${genre}`,
     },

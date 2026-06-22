@@ -16,12 +16,11 @@
                 <SectionLabel>Manga</SectionLabel>
                 <DiscoveryRail
                     v-for="rail in mangaRails"
-                    :key="rail.title"
-                    :title="rail.title"
-                    :subtitle="rail.subtitle"
+                    :key="rail.id"
+                    :title="rail.label"
                     :entries="rail.entries"
                     :library="library"
-                    @pick="(e) => pick(e)"
+                    @pick="(e) => pick(e, sourceFor(e))"
                     @open="openSeries" />
                 <DiscoveryGenreRail
                     v-for="genre in genres"
@@ -34,14 +33,15 @@
                     @content="onGenreContent" />
             </section>
 
-            <section v-if="comics?.length" class="flex flex-col gap-6">
+            <section v-if="comicRails.some((r) => r.entries.length)" class="flex flex-col gap-6">
                 <SectionLabel>Comics</SectionLabel>
                 <DiscoveryRail
-                    title="Fresh releases"
-                    subtitle="GetComics · latest posts"
-                    :entries="comics"
+                    v-for="rail in comicRails"
+                    :key="rail.id"
+                    :title="rail.label"
+                    :entries="rail.entries"
                     :library="library"
-                    @pick="(e) => pick(e, 'GetComics')"
+                    @pick="(e) => pick(e, sourceFor(e))"
                     @open="openSeries" />
             </section>
 
@@ -73,46 +73,54 @@
 import type { components } from '#open-fetch-schemas/api';
 type Entry = components['schemas']['DiscoveryEntry'];
 
-const { data: manga, pending: mangaPending } = useApi('/v2/Discover/Manga', { key: FetchKeys.Discover.Manga, lazy: true, server: false });
-const { data: comics, pending: comicsPending } = useApi('/v2/Discover/Comics', { key: FetchKeys.Discover.Comics, lazy: true, server: false });
-const { data: newManga } = useApi('/v2/Discover/Manga/New', { key: FetchKeys.Discover.New, lazy: true, server: false });
-const { data: topRated } = useApi('/v2/Discover/Manga/TopRated', { key: FetchKeys.Discover.TopRated, lazy: true, server: false });
+// One data-driven call drives every flat rail (Trending/Popular/Latest/New/Top-rated/comics). Genre
+// rails and the reddit feed stay their own endpoints — they carry bespoke logic.
+const { data: rails, pending: railsPending } = useApi('/v2/Discover/Rails', { key: FetchKeys.Discover.Rails, lazy: true, server: false });
 const { data: feed, pending: feedPending } = useApi('/v2/Discover/Feed', { key: FetchKeys.Discover.Feed, lazy: true, server: false });
 const { data: library } = useApi('/v2/Series', { key: FetchKeys.Series.All, lazy: true, server: false });
 const { data: settings } = useApi('/v2/Settings', { key: FetchKeys.Settings.All, lazy: true, server: false });
+const { data: connectors } = useApi('/v2/SeriesSource', { key: FetchKeys.MangaConnector.All, lazy: true, server: false });
 const genres = computed(() => settings.value?.discoveryGenres ?? []);
 
-// De-dupe across the manga rails in order: a title that trended also being "top rated" would just
-// repeat, so each rail only keeps titles no earlier rail already showed.
+// De-dupe across the manga rails in order: a title that trended and is also "top rated" only shows in
+// the first rail. (Rails arrive already ordered from the endpoint.)
 const mangaRails = computed(() => {
     const seen = new Set<string>();
-    const fresh = (list?: Entry[] | null) => {
-        const kept = (list ?? []).filter((e) => !seen.has(normalizeTitle(e.title)));
-        kept.forEach((e) => seen.add(normalizeTitle(e.title)));
-        return kept;
-    };
-    return [
-        { title: 'Trending', subtitle: 'AniList · right now', entries: fresh(manga.value) },
-        { title: 'New & popular', subtitle: 'AniList · started this year', entries: fresh(newManga.value) },
-        { title: 'Top rated', subtitle: 'AniList · all-time', entries: fresh(topRated.value) },
-    ];
+    return (rails.value ?? [])
+        .filter((r) => r.contentType === 'Manga')
+        .map((r) => {
+            const entries = (r.entries ?? []).filter((e) => !seen.has(normalizeTitle(e.title)));
+            entries.forEach((e) => seen.add(normalizeTitle(e.title)));
+            return { id: r.id ?? '', label: r.label ?? '', entries };
+        });
 });
+const comicRails = computed(() =>
+    (rails.value ?? [])
+        .filter((r) => r.contentType === 'Comic')
+        .map((r) => ({ id: r.id ?? '', label: r.label ?? '', entries: r.entries ?? [] }))
+);
+
 // Titles the manga rails already show — genre rails exclude them so they don't echo the same picks.
 const mangaSeen = computed(() => mangaRails.value.flatMap((r) => r.entries.map((e) => normalizeTitle(e.title))));
 
-// Genre rails self-fetch, so they report up whether they show anything. A genre not yet reported is
-// treated as content (still loading) — so the section/empty state never flash before it resolves.
+// An entry resolves by-URL only when its source is a real connector (GetComics, MangaDex); AniList
+// entries have no connector, so they resolve by title (no source) — exactly the old per-rail behaviour.
+const sourceFor = (e: Entry): string | undefined =>
+    connectors.value?.some((c) => c.name === e.source) ? (e.source ?? undefined) : undefined;
+
+// Genre rails self-fetch and report whether they show anything; an unreported genre is treated as
+// content (still loading) so the section/empty state never flash before it resolves.
 const genreContent = reactive<Record<string, boolean>>({});
 const onGenreContent = (genre: string, hasContent: boolean) => { genreContent[genre] = hasContent; };
 const genresHaveContent = computed(() => genres.value.some((g) => genreContent[g] !== false));
 
-const loading = computed(() => (mangaPending.value || comicsPending.value) && !manga.value?.length && !comics.value?.length);
+const loading = computed(() => railsPending.value && !rails.value?.length);
 const empty = computed(
     () =>
         !loading.value &&
         mangaRails.value.every((r) => !r.entries.length) &&
         !genresHaveContent.value &&
-        !comics.value?.length &&
+        comicRails.value.every((r) => !r.entries.length) &&
         !feed.value?.length
 );
 // An empty feed rail hides itself; with feeds configured that silence is undiagnosable — say why.
@@ -122,8 +130,8 @@ const feedStarved = computed(
 
 const openSeries = (key: string) => navigateTo(`/series/${key}`);
 
-// Click-to-add: the modal opens instantly with the entry's own details and resolves the real
-// connector series inside itself (DiscoverAddModal) — the click never waits on a search.
+// Click-to-add: the modal opens instantly with the entry's own details and resolves the real connector
+// series inside itself (DiscoverAddModal) — the click never waits on a search.
 const { notifyAdded } = useAddSeriesFlow();
 const activeEntry = ref<Entry | null>(null);
 const activeSource = ref<string | undefined>();

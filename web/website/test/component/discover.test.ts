@@ -35,10 +35,14 @@ const defaultComics = [
 let topRatedEntries: object[] = [];
 let newEntries: object[] = [];
 let actionEntries: object[] = [];
-registerEndpoint('/v2/Discover/Manga', () => mangaEntries);
-registerEndpoint('/v2/Discover/Comics', () => comicsEntries);
-registerEndpoint('/v2/Discover/Manga/TopRated', () => topRatedEntries);
-registerEndpoint('/v2/Discover/Manga/New', () => newEntries);
+// The flat rails now come from one data-driven endpoint, in fixed order. Same data the four per-rail
+// endpoints used to serve — so the page's dedup/sections/empty-state assertions below are unchanged.
+registerEndpoint('/v2/Discover/Rails', () => [
+    { id: 'manga-trending', label: 'Trending', contentType: 'Manga', entries: mangaEntries },
+    { id: 'manga-new', label: 'New & popular', contentType: 'Manga', entries: newEntries },
+    { id: 'manga-top-rated', label: 'Top rated', contentType: 'Manga', entries: topRatedEntries },
+    { id: 'comics-fresh', label: 'Fresh releases', contentType: 'Comic', entries: comicsEntries },
+]);
 registerEndpoint('/v2/Discover/Manga/Genre/Action', () => actionEntries);
 const discoveryGenres = ['Action'];
 let feedEntries: object[] = [];
