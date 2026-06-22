@@ -2,6 +2,11 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force a release level when the commits would not trigger one (patch, minor, or major). Leave blank for automatic.'
+        required: false
+        default: ''
   schedule:
     # Every Monday at 8 AM EST (1 PM UTC). GitHub Actions runs in UTC;
     # adjust for DST if needed (EDT = UTC-4).
@@ -33,6 +38,9 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           config_file: releaserc.toml
           verbosity: 1
+          # Empty on the scheduled run (auto behavior); set via dispatch to release a
+          # commit that wouldn't bump on its own (e.g. a refactor-typed UX fix).
+          force: ${{ inputs.force }}
 
   # Build and publish ghcr.io/chutch3/kenku:<version> + :latest, but only when a
   # new version was actually released.
