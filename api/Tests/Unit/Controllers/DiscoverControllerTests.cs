@@ -18,7 +18,7 @@ public class DiscoverControllerTests
     private static readonly FakeClock Clock = new(new DateTime(2026, 6, 12, 0, 0, 0, DateTimeKind.Utc));
 
     private static DiscoverController CreateController(KenkuSettings? settings = null) =>
-        new(new DiscoveryCache(Clock), settings ?? new KenkuSettings(), Clock)
+        new(new DiscoveryCache(Clock), settings ?? new KenkuSettings())
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
         };

@@ -19,7 +19,7 @@ namespace API.Controllers;
 [ApiVersion(2)]
 [ApiController]
 [Route("v{v:apiVersion}/[controller]")]
-public class DiscoverController(DiscoveryCache cache, KenkuSettings settings, API.JobRuntime.Interfaces.IClock clock) : ControllerBase
+public class DiscoverController(DiscoveryCache cache, KenkuSettings settings) : ControllerBase
 {
     private static readonly TimeSpan Ttl = TimeSpan.FromHours(1);
 
@@ -59,7 +59,7 @@ public class DiscoverController(DiscoveryCache cache, KenkuSettings settings, AP
         var enabled = connectors.OfType<IDiscoveryRailProvider>().Concat(standaloneProviders).Distinct()
             .SelectMany(p => p.Rails.Select(rail => (Provider: p, Rail: rail)))
             .Where(x => !settings.DiscoveryRails.Contains(x.Rail.Id))
-            .OrderBy(x => x.Rail.Order)
+            .OrderBy(x => x.Rail.Order).ThenBy(x => x.Rail.Id) // Id tie-break so equal Orders are deterministic, not DI-order dependent.
             .ToList();
 
         var result = new List<DiscoveryRailResponse>();

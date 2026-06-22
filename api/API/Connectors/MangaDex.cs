@@ -40,8 +40,9 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
         if (order is null)
             return [];
 
-        // No content-rating filter (surface everything); scope to the user's download language so the
-        // rail only shows series actually readable for them.
+        // No contentRating filter — the rail relies on MangaDex's API default (safe/suggestive/erotica;
+        // pornographic excluded), unlike SearchManga which sets it explicitly. Scoped to the user's
+        // download language so the rail only shows series actually readable for them.
         string requestUrl =
             $"https://api.mangadex.org/manga?limit=20&order%5B{order}%5D=desc" +
             $"&availableTranslatedLanguage%5B%5D={Settings.DownloadLanguage}&hasAvailableChapters=true" +
