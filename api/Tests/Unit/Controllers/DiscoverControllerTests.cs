@@ -23,11 +23,12 @@ public class DiscoverControllerTests
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
         };
 
-    private sealed class FakeLatestSource(KenkuSettings s, List<DiscoveryEntry> latest)
-        : SeriesSource("FakeComics", ["en"], ["fake.test"], "icon", s), ILatestSeriesProvider
+    private sealed class FakeRailSource(KenkuSettings s, List<DiscoveryEntry> entries, ContentType contentType = ContentType.Comic)
+        : SeriesSource("FakeComics", ["en"], ["fake.test"], "icon", s), IDiscoveryRailProvider
     {
         public override API.Acquirers.AcquisitionKind Kind => API.Acquirers.AcquisitionKind.DirectArchive;
-        public Task<List<DiscoveryEntry>> GetLatestSeriesAsync(CancellationToken ct) => Task.FromResult(latest);
+        public IReadOnlyList<DiscoveryRail> Rails => [new("fake-rail", "Fake", contentType)];
+        public Task<List<DiscoveryEntry>> GetRailAsync(string railId, CancellationToken ct) => Task.FromResult(entries);
         public override Task<(API.Schema.SeriesContext.Series, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series>)[]> SearchManga(string m) => throw new NotSupportedException();
         public override Task<(API.Schema.SeriesContext.Series, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series>)?> GetMangaFromUrl(string url) => throw new NotSupportedException();
         public override Task<(API.Schema.SeriesContext.Series, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series>)?> GetMangaFromId(string id) => throw new NotSupportedException();
@@ -107,18 +108,33 @@ public class DiscoverControllerTests
     }
 
     [Fact]
-    public async Task Comics_CollectsFromLatestSeriesProviders_IgnoringOtherConnectors()
+    public async Task Comics_CollectsComicRailProviders_IgnoringOtherConnectors()
     {
         var settings = new KenkuSettings();
         SeriesSource[] connectors =
         [
             new FakeSeriesSource("Plain", settings),
-            new FakeLatestSource(settings, [Entry with { Source = "FakeComics" }]),
+            new FakeRailSource(settings, [Entry with { Source = "FakeComics" }]),
         ];
 
         var ok = await CreateController(settings).GetFreshComics(connectors);
 
         Assert.Equal("FakeComics", Assert.Single(ok.Value!).Source);
+    }
+
+    [Fact]
+    public async Task Comics_ServesOnlyComicRails_NotMangaOnesFromTheSameSeam()
+    {
+        var settings = new KenkuSettings();
+        SeriesSource[] connectors =
+        [
+            new FakeRailSource(settings, [Entry with { Source = "MangaRail" }], ContentType.Manga),
+        ];
+
+        var ok = await CreateController(settings).GetFreshComics(connectors);
+
+        // A provider declaring a Manga rail must not leak into the comics endpoint.
+        Assert.Empty(ok.Value!);
     }
 
     private static DiscoveryContext NewDiscoveryContext() =>

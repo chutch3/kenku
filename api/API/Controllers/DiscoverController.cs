@@ -79,8 +79,9 @@ public class DiscoverController(DiscoveryCache cache, KenkuSettings settings, AP
         => TypedResults.Ok(await cache.GetOrRefreshAsync("fresh-comics", Ttl, async () =>
         {
             var entries = new List<DiscoveryEntry>();
-            foreach (ILatestSeriesProvider provider in connectors.OfType<ILatestSeriesProvider>())
-                entries.AddRange(await provider.GetLatestSeriesAsync(HttpContext.RequestAborted));
+            foreach (IDiscoveryRailProvider provider in connectors.OfType<IDiscoveryRailProvider>())
+                foreach (DiscoveryRail rail in provider.Rails.Where(r => r.ContentType == ContentType.Comic))
+                    entries.AddRange(await provider.GetRailAsync(rail.Id, HttpContext.RequestAborted));
             return entries;
         }));
 

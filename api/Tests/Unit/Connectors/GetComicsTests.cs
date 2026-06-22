@@ -59,7 +59,7 @@ public class GetComicsTests
                 Article("https://getcomics.org/saga-66", "Saga #66 (2026)")))
             : Html("wrong page", HttpStatusCode.InternalServerError));
 
-        List<API.Discovery.DiscoveryEntry> latest = await connector.GetLatestSeriesAsync(CancellationToken.None);
+        List<API.Discovery.DiscoveryEntry> latest = await connector.GetRailAsync("comics-fresh", CancellationToken.None);
 
         Assert.Equal(2, latest.Count); // both The Boys posts collapse into one series card
         Assert.Equal("The Boys", latest[0].Title);

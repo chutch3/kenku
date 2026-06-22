@@ -17,7 +17,7 @@ namespace API.Connectors;
 /// downloads through the archive path, with the post resolved to its archive URL lazily at
 /// download time (<see cref="IArchiveUrlResolver"/>) so syncs never re-scrape every post.
 /// </summary>
-public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.ILatestSeriesProvider
+public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.IDiscoveryRailProvider
 {
     // Posts per page is 12; five pages bounds a chapter sync at 60 posts while staying polite.
     private const int MaxSearchPages = 5;
@@ -69,9 +69,15 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.ILates
         return new(release.SeriesTitle, release.IssueNumber, null, false, release.Year);
     }
 
+    public IReadOnlyList<API.Discovery.DiscoveryRail> Rails =>
+        [new("comics-fresh", "Fresh releases", ContentType.Comic)];
+
+    public Task<List<API.Discovery.DiscoveryEntry>> GetRailAsync(string railId, CancellationToken ct) =>
+        railId == "comics-fresh" ? FetchFreshAsync(ct) : Task.FromResult(new List<API.Discovery.DiscoveryEntry>());
+
     /// <summary>The front page is the newest-posts archive — the "fresh comics" discovery rail.
     /// Posts collapse into series the same way search results do.</summary>
-    public async Task<List<API.Discovery.DiscoveryEntry>> GetLatestSeriesAsync(CancellationToken ct)
+    private async Task<List<API.Discovery.DiscoveryEntry>> FetchFreshAsync(CancellationToken ct)
     {
         Post[] posts = await FetchSearchPage(LatestUrl(1))
             ?? throw new HttpRequestException("GetComics front page yielded no post list — markup drift?");
