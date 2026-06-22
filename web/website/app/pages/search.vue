@@ -25,7 +25,9 @@
                         </UButton>
                     </div>
                     <div class="flex flex-wrap items-center gap-1.5">
-                        <span class="text-xs text-muted mr-1">Source</span>
+                        <span class="text-xs text-muted mr-1">Type</span>
+                        <MediaModeToggle />
+                        <span class="text-xs text-muted ml-2 mr-1">Source</span>
                         <UTooltip
                             v-for="c in visibleConnectors"
                             :key="c.key"

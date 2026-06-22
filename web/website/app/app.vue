@@ -49,8 +49,6 @@
                     aria-label="Search"
                     @click="cmdkOpen = true" />
 
-                <MediaModeToggle class="max-sm:hidden" />
-
                 <UButton icon="i-lucide-plus" to="/search" color="primary">
                     <span class="max-sm:hidden">Add series</span>
                 </UButton>
