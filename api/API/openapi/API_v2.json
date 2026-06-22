@@ -6597,10 +6597,17 @@
           "blurb": {
             "type": "string",
             "nullable": true
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false,
-        "description": "One discovery-rail card: a series someone might want to add, regardless of which rail found it."
+        "description": "One discovery-rail card: a series someone might want to add, regardless of which rail found it.\n            Tags is optional (genres/themes) — providers that have them populate it for the card\n            chips; sources without tags (GetComics, reddit) leave it null."
       },
       "DiscoveryRailResponse": {
         "type": "object",

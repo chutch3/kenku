@@ -14,7 +14,7 @@ public class AniListClient(HttpClient http) : IAniListClient
     private const string ListQuery =
         "query($perPage:Int,$sort:[MediaSort],$genre:String,$startDateGreater:FuzzyDateInt)" +
         "{Page(perPage:$perPage){media(type:MANGA,sort:$sort,isAdult:false,genre:$genre,startDate_greater:$startDateGreater)" +
-        "{title{romaji english}coverImage{large}siteUrl description(asHtml:false)}}}";
+        "{title{romaji english}coverImage{large}siteUrl description(asHtml:false) genres}}}";
 
     public async Task<List<DiscoveryEntry>> GetMangaListAsync(AniListShelf shelf, int limit, CancellationToken ct)
     {
@@ -47,12 +47,16 @@ public class AniListClient(HttpClient http) : IAniListClient
             string name = string.IsNullOrEmpty(english) ? title.GetProperty("romaji").GetString() ?? "" : english;
             string? description = m.GetProperty("description").ValueKind == JsonValueKind.String
                 ? m.GetProperty("description").GetString() : null;
+            List<string>? genres = m.TryGetProperty("genres", out JsonElement g) && g.ValueKind == JsonValueKind.Array
+                ? g.EnumerateArray().Select(x => x.GetString()).OfType<string>().ToList()
+                : null;
             entries.Add(new DiscoveryEntry(
                 name,
                 m.GetProperty("coverImage").GetProperty("large").GetString() ?? "",
                 m.GetProperty("siteUrl").GetString() ?? "",
                 "AniList",
-                description is null ? null : StripHtml(description)));
+                description is null ? null : StripHtml(description),
+                genres));
         }
         return entries;
     }

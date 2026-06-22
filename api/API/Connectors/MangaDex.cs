@@ -64,7 +64,8 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
                 // A real mangadex.org/title URL → the add flow resolves it exactly through this connector
                 // (no fuzzy title match), so the cover never swaps between discover and the library.
                 entries.Add(new API.Discovery.DiscoveryEntry(manga.Name, manga.CoverUrl,
-                    $"https://mangadex.org/title/{id.IdOnConnectorSite}", Name, manga.Description));
+                    $"https://mangadex.org/title/{id.IdOnConnectorSite}", Name, manga.Description,
+                    manga.MangaTags.Select(t => t.Tag).ToList()));
             }
             catch (ParsingException) { /* skip a malformed entry rather than drop the whole rail */ }
         }

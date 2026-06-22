@@ -26,6 +26,12 @@
                         <p class="text-sm/tight font-semibold text-white line-clamp-3 [text-shadow:0_1px_8px_rgba(0,0,0,0.6)]">
                             {{ m.entry.title }}
                         </p>
+                        <p v-if="m.entry.tags?.length" class="mt-1 flex flex-wrap gap-1">
+                            <span
+                                v-for="t in m.entry.tags.slice(0, 2)"
+                                :key="t"
+                                class="text-[0.6rem] leading-none px-1.5 py-0.5 rounded bg-white/15 text-white/90">{{ t }}</span>
+                        </p>
                     </div>
                     <UBadge
                         v-if="m.inLibrary"

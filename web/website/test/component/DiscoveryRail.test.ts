@@ -50,6 +50,15 @@ describe('DiscoveryRail', () => {
         expect(wrapper.text()).not.toContain('Berserk');
     });
 
+    it('renders the first couple of tags as chips, capped', async () => {
+        const tagged = [{ title: 'X', coverUrl: '', url: 'u', source: 'MangaDex', blurb: null, tags: ['Action', 'Horror', 'Drama'] }];
+        const wrapper = await mountSuspended(DiscoveryRail, { props: { title: 'Popular', entries: tagged, library: [] } });
+
+        expect(wrapper.text()).toContain('Action');
+        expect(wrapper.text()).toContain('Horror');
+        expect(wrapper.text()).not.toContain('Drama'); // capped to 2
+    });
+
     it('shows a persistent Add affordance on entries not yet in the library', async () => {
         const wrapper = await mountSuspended(DiscoveryRail, { props: { title: 'Trending manga', entries, library } });
 

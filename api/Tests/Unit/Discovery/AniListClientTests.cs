@@ -36,6 +36,20 @@ public class AniListClientTests
     }
 
     [Fact]
+    public void ParseMedia_MapsGenresToTags()
+    {
+        string json = """
+        {"data":{"Page":{"media":[
+          {"title":{"romaji":"X","english":"X"},"coverImage":{"large":"c"},"siteUrl":"u","description":"d","genres":["Action","Horror"]}
+        ]}}}
+        """;
+
+        var entries = AniListClient.ParseMedia(json);
+
+        Assert.Equal(new[] { "Action", "Horror" }, Assert.Single(entries).Tags);
+    }
+
+    [Fact]
     public void ParseMedia_Throws_OnAnUnexpectedShape()
     {
         Assert.ThrowsAny<Exception>(() => AniListClient.ParseMedia("""{"errors":[{"message":"boom"}]}"""));

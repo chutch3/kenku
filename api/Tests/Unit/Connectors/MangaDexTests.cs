@@ -199,6 +199,22 @@ public class MangaDexTests
     }
 
     [Fact]
+    public async Task GetRailAsync_PopulatesTags_FromMangaDexTags()
+    {
+        var json = """
+        { "result":"ok","total":1,"data":[ {
+            "id":"m1",
+            "attributes":{ "title":{"en":"X"}, "description":{"en":"d"}, "status":"ongoing",
+                "tags":[ {"type":"tag","attributes":{"name":{"en":"Action"}}}, {"type":"tag","attributes":{"name":{"en":"Horror"}}} ] },
+            "relationships":[ {"type":"cover_art","attributes":{"fileName":"c.jpg"}} ] } ] }
+        """;
+
+        var entries = await new MangaDex(CreateSettings(), CreateMockClient(json).Object).GetRailAsync("mangadex-popular", default);
+
+        Assert.Equal(new[] { "Action", "Horror" }, Assert.Single(entries).Tags);
+    }
+
+    [Fact]
     public void Rails_DeclaresPopularAndLatest_AsManga()
     {
         var rails = new MangaDex(CreateSettings(), CreateMockClient("{}").Object).Rails;
