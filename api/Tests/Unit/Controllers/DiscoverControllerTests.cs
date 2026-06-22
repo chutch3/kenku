@@ -27,7 +27,7 @@ public class DiscoverControllerTests
         : SeriesSource("FakeComics", ["en"], ["fake.test"], "icon", s), IDiscoveryRailProvider
     {
         public override API.Acquirers.AcquisitionKind Kind => API.Acquirers.AcquisitionKind.DirectArchive;
-        public IReadOnlyList<DiscoveryRail> Rails => [new("fake-rail", "Fake", contentType)];
+        public IReadOnlyList<DiscoveryRail> Rails => [new("fake-rail", "Fake", contentType, 1)];
         public Task<List<DiscoveryEntry>> GetRailAsync(string railId, CancellationToken ct) => Task.FromResult(entries);
         public override Task<(API.Schema.SeriesContext.Series, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series>)[]> SearchManga(string m) => throw new NotSupportedException();
         public override Task<(API.Schema.SeriesContext.Series, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series>)?> GetMangaFromUrl(string url) => throw new NotSupportedException();

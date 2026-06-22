@@ -141,6 +141,8 @@ public static class ApplicationServiceCollectionExtensions
         // Discovery rails: edge clients own their HTTP; results cache for an hour per rail.
         services.AddSingleton<API.Discovery.DiscoveryCache>();
         services.AddHttpClient<API.Discovery.IAniListClient, API.Discovery.AniListClient>();
+        // AniList's shelves as Discover rails — a standalone IDiscoveryRailProvider (AniList isn't a connector).
+        services.AddSingleton<API.Discovery.IDiscoveryRailProvider, API.Discovery.AniListRailProvider>();
         services.AddHttpClient<API.Discovery.IRedditFeedClient, API.Discovery.RedditFeedClient>(
             API.Discovery.RedditFeedClient.ConfigureClient);
         services.AddSingleton<Kenku>();

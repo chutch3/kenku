@@ -17,5 +17,7 @@ public interface IDiscoveryRailProvider
     Task<List<DiscoveryEntry>> GetRailAsync(string railId, CancellationToken ct);
 }
 
-/// <summary>A rail a provider declares: a stable id, a display label, and which content axis it belongs to.</summary>
-public record DiscoveryRail(string Id, string Label, ContentType ContentType);
+/// <summary>A rail a provider declares: a stable id, a display label, which content axis it belongs to,
+/// and a global <paramref name="Order"/> so the aggregator can interleave rails from different providers
+/// into a deterministic, fixed page order.</summary>
+public record DiscoveryRail(string Id, string Label, ContentType ContentType, int Order);

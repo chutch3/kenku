@@ -70,7 +70,7 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.IDisco
     }
 
     public IReadOnlyList<API.Discovery.DiscoveryRail> Rails =>
-        [new("comics-fresh", "Fresh releases", ContentType.Comic)];
+        [new("comics-fresh", "Fresh releases", ContentType.Comic, 100)];
 
     public Task<List<API.Discovery.DiscoveryEntry>> GetRailAsync(string railId, CancellationToken ct) =>
         railId == "comics-fresh" ? FetchFreshAsync(ct) : Task.FromResult(new List<API.Discovery.DiscoveryEntry>());
