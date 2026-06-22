@@ -16,6 +16,7 @@ export const FetchKeys = {
     Version: 'Version',
     Discover: {
         Rails: 'Discover/Rails',
+        RailCatalog: 'Discover/RailCatalog',
         Feed: 'Discover/Feed',
         Genres: 'Discover/Genres',
         Genre: (genre: string) => `Discover/Genre/${genre}`,

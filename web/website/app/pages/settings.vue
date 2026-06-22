@@ -49,7 +49,8 @@
                         <template #header>
                             <SettingsHeader title="Discovery" subtitle="What shows up on the Discover page." />
                         </template>
-                        <DiscoveryGenresField />
+                        <DiscoveryRailsField />
+                        <DiscoveryGenresField class="mt-4" />
                         <DiscoveryFeedsField class="mt-4" />
                     </UCard>
                 </template>

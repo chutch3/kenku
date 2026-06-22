@@ -106,6 +106,20 @@ public class DiscoverControllerTests
         Assert.Equal(["fake-rail", "manga-trending", "manga-new", "manga-top-rated"], ok.Value!.Select(r => r.Id));
     }
 
+    [Fact]
+    public void RailCatalog_ListsEveryDeclaredRail_IncludingDenylistedOnes()
+    {
+        // The catalog drives the settings toggle UI, so it must show disabled rails too (unlike /Rails).
+        var settings = new KenkuSettings { DiscoveryRails = ["fake-rail"] };
+        SeriesSource[] connectors = [new FakeRailSource(settings, [])];
+        IDiscoveryRailProvider[] standalone = [new AniListRailProvider(new Mock<IAniListClient>().Object, Clock)];
+
+        var ok = CreateController(settings).GetRailCatalog(connectors, standalone);
+
+        Assert.Contains("fake-rail", ok.Value!.Select(r => r.Id)); // denylisted, but still listed
+        Assert.Contains("manga-trending", ok.Value!.Select(r => r.Id));
+    }
+
     private static DiscoveryContext NewDiscoveryContext() =>
         new(new DbContextOptionsBuilder<DiscoveryContext>()
             .UseInMemoryDatabase("discover-feed-" + Guid.NewGuid().ToString("N")).Options);

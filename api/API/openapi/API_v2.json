@@ -987,6 +987,29 @@
         }
       }
     },
+    "/v2/Discover/RailCatalog": {
+      "get": {
+        "tags": [
+          "Discover"
+        ],
+        "summary": "Every declared rail (metadata only, no entries), denylist included — the catalog the\n            settings toggle UI lists so a disabled rail can be turned back on. Cheap: no source fetches.",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DiscoveryRail"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/Discover/Feed": {
       "get": {
         "tags": [
@@ -6657,6 +6680,28 @@
         },
         "additionalProperties": false,
         "description": "One discovery-rail card: a series someone might want to add, regardless of which rail found it.\n            Tags is optional (genres/themes) — providers that have them populate it for the card\n            chips; sources without tags (GetComics, reddit) leave it null."
+      },
+      "DiscoveryRail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "label": {
+            "type": "string",
+            "nullable": true
+          },
+          "contentType": {
+            "$ref": "#/components/schemas/ContentType"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A rail a provider declares: a stable id, a display label, which content axis it belongs to,\n            and a global Order so the aggregator can interleave rails from different providers\n            into a deterministic, fixed page order. Orders are allocated across providers in steps of 10 (leave\n            gaps to slot new rails in): 10 trending (AniList), 20 popular (MangaDex), 30 latest (MangaDex),\n            40 new (AniList), 50 top-rated (AniList), 100 fresh (GetComics). Equal orders tie-break by Id."
       },
       "DiscoveryRailResponse": {
         "type": "object",

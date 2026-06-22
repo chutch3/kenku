@@ -56,10 +56,8 @@ public class DiscoverController(DiscoveryCache cache, KenkuSettings settings) : 
         [FromServices] IEnumerable<SeriesSource> connectors,
         [FromServices] IEnumerable<IDiscoveryRailProvider> standaloneProviders)
     {
-        var enabled = connectors.OfType<IDiscoveryRailProvider>().Concat(standaloneProviders).Distinct()
-            .SelectMany(p => p.Rails.Select(rail => (Provider: p, Rail: rail)))
+        var enabled = OrderedRails(connectors, standaloneProviders)
             .Where(x => !settings.DiscoveryRails.Contains(x.Rail.Id))
-            .OrderBy(x => x.Rail.Order).ThenBy(x => x.Rail.Id) // Id tie-break so equal Orders are deterministic, not DI-order dependent.
             .ToList();
 
         var result = new List<DiscoveryRailResponse>();
@@ -71,6 +69,25 @@ public class DiscoverController(DiscoveryCache cache, KenkuSettings settings) : 
         }
         return TypedResults.Ok(result);
     }
+
+    /// <summary>Every declared rail (metadata only, no entries), denylist included — the catalog the
+    /// settings toggle UI lists so a disabled rail can be turned back on. Cheap: no source fetches.</summary>
+    /// <response code="200"></response>
+    [HttpGet("RailCatalog")]
+    [ProducesResponseType<List<DiscoveryRail>>(Status200OK, "application/json")]
+    public Ok<List<DiscoveryRail>> GetRailCatalog(
+        [FromServices] IEnumerable<SeriesSource> connectors,
+        [FromServices] IEnumerable<IDiscoveryRailProvider> standaloneProviders)
+        => TypedResults.Ok(OrderedRails(connectors, standaloneProviders).Select(x => x.Rail).ToList());
+
+    /// <summary>All providers' rails (connector-backed + standalone), in fixed global order with an Id
+    /// tie-break. The single aggregation both rail endpoints share.</summary>
+    private static List<(IDiscoveryRailProvider Provider, DiscoveryRail Rail)> OrderedRails(
+        IEnumerable<SeriesSource> connectors, IEnumerable<IDiscoveryRailProvider> standaloneProviders)
+        => connectors.OfType<IDiscoveryRailProvider>().Concat(standaloneProviders).Distinct()
+            .SelectMany(p => p.Rails.Select(rail => (Provider: p, Rail: rail)))
+            .OrderBy(x => x.Rail.Order).ThenBy(x => x.Rail.Id)
+            .ToList();
 
 
     /// <summary>
