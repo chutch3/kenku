@@ -34,7 +34,7 @@ erDiagram
     }
     Chapter {
         string Key PK
-        string ParentMangaId FK
+        string ParentSeriesId FK
         string ChapterNumber
         int    VolumeNumber
         string Title
@@ -45,7 +45,7 @@ erDiagram
     SeriesSourceId {
         string Key PK
         string ObjId FK
-        string MangaConnectorName
+        string SeriesSourceName
         string IdOnConnectorSite
         string WebsiteUrl
         bool   UseForDownload
@@ -55,7 +55,7 @@ erDiagram
     ChapterSourceId {
         string Key PK
         string ObjId FK
-        string MangaConnectorName
+        string SeriesSourceName
         string IdOnConnectorSite
         bool   UseForDownload
         string ScanGroup
@@ -84,15 +84,15 @@ erDiagram
         string Title
     }
     MetadataSource {
-        string MangaId PK
+        string SeriesId PK
     }
     MetadataEntry {
-        string MangaId FK
+        string SeriesId FK
         string MetadataFetcherName
         string Identifier
     }
     VolumeMetadata {
-        string MangaId FK
+        string SeriesId FK
         int    VolumeNumber
         string Title
         string ArchiveFileName
@@ -102,7 +102,3 @@ erDiagram
         string ChapterKey FK
     }
 ```
-
-> A few tables still carry pre-rename names: `SeriesSourceId` / `ChapterSourceId` are tables
-> `MangaConnectorToManga` / `MangaConnectorToChapter`, and `Author`↔`Series` joins through `AuthorToManga`.
-> (The main `Series` table was renamed from `Mangas`.) See [`TECHNICAL_DEBT.md`](../TECHNICAL_DEBT.md).
