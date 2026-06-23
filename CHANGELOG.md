@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.32.1 (2026-06-23)
+
+### Bug Fixes
+
+- Guard null chapter SourceIds when enabling download on a merged series add
+  ([`bbb9dbe`](https://github.com/chutch3/kenku/commit/bbb9dbecc355c129bfc387eb81d8ab587d5442c9))
+
+
 ## v0.32.0 (2026-06-22)
 
 ### Bug Fixes
