@@ -2,6 +2,26 @@
 
 <!-- version list -->
 
+## v0.35.0 (2026-06-23)
+
+### Refactoring
+
+- Rename Chapter.ParentMangaId column to ParentSeriesId
+  ([`9242d34`](https://github.com/chutch3/kenku/commit/9242d3433c786ee7032db87e7fcf1a0b5e2bae01))
+
+- Rename the MangaConnectorName column and API field to SeriesSourceName
+  ([`6b1fcb2`](https://github.com/chutch3/kenku/commit/6b1fcb2dfc2832c85086e113d185ecc55ea13ac0))
+
+- Rename the MangaId columns, DTO fields and routes off the legacy Manga naming
+  ([`74f62d7`](https://github.com/chutch3/kenku/commit/74f62d7dd145d89b06508d510295a13afbfefe57))
+
+- Rename the remaining legacy Manga identifiers to Series across the API and frontend
+  ([`7c18214`](https://github.com/chutch3/kenku/commit/7c1821437c5beeb374b771be70d3e39048d807b2))
+
+- Rename the source-id and author-join tables off the legacy Manga naming
+  ([`45b9223`](https://github.com/chutch3/kenku/commit/45b92232b100df2811c74fe0593cdb54e70ec193))
+
+
 ## v0.34.1 (2026-06-23)
 
 ### Bug Fixes
