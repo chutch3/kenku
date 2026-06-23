@@ -74,7 +74,7 @@ public class ChaptersControllerTests: IDisposable
         chapter.SourceIds.Add(chId);
         ctx.Series.Add(manga);
         ctx.Chapters.Add(chapter);
-        ctx.MangaConnectorToChapter.Add(chId);
+        ctx.ChapterSourceIds.Add(chId);
         await ctx.SaveChangesAsync();
 
         var settings = new API.KenkuSettings { AppData = Path.GetTempPath(), DownloadMaxAttempts = 9 };
@@ -96,7 +96,7 @@ public class ChaptersControllerTests: IDisposable
         chapter.SourceIds.Add(chId);
         ctx.Series.Add(manga);
         ctx.Chapters.Add(chapter);
-        ctx.MangaConnectorToChapter.Add(chId);
+        ctx.ChapterSourceIds.Add(chId);
         await ctx.SaveChangesAsync();
         var store = new InMemoryJobStore();
 
@@ -118,7 +118,7 @@ public class ChaptersControllerTests: IDisposable
         chapter.SourceIds.Add(chId);
         ctx.Series.Add(manga);
         ctx.Chapters.Add(chapter);
-        ctx.MangaConnectorToChapter.Add(chId);
+        ctx.ChapterSourceIds.Add(chId);
         await ctx.SaveChangesAsync();
 
         var result = await CreateController(ctx).ForceDownload(chapter.Key, new InMemoryJobStore(), new SystemClock());
@@ -137,7 +137,7 @@ public class ChaptersControllerTests: IDisposable
         chapter.SourceIds.Add(src);
         ctx.Series.Add(manga);
         ctx.Chapters.Add(chapter);
-        ctx.MangaConnectorToChapter.Add(src);
+        ctx.ChapterSourceIds.Add(src);
         await ctx.SaveChangesAsync();
 
         var result = await CreateController(ctx).GetChapters(manga.Key, null, 1, 10);
@@ -159,7 +159,7 @@ public class ChaptersControllerTests: IDisposable
         chapter.SourceIds.Add(src);
         ctx.Series.Add(manga);
         ctx.Chapters.Add(chapter);
-        ctx.MangaConnectorToChapter.Add(src);
+        ctx.ChapterSourceIds.Add(src);
         await ctx.SaveChangesAsync();
 
         var result = await CreateController(ctx).GetChapters(manga.Key, null, 1, 10);
@@ -182,15 +182,15 @@ public class ChaptersControllerTests: IDisposable
         chapter.SourceIds.Add(b);
         ctx.Series.Add(manga);
         ctx.Chapters.Add(chapter);
-        ctx.MangaConnectorToChapter.AddRange(a, b);
+        ctx.ChapterSourceIds.AddRange(a, b);
         await ctx.SaveChangesAsync();
 
         var store = new InMemoryJobStore();
         var result = await CreateController(ctx).MarkSourceAsRequested(b.Key, true, store, new SystemClock());
 
         Assert.IsType<Ok>(result.Result);
-        var reloadedA = await ctx.MangaConnectorToChapter.FindAsync(a.Key);
-        var reloadedB = await ctx.MangaConnectorToChapter.FindAsync(b.Key);
+        var reloadedA = await ctx.ChapterSourceIds.FindAsync(a.Key);
+        var reloadedB = await ctx.ChapterSourceIds.FindAsync(b.Key);
         Assert.True(reloadedB!.UseForDownload, "picked upload should be requested");
         Assert.False(reloadedA!.UseForDownload, "sibling upload should be cleared so the chapter downloads once");
         var job = Assert.Single(await store.GetAllAsync());
@@ -427,7 +427,7 @@ public class ChaptersControllerTests: IDisposable
         var chId = new API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>(chapter, "FakeArchive", "376", "https://getcomics.org/c/spawn-376/", true);
         ctx.Series.Add(manga);
         ctx.Chapters.Add(chapter);
-        ctx.MangaConnectorToChapter.Add(chId);
+        ctx.ChapterSourceIds.Add(chId);
         await ctx.SaveChangesAsync();
         return (ctx, chId);
     }

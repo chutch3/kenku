@@ -17,8 +17,8 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
     public DbSet<Chapter> Chapters { get; set; }
     public DbSet<Author> Authors { get; set; }
     public DbSet<SeriesTag> Tags { get; set; }
-    public DbSet<SourceId<Series>> MangaConnectorToManga { get; set; }
-    public DbSet<SourceId<Chapter>> MangaConnectorToChapter { get; set; }
+    public DbSet<SourceId<Series>> SeriesSourceIds { get; set; }
+    public DbSet<SourceId<Chapter>> ChapterSourceIds { get; set; }
     public DbSet<MetadataEntry> MetadataEntries { get; set; }
     public DbSet<MetadataSource> MetadataSources { get; set; }
     public DbSet<VolumeMetadata> VolumeMetadata { get; set; }
@@ -76,7 +76,7 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
         modelBuilder.Entity<Series>()
             .HasMany<Author>(m => m.Authors)
             .WithMany()
-            .UsingEntity("AuthorToManga",
+            .UsingEntity("AuthorToSeries",
                 l => l.HasOne(typeof(Author)).WithMany().HasForeignKey("AuthorIds").HasPrincipalKey(nameof(Author.Key)),
                 r => r.HasOne(typeof(SeriesEntity)).WithMany().HasForeignKey("MangaIds").HasPrincipalKey(nameof(SeriesEntity.Key)),
                 j => j.HasKey("AuthorIds", "MangaIds")

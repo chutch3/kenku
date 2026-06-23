@@ -36,8 +36,8 @@ public class SeriesChapterSyncReconcilerTests : IDisposable
         var tracked = new Series("Tracked", "", "u", SeriesReleaseStatus.Continuing, [], [], [], [], library);
         var untracked = new Series("Untracked", "", "u", SeriesReleaseStatus.Continuing, [], [], [], [], library);
         ctx.Series.AddRange(tracked, untracked);
-        ctx.MangaConnectorToManga.Add(new SourceId<Series>(tracked, "MockConnector", "t1", "url", useForDownload: true));
-        ctx.MangaConnectorToManga.Add(new SourceId<Series>(untracked, "MockConnector", "u1", "url", useForDownload: false));
+        ctx.SeriesSourceIds.Add(new SourceId<Series>(tracked, "MockConnector", "t1", "url", useForDownload: true));
+        ctx.SeriesSourceIds.Add(new SourceId<Series>(untracked, "MockConnector", "u1", "url", useForDownload: false));
         await ctx.SaveChangesAsync();
         return ctx;
     }
@@ -51,7 +51,7 @@ public class SeriesChapterSyncReconcilerTests : IDisposable
         {
             var s = new Series($"Tracked {i}", "", "u", SeriesReleaseStatus.Continuing, [], [], [], [], library);
             ctx.Series.Add(s);
-            ctx.MangaConnectorToManga.Add(new SourceId<Series>(s, "MockConnector", $"t{i}", "url", useForDownload: true));
+            ctx.SeriesSourceIds.Add(new SourceId<Series>(s, "MockConnector", $"t{i}", "url", useForDownload: true));
         }
         await ctx.SaveChangesAsync();
         return ctx;
@@ -61,7 +61,7 @@ public class SeriesChapterSyncReconcilerTests : IDisposable
     public async Task Scan_ReArmsAWedgedSyncJob_SoATransientUpstreamFailureDoesNotFreezeSyncing()
     {
         using var ctx = await Seed();
-        var trackedSource = await ctx.MangaConnectorToManga.FirstAsync(id => id.UseForDownload);
+        var trackedSource = await ctx.SeriesSourceIds.FirstAsync(id => id.UseForDownload);
         var store = new InMemoryJobStore();
         // A prior sync failed all the way to NeedsAttention (e.g. an HTTP 500 from the source).
         var parked = await store.EnqueueAsync(new Job(SyncSeriesChaptersHandler.Type, "{}", DateTime.UtcNow,
@@ -112,7 +112,7 @@ public class SeriesChapterSyncReconcilerTests : IDisposable
     {
         var s = new Series(name, "", "u", status, [], [], [], [], library);
         ctx.Series.Add(s);
-        ctx.MangaConnectorToManga.Add(new SourceId<Series>(s, "MockConnector", name, "url", useForDownload: true));
+        ctx.SeriesSourceIds.Add(new SourceId<Series>(s, "MockConnector", name, "url", useForDownload: true));
         int n = 0;
         foreach (var (downloaded, wanted) in chapters)
         {
@@ -121,7 +121,7 @@ public class SeriesChapterSyncReconcilerTests : IDisposable
             var src = new SourceId<Chapter>(ch, "MockConnector", $"{name}-c{n}", "url", useForDownload: wanted);
             ch.SourceIds.Add(src);
             ctx.Chapters.Add(ch);
-            ctx.MangaConnectorToChapter.Add(src);
+            ctx.ChapterSourceIds.Add(src);
         }
         return s;
     }

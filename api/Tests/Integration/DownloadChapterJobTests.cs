@@ -69,7 +69,7 @@ public class DownloadChapterJobTests : IAsyncLifetime
             var chapter = new Chapter(manga, "1", null, "Title");
             ctx.Chapters.Add(chapter);
             var sourceId = new SourceId<Chapter>(chapter, "StubConnector", "site1", "url1", true);
-            ctx.MangaConnectorToChapter.Add(sourceId);
+            ctx.ChapterSourceIds.Add(sourceId);
             await ctx.SaveChangesAsync();
             return (chapterKey: chapter.Key, sourceKey: sourceId.Key, dir: manga.FullDirectoryPath);
         });
@@ -104,7 +104,7 @@ public class DownloadChapterJobTests : IAsyncLifetime
             var chapter = new Chapter(manga, "1", null, "Title");
             ctx.Chapters.Add(chapter);
             var sourceId = new SourceId<Chapter>(chapter, "StubConnector", "site1", "url1", true);
-            ctx.MangaConnectorToChapter.Add(sourceId);
+            ctx.ChapterSourceIds.Add(sourceId);
             await ctx.SaveChangesAsync();
             return (chapterKey: chapter.Key, sourceKey: sourceId.Key);
         });
@@ -137,7 +137,7 @@ public class DownloadChapterJobTests : IAsyncLifetime
             var chapter = new Chapter(manga, "1", null, "Title");
             ctx.Chapters.Add(chapter);
             var sourceId = new SourceId<Chapter>(chapter, "StubConnector", "site1", "url1", true);
-            ctx.MangaConnectorToChapter.Add(sourceId);
+            ctx.ChapterSourceIds.Add(sourceId);
             await ctx.SaveChangesAsync();
             return (chapterKey: chapter.Key, sourceKey: sourceId.Key);
         });
@@ -232,7 +232,7 @@ public class DownloadChapterJobRetryTests : IAsyncLifetime
             var chapter = new Chapter(manga, "1", null, "Title");
             ctx.Chapters.Add(chapter);
             var sourceId = new SourceId<Chapter>(chapter, "StubConnector", "site1", "url1", true);
-            ctx.MangaConnectorToChapter.Add(sourceId);
+            ctx.ChapterSourceIds.Add(sourceId);
             await ctx.SaveChangesAsync();
             return (chapterKey: chapter.Key, sourceKey: sourceId.Key, seriesDir: manga.FullDirectoryPath);
         });

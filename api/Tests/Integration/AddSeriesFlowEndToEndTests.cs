@@ -15,7 +15,7 @@ namespace API.Tests.Integration;
 public class AddSeriesFlowEndToEndTests() : OutboundHttpIntegrationTest(ConnectorReturning(IntegrationFixtures.WeebCentralFirePunchHtml))
 {
     private Task<SourceId<Series>> FirePunchSource() => App.WithSeriesContext(c =>
-        c.MangaConnectorToManga.Include(id => id.Obj).SingleAsync(id => id.Obj.Name == "Fire Punch"));
+        c.SeriesSourceIds.Include(id => id.Obj).SingleAsync(id => id.Obj.Name == "Fire Punch"));
 
     private Task<List<API.Schema.JobsContext.Job>> Jobs() => App.WithJobsContext(c => c.JobQueue.ToListAsync());
 

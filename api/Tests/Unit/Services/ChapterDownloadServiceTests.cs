@@ -90,7 +90,7 @@ public class ChapterDownloadServiceTests
             var chapter = new Chapter(manga, "1", null, "Title");
             context.Chapters.Add(chapter);
             var connectorId = new SourceId<Chapter>(chapter, "MockConnector", "site1", "url1", true);
-            context.MangaConnectorToChapter.Add(connectorId);
+            context.ChapterSourceIds.Add(connectorId);
             await context.SaveChangesAsync();
 
             var mockConnector = new Mock<SeriesSource>("MockConnector", new[] { "en" }, new[] { "mock.com" }, "icon", settings);
@@ -147,7 +147,7 @@ public class ChapterDownloadServiceTests
         context.Chapters.Add(chapter);
         
         var connectorId = new SourceId<Chapter>(chapter, "MockConnector", "site1", "url1", true);
-        context.MangaConnectorToChapter.Add(connectorId);
+        context.ChapterSourceIds.Add(connectorId);
         await context.SaveChangesAsync();
 
         var settings = new KenkuSettings { AppData = "/tmp", ChapterNamingScheme = "%M - %C" };
@@ -204,7 +204,7 @@ public class ChapterDownloadServiceTests
             var chapter = new Chapter(manga, "1", 5, "Title");
             context.Chapters.Add(chapter);
             var connectorId = new SourceId<Chapter>(chapter, "MockConnector", "site1", "url1", true);
-            context.MangaConnectorToChapter.Add(connectorId);
+            context.ChapterSourceIds.Add(connectorId);
             await context.SaveChangesAsync();
 
             var mockConnector = new Mock<SeriesSource>("MockConnector", new[] { "en" }, new[] { "mock.com" }, "icon", settings);
@@ -269,7 +269,7 @@ public class ChapterDownloadServiceTests
             var ch3 = new Chapter(manga, "3", 2, null);
             context.Chapters.AddRange(ch1, ch2, ch3);
             var connectorId = new SourceId<Chapter>(ch2, "MockConnector", "site2", "url2", true);
-            context.MangaConnectorToChapter.Add(connectorId);
+            context.ChapterSourceIds.Add(connectorId);
             await context.SaveChangesAsync();
 
             var mockConnector = new Mock<SeriesSource>("MockConnector", new[] { "en" }, new[] { "mock.com" }, "icon", settings);
@@ -341,7 +341,7 @@ public class ChapterDownloadServiceTests
                 var ch3 = new Chapter(manga, "3", 2, null); // vol 2 exists → vol 1 is closed
                 seedCtx.Chapters.AddRange(ch1, ch2, ch3);
                 connectorId = new SourceId<Chapter>(ch2, "MockConnector", "site2", "url2", true);
-                seedCtx.MangaConnectorToChapter.Add(connectorId);
+                seedCtx.ChapterSourceIds.Add(connectorId);
                 await seedCtx.SaveChangesAsync();
                 mangaDir = manga.FullDirectoryPath;
             }
@@ -401,7 +401,7 @@ public class ChapterDownloadServiceTests
         var chapter = new Chapter(manga, "1", null, "Title");
         context.Chapters.Add(chapter);
         var connectorId = new SourceId<Chapter>(chapter, "MockConnector", "site1", "url1", true);
-        context.MangaConnectorToChapter.Add(connectorId);
+        context.ChapterSourceIds.Add(connectorId);
         context.SaveChanges();
 
         var settings = new KenkuSettings { AppData = "/tmp", ChapterNamingScheme = "%M - %C" };
@@ -472,7 +472,7 @@ public class ChapterDownloadServiceTests
             var chapter = new Chapter(manga, "1", null, "Title");
             context.Chapters.Add(chapter);
             var connectorId = new SourceId<Chapter>(chapter, "MockConnector", "site1", "url1", true);
-            context.MangaConnectorToChapter.Add(connectorId);
+            context.ChapterSourceIds.Add(connectorId);
             await context.SaveChangesAsync();
 
             // Put the chapter's .cbz on disk so CheckDownloaded reports it as present.

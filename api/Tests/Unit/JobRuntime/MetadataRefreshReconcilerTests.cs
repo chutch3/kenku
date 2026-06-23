@@ -37,8 +37,8 @@ public class MetadataRefreshReconcilerTests : IDisposable
         var tracked = new Series("Tracked", "", "u", SeriesReleaseStatus.Continuing, [], [], [], [], library);
         var untracked = new Series("Untracked", "", "u", SeriesReleaseStatus.Continuing, [], [], [], [], library);
         ctx.Series.AddRange(tracked, untracked);
-        ctx.MangaConnectorToManga.Add(new SourceId<Series>(tracked, "MockConnector", "t1", "url", useForDownload: true));
-        ctx.MangaConnectorToManga.Add(new SourceId<Series>(untracked, "MockConnector", "u1", "url", useForDownload: false));
+        ctx.SeriesSourceIds.Add(new SourceId<Series>(tracked, "MockConnector", "t1", "url", useForDownload: true));
+        ctx.SeriesSourceIds.Add(new SourceId<Series>(untracked, "MockConnector", "u1", "url", useForDownload: false));
         var fetcher = new Mock<MetadataFetcher>("MyAnimeList").Object;
         ctx.Set<MetadataEntry>().Add(new MetadataEntry(fetcher, tracked, "mal-1"));
         ctx.Set<MetadataEntry>().Add(new MetadataEntry(fetcher, untracked, "mal-2"));
@@ -72,9 +72,9 @@ public class MetadataRefreshReconcilerTests : IDisposable
         var completed = new Series("Completed", "", "u", SeriesReleaseStatus.Completed, [], [], [], [], library);
         var cancelled = new Series("Cancelled", "", "u", SeriesReleaseStatus.Cancelled, [], [], [], [], library);
         ctx.Series.AddRange(continuing, completed, cancelled);
-        ctx.MangaConnectorToManga.Add(new SourceId<Series>(continuing, "MockConnector", "c1", "url", useForDownload: true));
-        ctx.MangaConnectorToManga.Add(new SourceId<Series>(completed, "MockConnector", "c2", "url", useForDownload: true));
-        ctx.MangaConnectorToManga.Add(new SourceId<Series>(cancelled, "MockConnector", "c3", "url", useForDownload: true));
+        ctx.SeriesSourceIds.Add(new SourceId<Series>(continuing, "MockConnector", "c1", "url", useForDownload: true));
+        ctx.SeriesSourceIds.Add(new SourceId<Series>(completed, "MockConnector", "c2", "url", useForDownload: true));
+        ctx.SeriesSourceIds.Add(new SourceId<Series>(cancelled, "MockConnector", "c3", "url", useForDownload: true));
         var fetcher = new Mock<MetadataFetcher>("MyAnimeList").Object;
         ctx.Set<MetadataEntry>().Add(new MetadataEntry(fetcher, continuing, "mal-1"));
         ctx.Set<MetadataEntry>().Add(new MetadataEntry(fetcher, completed, "mal-2"));

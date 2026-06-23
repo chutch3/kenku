@@ -50,7 +50,7 @@ public class DownloadReconcilerTests : IDisposable
     {
         var chapter = new Chapter(manga, number, null, null) { Downloaded = downloaded, IsBundled = bundled };
         ctx.Chapters.Add(chapter);
-        ctx.MangaConnectorToChapter.Add(new SourceId<Chapter>(chapter, "MockConnector", $"site{number}", $"url{number}", useForDownload));
+        ctx.ChapterSourceIds.Add(new SourceId<Chapter>(chapter, "MockConnector", $"site{number}", $"url{number}", useForDownload));
     }
 
     [Fact]

@@ -28,7 +28,7 @@ public class CoverDownloadService(IEnumerable<SeriesSource> connectors)
 
     public async Task<CoverOutcome> DownloadAsync(SeriesContext seriesContext, ActionsContext actionsContext, string sourceIdKey, CancellationToken ct)
     {
-        if (await seriesContext.MangaConnectorToManga
+        if (await seriesContext.SeriesSourceIds
                 .Include(id => id.Obj)
                 .FirstOrDefaultAsync(c => c.Key == sourceIdKey, ct) is not { } mangaConnectorId)
         {

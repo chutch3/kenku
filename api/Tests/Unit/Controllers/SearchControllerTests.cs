@@ -312,7 +312,7 @@ public class SearchControllerTests
         ctx.Series.Add(manga);
         
         var connectorId = new SchemaConnectorId(manga, "MangaDex", "op-123", "http://op.com", false);
-        ctx.MangaConnectorToManga.Add(connectorId);
+        ctx.SeriesSourceIds.Add(connectorId);
         await ctx.SaveChangesAsync();
 
         var result = await CreateController(ctx, (_, _) => (manga, connectorId))
@@ -336,7 +336,7 @@ public class SearchControllerTests
         ctx.Series.Add(manga);
         
         var connectorId = new SchemaConnectorId(manga, "MangaDex", "op-123", "http://op.com", false);
-        ctx.MangaConnectorToManga.Add(connectorId);
+        ctx.SeriesSourceIds.Add(connectorId);
         ctx.SaveChanges();
 
         var mockConnector = new Mock<API.Connectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());

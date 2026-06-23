@@ -39,8 +39,8 @@ public class CoverRefreshReconcilerTests : IDisposable
     public async Task Scan_EnqueuesACoverJobPerWantedSource()
     {
         var (ctx, manga) = await SeedSeries();
-        ctx.MangaConnectorToManga.Add(new SourceId<Series>(manga, "MangaDex", "id1", "url1", true));
-        ctx.MangaConnectorToManga.Add(new SourceId<Series>(manga, "WeebCentral", "id2", "url2", true));
+        ctx.SeriesSourceIds.Add(new SourceId<Series>(manga, "MangaDex", "id1", "url1", true));
+        ctx.SeriesSourceIds.Add(new SourceId<Series>(manga, "WeebCentral", "id2", "url2", true));
         await ctx.SaveChangesAsync();
 
         var store = new InMemoryJobStore();
@@ -55,7 +55,7 @@ public class CoverRefreshReconcilerTests : IDisposable
     public async Task Scan_SkipsSourcesNotMarkedForDownload()
     {
         var (ctx, manga) = await SeedSeries();
-        ctx.MangaConnectorToManga.Add(new SourceId<Series>(manga, "MangaDex", "id1", "url1", false));
+        ctx.SeriesSourceIds.Add(new SourceId<Series>(manga, "MangaDex", "id1", "url1", false));
         await ctx.SaveChangesAsync();
 
         var store = new InMemoryJobStore();
@@ -69,7 +69,7 @@ public class CoverRefreshReconcilerTests : IDisposable
     {
         // Indexer/torrent-sourced series have no cover URL — enqueuing would only create doomed jobs.
         var (ctx, manga) = await SeedSeries(coverUrl: "");
-        ctx.MangaConnectorToManga.Add(new SourceId<Series>(manga, "Indexers", "id1", "url1", true));
+        ctx.SeriesSourceIds.Add(new SourceId<Series>(manga, "Indexers", "id1", "url1", true));
         await ctx.SaveChangesAsync();
 
         var store = new InMemoryJobStore();
@@ -82,7 +82,7 @@ public class CoverRefreshReconcilerTests : IDisposable
     public async Task Scan_IsDedupedPerSource_SoTicksDoNotPileUp()
     {
         var (ctx, manga) = await SeedSeries();
-        ctx.MangaConnectorToManga.Add(new SourceId<Series>(manga, "MangaDex", "id1", "url1", true));
+        ctx.SeriesSourceIds.Add(new SourceId<Series>(manga, "MangaDex", "id1", "url1", true));
         await ctx.SaveChangesAsync();
 
         var store = new InMemoryJobStore();

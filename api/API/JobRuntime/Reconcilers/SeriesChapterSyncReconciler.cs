@@ -47,7 +47,7 @@ public class SeriesChapterSyncReconciler(
             .Select(s => s.Key)
             .ToListAsync(ct)).ToHashSet();
 
-        List<SourceId<Series>> tracked = (await series.MangaConnectorToManga
+        List<SourceId<Series>> tracked = (await series.SeriesSourceIds
             .Where(id => id.UseForDownload)
             .ToListAsync(ct))
             .Where(id => syncableSeries.Contains(id.ObjId))

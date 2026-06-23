@@ -49,7 +49,7 @@ public class ChapterDownloadService(
         string chapterKey, CancellationToken ct, string? pinnedArchiveUrl = null, bool force = false)
     {
         Log.Debug($"Downloading chapter for SourceId {chapterKey}...");
-        if (await seriesContext.MangaConnectorToChapter
+        if (await seriesContext.ChapterSourceIds
                 .Include(id => id.Obj)
                 .ThenInclude(c => c.ParentManga)
                 .ThenInclude(m => m.Library)
@@ -172,7 +172,7 @@ public class ChapterDownloadService(
 
     /// <summary>Chapters wanted for download that aren't downloaded yet (and aren't bundled).</summary>
     public static Task<List<SourceId<Chapter>>> GetMissingChapters(SeriesContext ctx, CancellationToken ct) =>
-        ctx.MangaConnectorToChapter
+        ctx.ChapterSourceIds
             .Include(id => id.Obj)
             // Bundled chapters live inside a Vol N.cbz; their individual file is intentionally gone, so they
             // are NOT missing — re-downloading them recreates a duplicate beside the bundle.
@@ -185,7 +185,7 @@ public class ChapterDownloadService(
         bool refresh = settings.LibraryRefreshSetting switch
         {
             LibraryRefreshSetting.AfterAllFinished => await AllDownloadsFinished(seriesContext, ct),
-            LibraryRefreshSetting.AfterMangaFinished => await seriesContext.MangaConnectorToChapter
+            LibraryRefreshSetting.AfterMangaFinished => await seriesContext.ChapterSourceIds
                 .Include(chId => chId.Obj).Where(chId => chId.UseForDownload).AllAsync(chId => chId.Obj.Downloaded, ct),
             LibraryRefreshSetting.AfterEveryChapter => true,
             LibraryRefreshSetting.WhileDownloading => await AllDownloadsFinished(seriesContext, ct)

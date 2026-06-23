@@ -60,7 +60,7 @@ public class SeriesRollupEndToEndTests : IAsyncLifetime
             {
                 var chapter = new Chapter(manga, i.ToString(), null, null) { Downloaded = i == 1 };
                 ctx.Chapters.Add(chapter);
-                ctx.MangaConnectorToChapter.Add(new API.Schema.SeriesContext.SourceId<Chapter>(chapter, "Src", $"c{i}", null, true));
+                ctx.ChapterSourceIds.Add(new API.Schema.SeriesContext.SourceId<Chapter>(chapter, "Src", $"c{i}", null, true));
             }
             await ctx.SaveChangesAsync();
             return manga.Key;

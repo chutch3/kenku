@@ -86,11 +86,11 @@ public class GetComicsDownloadEndToEndTests : IAsyncLifetime
             ctx.FileLibraries.Add(library);
             var manga = new Series("Invincible Universe – Battle Beast", "", CoverUrl, SeriesReleaseStatus.Continuing, [], [], [], [], library);
             ctx.Series.Add(manga);
-            ctx.MangaConnectorToManga.Add(new SourceId<Series>(manga, "GetComics", "Invincible Universe – Battle Beast", null));
+            ctx.SeriesSourceIds.Add(new SourceId<Series>(manga, "GetComics", "Invincible Universe – Battle Beast", null));
             var chapter = new Chapter(manga, "9", null, "Invincible Universe – Battle Beast #9 (2026)");
             ctx.Chapters.Add(chapter);
             var sourceId = new SourceId<Chapter>(chapter, "GetComics", "9", PostUrl, true);
-            ctx.MangaConnectorToChapter.Add(sourceId);
+            ctx.ChapterSourceIds.Add(sourceId);
             await ctx.SaveChangesAsync();
             return (chapterKey: chapter.Key, sourceKey: sourceId.Key, dir: manga.FullDirectoryPath);
         });

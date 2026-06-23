@@ -39,7 +39,7 @@ public class ReconcilerLoopTests : IAsyncLifetime
             var chapter = new Chapter(manga, "1", null, null);
             ctx.Chapters.Add(chapter);
             var sourceId = new SourceId<Chapter>(chapter, "StubConnector", "site-id-1", "http://stub.test/1", true);
-            ctx.MangaConnectorToChapter.Add(sourceId);
+            ctx.ChapterSourceIds.Add(sourceId);
             await ctx.SaveChangesAsync();
         }
 

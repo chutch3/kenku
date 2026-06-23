@@ -51,7 +51,7 @@ public class TorrentCompletionReconcilerTests : IDisposable
         var chapter = new Chapter(series, "60", null, null);
         ctx.Chapters.Add(chapter);
         var chId = new SourceId<Chapter>(chapter, "FakeTorrent", "60", "magnet:?xt=urn:btih:abc", true);
-        ctx.MangaConnectorToChapter.Add(chId);
+        ctx.ChapterSourceIds.Add(chId);
         await ctx.SaveChangesAsync();
         return (ctx, chId);
     }

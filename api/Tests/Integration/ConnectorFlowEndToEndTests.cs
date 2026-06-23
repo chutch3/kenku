@@ -76,7 +76,7 @@ public class ConnectorFlowEndToEndTests : IAsyncLifetime
             ctx.Series.Add(manga);
             seriesKey = manga.Key;
             var sourceId = new SourceId<Series>(manga, "ChapterSrc", "site-id-1", "http://chaptersrc.test/s/1", true);
-            ctx.MangaConnectorToManga.Add(sourceId);
+            ctx.SeriesSourceIds.Add(sourceId);
             await ctx.SaveChangesAsync();
             return sourceId.Key;
         });
@@ -123,7 +123,7 @@ public class ConnectorFlowEndToEndTests : IAsyncLifetime
             var manga = new Series("I Am A Hero", "", "", SeriesReleaseStatus.Continuing, [], [], [], []);
             ctx.Series.Add(manga);
             var sourceId = new SourceId<Series>(manga, "ChapterSrc", "01ABC/I-Am-A-Hero", "http://chaptersrc.test/s/1", true);
-            ctx.MangaConnectorToManga.Add(sourceId);
+            ctx.SeriesSourceIds.Add(sourceId);
             await ctx.SaveChangesAsync();
             return sourceId.Key;
         });
@@ -172,7 +172,7 @@ public class ConnectorFlowEndToEndTests : IAsyncLifetime
             var manga = new Series("WeebCentral Cover Series", "", "http://weebcentral.com/img/cover.jpg", SeriesReleaseStatus.Continuing, [], [], [], [], library);
             ctx.Series.Add(manga);
             var sourceId = new SourceId<Series>(manga, "WeebCentral", "site-wc-1", "http://weebcentral.com/s/1", true);
-            ctx.MangaConnectorToManga.Add(sourceId);
+            ctx.SeriesSourceIds.Add(sourceId);
             await ctx.SaveChangesAsync();
             return sourceId.Key;
         });

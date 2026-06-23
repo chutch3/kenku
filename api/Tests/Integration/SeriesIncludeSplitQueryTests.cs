@@ -42,7 +42,7 @@ public class SeriesIncludeSplitQueryTests : IAsyncLifetime
         ctx.Series.Add(series);
         ctx.Chapters.Add(new Chapter(series, "1", null, null));
         ctx.Chapters.Add(new Chapter(series, "2", null, null));
-        ctx.MangaConnectorToManga.Add(new SourceId<Series>(series, "StubConnector", "site-id-1", "http://stub.test/1", true));
+        ctx.SeriesSourceIds.Add(new SourceId<Series>(series, "StubConnector", "site-id-1", "http://stub.test/1", true));
         await ctx.SaveChangesAsync();
     }
 
@@ -78,7 +78,7 @@ public class SeriesIncludeSplitQueryTests : IAsyncLifetime
         var counter = new SelectCommandCounter();
         await using var ctx = new SeriesContext(SplitOptions(counter));
 
-        var sourceId = await ctx.MangaConnectorToManga
+        var sourceId = await ctx.SeriesSourceIds
             .Include(id => id.Obj)
             .ThenInclude(m => m.Chapters)
             .ThenInclude(ch => ch.SourceIds)

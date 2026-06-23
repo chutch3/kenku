@@ -22,7 +22,7 @@ public class TorrentFinalizationService
     public async Task FinalizeAsync(SeriesContext seriesContext, ActionsContext actionsContext,
         IDownloadClient downloadClient, KenkuSettings settings, string sourceIdKey, string savePath, CancellationToken ct)
     {
-        SourceId<Chapter>? chId = await seriesContext.MangaConnectorToChapter
+        SourceId<Chapter>? chId = await seriesContext.ChapterSourceIds
             .Include(id => id.Obj).ThenInclude(c => c.ParentManga).ThenInclude(m => m.Library)
             .FirstOrDefaultAsync(id => id.Key == sourceIdKey, ct);
         if (chId is null)

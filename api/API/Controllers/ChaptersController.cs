@@ -233,7 +233,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     public async Task<Results<Ok<DTOs.SourceId<Chapter>>, NotFound<string>>> GetChapterSourceId (string MangaConnectorIdId)
     {
-        if (await context.MangaConnectorToChapter.FirstOrDefaultAsync(c => c.Key == MangaConnectorIdId, HttpContext.RequestAborted) is not { } mcIdManga)
+        if (await context.ChapterSourceIds.FirstOrDefaultAsync(c => c.Key == MangaConnectorIdId, HttpContext.RequestAborted) is not { } mcIdManga)
             return TypedResults.NotFound(nameof(MangaConnectorIdId));
 
         DTOs.SourceId<Chapter> result = new (mcIdManga.Key, mcIdManga.MangaConnectorName, mcIdManga.ObjId, mcIdManga.IdOnConnectorSite, mcIdManga.WebsiteUrl, mcIdManga.UseForDownload);
@@ -252,7 +252,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     public async Task<Results<Ok, NotFound<string>>> DeleteChapterSourceId (string MangaConnectorIdId)
     {
-        if (await context.MangaConnectorToChapter.Where(c => c.Key == MangaConnectorIdId).ExecuteDeleteAsync(HttpContext.RequestAborted) < 1)
+        if (await context.ChapterSourceIds.Where(c => c.Key == MangaConnectorIdId).ExecuteDeleteAsync(HttpContext.RequestAborted) < 1)
             return TypedResults.NotFound(nameof(MangaConnectorIdId));
         return TypedResults.Ok();
     }
@@ -276,7 +276,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
         string ChapterSourceKey, bool IsRequested,
         [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock)
     {
-        if (await context.MangaConnectorToChapter.Include(id => id.Obj)
+        if (await context.ChapterSourceIds.Include(id => id.Obj)
                 .FirstOrDefaultAsync(id => id.Key == ChapterSourceKey, HttpContext.RequestAborted) is not { } chId)
             return TypedResults.NotFound(nameof(ChapterSourceKey));
 
@@ -285,7 +285,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
         {
             // Picking one upload makes it the chapter's download; clear the siblings so the same chapter
             // isn't fetched several times into one file.
-            List<Schema.SeriesContext.SourceId<Schema.SeriesContext.Chapter>> siblings = await context.MangaConnectorToChapter
+            List<Schema.SeriesContext.SourceId<Schema.SeriesContext.Chapter>> siblings = await context.ChapterSourceIds
                 .Where(id => id.ObjId == chId.ObjId && id.Key != chId.Key)
                 .ToListAsync(HttpContext.RequestAborted);
             foreach (var sibling in siblings)
@@ -315,7 +315,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
     public async Task<Results<Ok, NotFound<string>>> ForceDownload(string ChapterId,
         [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock)
     {
-        if (await context.MangaConnectorToChapter.Include(id => id.Obj)
+        if (await context.ChapterSourceIds.Include(id => id.Obj)
                 .FirstOrDefaultAsync(id => id.ObjId == ChapterId && id.UseForDownload, HttpContext.RequestAborted) is not { } source)
             return TypedResults.NotFound(nameof(ChapterId));
 
@@ -423,7 +423,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     public async Task<Results<Ok<DownloadOptionsResponse>, NotFound<string>>> GetDownloadOptions(string ChapterSourceKey)
     {
-        if (await context.MangaConnectorToChapter.Include(id => id.Obj)
+        if (await context.ChapterSourceIds.Include(id => id.Obj)
                 .FirstOrDefaultAsync(id => id.Key == ChapterSourceKey, HttpContext.RequestAborted) is not { } chId)
             return TypedResults.NotFound(nameof(ChapterSourceKey));
         return TypedResults.Ok(await ResolveDownloadOptions(chId));
@@ -463,7 +463,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
         [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore,
         [FromServices] API.JobRuntime.Interfaces.IClock clock)
     {
-        if (await context.MangaConnectorToChapter.Include(id => id.Obj)
+        if (await context.ChapterSourceIds.Include(id => id.Obj)
                 .FirstOrDefaultAsync(id => id.Key == ChapterSourceKey, HttpContext.RequestAborted) is not { } chId)
             return TypedResults.NotFound(nameof(ChapterSourceKey));
 

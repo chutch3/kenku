@@ -58,7 +58,7 @@ public class CoverDownloadServiceTests : IDisposable
             [], [], [], [], library);
         _seriesContext.Series.Add(manga);
         var mcId = new SourceId<Series>(manga, "Fake:Conn", "site-id", "https://fake.com/x", useForDownload);
-        _seriesContext.MangaConnectorToManga.Add(mcId);
+        _seriesContext.SeriesSourceIds.Add(mcId);
         await _seriesContext.SaveChangesAsync();
         return mcId;
     }

@@ -64,7 +64,7 @@ public class SeriesDeletionEndToEndTests : IAsyncLifetime
             var chapter = new Chapter(manga, "106", null, null);
             ctx.Chapters.Add(chapter);
             var sourceId = new SourceId<Chapter>(chapter, "Indexers", "106", null, true);
-            ctx.MangaConnectorToChapter.Add(sourceId);
+            ctx.ChapterSourceIds.Add(sourceId);
             await ctx.SaveChangesAsync();
             return (manga.Key, sourceId.Key);
         });
@@ -100,7 +100,7 @@ public class SeriesDeletionEndToEndTests : IAsyncLifetime
             ctx.Chapters.AddRange(torrentChapter, scrapeChapter);
             var torrentId = new SourceId<Chapter>(torrentChapter, "Indexers", "1", null, true);
             var scrapeId = new SourceId<Chapter>(scrapeChapter, "WeebCentral", "2", null, true);
-            ctx.MangaConnectorToChapter.AddRange(torrentId, scrapeId);
+            ctx.ChapterSourceIds.AddRange(torrentId, scrapeId);
             await ctx.SaveChangesAsync();
             return (manga.Key, torrentId.Key, scrapeId.Key);
         });
@@ -123,7 +123,7 @@ public class SeriesDeletionEndToEndTests : IAsyncLifetime
             var chapter = new Chapter(manga, "1", null, null);
             ctx.Chapters.Add(chapter);
             var sourceId = new SourceId<Chapter>(chapter, "INDEXERS", "1", null, true);
-            ctx.MangaConnectorToChapter.Add(sourceId);
+            ctx.ChapterSourceIds.Add(sourceId);
             await ctx.SaveChangesAsync();
             return (manga.Key, sourceId.Key);
         });

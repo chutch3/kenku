@@ -23,7 +23,7 @@ public class SeriesChapterSyncService(IEnumerable<SeriesSource> connectors)
         Log.DebugFormat("Getting Chapters for SourceId {0}...", sourceIdKey);
         // Hard failures throw so the dispatcher records them and bounded retry → NeedsAttention applies.
         // Swallowing them here left sync jobs "Succeeded" while the series sat empty with no signal.
-        if (await seriesContext.MangaConnectorToManga
+        if (await seriesContext.SeriesSourceIds
                 .Include(id => id.Obj)
                 .ThenInclude(m => m.Chapters)
                 .ThenInclude(ch => ch.SourceIds)
@@ -96,7 +96,7 @@ public class SeriesChapterSyncService(IEnumerable<SeriesSource> connectors)
         Log.DebugFormat("Got {0} new download-Ids.", newIds.Count);
 
         // Add new ChapterIds to Database
-        seriesContext.MangaConnectorToChapter.AddRange(newIds);
+        seriesContext.ChapterSourceIds.AddRange(newIds);
 
         // If Series is marked for Download from Connector, mark the new Chapters as UseForDownload
         if (mangaConnectorId.UseForDownload)

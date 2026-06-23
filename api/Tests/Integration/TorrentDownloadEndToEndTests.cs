@@ -119,7 +119,7 @@ public class TorrentDownloadEndToEndTests : IAsyncLifetime
             var chapter = new Chapter(manga, "60", null, null);
             ctx.Chapters.Add(chapter);
             var sourceId = new SourceId<Chapter>(chapter, "FakeTorrent", "60", null, true);
-            ctx.MangaConnectorToChapter.Add(sourceId);
+            ctx.ChapterSourceIds.Add(sourceId);
             await ctx.SaveChangesAsync();
             return (chapterKey: chapter.Key, sourceKey: sourceId.Key, dir: manga.FullDirectoryPath);
         });

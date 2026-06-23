@@ -36,7 +36,7 @@ public class SourceRematchEndToEndTests() : OutboundHttpIntegrationTest(Connecto
         response.EnsureSuccessStatusCode();
 
         var sources = await App.WithSeriesContext(c =>
-            c.MangaConnectorToManga.Where(id => id.ObjId == mangaId).ToListAsync());
+            c.SeriesSourceIds.Where(id => id.ObjId == mangaId).ToListAsync());
         SourceId<Series> replacement = Assert.Single(sources);
         Assert.Equal("01ABC", replacement.IdOnConnectorSite);
         Assert.Equal("WeebCentral", replacement.MangaConnectorName);

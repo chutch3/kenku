@@ -45,7 +45,7 @@ public class TorrentCompletionReconciler(IServiceScopeFactory scopeFactory, IClo
         if (torrentSourceNames.Count == 0)
             return 0;
 
-        List<SourceId<Chapter>> pending = await series.MangaConnectorToChapter
+        List<SourceId<Chapter>> pending = await series.ChapterSourceIds
             .Include(id => id.Obj)
             .Where(id => !id.Obj.Downloaded && id.UseForDownload)
             .ToListAsync(ct);

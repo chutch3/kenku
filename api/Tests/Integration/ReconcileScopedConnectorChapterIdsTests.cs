@@ -42,7 +42,7 @@ public class ReconcileScopedConnectorChapterIdsTests : IAsyncLifetime
         reuploaded.SourceIds.Add(uploadB);
 
         ctx.Chapters.AddRange(rescoped, reuploaded);
-        ctx.MangaConnectorToChapter.AddRange(stale, current, uploadA, uploadB);
+        ctx.ChapterSourceIds.AddRange(stale, current, uploadA, uploadB);
         await ctx.SaveChangesAsync();
     }
 
@@ -55,10 +55,13 @@ public class ReconcileScopedConnectorChapterIdsTests : IAsyncLifetime
     public async Task Dedup_RemovesRescopedPredecessor_AndKeepsDistinctReuploads()
     {
         await using (var ctx = NewContext())
-            await ctx.Database.ExecuteSqlRawAsync(ReconcileScopedConnectorChapterIds.DedupSql);
+            // DedupSql is pinned to the historical table name (the migration runs before the rename);
+            // adapt it to the current schema to re-verify the dedup invariant still holds.
+            await ctx.Database.ExecuteSqlRawAsync(
+                ReconcileScopedConnectorChapterIds.DedupSql.Replace("MangaConnectorToChapter", "ChapterSourceIds"));
 
         await using var verify = NewContext();
-        var ids = await verify.MangaConnectorToChapter.Select(s => s.IdOnConnectorSite).ToListAsync();
+        var ids = await verify.ChapterSourceIds.Select(s => s.IdOnConnectorSite).ToListAsync();
 
         Assert.DoesNotContain("issue-1", ids);                          // stale predecessor removed
         Assert.Contains("the-boys/issue-1", ids);                       // rescoped survivor kept

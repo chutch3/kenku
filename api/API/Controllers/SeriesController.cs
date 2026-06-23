@@ -276,7 +276,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
         if (string.IsNullOrWhiteSpace(requestData.IdOnConnectorSite))
             return TypedResults.BadRequest("idOnConnectorSite must not be empty.");
 
-        if (await context.MangaConnectorToManga
+        if (await context.SeriesSourceIds
                 .Include(id => id.Obj)
                 .FirstOrDefaultAsync(id => id.Key == SourceIdKey, HttpContext.RequestAborted) is not { } oldSource
             || oldSource.ObjId != MangaId)
@@ -285,8 +285,8 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
         var replacement = new Schema.SeriesContext.SourceId<Schema.SeriesContext.Series>(
             oldSource.Obj, oldSource.MangaConnectorName, requestData.IdOnConnectorSite, requestData.WebsiteUrl,
             oldSource.UseForDownload);
-        context.MangaConnectorToManga.Remove(oldSource);
-        context.MangaConnectorToManga.Add(replacement);
+        context.SeriesSourceIds.Remove(oldSource);
+        context.SeriesSourceIds.Add(replacement);
         if (await context.Sync(HttpContext.RequestAborted, GetType(), "Rematch source") is { success: false } result)
             return TypedResults.NotFound(result.exceptionMessage);
 
@@ -469,7 +469,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     public async Task<Results<Ok<DTOs.SourceId<Series>>, NotFound<string>>> GetMangaMangaConnectorId (string MangaConnectorIdId)
     {
-        if (await context.MangaConnectorToManga.FirstOrDefaultAsync(c => c.Key == MangaConnectorIdId, HttpContext.RequestAborted) is not { } mcIdManga)
+        if (await context.SeriesSourceIds.FirstOrDefaultAsync(c => c.Key == MangaConnectorIdId, HttpContext.RequestAborted) is not { } mcIdManga)
             return TypedResults.NotFound(nameof(MangaConnectorIdId));
 
         DTOs.SourceId<Series> result = new (mcIdManga.Key, mcIdManga.MangaConnectorName, mcIdManga.ObjId, mcIdManga.IdOnConnectorSite, mcIdManga.WebsiteUrl, mcIdManga.UseForDownload);
@@ -487,7 +487,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [ProducesResponseType<int>(Status200OK, "text/plain")]
     public async Task<Ok<int>> ForceRecheckMangaChapters(string? mangaId = null)
     {
-        IQueryable<Schema.SeriesContext.SourceId<Chapter>> queryable = context.MangaConnectorToChapter.Where(chId  => chId.Obj!.Downloaded);
+        IQueryable<Schema.SeriesContext.SourceId<Chapter>> queryable = context.ChapterSourceIds.Where(chId  => chId.Obj!.Downloaded);
         if(mangaId is not null)
             queryable = queryable.Where(chId => chId.Obj!.ParentMangaId == mangaId);
         
@@ -505,7 +505,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [ProducesResponseType<int>(Status200OK, "text/plain")]
     public async Task<Ok<int>> ForceRecheckChapter(string chapterId)
     {
-        IQueryable<Schema.SeriesContext.SourceId<Chapter>> queryable = context.MangaConnectorToChapter.Where(chId  => chId.ObjId == chapterId);
+        IQueryable<Schema.SeriesContext.SourceId<Chapter>> queryable = context.ChapterSourceIds.Where(chId  => chId.ObjId == chapterId);
         
         int rowsAffected = await queryable.ExecuteDeleteAsync(HttpContext.RequestAborted);
 

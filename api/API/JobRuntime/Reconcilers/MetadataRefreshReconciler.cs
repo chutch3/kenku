@@ -36,7 +36,7 @@ public class MetadataRefreshReconciler(IServiceScopeFactory scopeFactory, IClock
             .Select(s => s.Key)
             .ToListAsync(ct)).ToHashSet();
 
-        List<string> mangaIds = (await series.MangaConnectorToManga
+        List<string> mangaIds = (await series.SeriesSourceIds
             .Where(m => m.UseForDownload)
             .Join(series.MetadataEntries, mcId => mcId.ObjId, e => e.MangaId, (_, e) => e.MangaId)
             .Distinct()

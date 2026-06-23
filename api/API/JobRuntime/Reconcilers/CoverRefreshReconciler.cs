@@ -30,7 +30,7 @@ public class CoverRefreshReconciler(IServiceScopeFactory scopeFactory, IClock cl
     {
         // Skip sources whose series has no cover URL (e.g. indexer/torrent-sourced): there is nothing to
         // download, so enqueuing would only create jobs that fail their way to NeedsAttention.
-        var ids = await series.MangaConnectorToManga
+        var ids = await series.SeriesSourceIds
             .Where(m => m.UseForDownload && m.Obj.CoverUrl != null && m.Obj.CoverUrl != "")
             .Select(m => new { m.Key, m.ObjId })
             .ToListAsync(ct);

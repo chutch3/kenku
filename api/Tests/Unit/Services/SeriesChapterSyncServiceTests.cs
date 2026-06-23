@@ -48,7 +48,7 @@ public class SeriesChapterSyncServiceTests : IDisposable
         var mockConnector = new Mock<SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
         var mangaMcId = new SourceId(manga, "MangaDex", "manga-id", "url");
         manga.SourceIds.Add(mangaMcId);
-        _mangaContext.MangaConnectorToManga.Add(mangaMcId);
+        _mangaContext.SeriesSourceIds.Add(mangaMcId);
 
         var existing = new Chapter(manga, "384", 44, "The Shifting Water Mirror");
         var existingA = new ChapterConnectorId(existing, "MangaDex", "uuid-a", "url");
@@ -56,7 +56,7 @@ public class SeriesChapterSyncServiceTests : IDisposable
         existing.SourceIds.Add(existingA);
         existing.SourceIds.Add(existingB);
         _mangaContext.Chapters.Add(existing);
-        _mangaContext.MangaConnectorToChapter.AddRange(existingA, existingB);
+        _mangaContext.ChapterSourceIds.AddRange(existingA, existingB);
         await _mangaContext.SaveChangesAsync();
 
         // The connector now returns the same two uploads, with groups + conflicting titles.
@@ -70,7 +70,7 @@ public class SeriesChapterSyncServiceTests : IDisposable
         await new SeriesChapterSyncService([mockConnector.Object])
             .SyncAsync(_mangaContext, _actionsContext, mangaMcId.Key, "en", CancellationToken.None);
 
-        var healed = await _mangaContext.MangaConnectorToChapter.ToListAsync();
+        var healed = await _mangaContext.ChapterSourceIds.ToListAsync();
         Assert.Equal("Evil Genius", healed.Single(s => s.IdOnConnectorSite == "uuid-a").ScanGroup);
         Assert.Equal("Aqua Scans", healed.Single(s => s.IdOnConnectorSite == "uuid-b").ScanGroup);
         Assert.Equal("en", healed.Single(s => s.IdOnConnectorSite == "uuid-a").Language);
@@ -87,14 +87,14 @@ public class SeriesChapterSyncServiceTests : IDisposable
         
         var mangaMcId = new SourceId(manga, "MangaDex", "manga-id", "url");
         manga.SourceIds.Add(mangaMcId);
-        _mangaContext.MangaConnectorToManga.Add(mangaMcId);
+        _mangaContext.SeriesSourceIds.Add(mangaMcId);
 
         // Existing chapter with NO volume
         var existingChapter = new Chapter(manga, "1", null, "Title");
         var existingChMcId = new ChapterConnectorId(existingChapter, "MangaDex", "chap-1", "url");
         existingChapter.SourceIds.Add(existingChMcId);
         _mangaContext.Chapters.Add(existingChapter);
-        _mangaContext.MangaConnectorToChapter.Add(existingChMcId);
+        _mangaContext.ChapterSourceIds.Add(existingChMcId);
         
         await _mangaContext.SaveChangesAsync();
 
@@ -123,7 +123,7 @@ public class SeriesChapterSyncServiceTests : IDisposable
         var mockConnector = new Mock<SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
         var mangaMcId = new SourceId(manga, "MangaDex", "manga-id", "url");
         manga.SourceIds.Add(mangaMcId);
-        _mangaContext.MangaConnectorToManga.Add(mangaMcId);
+        _mangaContext.SeriesSourceIds.Add(mangaMcId);
         await _mangaContext.SaveChangesAsync();
 
         mockConnector.Setup(c => c.GetChapters(It.IsAny<SourceId>(), It.IsAny<string>())).ReturnsAsync([]);
@@ -145,7 +145,7 @@ public class SeriesChapterSyncServiceTests : IDisposable
         var mockConnector = new Mock<SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
         var mangaMcId = new SourceId(manga, "MangaDex", "manga-id", "url");
         manga.SourceIds.Add(mangaMcId);
-        _mangaContext.MangaConnectorToManga.Add(mangaMcId);
+        _mangaContext.SeriesSourceIds.Add(mangaMcId);
         await _mangaContext.SaveChangesAsync();
 
         var ch1 = new Chapter(manga, "1", null, null);
@@ -177,7 +177,7 @@ public class SeriesChapterSyncServiceTests : IDisposable
         _mangaContext.Series.Add(manga);
         var mangaMcId = new SourceId(manga, "GoneConnector", "manga-id", "url");
         manga.SourceIds.Add(mangaMcId);
-        _mangaContext.MangaConnectorToManga.Add(mangaMcId);
+        _mangaContext.SeriesSourceIds.Add(mangaMcId);
         await _mangaContext.SaveChangesAsync();
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -205,7 +205,7 @@ public class SeriesChapterSyncServiceTests : IDisposable
         var mockConnector = new Mock<SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
         var mangaMcId = new SourceId(manga, "MangaDex", "manga-id", "url");
         manga.SourceIds.Add(mangaMcId);
-        failing.MangaConnectorToManga.Add(mangaMcId);
+        failing.SeriesSourceIds.Add(mangaMcId);
         await failing.SaveChangesAsync();
 
         var ch1 = new Chapter(manga, "1", null, null);
@@ -226,7 +226,7 @@ public class SeriesChapterSyncServiceTests : IDisposable
         var mockConnector = new Mock<SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
         var mangaMcId = new SourceId(manga, "MangaDex", "manga-id", "url");
         manga.SourceIds.Add(mangaMcId);
-        _mangaContext.MangaConnectorToManga.Add(mangaMcId);
+        _mangaContext.SeriesSourceIds.Add(mangaMcId);
         await _mangaContext.SaveChangesAsync();
 
         var ch1 = new Chapter(manga, "1", null, null);
