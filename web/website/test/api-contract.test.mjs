@@ -250,7 +250,7 @@ function propsOf(node) {
 }
 
 test('LooseChapters contract: /volumes exposes loose chapters and assignments accepts a chapter→volume map', () => {
-    const volContent = schema.paths['/v2/Series/{MangaId}/volumes']?.get?.responses?.['200']?.content;
+    const volContent = schema.paths['/v2/Series/{SeriesId}/volumes']?.get?.responses?.['200']?.content;
     const volSchema = jsonSchema(volContent);
     assert.ok(propsOf(volSchema)?.includes('unassigned'), 'VolumeListResult must expose `unassigned`');
 
@@ -260,6 +260,6 @@ test('LooseChapters contract: /volumes exposes loose chapters and assignments ac
         assert.ok(entryProps?.includes(field), `loose chapter entries must expose \`${field}\``);
     }
 
-    const asnContent = schema.paths['/v2/Series/{MangaId}/volumes/assignments']?.post?.requestBody?.content;
+    const asnContent = schema.paths['/v2/Series/{SeriesId}/volumes/assignments']?.post?.requestBody?.content;
     assert.ok(propsOf(jsonSchema(asnContent))?.includes('assignments'), 'assignment request must accept `assignments`');
 });

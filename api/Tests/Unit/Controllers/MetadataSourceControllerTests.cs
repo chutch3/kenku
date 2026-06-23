@@ -46,7 +46,7 @@ public class MetadataSourceControllerTests
     private static API.Schema.SeriesContext.Series MakeTestManga(string name = "Test Series")
         => new(name, "", "http://example.com/img.jpg", SeriesReleaseStatus.Continuing, [], [], [], []);
 
-    // --- GET /v2/Series/{mangaId}/metadataSource ---
+    // --- GET /v2/Series/{seriesId}/metadataSource ---
 
     [Fact]
     public async Task GetMetadataSource_KnownManga_ReturnsSource()
@@ -76,7 +76,7 @@ public class MetadataSourceControllerTests
         Assert.IsType<NotFound<string>>(result.Result);
     }
 
-    // --- PUT /v2/Series/{mangaId}/metadataSource ---
+    // --- PUT /v2/Series/{seriesId}/metadataSource ---
 
     [Fact]
     public async Task SetMetadataSource_ValidRequest_SetsConfirmedStatus()
@@ -135,7 +135,7 @@ public class MetadataSourceControllerTests
         Assert.IsType<NotFound<string>>(result.Result);
     }
 
-    // --- GET /v2/Series/{mangaId}/metadataSource/candidates ---
+    // --- GET /v2/Series/{seriesId}/metadataSource/candidates ---
 
     [Fact]
     public async Task GetCandidates_UnknownManga_ReturnsNotFound()
@@ -175,7 +175,7 @@ public class MetadataSourceControllerTests
         Assert.Equal("One Piece", ok.Value[0].Title);
     }
 
-    // --- POST /v2/Series/{mangaId}/metadataSource/refresh ---
+    // --- POST /v2/Series/{seriesId}/metadataSource/refresh ---
 
     [Fact]
     public async Task RefreshMetadataSource_UnknownManga_ReturnsNotFound()

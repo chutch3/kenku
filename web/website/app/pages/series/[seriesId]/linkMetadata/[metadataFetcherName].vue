@@ -21,34 +21,34 @@
 
 <script setup lang="ts">
 const route = useRoute();
-const mangaId = route.params.mangaId as string;
+const seriesId = route.params.seriesId as string;
 const metadataFetcherName = route.params.metadataFetcherName as string;
 const { $api } = useNuxtApp();
 
-const { data: series } = await useApi('/v2/Series/{MangaId}', {
-    path: { MangaId: mangaId },
-    key: FetchKeys.Series.Id(mangaId),
+const { data: series } = await useApi('/v2/Series/{SeriesId}', {
+    path: { SeriesId: seriesId },
+    key: FetchKeys.Series.Id(seriesId),
     onResponseError: (e) => {
         console.error(e);
         navigateTo('/');
     },
 });
 
-const { data: searchData, status } = await useApi('/v2/MetadataFetcher/{MetadataFetcherName}/SearchManga/{MangaId}', {
+const { data: searchData, status } = await useApi('/v2/MetadataFetcher/{MetadataFetcherName}/SearchManga/{SeriesId}', {
     method: 'POST',
-    path: { MetadataFetcherName: metadataFetcherName, MangaId: mangaId },
+    path: { MetadataFetcherName: metadataFetcherName, SeriesId: seriesId },
     lazy: true,
     server: false,
 });
 
 const link = async (identifier: string) => {
-    await $api('/v2/MetadataFetcher/{MetadataFetcherName}/Link/{MangaId}', {
+    await $api('/v2/MetadataFetcher/{MetadataFetcherName}/Link/{SeriesId}', {
         method: 'POST',
-        path: { MangaId: mangaId, MetadataFetcherName: metadataFetcherName },
+        path: { SeriesId: seriesId, MetadataFetcherName: metadataFetcherName },
         body: identifier,
     });
-    await refreshNuxtData(FetchKeys.Metadata.Series(mangaId));
-    navigateTo(`/series/${mangaId}`);
+    await refreshNuxtData(FetchKeys.Metadata.Series(seriesId));
+    navigateTo(`/series/${seriesId}`);
 };
 
 useHead({ title: 'Link Metadata' });

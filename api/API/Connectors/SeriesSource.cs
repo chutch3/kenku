@@ -77,15 +77,15 @@ public abstract class SeriesSource(string name, string[] supportedLanguages, str
 
     public abstract Task<(Series, SourceId<Series>)?> GetMangaFromId(string mangaIdOnSite);
 
-    public abstract Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> mangaId,
+    public abstract Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> seriesId,
         string? language = null);
 
     internal abstract Task<string[]> GetChapterImageUrls(SourceId<Chapter> chapterId);
 
     public bool UrlMatchesConnector(string url) => BaseUris.Any(baseUri => Regex.IsMatch(url, "https?://" + baseUri + "/.*"));
 
-    internal Task<string?> SaveCoverImageToCache(SourceId<Series> mangaId, int retries = 3) =>
-        Services.CoverImageCache.SaveAsync(settings, downloadClient, mangaId, retries);
+    internal Task<string?> SaveCoverImageToCache(SourceId<Series> seriesId, int retries = 3) =>
+        Services.CoverImageCache.SaveAsync(settings, downloadClient, seriesId, retries);
 
     public virtual async Task<Stream?> DownloadImage(string imageUrl, CancellationToken ct)
     {

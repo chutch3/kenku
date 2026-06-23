@@ -57,7 +57,7 @@ public class SeriesDeletionEndToEndTests : IAsyncLifetime
     [Fact]
     public async Task DeletingASeries_RemovesItsJobs_AndReleasesItsTorrents()
     {
-        (string mangaId, string chapterSourceKey) = await _app.WithSeriesContext(async ctx =>
+        (string seriesId, string chapterSourceKey) = await _app.WithSeriesContext(async ctx =>
         {
             var manga = new Series("Invincible", "", "", SeriesReleaseStatus.Continuing, [], [], [], []);
             ctx.Series.Add(manga);
@@ -72,17 +72,17 @@ public class SeriesDeletionEndToEndTests : IAsyncLifetime
         using (var scope = _app.Services.CreateScope())
         {
             var store = scope.ServiceProvider.GetRequiredService<IJobStore>();
-            await store.EnqueueAsync(new JobEntity(DownloadChapterHandler.Type, "{}", DateTime.UtcNow, resourceKey: mangaId));
-            var broken = await store.EnqueueAsync(new JobEntity(SyncSeriesChaptersHandler.Type, "{}", DateTime.UtcNow, resourceKey: mangaId));
+            await store.EnqueueAsync(new JobEntity(DownloadChapterHandler.Type, "{}", DateTime.UtcNow, resourceKey: seriesId));
+            var broken = await store.EnqueueAsync(new JobEntity(SyncSeriesChaptersHandler.Type, "{}", DateTime.UtcNow, resourceKey: seriesId));
             broken.Status = JobStatus.NeedsAttention;
             broken.Error = "SourceId not found";
             await store.UpdateAsync(broken);
         }
 
-        var response = await _app.CreateClient().DeleteAsync($"/v2/Series/{mangaId}");
+        var response = await _app.CreateClient().DeleteAsync($"/v2/Series/{seriesId}");
         response.EnsureSuccessStatusCode();
 
-        Assert.Empty(await _app.WithJobsContext(c => c.JobQueue.Where(j => j.ResourceKey == mangaId).ToListAsync()));
+        Assert.Empty(await _app.WithJobsContext(c => c.JobQueue.Where(j => j.ResourceKey == seriesId).ToListAsync()));
         Assert.Contains(chapterSourceKey, _client.Removed);
     }
 
@@ -91,7 +91,7 @@ public class SeriesDeletionEndToEndTests : IAsyncLifetime
     [Fact]
     public async Task DeletingASeries_OnlyReleasesTorrentTaggedChapters()
     {
-        (string mangaId, string torrentKey, string scrapeKey) = await _app.WithSeriesContext(async ctx =>
+        (string seriesId, string torrentKey, string scrapeKey) = await _app.WithSeriesContext(async ctx =>
         {
             var manga = new Series("The Boys", "", "", SeriesReleaseStatus.Completed, [], [], [], []);
             ctx.Series.Add(manga);
@@ -105,7 +105,7 @@ public class SeriesDeletionEndToEndTests : IAsyncLifetime
             return (manga.Key, torrentId.Key, scrapeId.Key);
         });
 
-        var response = await _app.CreateClient().DeleteAsync($"/v2/Series/{mangaId}");
+        var response = await _app.CreateClient().DeleteAsync($"/v2/Series/{seriesId}");
         response.EnsureSuccessStatusCode();
 
         Assert.Contains(torrentKey, _client.Removed);
@@ -116,7 +116,7 @@ public class SeriesDeletionEndToEndTests : IAsyncLifetime
     [Fact]
     public async Task DeletingASeries_MatchesTorrentSourcesCaseInsensitively()
     {
-        (string mangaId, string torrentKey) = await _app.WithSeriesContext(async ctx =>
+        (string seriesId, string torrentKey) = await _app.WithSeriesContext(async ctx =>
         {
             var manga = new Series("Preacher", "", "", SeriesReleaseStatus.Completed, [], [], [], []);
             ctx.Series.Add(manga);
@@ -128,7 +128,7 @@ public class SeriesDeletionEndToEndTests : IAsyncLifetime
             return (manga.Key, sourceId.Key);
         });
 
-        var response = await _app.CreateClient().DeleteAsync($"/v2/Series/{mangaId}");
+        var response = await _app.CreateClient().DeleteAsync($"/v2/Series/{seriesId}");
         response.EnsureSuccessStatusCode();
 
         Assert.Contains(torrentKey, _client.Removed);

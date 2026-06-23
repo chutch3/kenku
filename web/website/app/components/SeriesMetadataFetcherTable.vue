@@ -33,7 +33,7 @@
                     </UTooltip>
                     <UButton
                         v-if="metadata.find((me) => me.metadataFetcherName === row.original) === undefined"
-                        :to="`/series/${mangaId}/linkMetadata/${row.original}?return=${$route.fullPath}`"
+                        :to="`/series/${seriesId}/linkMetadata/${row.original}?return=${$route.fullPath}`"
                         loading-auto
                         :aria-label="`Link ${row.original}`"
                         icon="i-lucide-link" />
@@ -44,15 +44,15 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ mangaId: string; kind?: SeriesKind }>();
-const mangaId = props.mangaId;
+const props = defineProps<{ seriesId: string; kind?: SeriesKind }>();
+const seriesId = props.seriesId;
 
 const { $api } = useNuxtApp();
 
 const { data: metadataFetchers } = await useApi('/v2/MetadataFetcher', { key: FetchKeys.Metadata.Fetchers, lazy: true, server: false });
-const { data: metadata } = await useApi('/v2/MetadataFetcher/Links/{MangaId}', {
-    path: { MangaId: mangaId },
-    key: FetchKeys.Metadata.Series(mangaId),
+const { data: metadata } = await useApi('/v2/MetadataFetcher/Links/{SeriesId}', {
+    path: { SeriesId: seriesId },
+    key: FetchKeys.Metadata.Series(seriesId),
     lazy: true,
     server: false,
 });
@@ -68,18 +68,18 @@ const visibleFetchers = computed(() =>
 );
 
 const unlinkMetadataFetcher = async (metadataFetcherName: string) => {
-    await $api('/v2/MetadataFetcher/{MetadataFetcherName}/Unlink/{MangaId}', {
+    await $api('/v2/MetadataFetcher/{MetadataFetcherName}/Unlink/{SeriesId}', {
         method: 'POST',
-        path: { MangaId: mangaId, MetadataFetcherName: metadataFetcherName },
+        path: { SeriesId: seriesId, MetadataFetcherName: metadataFetcherName },
     });
-    await refreshNuxtData(FetchKeys.Metadata.Series(mangaId));
+    await refreshNuxtData(FetchKeys.Metadata.Series(seriesId));
 };
 
 const updateMetadata = async (metadataFetcherName: string) => {
-    await $api('/v2/MetadataFetcher/{MetadataFetcherName}/Update/{MangaId}', {
+    await $api('/v2/MetadataFetcher/{MetadataFetcherName}/Update/{SeriesId}', {
         method: 'POST',
-        path: { MangaId: mangaId, MetadataFetcherName: metadataFetcherName },
+        path: { SeriesId: seriesId, MetadataFetcherName: metadataFetcherName },
     });
-    await refreshNuxtData(FetchKeys.Series.Id(mangaId));
+    await refreshNuxtData(FetchKeys.Series.Id(seriesId));
 };
 </script>

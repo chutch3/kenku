@@ -118,15 +118,15 @@
         }
       }
     },
-    "/v2/Chapters/Series/{MangaId}": {
+    "/v2/Chapters/Series/{SeriesId}": {
       "post": {
         "tags": [
           "Chapters"
         ],
-        "summary": "Returns all API.Schema.SeriesContext.Chapter of API.Schema.SeriesContext.Series with MangaId",
+        "summary": "Returns all API.Schema.SeriesContext.Chapter of API.Schema.SeriesContext.Series with SeriesId",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "API.Schema.SeriesContext.Series.Key",
             "required": true,
@@ -217,7 +217,7 @@
         }
       }
     },
-    "/v2/Chapters/LatestAvailable/{MangaId}": {
+    "/v2/Chapters/LatestAvailable/{SeriesId}": {
       "get": {
         "tags": [
           "Chapters"
@@ -225,7 +225,7 @@
         "summary": "Returns the latest API.Controllers.DTOs.Chapter of requested API.Schema.SeriesContext.Series",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "API.Schema.SeriesContext.Series.Key",
             "required": true,
@@ -250,7 +250,7 @@
             "description": "No available chapters"
           },
           "404": {
-            "description": "API.Schema.SeriesContext.Series with MangaId not found.",
+            "description": "API.Schema.SeriesContext.Series with SeriesId not found.",
             "content": {
               "text/plain; x-version=2.0": {
                 "schema": {
@@ -262,7 +262,7 @@
         }
       }
     },
-    "/v2/Chapters/LatestDownloaded/{MangaId}": {
+    "/v2/Chapters/LatestDownloaded/{SeriesId}": {
       "get": {
         "tags": [
           "Chapters"
@@ -270,7 +270,7 @@
         "summary": "Returns the latest API.Controllers.DTOs.Chapter of requested API.Schema.SeriesContext.Series that is downloaded",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "API.Schema.SeriesContext.Series.Key",
             "required": true,
@@ -294,7 +294,7 @@
             "description": "No available chapters"
           },
           "404": {
-            "description": "API.Schema.SeriesContext.Series with MangaId not found.",
+            "description": "API.Schema.SeriesContext.Series with SeriesId not found.",
             "content": {
               "text/plain; x-version=2.0": {
                 "schema": {
@@ -329,7 +329,7 @@
         }
       }
     },
-    "/v2/Chapters/IgnoreBefore/{MangaId}": {
+    "/v2/Chapters/IgnoreBefore/{SeriesId}": {
       "patch": {
         "tags": [
           "Chapters"
@@ -337,7 +337,7 @@
         "summary": "Configure the API.Controllers.DTOs.Chapter cut-off for API.Schema.SeriesContext.Series",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "API.Schema.SeriesContext.Series.Key",
             "required": true,
@@ -380,7 +380,7 @@
             "description": "OK"
           },
           "404": {
-            "description": "API.Schema.SeriesContext.Series with MangaId not found.",
+            "description": "API.Schema.SeriesContext.Series with SeriesId not found.",
             "content": {
               "text/plain; x-version=2.0": {
                 "schema": {
@@ -2176,15 +2176,15 @@
         }
       }
     },
-    "/v2/MetadataFetcher/Links/{MangaId}": {
+    "/v2/MetadataFetcher/Links/{SeriesId}": {
       "get": {
         "tags": [
           "MetadataFetcher"
         ],
-        "summary": "Returns all API.Schema.SeriesContext.MetadataFetchers.MetadataEntry for API.Schema.SeriesContext.Series with MangaId",
+        "summary": "Returns all API.Schema.SeriesContext.MetadataFetchers.MetadataEntry for API.Schema.SeriesContext.Series with SeriesId",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "required": true,
             "schema": {
@@ -2207,7 +2207,7 @@
             }
           },
           "404": {
-            "description": "API.Schema.SeriesContext.Series with MangaId not found",
+            "description": "API.Schema.SeriesContext.Series with SeriesId not found",
             "content": {
               "application/json; x-version=2.0": {
                 "schema": {
@@ -2222,7 +2222,7 @@
         }
       }
     },
-    "/v2/MetadataFetcher/{MetadataFetcherName}/SearchManga/{MangaId}": {
+    "/v2/MetadataFetcher/{MetadataFetcherName}/SearchManga/{SeriesId}": {
       "post": {
         "tags": [
           "MetadataFetcher"
@@ -2230,7 +2230,7 @@
         "summary": "Searches API.Schema.SeriesContext.MetadataFetchers.MetadataFetcher (Metadata-Sites) for Series-Metadata",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "API.Schema.SeriesContext.Series.Key",
             "required": true,
@@ -2249,7 +2249,7 @@
           }
         ],
         "requestBody": {
-          "description": "Instead of using the MangaId for search on Website, use a specific term",
+          "description": "Instead of using the SeriesId for search on Website, use a specific term",
           "content": {
             "application/json-patch+json; x-version=2.0": {
               "schema": {
@@ -2308,7 +2308,7 @@
             }
           },
           "404": {
-            "description": "API.Schema.SeriesContext.Series with MangaId not found",
+            "description": "API.Schema.SeriesContext.Series with SeriesId not found",
             "content": {
               "text/plain; x-version=2.0": {
                 "schema": {
@@ -2330,7 +2330,7 @@
         }
       }
     },
-    "/v2/MetadataFetcher/{MetadataFetcherName}/Link/{MangaId}": {
+    "/v2/MetadataFetcher/{MetadataFetcherName}/Link/{SeriesId}": {
       "post": {
         "tags": [
           "MetadataFetcher"
@@ -2338,7 +2338,7 @@
         "summary": "Links API.Schema.SeriesContext.MetadataFetchers.MetadataFetcher (Metadata-Sites) using Provider-Specific Identifier to API.Schema.SeriesContext.Series",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "API.Schema.SeriesContext.Series.Key",
             "required": true,
@@ -2413,7 +2413,7 @@
             }
           },
           "404": {
-            "description": "API.Schema.SeriesContext.Series with MangaId not found",
+            "description": "API.Schema.SeriesContext.Series with SeriesId not found",
             "content": {
               "text/plain; x-version=2.0": {
                 "schema": {
@@ -2435,7 +2435,7 @@
         }
       }
     },
-    "/v2/MetadataFetcher/{MetadataFetcherName}/Unlink/{MangaId}": {
+    "/v2/MetadataFetcher/{MetadataFetcherName}/Unlink/{SeriesId}": {
       "post": {
         "tags": [
           "MetadataFetcher"
@@ -2443,7 +2443,7 @@
         "summary": "Un-Links API.Schema.SeriesContext.MetadataFetchers.MetadataFetcher (Metadata-Sites) from API.Schema.SeriesContext.Series",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "required": true,
             "schema": {
@@ -2484,7 +2484,7 @@
             }
           },
           "404": {
-            "description": "API.Schema.SeriesContext.Series with MangaId not found",
+            "description": "API.Schema.SeriesContext.Series with SeriesId not found",
             "content": {
               "text/plain; x-version=2.0": {
                 "schema": {
@@ -2526,15 +2526,15 @@
         }
       }
     },
-    "/v2/MetadataFetcher/{MetadataFetcherName}/Update/{MangaId}": {
+    "/v2/MetadataFetcher/{MetadataFetcherName}/Update/{SeriesId}": {
       "post": {
         "tags": [
           "MetadataFetcher"
         ],
-        "summary": "Updates the Metadata of API.Schema.SeriesContext.Series with MangaId",
+        "summary": "Updates the Metadata of API.Schema.SeriesContext.Series with SeriesId",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "required": true,
             "schema": {
@@ -2597,7 +2597,7 @@
         }
       }
     },
-    "/v2/Series/{MangaId}/metadataSource": {
+    "/v2/Series/{SeriesId}/metadataSource": {
       "get": {
         "tags": [
           "MetadataSource"
@@ -2605,7 +2605,7 @@
         "summary": "Returns the API.Schema.SeriesContext.MetadataSource for a given API.Schema.SeriesContext.Series.",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "API.Schema.SeriesContext.Series.Key",
             "required": true,
@@ -2644,7 +2644,7 @@
         "summary": "Sets the API.Schema.SeriesContext.MetadataSource for a API.Schema.SeriesContext.Series, marking it as Confirmed.",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "API.Schema.SeriesContext.Series.Key",
             "required": true,
@@ -2715,7 +2715,7 @@
         }
       }
     },
-    "/v2/Series/{MangaId}/metadataSource/candidates": {
+    "/v2/Series/{SeriesId}/metadataSource/candidates": {
       "get": {
         "tags": [
           "MetadataSource"
@@ -2723,7 +2723,7 @@
         "summary": "Searches for candidates matching a Series's title, scored by similarity.",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "API.Schema.SeriesContext.Series.Key",
             "required": true,
@@ -2776,7 +2776,7 @@
         }
       }
     },
-    "/v2/Series/{MangaId}/metadataSource/refresh": {
+    "/v2/Series/{SeriesId}/metadataSource/refresh": {
       "post": {
         "tags": [
           "MetadataSource"
@@ -2784,7 +2784,7 @@
         "summary": "Enqueues a ResolveSeriesVolumes job to refresh chapter volumes for a Series from its confirmed MangaDex ExternalId.",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "API.Schema.SeriesContext.Series.Key",
             "required": true,
@@ -3554,15 +3554,15 @@
         }
       }
     },
-    "/v2/Series/{MangaId}": {
+    "/v2/Series/{SeriesId}": {
       "get": {
         "tags": [
           "Series"
         ],
-        "summary": "Return API.Schema.SeriesContext.Series with MangaId",
+        "summary": "Return API.Schema.SeriesContext.Series with SeriesId",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "API.Schema.SeriesContext.Series.Key",
             "required": true,
@@ -3583,7 +3583,7 @@
             }
           },
           "404": {
-            "description": "API.Controllers.DTOs.Series with MangaId not found",
+            "description": "API.Controllers.DTOs.Series with SeriesId not found",
             "content": {
               "text/plain; x-version=2.0": {
                 "schema": {
@@ -3598,10 +3598,10 @@
         "tags": [
           "Series"
         ],
-        "summary": "Delete API.Controllers.DTOs.Series with MangaId",
+        "summary": "Delete API.Controllers.DTOs.Series with SeriesId",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "API.Controllers.DTOs.Series.Key",
             "required": true,
@@ -3615,7 +3615,7 @@
             "description": ""
           },
           "404": {
-            "description": "API.Controllers.DTOs.Series with MangaId not found",
+            "description": "API.Controllers.DTOs.Series with SeriesId not found",
             "content": {
               "text/plain; x-version=2.0": {
                 "schema": {
@@ -3637,7 +3637,7 @@
         }
       }
     },
-    "/v2/Series/{MangaIdFrom}/MergeInto/{MangaIdInto}": {
+    "/v2/Series/{SeriesIdFrom}/MergeInto/{SeriesIdInto}": {
       "post": {
         "tags": [
           "Series"
@@ -3645,7 +3645,7 @@
         "summary": "Merge two API.Controllers.DTOs.Series into one. THIS IS NOT REVERSIBLE!",
         "parameters": [
           {
-            "name": "MangaIdFrom",
+            "name": "SeriesIdFrom",
             "in": "path",
             "description": "API.Controllers.DTOs.Series.Key of API.Controllers.DTOs.Series merging data from (getting deleted)",
             "required": true,
@@ -3654,7 +3654,7 @@
             }
           },
           {
-            "name": "MangaIdInto",
+            "name": "SeriesIdInto",
             "in": "path",
             "description": "API.Controllers.DTOs.Series.Key of API.Controllers.DTOs.Series merging data into",
             "required": true,
@@ -3668,7 +3668,7 @@
             "description": ""
           },
           "404": {
-            "description": "API.Controllers.DTOs.Series with MangaIdFrom or MangaIdInto not found",
+            "description": "API.Controllers.DTOs.Series with SeriesIdFrom or SeriesIdInto not found",
             "content": {
               "text/plain; x-version=2.0": {
                 "schema": {
@@ -3680,15 +3680,15 @@
         }
       }
     },
-    "/v2/Series/{MangaId}/Cover/{CoverSize}": {
+    "/v2/Series/{SeriesId}/Cover/{CoverSize}": {
       "get": {
         "tags": [
           "Series"
         ],
-        "summary": "Returns Cover of API.Controllers.DTOs.Series with MangaId",
+        "summary": "Returns Cover of API.Controllers.DTOs.Series with SeriesId",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "API.Controllers.DTOs.Series.Key",
             "required": true,
@@ -3731,7 +3731,7 @@
             }
           },
           "404": {
-            "description": "API.Controllers.DTOs.Series with MangaId not found",
+            "description": "API.Controllers.DTOs.Series with SeriesId not found",
             "content": {
               "text/plain; x-version=2.0": {
                 "schema": {
@@ -3757,7 +3757,7 @@
         }
       }
     },
-    "/v2/Series/{MangaId}/ChangeLibrary/{LibraryId}": {
+    "/v2/Series/{SeriesId}/ChangeLibrary/{LibraryId}": {
       "post": {
         "tags": [
           "Series"
@@ -3765,7 +3765,7 @@
         "summary": "Move API.Controllers.DTOs.Series to different API.Controllers.DTOs.FileLibrary",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "API.Controllers.DTOs.Series.Key",
             "required": true,
@@ -3826,7 +3826,7 @@
             "description": "OK"
           },
           "404": {
-            "description": "MangaId or LibraryId not found",
+            "description": "SeriesId or LibraryId not found",
             "content": {
               "text/plain; x-version=2.0": {
                 "schema": {
@@ -3851,7 +3851,7 @@
         }
       }
     },
-    "/v2/Series/{MangaId}/Sync": {
+    "/v2/Series/{SeriesId}/Sync": {
       "post": {
         "tags": [
           "Series"
@@ -3859,7 +3859,7 @@
         "summary": "Queues an immediate chapter sync + cover refresh for each of the series' sources (preferring the\nenabled ones) — the manual \"sync now\" trigger.",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "required": true,
             "schema": {
@@ -3904,7 +3904,7 @@
         }
       }
     },
-    "/v2/Series/{MangaId}/Source/{SourceIdKey}/Rematch": {
+    "/v2/Series/{SeriesId}/Source/{SourceIdKey}/Rematch": {
       "post": {
         "tags": [
           "Series"
@@ -3912,7 +3912,7 @@
         "summary": "Re-matches a series' source link to a different entry on the same connector — the repair step\nwhen a stored id is wrong and syncs fail or yield nothing. The link is replaced (its key derives\nfrom the site id), the download preference carries over, and a fresh chapter sync is queued.",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "required": true,
             "schema": {
@@ -3986,7 +3986,7 @@
         }
       }
     },
-    "/v2/Series/{MangaId}/DownloadFrom/{SeriesSourceName}/{IsRequested}": {
+    "/v2/Series/{SeriesId}/DownloadFrom/{SeriesSourceName}/{IsRequested}": {
       "patch": {
         "tags": [
           "Series"
@@ -3994,9 +3994,9 @@
         "summary": "(Un-)Marks API.Controllers.DTOs.Series as requested for Download from API.Connectors.SeriesSource",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
-            "description": "API.Controllers.DTOs.Series with MangaId",
+            "description": "API.Controllers.DTOs.Series with SeriesId",
             "required": true,
             "schema": {
               "type": "string"
@@ -4026,7 +4026,7 @@
             "description": ""
           },
           "404": {
-            "description": "MangaId or SeriesSourceName not found",
+            "description": "SeriesId or SeriesSourceName not found",
             "content": {
               "text/plain; x-version=2.0": {
                 "schema": {
@@ -4068,7 +4068,7 @@
         }
       }
     },
-    "/v2/Series/{MangaId}/OnMangaConnector/{SeriesSourceName}": {
+    "/v2/Series/{SeriesId}/OnMangaConnector/{SeriesSourceName}": {
       "get": {
         "tags": [
           "Series"
@@ -4076,9 +4076,9 @@
         "summary": "Initiate a search for API.Schema.SeriesContext.Series on a different API.Connectors.SeriesSource",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
-            "description": "API.Schema.SeriesContext.Series with MangaId",
+            "description": "API.Schema.SeriesContext.Series with SeriesId",
             "required": true,
             "schema": {
               "type": "string"
@@ -4238,15 +4238,15 @@
         }
       }
     },
-    "/v2/Series/WithSimilarName/{MangaId}": {
+    "/v2/Series/WithSimilarName/{SeriesId}": {
       "get": {
         "tags": [
           "Series"
         ],
-        "summary": "Returns API.Schema.SeriesContext.Series with names similar to API.Schema.SeriesContext.Series (identified by MangaId)",
+        "summary": "Returns API.Schema.SeriesContext.Series with names similar to API.Schema.SeriesContext.Series (identified by SeriesId)",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "Key of API.Schema.SeriesContext.Series",
             "required": true,
@@ -4270,7 +4270,7 @@
             }
           },
           "404": {
-            "description": "API.Schema.SeriesContext.Series with MangaId not found",
+            "description": "API.Schema.SeriesContext.Series with SeriesId not found",
             "content": {
               "text/plain; x-version=2.0": {
                 "schema": {
@@ -4347,7 +4347,7 @@
         }
       }
     },
-    "/v2/Series/ForceRecheck/{mangaId}": {
+    "/v2/Series/ForceRecheck/{seriesId}": {
       "post": {
         "tags": [
           "Series"
@@ -4355,7 +4355,7 @@
         "summary": "Force re-check failed/undownloaded API.Schema.SeriesContext.Chapter for API.Controllers.DTOs.Series",
         "parameters": [
           {
-            "name": "mangaId",
+            "name": "seriesId",
             "in": "path",
             "description": "(optional)API.Controllers.DTOs.Series.Key",
             "required": true,
@@ -5753,7 +5753,7 @@
         }
       }
     },
-    "/v2/Series/{MangaId}/volumes": {
+    "/v2/Series/{SeriesId}/volumes": {
       "get": {
         "tags": [
           "Volume"
@@ -5761,7 +5761,7 @@
         "summary": "Returns volumes and chapters for a manga, grouped by volume number.",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "API.Controllers.DTOs.Series.Key",
             "required": true,
@@ -5794,7 +5794,7 @@
         }
       }
     },
-    "/v2/Series/{MangaId}/reorganize/preview": {
+    "/v2/Series/{SeriesId}/reorganize/preview": {
       "get": {
         "tags": [
           "Volume"
@@ -5802,7 +5802,7 @@
         "summary": "Returns a dry-run preview of all file moves needed to bring files in line with current metadata.",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "API.Controllers.DTOs.Series.Key",
             "required": true,
@@ -5835,7 +5835,7 @@
         }
       }
     },
-    "/v2/Series/{MangaId}/reorganize": {
+    "/v2/Series/{SeriesId}/reorganize": {
       "post": {
         "tags": [
           "Volume"
@@ -5843,7 +5843,7 @@
         "summary": "Enqueues a PlaceChapterFile job for each file that needs moving.",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "API.Controllers.DTOs.Series.Key",
             "required": true,
@@ -5886,7 +5886,7 @@
         }
       }
     },
-    "/v2/Series/{MangaId}/libraryLayout": {
+    "/v2/Series/{SeriesId}/libraryLayout": {
       "put": {
         "tags": [
           "Volume"
@@ -5894,7 +5894,7 @@
         "summary": "Stores the layout preference and returns a reorganize preview using the new layout.\nDoes NOT execute any file moves.",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "API.Schema.SeriesContext.Series.Key",
             "required": true,
@@ -5952,7 +5952,7 @@
         }
       }
     },
-    "/v2/Series/{MangaId}/volumes/assignments": {
+    "/v2/Series/{SeriesId}/volumes/assignments": {
       "post": {
         "tags": [
           "Volume"
@@ -5960,7 +5960,7 @@
         "summary": "Bulk-assigns chapter numbers to volume numbers for a manga.\nChapters not found are listed in the response; the request is not failed.\nAlso marks MetadataSource as Manual/Confirmed on the manga.",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "API.Schema.SeriesContext.Series.Key",
             "required": true,
@@ -6018,7 +6018,7 @@
         }
       }
     },
-    "/v2/Series/{MangaId}/volumes/{VolumeNumber}/bundle": {
+    "/v2/Series/{SeriesId}/volumes/{VolumeNumber}/bundle": {
       "post": {
         "tags": [
           "Volume"
@@ -6026,7 +6026,7 @@
         "summary": "Enqueues a ReconcileVolumeBundle job to merge all unbundled chapters into a single CBZ.",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "API.Schema.SeriesContext.Series.Key",
             "required": true,
@@ -6085,7 +6085,7 @@
         "summary": "Enqueues a ReconcileVolumeBundle (Unbundle) job to split the bundle CBZ back into chapter CBZs.",
         "parameters": [
           {
-            "name": "MangaId",
+            "name": "SeriesId",
             "in": "path",
             "description": "API.Schema.SeriesContext.Series.Key",
             "required": true,
@@ -6166,9 +6166,9 @@
             "description": "<inheritdoc cref=\"P:API.Schema.ActionsContext.ActionRecord.PerformedAt\" />",
             "format": "date-time"
           },
-          "mangaId": {
+          "seriesId": {
             "type": "string",
-            "description": "MangaId if Record is API.Schema.ActionsContext.Actions.Generic.IActionWithMangaRecord",
+            "description": "SeriesId if Record is API.Schema.ActionsContext.Actions.Generic.IActionWithMangaRecord",
             "nullable": true
           },
           "chapterId": {
@@ -6270,7 +6270,7 @@
             "format": "date-time",
             "nullable": true
           },
-          "mangaId": {
+          "seriesId": {
             "type": "string",
             "nullable": true
           },
@@ -6340,7 +6340,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "Request body for POST /Series/{MangaId}/volumes/assignments"
+        "description": "Request body for POST /Series/{SeriesId}/volumes/assignments"
       },
       "BulkAssignmentResult": {
         "type": "object",
@@ -6358,7 +6358,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "Result of POST /Series/{MangaId}/volumes/assignments"
+        "description": "Result of POST /Series/{SeriesId}/volumes/assignments"
       },
       "BundleJobResult": {
         "type": "object",
@@ -6376,15 +6376,15 @@
           "chapterNumber",
           "downloaded",
           "key",
-          "mangaId",
           "missingPageCount",
+          "seriesId",
           "sourceIds",
           "title",
           "volume"
         ],
         "type": "object",
         "properties": {
-          "mangaId": {
+          "seriesId": {
             "minLength": 1,
             "type": "string",
             "description": "Identifier of the Series this Chapter belongs to"
@@ -7150,7 +7150,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "Response body for PUT /api/v2/Series/{mangaId}/libraryLayout."
+        "description": "Response body for PUT /api/v2/Series/{seriesId}/libraryLayout."
       },
       "LibraryRefreshSetting": {
         "enum": [
@@ -7228,7 +7228,7 @@
       "MetadataEntry": {
         "type": "object",
         "properties": {
-          "mangaId": {
+          "seriesId": {
             "type": "string",
             "nullable": true
           },
@@ -7578,7 +7578,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "Request body for PUT /api/v2/Series/{mangaId}/libraryLayout."
+        "description": "Request body for PUT /api/v2/Series/{seriesId}/libraryLayout."
       },
       "QueuedJob": {
         "required": [
@@ -7866,15 +7866,15 @@
       "SeriesRollup": {
         "required": [
           "downloadedChapters",
-          "mangaId",
           "needsAttentionJobs",
           "queuedJobs",
           "runningJobs",
+          "seriesId",
           "wantedChapters"
         ],
         "type": "object",
         "properties": {
-          "mangaId": {
+          "seriesId": {
             "minLength": 1,
             "type": "string"
           },
@@ -8308,7 +8308,7 @@
       "UnresolvedMangaEntry": {
         "type": "object",
         "properties": {
-          "mangaId": {
+          "seriesId": {
             "type": "string",
             "nullable": true
           },
@@ -8428,7 +8428,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "Top-level response for GET /api/v2/Series/{mangaId}/volumes."
+        "description": "Top-level response for GET /api/v2/Series/{seriesId}/volumes."
       }
     }
   },

@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ mangaId: string; seriesName?: string }>();
+const props = defineProps<{ seriesId: string; seriesName?: string }>();
 const open = defineModel<boolean>('open', { default: false });
 const emit = defineEmits<{ (e: 'deleted'): void }>();
 const { $api } = useNuxtApp();
@@ -27,7 +27,7 @@ const remove = async () => {
     deleting.value = true;
     error.value = null;
     try {
-        await $api('/v2/Series/{MangaId}', { method: 'DELETE', path: { MangaId: props.mangaId } });
+        await $api('/v2/Series/{SeriesId}', { method: 'DELETE', path: { SeriesId: props.seriesId } });
         emit('deleted');
         open.value = false;
     } catch (e) {

@@ -40,7 +40,7 @@ public class SeriesRollupServiceTests : IDisposable
 
         var rollups = await new SeriesRollupService().GetAsync(_series, _jobs, _actions, CancellationToken.None);
 
-        var rollup = Assert.Single(rollups, r => r.MangaId == manga.Key);
+        var rollup = Assert.Single(rollups, r => r.SeriesId == manga.Key);
         Assert.Equal(0, rollup.WantedChapters);
         Assert.Equal(0, rollup.DownloadedChapters);
         Assert.Null(rollup.LastError);

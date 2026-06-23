@@ -53,7 +53,7 @@ import type { components } from '#open-fetch-schemas/api';
 
 type Candidate = components['schemas']['MetadataSourceCandidate'];
 
-const props = defineProps<{ mangaId: string; seriesName?: string }>();
+const props = defineProps<{ seriesId: string; seriesName?: string }>();
 const { $api } = useNuxtApp();
 
 const query = ref(props.seriesName ?? '');
@@ -63,9 +63,9 @@ const searched = ref(false);
 const error = ref<string | null>(null);
 const linkingId = ref<string | null>(null);
 
-const { data: source, refresh: refreshSource } = await useApi('/v2/Series/{MangaId}/metadataSource', {
-    path: { MangaId: props.mangaId },
-    key: `metadataSource-${props.mangaId}`,
+const { data: source, refresh: refreshSource } = await useApi('/v2/Series/{SeriesId}/metadataSource', {
+    path: { SeriesId: props.seriesId },
+    key: `metadataSource-${props.seriesId}`,
     server: false,
 });
 
@@ -100,8 +100,8 @@ const search = async () => {
     searching.value = true;
     error.value = null;
     try {
-        candidates.value = await $api('/v2/Series/{MangaId}/metadataSource/candidates', {
-            path: { MangaId: props.mangaId },
+        candidates.value = await $api('/v2/Series/{SeriesId}/metadataSource/candidates', {
+            path: { SeriesId: props.seriesId },
             query: { q: query.value, source: 'mangadex' },
         });
         searched.value = true;
@@ -117,12 +117,12 @@ const link = async (candidate: Candidate) => {
     if (!externalId) return;
     linkingId.value = externalId;
     try {
-        await $api('/v2/Series/{MangaId}/metadataSource', {
+        await $api('/v2/Series/{SeriesId}/metadataSource', {
             method: 'PUT',
-            path: { MangaId: props.mangaId },
+            path: { SeriesId: props.seriesId },
             body: { sourceType: 'MangaDex', externalId },
         });
-        await $api('/v2/Series/{MangaId}/metadataSource/refresh', { method: 'POST', path: { MangaId: props.mangaId } });
+        await $api('/v2/Series/{SeriesId}/metadataSource/refresh', { method: 'POST', path: { SeriesId: props.seriesId } });
         candidates.value = [];
         searched.value = false;
         await refreshSource();

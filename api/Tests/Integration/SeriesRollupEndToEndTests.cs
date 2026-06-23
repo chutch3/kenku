@@ -89,7 +89,7 @@ public class SeriesRollupEndToEndTests : IAsyncLifetime
         var rollups = JsonSerializer.Deserialize<List<SeriesRollup>>(
             await client.GetStringAsync("/v2/Series/Rollup"), Json)!;
 
-        SeriesRollup rollup = Assert.Single(rollups, r => r.MangaId == seriesKey);
+        SeriesRollup rollup = Assert.Single(rollups, r => r.SeriesId == seriesKey);
         Assert.Equal(3, rollup.WantedChapters);
         Assert.Equal(1, rollup.DownloadedChapters);
         Assert.Equal(2, rollup.QueuedJobs);

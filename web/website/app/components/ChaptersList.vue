@@ -140,19 +140,19 @@ const filter = ref<Partial<ChapterFilterRecord>>({});
 const pagination = ref({ pageIndex: 0, pageSize: 10 });
 
 export interface ChaptersListProps {
-    mangaId: string;
+    seriesId: string;
     kind?: SeriesKind;
 }
 const props = defineProps<ChaptersListProps>();
 const { $api } = useNuxtApp();
 
 const { data, refresh } = useAsyncData(
-    FetchKeys.Chapters.Series(props.mangaId),
+    FetchKeys.Chapters.Series(props.seriesId),
     () =>
-        $api('/v2/Chapters/Series/{MangaId}', {
+        $api('/v2/Chapters/Series/{SeriesId}', {
             method: 'POST',
             query: { page: pagination.value.pageIndex + 1, pageSize: pagination.value.pageSize },
-            path: { MangaId: props.mangaId },
+            path: { SeriesId: props.seriesId },
             body: filter.value,
         }),
     { watch: [pagination.value, filter.value], lazy: true, server: false }

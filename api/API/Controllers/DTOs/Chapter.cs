@@ -6,14 +6,14 @@ namespace API.Controllers.DTOs;
 /// <summary>
 /// <see cref="API.Schema.SeriesContext.Chapter"/> DTO
 /// </summary>
-public sealed record Chapter(string Key, string MangaId, int? Volume, string ChapterNumber, string? Title, IEnumerable<SourceId<Chapter>> SourceIds, bool Downloaded, string? FileName, int MissingPageCount = 0) : Identifiable(Key)
+public sealed record Chapter(string Key, string SeriesId, int? Volume, string ChapterNumber, string? Title, IEnumerable<SourceId<Chapter>> SourceIds, bool Downloaded, string? FileName, int MissingPageCount = 0) : Identifiable(Key)
 {
     /// <summary>
     /// Identifier of the Series this Chapter belongs to
     /// </summary>
     [Required]
     [Description("Identifier of the Series this Chapter belongs to")]
-    public string MangaId { get; init; } = MangaId;
+    public string SeriesId { get; init; } = SeriesId;
     
     /// <summary>
     /// Volume number

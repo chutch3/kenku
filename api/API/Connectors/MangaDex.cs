@@ -128,7 +128,7 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
         return mangas.ToArray();
     }
 
-    private static readonly Regex GetMangaIdFromUrl = new(@"https?:\/\/mangadex\.org\/title\/([a-z0-9-]+)\/?.*");
+    private static readonly Regex GetSeriesIdFromUrl = new(@"https?:\/\/mangadex\.org\/title\/([a-z0-9-]+)\/?.*");
     public override async Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string url)
     {
         Log.InfoFormat("Getting Obj: {0}", url);
@@ -138,7 +138,7 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
             return null;
         }
 
-        Match match = GetMangaIdFromUrl.Match(url);
+        Match match = GetSeriesIdFromUrl.Match(url);
         if (!match.Success || !match.Groups[1].Success)
         {
             Log.DebugFormat("Url is not for Connector (Could not retrieve id). {0}", url);
@@ -183,9 +183,9 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
         return ParseMangaFromJToken(data);
     }
 
-    public override async Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> mangaId, string? language = null)
+    public override async Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> seriesId, string? language = null)
     {
-        Log.InfoFormat("Getting Chapters: {0}", mangaId.IdOnConnectorSite);
+        Log.InfoFormat("Getting Chapters: {0}", seriesId.IdOnConnectorSite);
         List<(Chapter, SourceId<Chapter>)> chapters = new ();
 
         int offset = 0;
@@ -194,7 +194,7 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
         {
             // https://api.mangadex.org/docs/redoc.html#tag/Series/operation/get-manga-id-feed
             string requestUrl =
-                $"https://api.mangadex.org/manga/{mangaId.IdOnConnectorSite}/feed?limit={Limit}&offset={offset}&" +
+                $"https://api.mangadex.org/manga/{seriesId.IdOnConnectorSite}/feed?limit={Limit}&offset={offset}&" +
                 $"translatedLanguage%5B%5D={language}&" +
                 $"contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&" +
                 $"includeFutureUpdates=0&includes%5B%5D=scanlation_group&" +
@@ -227,10 +227,10 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
                 break;
             }
 
-            chapters.AddRange(data.Select(d => ParseChapterFromJToken(mangaId, d)));
+            chapters.AddRange(data.Select(d => ParseChapterFromJToken(seriesId, d)));
         }
 
-        Log.InfoFormat("Request for chapters for {0} yielded {1} results.", mangaId.Obj.Name, chapters.Count);
+        Log.InfoFormat("Request for chapters for {0} yielded {1} results.", seriesId.Obj.Name, chapters.Count);
         return chapters.ToArray();
     }
 

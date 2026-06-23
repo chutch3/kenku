@@ -3,7 +3,7 @@ using API.Schema.SeriesContext;
 
 namespace API.Schema.ActionsContext.Actions;
 
-public sealed class ChaptersRetrievedActionRecord(Actions action, DateTime performedAt, string mangaId)
+public sealed class ChaptersRetrievedActionRecord(Actions action, DateTime performedAt, string seriesId)
     : ActionRecord(action, performedAt), IActionWithMangaRecord
 {
     public ChaptersRetrievedActionRecord(Series manga, int chapterCount)
@@ -12,7 +12,7 @@ public sealed class ChaptersRetrievedActionRecord(Actions action, DateTime perfo
         ChapterCount = chapterCount;
     }
 
-    public string MangaId { get; init; } = mangaId;
+    public string SeriesId { get; init; } = seriesId;
 
     /// <summary>How many chapters the connector reported — 0 here is "looked and found none",
     /// distinguishable from never having synced at all.</summary>

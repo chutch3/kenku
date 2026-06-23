@@ -83,7 +83,7 @@ public class VolumeResolutionIntegrationTests : OutboundHttpIntegrationTest
         await Resolve();
 
         var ch = await ChaptersByNumber();
-        var source = await App.WithSeriesContext(c => c.Set<MetadataSource>().FirstAsync(s => s.MangaId == key));
+        var source = await App.WithSeriesContext(c => c.Set<MetadataSource>().FirstAsync(s => s.SeriesId == key));
         Assert.Equal(MetadataSourceStatus.AutoMatched, source.Status);   // scoring fix: matched despite empty lastChapter
         Assert.Equal(DandadanId, source.ExternalId);
         Assert.Equal(1, ch["1"].VolumeNumber);

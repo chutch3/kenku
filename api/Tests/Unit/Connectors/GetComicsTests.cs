@@ -154,9 +154,9 @@ public class GetComicsTests
         // only post for the series, so it is the readable unit — chapter "1", not zero chapters.
         string page = SearchPage(Article("https://getcomics.org/other-comics/a-god-somewhere-2010/", "A God Somewhere (2010)"));
         var connector = CreateConnector(url => url.Contains("/page/") ? Html("", HttpStatusCode.NotFound) : Html(page));
-        var mangaId = SeriesId(connector, "A God Somewhere");
+        var seriesId = SeriesId(connector, "A God Somewhere");
 
-        var chapters = await connector.GetChapters(mangaId);
+        var chapters = await connector.GetChapters(seriesId);
 
         var chapter = Assert.Single(chapters);
         Assert.Equal("1", chapter.Item1.ChapterNumber);
@@ -176,9 +176,9 @@ public class GetComicsTests
             Article("https://getcomics.org/c/saga-61/", "Saga #61 (2024)"),
             Article("https://getcomics.org/c/saga-ed/", "Saga (2024)"));
         var connector = CreateConnector(url => url.Contains("/page/") ? Html("", HttpStatusCode.NotFound) : Html(page));
-        var mangaId = SeriesId(connector, "Saga");
+        var seriesId = SeriesId(connector, "Saga");
 
-        var chapters = await connector.GetChapters(mangaId);
+        var chapters = await connector.GetChapters(seriesId);
 
         Assert.Equal(["60", "61"], chapters.Select(c => c.Item1.ChapterNumber).OrderBy(n => n));
     }
@@ -192,9 +192,9 @@ public class GetComicsTests
             Article("https://getcomics.org/c/og-a/", "Some Anthology (2020)"),
             Article("https://getcomics.org/c/og-b/", "Some Anthology (2022)"));
         var connector = CreateConnector(url => url.Contains("/page/") ? Html("", HttpStatusCode.NotFound) : Html(page));
-        var mangaId = SeriesId(connector, "Some Anthology");
+        var seriesId = SeriesId(connector, "Some Anthology");
 
-        var chapters = await connector.GetChapters(mangaId);
+        var chapters = await connector.GetChapters(seriesId);
 
         Assert.Empty(chapters);
     }
@@ -209,9 +209,9 @@ public class GetComicsTests
             Article("https://getcomics.org/other-comics/bb-comp/", "Invincible Universe &#8211; Battle Beast Compendium (2026)"));
         var connector = CreateConnector(url =>
             url.Contains("/page/") ? Html("", HttpStatusCode.NotFound) : Html(page1));
-        var mangaId = SeriesId(connector, "Invincible Universe – Battle Beast");
+        var seriesId = SeriesId(connector, "Invincible Universe – Battle Beast");
 
-        var chapters = await connector.GetChapters(mangaId);
+        var chapters = await connector.GetChapters(seriesId);
 
         Assert.Equal(2, chapters.Length);
         var nine = Assert.Single(chapters, c => c.Item1.ChapterNumber == "9");
@@ -237,9 +237,9 @@ public class GetComicsTests
             if (url.Contains("/page/")) return Html("", HttpStatusCode.NotFound);
             return Html(FullPageOfSaga(49));
         });
-        var mangaId = SeriesId(connector, "Saga");
+        var seriesId = SeriesId(connector, "Saga");
 
-        var chapters = await connector.GetChapters(mangaId);
+        var chapters = await connector.GetChapters(seriesId);
 
         Assert.Equal(13, chapters.Length);
         Assert.Contains("https://getcomics.org/tag/saga/", requested);
@@ -254,9 +254,9 @@ public class GetComicsTests
         // failure beyond page 1 must end paging with the posts already gathered — not throw.
         var connector = CreateConnector(url =>
             url.Contains("/page/") ? Html("", HttpStatusCode.InternalServerError) : Html(FullPageOfSaga(49)));
-        var mangaId = SeriesId(connector, "Saga");
+        var seriesId = SeriesId(connector, "Saga");
 
-        var chapters = await connector.GetChapters(mangaId);
+        var chapters = await connector.GetChapters(seriesId);
 
         Assert.Equal(12, chapters.Length);
     }
@@ -287,9 +287,9 @@ public class GetComicsTests
             Article("https://getcomics.org/c/inv-144/", "Invincible #144 (2018)"));
         var connector = CreateConnector(url =>
             url.Contains("/page/") ? Html("", HttpStatusCode.NotFound) : Html(page));
-        var mangaId = SeriesId(connector, "Invincible");
+        var seriesId = SeriesId(connector, "Invincible");
 
-        var chapters = await connector.GetChapters(mangaId);
+        var chapters = await connector.GetChapters(seriesId);
 
         Assert.Equal(2, chapters.Length);
         var vol = Assert.Single(chapters, c => c.Item1.VolumeNumber == 23);
@@ -309,9 +309,9 @@ public class GetComicsTests
             Article("https://getcomics.org/c/inv-comp2/", "Invincible Compendium Vol. 2 (2018)"));
         var connector = CreateConnector(url =>
             url.Contains("/page/") ? Html("", HttpStatusCode.NotFound) : Html(page));
-        var mangaId = SeriesId(connector, "Invincible Compendium");
+        var seriesId = SeriesId(connector, "Invincible Compendium");
 
-        var chapters = await connector.GetChapters(mangaId);
+        var chapters = await connector.GetChapters(seriesId);
 
         var only = Assert.Single(chapters);
         Assert.Equal(2, only.Item1.VolumeNumber);
@@ -350,9 +350,9 @@ public class GetComicsTests
             if (url.Contains("/page/")) return Html("", HttpStatusCode.NotFound);
             return Html(page);
         });
-        var mangaId = SeriesId(connector, "The Boys");
+        var seriesId = SeriesId(connector, "The Boys");
 
-        var chapters = await connector.GetChapters(mangaId);
+        var chapters = await connector.GetChapters(seriesId);
 
         Assert.Single(chapters);
         Assert.Contains("https://getcomics.org/tag/the-boys/", requested);
@@ -371,9 +371,9 @@ public class GetComicsTests
             if (url.Contains("/page/")) return Html("", HttpStatusCode.NotFound);
             return Html(page);
         });
-        var mangaId = SeriesId(connector, "Saga");
+        var seriesId = SeriesId(connector, "Saga");
 
-        var chapters = await connector.GetChapters(mangaId);
+        var chapters = await connector.GetChapters(seriesId);
 
         Assert.Single(chapters);
         Assert.Contains(requested, u => u.Contains("/tag/saga/"));
@@ -394,9 +394,9 @@ public class GetComicsTests
             if (url.Contains("/page/")) return Html("", HttpStatusCode.NotFound);
             return Html(tagPage);
         });
-        var mangaId = SeriesId(connector, "Invincible");
+        var seriesId = SeriesId(connector, "Invincible");
 
-        var chapters = await connector.GetChapters(mangaId);
+        var chapters = await connector.GetChapters(seriesId);
 
         Assert.Equal(2, chapters.Length);
         var vol1 = Assert.Single(chapters, c => c.Item1.VolumeNumber == 1);
@@ -460,9 +460,9 @@ public class GetComicsTests
             Article("https://getcomics.org/c/saga-060-hd/", "Saga 060 (2024)"));
         var connector = CreateConnector(url =>
             url.Contains("/page/") ? Html("", HttpStatusCode.NotFound) : Html(page));
-        var mangaId = SeriesId(connector, "Saga");
+        var seriesId = SeriesId(connector, "Saga");
 
-        var chapters = await connector.GetChapters(mangaId);
+        var chapters = await connector.GetChapters(seriesId);
 
         var only = Assert.Single(chapters);
         Assert.Equal("60", only.Item1.ChapterNumber);
@@ -473,9 +473,9 @@ public class GetComicsTests
     public async Task GetChapters_Throws_WhenTheFirstPageHasNoPostList()
     {
         var connector = CreateConnector(_ => Html("<html><body>cloudflare interstitial</body></html>"));
-        var mangaId = SeriesId(connector, "Saga");
+        var seriesId = SeriesId(connector, "Saga");
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => connector.GetChapters(mangaId));
+        await Assert.ThrowsAsync<HttpRequestException>(() => connector.GetChapters(seriesId));
     }
 
     [Fact]
@@ -526,8 +526,8 @@ public class GetComicsTests
     public async Task PageImagePaths_AreNotSupported()
     {
         var connector = CreateConnector(_ => Html(""));
-        var mangaId = SeriesId(connector, "Saga");
-        var chapter = new Chapter(mangaId.Obj, "1", null, null);
+        var seriesId = SeriesId(connector, "Saga");
+        var chapter = new Chapter(seriesId.Obj, "1", null, null);
         var chapterId = new SourceId<Chapter>(chapter, connector, "saga-1", "https://getcomics.org/c/saga-1/", true);
 
         await Assert.ThrowsAsync<NotSupportedException>(() => connector.GetChapterImageUrls(chapterId));

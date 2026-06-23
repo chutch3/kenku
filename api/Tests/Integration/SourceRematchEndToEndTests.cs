@@ -19,7 +19,7 @@ public class SourceRematchEndToEndTests() : OutboundHttpIntegrationTest(Connecto
     public async Task Rematch_ReplacesTheSourceLink_KeepsDownloadPreference_AndQueuesASync()
     {
         string libraryKey = await SeedLibrary();
-        (string mangaId, string oldSourceKey) = await App.WithSeriesContext(async ctx =>
+        (string seriesId, string oldSourceKey) = await App.WithSeriesContext(async ctx =>
         {
             var library = await ctx.FileLibraries.FindAsync(libraryKey);
             var manga = new Series("I Am A Hero", "d", "u", SeriesReleaseStatus.Continuing, [], [], [], [], library);
@@ -31,12 +31,12 @@ public class SourceRematchEndToEndTests() : OutboundHttpIntegrationTest(Connecto
         });
 
         var response = await App.CreateClient().PostAsJsonAsync(
-            $"/v2/Series/{mangaId}/Source/{oldSourceKey}/Rematch",
+            $"/v2/Series/{seriesId}/Source/{oldSourceKey}/Rematch",
             new { idOnConnectorSite = "01ABC", websiteUrl = "https://weebcentral.com/series/01ABC" });
         response.EnsureSuccessStatusCode();
 
         var sources = await App.WithSeriesContext(c =>
-            c.SeriesSourceIds.Where(id => id.ObjId == mangaId).ToListAsync());
+            c.SeriesSourceIds.Where(id => id.ObjId == seriesId).ToListAsync());
         SourceId<Series> replacement = Assert.Single(sources);
         Assert.Equal("01ABC", replacement.IdOnConnectorSite);
         Assert.Equal("WeebCentral", replacement.SeriesSourceName);

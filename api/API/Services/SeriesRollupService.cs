@@ -22,7 +22,7 @@ public class SeriesRollupService
         var chapterStats = await series.Chapters
             .Where(c => c.SourceIds.Any(s => s.UseForDownload))
             .GroupBy(c => c.ParentSeriesId)
-            .Select(g => new { MangaId = g.Key, Wanted = g.Count(), Downloaded = g.Count(c => c.Downloaded || c.IsBundled) })
+            .Select(g => new { SeriesId = g.Key, Wanted = g.Count(), Downloaded = g.Count(c => c.Downloaded || c.IsBundled) })
             .ToListAsync(ct);
 
         // The queue is pruned to a retention window, so loading the live rows is bounded.
@@ -31,15 +31,15 @@ public class SeriesRollupService
             .ToListAsync(ct);
 
         var lastSyncs = await actionsContext.Actions.OfType<ChaptersRetrievedActionRecord>()
-            .GroupBy(r => r.MangaId)
+            .GroupBy(r => r.SeriesId)
             .Select(g => g.OrderByDescending(r => r.PerformedAt).First())
             .ToListAsync(ct);
 
         return seriesKeys.Select(key =>
         {
-            var chapters = chapterStats.FirstOrDefault(c => c.MangaId == key);
+            var chapters = chapterStats.FirstOrDefault(c => c.SeriesId == key);
             var seriesJobs = jobs.Where(j => j.ResourceKey == key).ToList();
-            var sync = lastSyncs.FirstOrDefault(r => r.MangaId == key);
+            var sync = lastSyncs.FirstOrDefault(r => r.SeriesId == key);
             string? lastError = seriesJobs
                 .Where(j => j.Error != null)
                 .OrderByDescending(j => j.FinishedAt ?? j.StartedAt ?? j.CreatedAt)

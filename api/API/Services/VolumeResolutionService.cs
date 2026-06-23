@@ -27,17 +27,17 @@ public class VolumeResolutionService(
 {
     private static readonly ILog Log = LogManager.GetLogger(typeof(VolumeResolutionService));
 
-    public async Task ResolveAsync(SeriesContext context, string mangaId, CancellationToken ct)
+    public async Task ResolveAsync(SeriesContext context, string seriesId, CancellationToken ct)
     {
         var manga = await context.Series
             .Include(m => m.SourceIds)
             .Include(m => m.Library)
             .Include(m => m.MetadataSource)
-            .FirstOrDefaultAsync(m => m.Key == mangaId, ct);
+            .FirstOrDefaultAsync(m => m.Key == seriesId, ct);
 
         if (manga is null)
         {
-            Log.Warn($"Series {mangaId} not found in database; skipping.");
+            Log.Warn($"Series {seriesId} not found in database; skipping.");
             return;
         }
 
@@ -55,7 +55,7 @@ public class VolumeResolutionService(
         // on the downloaded .cbz. We also load already-assigned chapters so an exact source can correct
         // a stale heuristic guess on a later run; manual assignments are protected inside the merger.
         var chapters = await context.Chapters
-            .Where(c => c.ParentSeriesId == mangaId)
+            .Where(c => c.ParentSeriesId == seriesId)
             .ToListAsync(ct);
 
         if (chapters.Count == 0)
@@ -234,7 +234,7 @@ public class VolumeResolutionService(
             }
         }
 
-        Log.Info($"Auto-match decision: mangaId={manga.Key} topCandidateId={topId} topScore={topScore:F4} secondScore={secondScore:F4} decision={decision}");
+        Log.Info($"Auto-match decision: seriesId={manga.Key} topCandidateId={topId} topScore={topScore:F4} secondScore={secondScore:F4} decision={decision}");
 
         if (newStatus == MetadataSourceStatus.AutoMatched)
         {

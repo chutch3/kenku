@@ -116,7 +116,7 @@ public class LibraryControllerTests : IDisposable
         var ok = Assert.IsType<Ok<UnresolvedDashboardResult>>(result);
         Assert.Single(ok.Value!.Series);
         var entry = ok.Value.Series[0];
-        Assert.Equal(manga.Key, entry.MangaId);
+        Assert.Equal(manga.Key, entry.SeriesId);
         Assert.Equal(manga.Name, entry.MangaName);
         Assert.Equal(2, entry.UnresolvedChapterCount);
         Assert.Equal(0, entry.MissingFileCount);
@@ -232,6 +232,6 @@ public class LibraryControllerTests : IDisposable
 
         var ok = Assert.IsType<Ok<UnresolvedDashboardResult>>(result);
         Assert.Single(ok.Value!.Series);
-        Assert.Equal(badManga.Key, ok.Value.Series[0].MangaId);
+        Assert.Equal(badManga.Key, ok.Value.Series[0].SeriesId);
     }
 }

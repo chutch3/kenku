@@ -111,9 +111,9 @@ public class ComicHubFree : SeriesSource, API.Discovery.IDiscoveryRailProvider
         return BuildSeries(name, mangaIdOnSite, coverUrl, null);
     }
 
-    public override async Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> mangaId, string? language = null)
+    public override async Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> seriesId, string? language = null)
     {
-        string slug = mangaId.IdOnConnectorSite;
+        string slug = seriesId.IdOnConnectorSite;
         var chapters = new List<(Chapter, SourceId<Chapter>)>();
         var seen = new HashSet<string>();
         for (int page = 1; page <= MaxListPages; page++)
@@ -138,11 +138,11 @@ public class ComicHubFree : SeriesSource, API.Discovery.IDiscoveryRailProvider
                 if (!seen.Add(number))
                     continue;
 
-                var chapter = new Chapter(mangaId.Obj, number, null, HtmlEntity.DeEntitize(link.InnerText).Trim());
+                var chapter = new Chapter(seriesId.Obj, number, null, HtmlEntity.DeEntitize(link.InnerText).Trim());
                 // Scope the id to the series: issue numbers repeat across comics, and the SourceId key is
                 // derived from (connector, idOnConnectorSite) only — an unscoped "issue-N" collides with
                 // every other ComicHubFree comic's issue N and the second series' save fails.
-                var chId = new SourceId<Chapter>(chapter, this, $"{slug}/issue-{number}", href, mangaId.UseForDownload);
+                var chId = new SourceId<Chapter>(chapter, this, $"{slug}/issue-{number}", href, seriesId.UseForDownload);
                 chapter.SourceIds.Add(chId);
                 chapters.Add((chapter, chId));
             }
@@ -150,7 +150,7 @@ public class ComicHubFree : SeriesSource, API.Discovery.IDiscoveryRailProvider
             if (doc.DocumentNode.SelectSingleNode($"//ul[contains(@class, 'pagination')]//a[contains(@href, 'page={page + 1}')]") is null)
                 break;
         }
-        Log.InfoFormat("Found {0} chapters for {1}", chapters.Count, mangaId.Obj.Name);
+        Log.InfoFormat("Found {0} chapters for {1}", chapters.Count, seriesId.Obj.Name);
         return chapters.OrderBy(c => c.Item1, new Chapter.ChapterComparer()).ToArray();
     }
 

@@ -51,9 +51,9 @@ public class Kenku
         context.ChangeTracker.Clear();
         Log.DebugFormat("Adding Series to Context: {0}", addManga);
         (Series, SourceId<Series>)? result;
-        if (await context.FindMangaLike(addManga, token) is { } mangaId)
+        if (await context.FindMangaLike(addManga, token) is { } seriesId)
         {
-            Series manga = await context.MangaIncludeAll().FirstAsync(m => m.Key == mangaId, token);
+            Series manga = await context.MangaIncludeAll().FirstAsync(m => m.Key == seriesId, token);
             Log.DebugFormat("Merging with existing Series: {0}", manga);
 
             var existingMcId = manga.SourceIds

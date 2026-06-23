@@ -40,18 +40,18 @@ public class MetadataSourceController : ControllerBase
     /// <summary>
     /// Returns the <see cref="MetadataSource"/> for a given <see cref="Schema.SeriesContext.Series"/>.
     /// </summary>
-    /// <param name="MangaId"><see cref="Schema.SeriesContext.Series"/>.Key</param>
+    /// <param name="SeriesId"><see cref="Schema.SeriesContext.Series"/>.Key</param>
     /// <response code="200">MetadataSource data</response>
     /// <response code="404">Series not found</response>
-    [HttpGet("{MangaId}/metadataSource")]
+    [HttpGet("{SeriesId}/metadataSource")]
     [ProducesResponseType<MetadataSourceResult>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
-    public async Task<Results<Ok<MetadataSourceResult>, NotFound<string>>> GetMetadataSource(string MangaId)
+    public async Task<Results<Ok<MetadataSourceResult>, NotFound<string>>> GetMetadataSource(string SeriesId)
     {
         if (await context.Series
                 .Include(m => m.MetadataSource)
-                .FirstOrDefaultAsync(m => m.Key == MangaId, HttpContext.RequestAborted) is not { } manga)
-            return TypedResults.NotFound(nameof(MangaId));
+                .FirstOrDefaultAsync(m => m.Key == SeriesId, HttpContext.RequestAborted) is not { } manga)
+            return TypedResults.NotFound(nameof(SeriesId));
 
         MetadataSource? source = manga.MetadataSource;
         if (source is null)
@@ -70,26 +70,26 @@ public class MetadataSourceController : ControllerBase
     /// <summary>
     /// Sets the <see cref="MetadataSource"/> for a <see cref="Schema.SeriesContext.Series"/>, marking it as Confirmed.
     /// </summary>
-    /// <param name="MangaId"><see cref="Schema.SeriesContext.Series"/>.Key</param>
+    /// <param name="SeriesId"><see cref="Schema.SeriesContext.Series"/>.Key</param>
     /// <param name="request">Source type and external ID</param>
     /// <response code="204">Updated successfully</response>
     /// <response code="400">ExternalId is null or empty</response>
     /// <response code="404">Series not found</response>
-    [HttpPut("{MangaId}/metadataSource")]
+    [HttpPut("{SeriesId}/metadataSource")]
     [ProducesResponseType(Status204NoContent)]
     [ProducesResponseType<string>(Status400BadRequest, "text/plain")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType<string>(Status500InternalServerError, "text/plain")]
     public async Task<Results<NoContent, BadRequest<string>, NotFound<string>, InternalServerError<string>>> SetMetadataSource(
-        string MangaId, [FromBody] PatchMetadataSourceRecord request)
+        string SeriesId, [FromBody] PatchMetadataSourceRecord request)
     {
         if (string.IsNullOrWhiteSpace(request.ExternalId))
             return TypedResults.BadRequest("ExternalId must not be null or empty.");
 
         if (await context.Series
                 .Include(m => m.MetadataSource)
-                .FirstOrDefaultAsync(m => m.Key == MangaId, HttpContext.RequestAborted) is not { } manga)
-            return TypedResults.NotFound(nameof(MangaId));
+                .FirstOrDefaultAsync(m => m.Key == SeriesId, HttpContext.RequestAborted) is not { } manga)
+            return TypedResults.NotFound(nameof(SeriesId));
 
         if (!Enum.TryParse<MetadataSourceType>(request.SourceType, ignoreCase: true, out var sourceType))
             sourceType = MetadataSourceType.MangaDex;
@@ -112,22 +112,22 @@ public class MetadataSourceController : ControllerBase
     /// <summary>
     /// Searches for candidates matching a Series's title, scored by similarity.
     /// </summary>
-    /// <param name="MangaId"><see cref="Schema.SeriesContext.Series"/>.Key</param>
+    /// <param name="SeriesId"><see cref="Schema.SeriesContext.Series"/>.Key</param>
     /// <param name="q">Title to search for</param>
     /// <param name="source">Metadata source to search: "mangadex" (default) or "anilist"</param>
     /// <response code="200">Top 10 scored candidates</response>
     /// <response code="404">Series not found</response>
-    [HttpGet("{MangaId}/metadataSource/candidates")]
+    [HttpGet("{SeriesId}/metadataSource/candidates")]
     [ProducesResponseType<List<MetadataSourceCandidate>>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     public async Task<Results<Ok<List<MetadataSourceCandidate>>, NotFound<string>>> GetMetadataSourceCandidates(
-        string MangaId, [FromQuery] string q, [FromQuery] string source = "mangadex")
+        string SeriesId, [FromQuery] string q, [FromQuery] string source = "mangadex")
     {
         if (await context.Series
                 .Include(m => m.Authors)
                 .Include(m => m.Chapters)
-                .FirstOrDefaultAsync(m => m.Key == MangaId, HttpContext.RequestAborted) is not { } manga)
-            return TypedResults.NotFound(nameof(MangaId));
+                .FirstOrDefaultAsync(m => m.Key == SeriesId, HttpContext.RequestAborted) is not { } manga)
+            return TypedResults.NotFound(nameof(SeriesId));
 
         int ourChapterCount = manga.Chapters.Count;
         string? ourAuthor = manga.Authors.FirstOrDefault()?.AuthorName;
@@ -169,29 +169,29 @@ public class MetadataSourceController : ControllerBase
     /// <summary>
     /// Enqueues a ResolveSeriesVolumes job to refresh chapter volumes for a Series from its confirmed MangaDex ExternalId.
     /// </summary>
-    /// <param name="MangaId"><see cref="Schema.SeriesContext.Series"/>.Key</param>
+    /// <param name="SeriesId"><see cref="Schema.SeriesContext.Series"/>.Key</param>
     /// <response code="202">Job queued. Returns jobId.</response>
     /// <response code="400">MetadataSource is Unlinked (no ExternalId set)</response>
     /// <response code="404">Series not found</response>
-    [HttpPost("{MangaId}/metadataSource/refresh")]
+    [HttpPost("{SeriesId}/metadataSource/refresh")]
     [ProducesResponseType<object>(Status202Accepted, "application/json")]
     [ProducesResponseType<string>(Status400BadRequest, "text/plain")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     public async Task<Results<Accepted<object>, BadRequest<string>, NotFound<string>>> RefreshMetadataSource(
-        string MangaId, [FromServices] IJobStore jobStore, [FromServices] IClock clock)
+        string SeriesId, [FromServices] IJobStore jobStore, [FromServices] IClock clock)
     {
         if (await context.Series
                 .Include(m => m.MetadataSource)
-                .FirstOrDefaultAsync(m => m.Key == MangaId, HttpContext.RequestAborted) is not { } manga)
-            return TypedResults.NotFound(nameof(MangaId));
+                .FirstOrDefaultAsync(m => m.Key == SeriesId, HttpContext.RequestAborted) is not { } manga)
+            return TypedResults.NotFound(nameof(SeriesId));
 
         if (manga.MetadataSource is null || manga.MetadataSource.Status == MetadataSourceStatus.Unlinked
             || string.IsNullOrEmpty(manga.MetadataSource.ExternalId))
             return TypedResults.BadRequest("MetadataSource is Unlinked. Set an ExternalId first via PUT metadataSource.");
 
         JobEntity job = await jobStore.EnqueueAsync(new JobEntity(ResolveSeriesVolumesHandler.Type,
-            ResolveSeriesVolumesHandler.PayloadFor(MangaId), clock.UtcNow,
-            resourceKey: VolumeResolutionReconciler.ResourceKey, dedupKey: VolumeResolutionReconciler.DedupKey(MangaId)),
+            ResolveSeriesVolumesHandler.PayloadFor(SeriesId), clock.UtcNow,
+            resourceKey: VolumeResolutionReconciler.ResourceKey, dedupKey: VolumeResolutionReconciler.DedupKey(SeriesId)),
             HttpContext.RequestAborted);
 
         return TypedResults.Accepted<object>((string?)null, new { jobId = job.Key });

@@ -4,37 +4,37 @@ type Series = components['schemas']['Series'];
 
 /** Data + mutations for the series detail page. The series is a computed off the fetch (no manual ref
  * mirror), and every fetch is lazy + client-only, so there are no awaits to lose the Nuxt context. */
-export function useSeriesDetail(mangaId: string) {
+export function useSeriesDetail(seriesId: string) {
     const { $api } = useNuxtApp();
     const toast = useToast();
 
     const rollupQuery = useApi('/v2/Series/Rollup', { key: FetchKeys.Series.Rollup, lazy: true, server: false });
     const connectorsQuery = useApi('/v2/SeriesSource', { key: FetchKeys.MangaConnector.All, lazy: true, server: false });
-    const seriesQuery = useApi('/v2/Series/{MangaId}', {
-        path: { MangaId: mangaId },
-        key: FetchKeys.Series.Id(mangaId),
+    const seriesQuery = useApi('/v2/Series/{SeriesId}', {
+        path: { SeriesId: seriesId },
+        key: FetchKeys.Series.Id(seriesId),
         onResponseError: () => navigateTo('/'),
         lazy: true,
         server: false,
     });
 
     const series = computed<Series | null>(() => seriesQuery.data.value ?? null);
-    const rollup = computed(() => (rollupQuery.data.value ?? []).find((r) => r.mangaId === mangaId) ?? null);
+    const rollup = computed(() => (rollupQuery.data.value ?? []).find((r) => r.seriesId === seriesId) ?? null);
     const kind = computed<SeriesKind>(() => (series.value ? seriesKind(series.value, connectorsQuery.data.value) : 'manga'));
 
     const refreshRollups = () => rollupQuery.refresh();
     onMounted(refreshRollups);
 
     const setRequestedFrom = async (seriesSourceName: string, isRequested: boolean) => {
-        await $api('/v2/Series/{MangaId}/DownloadFrom/{SeriesSourceName}/{IsRequested}', {
+        await $api('/v2/Series/{SeriesId}/DownloadFrom/{SeriesSourceName}/{IsRequested}', {
             method: 'PATCH',
-            path: { MangaId: mangaId, SeriesSourceName: seriesSourceName, IsRequested: isRequested },
+            path: { SeriesId: seriesId, SeriesSourceName: seriesSourceName, IsRequested: isRequested },
         });
-        await refreshNuxtData(FetchKeys.Series.Id(mangaId));
+        await refreshNuxtData(FetchKeys.Series.Id(seriesId));
     };
 
     const syncNow = async () => {
-        await $api('/v2/Series/{MangaId}/Sync', { method: 'POST', path: { MangaId: mangaId } });
+        await $api('/v2/Series/{SeriesId}/Sync', { method: 'POST', path: { SeriesId: seriesId } });
         toast.add({ title: 'Sync queued', description: 'Chapters and cover refresh from your sources.', icon: 'i-lucide-cloud-download', color: 'success' });
         await refreshRollups();
     };
@@ -43,11 +43,11 @@ export function useSeriesDetail(mangaId: string) {
     const refreshData = async (quiet = false) => {
         refreshingData.value = true;
         await refreshNuxtData([
-            FetchKeys.Series.Id(mangaId),
+            FetchKeys.Series.Id(seriesId),
             FetchKeys.Series.Rollup,
-            FetchKeys.Metadata.Series(mangaId),
+            FetchKeys.Metadata.Series(seriesId),
             FetchKeys.FileLibraries,
-            FetchKeys.Chapters.Series(mangaId),
+            FetchKeys.Chapters.Series(seriesId),
         ]);
         refreshingData.value = false;
         if (!quiet) toast.add({ title: 'Series refreshed', icon: 'i-lucide-check', color: 'neutral', duration: 1500 });

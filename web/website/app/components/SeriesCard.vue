@@ -84,7 +84,7 @@ const retrySync = async () => {
     if (retrying.value) return;
     retrying.value = true;
     try {
-        await $api('/v2/Series/{MangaId}/Sync', { method: 'POST', path: { MangaId: props.series.key } });
+        await $api('/v2/Series/{SeriesId}/Sync', { method: 'POST', path: { SeriesId: props.series.key } });
         toast.add({ title: 'Sync queued', description: `${props.series.name} will retry from your sources.`, icon: 'i-lucide-cloud-download', color: 'success' });
     } catch {
         toast.add({ title: 'Retry failed', description: 'Could not queue a sync. Try again.', icon: 'i-lucide-triangle-alert', color: 'error' });

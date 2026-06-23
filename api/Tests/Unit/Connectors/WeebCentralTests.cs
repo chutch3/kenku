@@ -54,8 +54,8 @@ public class WeebCentralTests
         var settings = CreateSettings();
         var weebCentral = new WeebCentral(settings, CreateMockClient(html).Object);
 
-        var mangaId = CreateDummyManga(weebCentral);
-        var chapters = await weebCentral.GetChapters(mangaId);
+        var seriesId = CreateDummyManga(weebCentral);
+        var chapters = await weebCentral.GetChapters(seriesId);
 
         Assert.Single(chapters);
         Assert.Equal(expectedVolume, chapters[0].Item1.VolumeNumber);
@@ -82,9 +82,9 @@ public class WeebCentralTests
             });
         var weebCentral = new WeebCentral(CreateSettings(), mockClient.Object);
         var manga = new Series("I Am A Hero", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], []);
-        var mangaId = new SourceId<Series>(manga, weebCentral, storedId, "https://example.com/test");
+        var seriesId = new SourceId<Series>(manga, weebCentral, storedId, "https://example.com/test");
 
-        await weebCentral.GetChapters(mangaId);
+        await weebCentral.GetChapters(seriesId);
 
         Assert.Equal("https://weebcentral.com/series/01ABC/full-chapter-list", requestedUrl);
     }
@@ -95,9 +95,9 @@ public class WeebCentralTests
         // A failed fetch must be loud: returning an empty list here is what made a sync job report
         // "Succeeded" with 0 chapters while the series sat empty with no signal.
         var weebCentral = new WeebCentral(CreateSettings(), CreateMockClient("", HttpStatusCode.NotFound).Object);
-        var mangaId = CreateDummyManga(weebCentral);
+        var seriesId = CreateDummyManga(weebCentral);
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => weebCentral.GetChapters(mangaId));
+        await Assert.ThrowsAsync<HttpRequestException>(() => weebCentral.GetChapters(seriesId));
     }
 
     [Fact]
@@ -115,9 +115,9 @@ public class WeebCentralTests
             .Setup(c => c.MakeRequest(It.IsAny<string>(), It.IsAny<RequestType>(), It.IsAny<string>(), It.IsAny<CancellationToken?>()))
             .ReturnsAsync(response);
         var weebCentral = new WeebCentral(CreateSettings(), mockClient.Object);
-        var mangaId = CreateDummyManga(weebCentral);
+        var seriesId = CreateDummyManga(weebCentral);
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => weebCentral.GetChapters(mangaId));
+        await Assert.ThrowsAsync<HttpRequestException>(() => weebCentral.GetChapters(seriesId));
     }
 
     [Fact]

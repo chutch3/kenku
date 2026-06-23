@@ -36,7 +36,7 @@ import type { components } from '#open-fetch-schemas/api';
 type MinimalSeries = components['schemas']['MinimalSeries'];
 type SourceIdDto = components['schemas']['SeriesSourceId'];
 
-const props = defineProps<{ mangaId: string; source: SourceIdDto; seriesName?: string }>();
+const props = defineProps<{ seriesId: string; source: SourceIdDto; seriesName?: string }>();
 const open = defineModel<boolean>('open', { default: false });
 const emit = defineEmits<{ (e: 'rematched'): void }>();
 
@@ -71,9 +71,9 @@ const rematch = async (result: MinimalSeries) => {
     if (!target) return;
     linking.value = result.key;
     try {
-        await $api('/v2/Series/{MangaId}/Source/{SourceIdKey}/Rematch', {
+        await $api('/v2/Series/{SeriesId}/Source/{SourceIdKey}/Rematch', {
             method: 'POST',
-            path: { MangaId: props.mangaId, SourceIdKey: props.source.key },
+            path: { SeriesId: props.seriesId, SourceIdKey: props.source.key },
             body: { idOnConnectorSite: target.idOnConnectorSite, websiteUrl: target.websiteUrl ?? undefined },
         });
         emit('rematched');

@@ -22,7 +22,7 @@ public class VolumeMetadataTests
         var manga = MakeTestManga("Berserk");
         var vol = new VolumeMetadata(manga, 3, "Conviction");
 
-        Assert.Equal(manga.Key, vol.MangaId);
+        Assert.Equal(manga.Key, vol.SeriesId);
         Assert.Same(manga, vol.Series);
         Assert.Equal(3, vol.VolumeNumber);
         Assert.Equal("Conviction", vol.Title);

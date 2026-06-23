@@ -17,24 +17,24 @@ public static class CoverImageCache
 {
     private static readonly ILog Log = LogManager.GetLogger(typeof(CoverImageCache));
 
-    public static async Task<string?> SaveAsync(KenkuSettings settings, IHttpRequester http, SourceId<Series> mangaId, int retries = 3)
+    public static async Task<string?> SaveAsync(KenkuSettings settings, IHttpRequester http, SourceId<Series> seriesId, int retries = 3)
     {
         if (retries < 0)
             return null;
 
         Regex urlRex = new(@"https?:\/\/((?:[a-zA-Z0-9-]+\.)+[a-zA-Z0-9]+)\/(?:.+\/)*(.+\.([a-zA-Z]+))");
         //https?:\/\/[a-zA-Z0-9-]+\.([a-zA-Z0-9-]+\.[a-zA-Z0-9]+)\/(?:.+\/)*(.+\.([a-zA-Z]+)) for only second level domains
-        Match match = urlRex.Match(mangaId.Obj.CoverUrl);
+        Match match = urlRex.Match(seriesId.Obj.CoverUrl);
         // Clean ONCE up front so the file written to disk and the value returned are always identical.
-        string filename = $"{match.Groups[1].Value}-{mangaId.ObjId}.{mangaId.SeriesSourceName}.{match.Groups[3].Value}".CleanNameForWindows();
+        string filename = $"{match.Groups[1].Value}-{seriesId.ObjId}.{seriesId.SeriesSourceName}.{match.Groups[3].Value}".CleanNameForWindows();
         string saveImagePath = Path.Join(settings.CoverImageCacheOriginal, filename);
 
         if (File.Exists(saveImagePath))
             return filename;
 
-        using HttpResponseMessage coverResult = await http.MakeRequest(mangaId.Obj.CoverUrl, RequestType.MangaCover, $"https://{match.Groups[1].Value}");
+        using HttpResponseMessage coverResult = await http.MakeRequest(seriesId.Obj.CoverUrl, RequestType.MangaCover, $"https://{match.Groups[1].Value}");
         if ((int)coverResult.StatusCode < 200 || (int)coverResult.StatusCode >= 300)
-            return await SaveAsync(settings, http, mangaId, retries - 1);
+            return await SaveAsync(settings, http, seriesId, retries - 1);
 
         try
         {

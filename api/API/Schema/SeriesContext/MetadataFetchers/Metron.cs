@@ -42,14 +42,14 @@ public class Metron : MetadataFetcher
 
     public override async Task UpdateMetadata(MetadataEntry metadataEntry, SeriesContext dbContext, CancellationToken token)
     {
-        Log.DebugFormat("Updating Metadata from Metron: {0}", metadataEntry.MangaId);
+        Log.DebugFormat("Updating Metadata from Metron: {0}", metadataEntry.SeriesId);
 
         Series? dbManga = metadataEntry.Series;
         if (dbManga is null)
         {
-            if (await dbContext.Series.FirstOrDefaultAsync(m => m.Key == metadataEntry.MangaId, token) is not { } update)
+            if (await dbContext.Series.FirstOrDefaultAsync(m => m.Key == metadataEntry.SeriesId, token) is not { } update)
             {
-                Log.ErrorFormat("Series not found: {0}", metadataEntry.MangaId);
+                Log.ErrorFormat("Series not found: {0}", metadataEntry.SeriesId);
                 return;
             }
             dbManga = update;
@@ -74,6 +74,6 @@ public class Metron : MetadataFetcher
         dbManga.SetCover(detail.CoverUrl, CoverSource.Provider);
 
         if (await dbContext.Sync(token, GetType(), "Update metadata") is { success: true })
-            Log.InfoFormat("Updated Metadata from Metron: {0}", metadataEntry.MangaId);
+            Log.InfoFormat("Updated Metadata from Metron: {0}", metadataEntry.SeriesId);
     }
 }

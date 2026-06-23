@@ -6,7 +6,7 @@ namespace API.Controllers.DTOs;
 /// Entry for a manga with unresolved chapters or missing files.
 /// </summary>
 public record UnresolvedMangaEntry(
-    [Required] string MangaId,
+    [Required] string SeriesId,
     [Required] string MangaName,
     [Required] int UnresolvedChapterCount,
     [Required] int MissingFileCount

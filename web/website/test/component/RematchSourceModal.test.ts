@@ -41,7 +41,7 @@ describe('RematchSourceModal', () => {
 
     it('searches the connector and re-links to the picked entry', async () => {
         const wrapper = await mountSuspended(RematchSourceModal, {
-            props: { mangaId: 's1', source, seriesName: 'I Am A Hero', open: true },
+            props: { seriesId: 's1', source, seriesName: 'I Am A Hero', open: true },
         });
         await vi.waitFor(() => findButton('Search'));
 

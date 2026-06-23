@@ -21,7 +21,7 @@
                     :description="rollup.lastError"
                     :actions="[{ label: 'Open queue', to: '/queue', color: 'error', variant: 'outline' }]"
                     class="mt-1" />
-                <SeriesProgress v-if="series?.fileLibraryId" :manga-id="series.key" class="mt-1" />
+                <SeriesProgress v-if="series?.fileLibraryId" :series-id="series.key" class="mt-1" />
                 <USkeleton v-else-if="!series" as="p" class="h-20 w-full" />
                 <div v-if="series" class="flex flex-row gap-1 flex-wrap">
                     <UBadge v-for="author in series.authors" :key="author.key" variant="outline" color="neutral"

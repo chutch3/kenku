@@ -42,10 +42,10 @@ public class AddSeriesFlowEndToEndTests() : OutboundHttpIntegrationTest(Connecto
         var add = await App.CreateClient().PostAsync(
             $"/v2/Series/unknown/ChangeLibrary/{libraryKey}?connectorName=WeebCentral&connectorSeriesId=wc-1&download=true", null);
         add.EnsureSuccessStatusCode();
-        string mangaId = (await FirePunchSource()).ObjId;
+        string seriesId = (await FirePunchSource()).ObjId;
         await App.WithJobsContext(async c => { c.JobQueue.RemoveRange(c.JobQueue); return await c.SaveChangesAsync(); });
 
-        var response = await App.CreateClient().PostAsync($"/v2/Series/{mangaId}/Sync", null);
+        var response = await App.CreateClient().PostAsync($"/v2/Series/{seriesId}/Sync", null);
         response.EnsureSuccessStatusCode();
 
         List<API.Schema.JobsContext.Job> jobs = await Jobs();

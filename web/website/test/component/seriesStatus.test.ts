@@ -21,7 +21,7 @@ function series(overrides: Partial<MinimalSeries> = {}): MinimalSeries {
 
 function rollup(overrides: Partial<SeriesRollup> = {}): SeriesRollup {
     return {
-        mangaId: 's1',
+        seriesId: 's1',
         wantedChapters: 10,
         downloadedChapters: 10,
         queuedJobs: 0,

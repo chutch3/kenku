@@ -38,7 +38,7 @@ public class VolumeBundleReconciler(IServiceScopeFactory scopeFactory, IClock cl
 
         Dictionary<string, List<VolumeMetadata>> bundledByManga = (await series.VolumeMetadata
                 .Where(v => v.ArchiveFileName != null).ToListAsync(ct))
-            .GroupBy(v => v.MangaId).ToDictionary(g => g.Key, g => g.ToList());
+            .GroupBy(v => v.SeriesId).ToDictionary(g => g.Key, g => g.ToList());
 
         Dictionary<string, HashSet<string>> recordedByVolumeKey = (await series.BundleChapterMaps.ToListAsync(ct))
             .GroupBy(m => m.VolumeKey).ToDictionary(g => g.Key, g => g.Select(m => m.ChapterKey).ToHashSet());

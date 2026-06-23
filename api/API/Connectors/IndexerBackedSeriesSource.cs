@@ -63,9 +63,9 @@ public sealed class IndexerBackedSeriesSource : SeriesSource
     public override Task<(Series, SourceId<Series>)?> GetMangaFromId(string mangaIdOnSite)
         => Task.FromResult<(Series, SourceId<Series>)?>(BuildSeries(mangaIdOnSite, null));
 
-    public override async Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> mangaId, string? language = null)
+    public override async Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> seriesId, string? language = null)
     {
-        string seriesTitle = mangaId.Obj.Name;
+        string seriesTitle = seriesId.Obj.Name;
         IndexerSearchResult[] results = await _indexers.Search(
             new IndexerQuery(seriesTitle, null, null, _categories), CancellationToken.None);
 
@@ -79,8 +79,8 @@ public sealed class IndexerBackedSeriesSource : SeriesSource
             {
                 if (byIssue.ContainsKey(issue)) continue;
 
-                var chapter = new Chapter(mangaId.Obj, issue, null, null);
-                var chId = new SourceId<Chapter>(chapter, this, issue, null, mangaId.UseForDownload);
+                var chapter = new Chapter(seriesId.Obj, issue, null, null);
+                var chId = new SourceId<Chapter>(chapter, this, issue, null, seriesId.UseForDownload);
                 chapter.SourceIds.Add(chId);
                 byIssue[issue] = (chapter, chId);
             }

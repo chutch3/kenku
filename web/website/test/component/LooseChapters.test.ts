@@ -13,10 +13,10 @@ interface LooseEntry {
     metadataConfidence: string | null;
 }
 
-// Each test uses a distinct mangaId so the volumes endpoint (cached by URL via useAsyncData) doesn't
+// Each test uses a distinct seriesId so the volumes endpoint (cached by URL via useAsyncData) doesn't
 // bleed between tests.
-function registerVolumes(mangaId: string, unassigned: LooseEntry[]) {
-    registerEndpoint(`/v2/Series/${mangaId}/volumes`, () => ({
+function registerVolumes(seriesId: string, unassigned: LooseEntry[]) {
+    registerEndpoint(`/v2/Series/${seriesId}/volumes`, () => ({
         filesNeedReorganizing: 0,
         layout: 'VolumeCBZ',
         volumes: [],
@@ -39,7 +39,7 @@ describe('LooseChapters', () => {
     it('lists each loose chapter from the volumes endpoint', async () => {
         registerVolumes('manga-list', [entry('5'), entry('6')]);
 
-        const wrapper = await mountSuspended(LooseChapters, { props: { mangaId: 'manga-list' } });
+        const wrapper = await mountSuspended(LooseChapters, { props: { seriesId: 'manga-list' } });
 
         expect(wrapper.text()).toContain('Ch. 5');
         expect(wrapper.text()).toContain('Ch. 6');
@@ -48,7 +48,7 @@ describe('LooseChapters', () => {
     it('shows an empty state when there are no loose chapters', async () => {
         registerVolumes('manga-empty', []);
 
-        const wrapper = await mountSuspended(LooseChapters, { props: { mangaId: 'manga-empty' } });
+        const wrapper = await mountSuspended(LooseChapters, { props: { seriesId: 'manga-empty' } });
 
         expect(wrapper.text().toLowerCase()).toContain('no loose chapters');
     });
@@ -56,7 +56,7 @@ describe('LooseChapters', () => {
     it('renders nothing for a comic — volume assignment is a manga concept', async () => {
         registerVolumes('manga-comic', [entry('5')]);
 
-        const wrapper = await mountSuspended(LooseChapters, { props: { mangaId: 'manga-comic', kind: 'comic' } });
+        const wrapper = await mountSuspended(LooseChapters, { props: { seriesId: 'manga-comic', kind: 'comic' } });
 
         expect(wrapper.text()).toBe('');
     });
@@ -72,7 +72,7 @@ describe('LooseChapters', () => {
             },
         });
 
-        const wrapper = await mountSuspended(LooseChapters, { props: { mangaId: 'manga-assign' } });
+        const wrapper = await mountSuspended(LooseChapters, { props: { seriesId: 'manga-assign' } });
 
         await wrapper.find('input').setValue('3');
         await wrapper.find('button').trigger('click');

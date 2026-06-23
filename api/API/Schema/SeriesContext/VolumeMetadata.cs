@@ -6,7 +6,7 @@ namespace API.Schema.SeriesContext;
 [PrimaryKey("Key")]
 public class VolumeMetadata : Identifiable
 {
-    [StringLength(64)] public string MangaId { get; private set; } = null!;
+    [StringLength(64)] public string SeriesId { get; private set; } = null!;
     public Series Series { get; private set; } = null!;
     public int VolumeNumber { get; internal set; }
     [StringLength(512)] public string? Title { get; internal set; }
@@ -15,17 +15,17 @@ public class VolumeMetadata : Identifiable
     public VolumeMetadata(Series manga, int volumeNumber, string? title = null)
         : base(TokenGen.CreateToken(typeof(VolumeMetadata), manga.Key, volumeNumber.ToString()))
     {
-        MangaId = manga.Key;
+        SeriesId = manga.Key;
         Series = manga;
         VolumeNumber = volumeNumber;
         Title = title;
     }
 
     // EF ONLY
-    internal VolumeMetadata(string key, string mangaId, int volumeNumber, string? title, string? archiveFileName)
+    internal VolumeMetadata(string key, string seriesId, int volumeNumber, string? title, string? archiveFileName)
         : base(key)
     {
-        MangaId = mangaId;
+        SeriesId = seriesId;
         VolumeNumber = volumeNumber;
         Title = title;
         ArchiveFileName = archiveFileName;

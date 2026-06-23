@@ -30,7 +30,7 @@
 const { $api } = useNuxtApp();
 
 export interface LibrarySelectProps {
-    mangaId: string;
+    seriesId: string;
     libraryId?: string | null;
 }
 
@@ -44,11 +44,11 @@ const onLibrarySelectChange = async () => {
     if (!library.value) return;
     loading.value = true;
 
-    await $api('/v2/Series/{MangaId}/ChangeLibrary/{LibraryId}', {
+    await $api('/v2/Series/{SeriesId}/ChangeLibrary/{LibraryId}', {
         method: 'POST',
-        path: { MangaId: props.mangaId, LibraryId: library.value },
+        path: { SeriesId: props.seriesId, LibraryId: library.value },
     });
-    await refreshNuxtData(FetchKeys.Series.Id(props.mangaId));
+    await refreshNuxtData(FetchKeys.Series.Id(props.seriesId));
     loading.value = false;
     emit('libraryChanged', library.value);
 };

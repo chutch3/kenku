@@ -57,7 +57,7 @@ onMounted(() => {
     refreshRollups();
 });
 
-const rollupsByKey = computed(() => Object.fromEntries((rollups.value ?? []).map((r) => [r.mangaId, r])));
+const rollupsByKey = computed(() => Object.fromEntries((rollups.value ?? []).map((r) => [r.seriesId, r])));
 
 const { data: connectors } = await useApi('/v2/SeriesSource', { key: FetchKeys.MangaConnector.All, server: false });
 

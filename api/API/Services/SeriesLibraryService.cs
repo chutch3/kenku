@@ -41,9 +41,9 @@ public class SeriesLibraryService(KenkuSettings settings, IEnumerable<SeriesSour
     /// download client (best-effort — the client may be down or the torrent already gone).
     /// </summary>
     public async Task<bool> DeleteAsync(SeriesContext context, Schema.JobsContext.JobsContext jobsContext,
-        string mangaId, CancellationToken ct)
+        string seriesId, CancellationToken ct)
     {
-        if (await context.Series.FirstOrDefaultAsync(m => m.Key == mangaId, ct) is not { } manga)
+        if (await context.Series.FirstOrDefaultAsync(m => m.Key == seriesId, ct) is not { } manga)
             return false;
 
         // Only torrent-kind sources tag the download client, and each Remove is an HTTP round-trip —
@@ -51,18 +51,18 @@ public class SeriesLibraryService(KenkuSettings settings, IEnumerable<SeriesSour
         List<string> torrentConnectorNames = connectors
             .Where(c => c.Kind == AcquisitionKind.Torrent).Select(c => c.Name.ToLower()).ToList();
         List<string> torrentTags = await context.ChapterSourceIds
-            .Where(id => id.Obj.ParentSeriesId == mangaId && torrentConnectorNames.Contains(id.SeriesSourceName.ToLower()))
+            .Where(id => id.Obj.ParentSeriesId == seriesId && torrentConnectorNames.Contains(id.SeriesSourceName.ToLower()))
             .Select(id => id.Key)
             .ToListAsync(ct);
 
         List<string> runningJobKeys = await jobsContext.JobQueue
-            .Where(j => j.ResourceKey == mangaId && j.Status == JobStatus.Running)
+            .Where(j => j.ResourceKey == seriesId && j.Status == JobStatus.Running)
             .Select(j => j.Key)
             .ToListAsync(ct);
         foreach (string jobKey in runningJobKeys)
             running.Cancel(jobKey);
         await jobsContext.JobQueue
-            .Where(j => j.ResourceKey == mangaId && j.Status != JobStatus.Running)
+            .Where(j => j.ResourceKey == seriesId && j.Status != JobStatus.Running)
             .ExecuteDeleteAsync(ct);
 
         if (downloadClient is not null)
@@ -78,7 +78,7 @@ public class SeriesLibraryService(KenkuSettings settings, IEnumerable<SeriesSour
     }
 
     public async Task<(ChangeLibraryStatus status, string? error)> ChangeLibraryAsync(
-        SeriesContext context, ActionsContext actionsContext, string mangaId, string libraryId,
+        SeriesContext context, ActionsContext actionsContext, string seriesId, string libraryId,
         string? connectorName, string? connectorSeriesId, bool download, CancellationToken ct, string? coverUrl = null,
         LibraryLayout? layout = null)
     {
@@ -90,7 +90,7 @@ public class SeriesLibraryService(KenkuSettings settings, IEnumerable<SeriesSour
             .Include(m => m.SourceIds)
             .Include(m => m.Chapters)
             .ThenInclude(c => c.SourceIds)
-            .FirstOrDefaultAsync(m => m.Key == mangaId, ct);
+            .FirstOrDefaultAsync(m => m.Key == seriesId, ct);
 
         if (manga is null)
         {

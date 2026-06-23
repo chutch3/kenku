@@ -109,5 +109,5 @@ public abstract class OutboundHttpIntegrationTest : IAsyncLifetime
 
     /// <summary>The single MetadataSource row for the given series.</summary>
     protected Task<MetadataSource> MetadataSourceFor(string mangaKey) =>
-        App.WithSeriesContext(c => c.Set<MetadataSource>().FirstAsync(s => s.MangaId == mangaKey));
+        App.WithSeriesContext(c => c.Set<MetadataSource>().FirstAsync(s => s.SeriesId == mangaKey));
 }

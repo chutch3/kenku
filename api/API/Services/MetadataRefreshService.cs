@@ -16,13 +16,13 @@ public class MetadataRefreshService(IEnumerable<MetadataFetcher> metadataFetcher
 {
     private static readonly ILog Log = LogManager.GetLogger(typeof(MetadataRefreshService));
 
-    public async Task RefreshAsync(SeriesContext seriesContext, ActionsContext actionsContext, string mangaId, CancellationToken ct)
+    public async Task RefreshAsync(SeriesContext seriesContext, ActionsContext actionsContext, string seriesId, CancellationToken ct)
     {
         List<MetadataEntry> entries = await seriesContext.MetadataEntries
             .Include(e => e.Series)
-            .Where(e => e.MangaId == mangaId)
+            .Where(e => e.SeriesId == seriesId)
             .ToListAsync(ct);
-        Log.DebugFormat("Updating metadata for {0} ({1} entries)...", mangaId, entries.Count);
+        Log.DebugFormat("Updating metadata for {0} ({1} entries)...", seriesId, entries.Count);
 
         foreach (MetadataEntry entry in entries)
         {

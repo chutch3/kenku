@@ -60,11 +60,11 @@ public class MyAnimeList : MetadataFetcher
     /// <exception cref="DbUpdateException"></exception>
     public override async Task UpdateMetadata(MetadataEntry metadataEntry, SeriesContext dbContext, CancellationToken token)
     {
-        Log.DebugFormat("Updating Metadata: {0}", metadataEntry.MangaId);
+        Log.DebugFormat("Updating Metadata: {0}", metadataEntry.SeriesId);
         Series? dbManga = metadataEntry.Series; //Might be null!
         if (dbManga is null)
         {
-            if (await dbContext.Series.FirstOrDefaultAsync(m => m.Key == metadataEntry.MangaId, token) is not
+            if (await dbContext.Series.FirstOrDefaultAsync(m => m.Key == metadataEntry.SeriesId, token) is not
                 { } update)
                 throw new DbUpdateException("Series not found");
             dbManga = update;
@@ -84,7 +84,7 @@ public class MyAnimeList : MetadataFetcher
             long id = long.Parse(metadataEntry.Identifier);
             if (await _jikan.GetMangaFullDataAsync(id, token) is not { } response)
             {
-                Log.ErrorFormat("Series Data not found: {0}", metadataEntry.MangaId);
+                Log.ErrorFormat("Series Data not found: {0}", metadataEntry.SeriesId);
                 return;
             }
             resultData = response.Data;
@@ -108,7 +108,7 @@ public class MyAnimeList : MetadataFetcher
 
         if (await dbContext.Sync(token, GetType(), "Update metadata") is { success: true })
         {
-            Log.InfoFormat("Updated Metadata: {0}", metadataEntry.MangaId);
+            Log.InfoFormat("Updated Metadata: {0}", metadataEntry.SeriesId);
         }
     }
     

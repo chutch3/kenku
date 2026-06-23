@@ -12,9 +12,9 @@ function series(key: string, name: string, tracked = true): MinimalSeries {
         fileLibraryId: tracked ? 'lib1' : null, originalLanguage: 'en', coverUrl: '',
     } as MinimalSeries;
 }
-function rollup(mangaId: string, overrides: Partial<SeriesRollup> = {}): SeriesRollup {
+function rollup(seriesId: string, overrides: Partial<SeriesRollup> = {}): SeriesRollup {
     return {
-        mangaId, wantedChapters: 10, downloadedChapters: 10, queuedJobs: 0, runningJobs: 0, needsAttentionJobs: 0,
+        seriesId, wantedChapters: 10, downloadedChapters: 10, queuedJobs: 0, runningJobs: 0, needsAttentionJobs: 0,
         lastError: null, lastSyncAt: null, lastSyncChapterCount: null, ...overrides,
     } as SeriesRollup;
 }

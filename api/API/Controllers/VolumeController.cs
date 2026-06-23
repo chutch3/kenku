@@ -20,33 +20,33 @@ namespace API.Controllers;
 
 [ApiVersion(2)]
 [ApiController]
-[Route("v{v:apiVersion}/Series/{MangaId}")]
+[Route("v{v:apiVersion}/Series/{SeriesId}")]
 public class VolumeController(SeriesContext context, KenkuSettings settings, IJobStore jobStore, IClock clock)
     : ControllerBase
 {
     /// <summary>
     /// Returns volumes and chapters for a manga, grouped by volume number.
     /// </summary>
-    /// <param name="MangaId"><see cref="Series"/>.Key</param>
+    /// <param name="SeriesId"><see cref="Series"/>.Key</param>
     /// <response code="200">Volume listing with chapter file status</response>
     /// <response code="404">Series not found</response>
     [HttpGet("volumes")]
     [ProducesResponseType<VolumeListResult>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
-    public async Task<Results<Ok<VolumeListResult>, NotFound<string>>> GetVolumes(string MangaId)
+    public async Task<Results<Ok<VolumeListResult>, NotFound<string>>> GetVolumes(string SeriesId)
     {
         var manga = await context.Series
             .Include(m => m.Library)
             .Include(m => m.Chapters)
             .ThenInclude(c => c.SourceIds)
-            .FirstOrDefaultAsync(m => m.Key == MangaId, HttpContext.RequestAborted);
+            .FirstOrDefaultAsync(m => m.Key == SeriesId, HttpContext.RequestAborted);
 
         if (manga is null)
-            return TypedResults.NotFound(nameof(MangaId));
+            return TypedResults.NotFound(nameof(SeriesId));
 
         // Load VolumeMetadata rows for this manga (keyed by VolumeNumber)
         var volumeMetaByNumber = await context.VolumeMetadata
-            .Where(v => v.MangaId == MangaId)
+            .Where(v => v.SeriesId == SeriesId)
             .ToDictionaryAsync(v => v.VolumeNumber, HttpContext.RequestAborted);
 
         string namingScheme = settings.ChapterNamingScheme;
@@ -134,21 +134,21 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IJo
     /// <summary>
     /// Returns a dry-run preview of all file moves needed to bring files in line with current metadata.
     /// </summary>
-    /// <param name="MangaId"><see cref="Series"/>.Key</param>
+    /// <param name="SeriesId"><see cref="Series"/>.Key</param>
     /// <response code="200">Preview with moves, directories to create, and empty directories to delete</response>
     /// <response code="404">Series not found</response>
     [HttpGet("reorganize/preview")]
     [ProducesResponseType<ReorganizePreviewResult>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
-    public async Task<Results<Ok<ReorganizePreviewResult>, NotFound<string>>> GetReorganizePreview(string MangaId)
+    public async Task<Results<Ok<ReorganizePreviewResult>, NotFound<string>>> GetReorganizePreview(string SeriesId)
     {
         var manga = await context.Series
             .Include(m => m.Library)
             .Include(m => m.Chapters)
-            .FirstOrDefaultAsync(m => m.Key == MangaId, HttpContext.RequestAborted);
+            .FirstOrDefaultAsync(m => m.Key == SeriesId, HttpContext.RequestAborted);
 
         if (manga is null)
-            return TypedResults.NotFound(nameof(MangaId));
+            return TypedResults.NotFound(nameof(SeriesId));
 
         foreach (var chapter in manga.Chapters)
             chapter.ParentManga = manga;
@@ -160,7 +160,7 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IJo
     /// <summary>
     /// Enqueues a PlaceChapterFile job for each file that needs moving.
     /// </summary>
-    /// <param name="MangaId"><see cref="Series"/>.Key</param>
+    /// <param name="SeriesId"><see cref="Series"/>.Key</param>
     /// <response code="202">Jobs enqueued; returns first job key as jobId</response>
     /// <response code="200">Nothing to reorganize</response>
     /// <response code="404">Series not found</response>
@@ -168,15 +168,15 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IJo
     [ProducesResponseType<ReorganizeJobResult>(Status202Accepted, "application/json")]
     [ProducesResponseType<ReorganizeJobResult>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
-    public async Task<Results<Accepted<ReorganizeJobResult>, Ok<ReorganizeJobResult>, NotFound<string>>> PostReorganize(string MangaId)
+    public async Task<Results<Accepted<ReorganizeJobResult>, Ok<ReorganizeJobResult>, NotFound<string>>> PostReorganize(string SeriesId)
     {
         var manga = await context.Series
             .Include(m => m.Library)
             .Include(m => m.Chapters)
-            .FirstOrDefaultAsync(m => m.Key == MangaId, HttpContext.RequestAborted);
+            .FirstOrDefaultAsync(m => m.Key == SeriesId, HttpContext.RequestAborted);
 
         if (manga is null)
-            return TypedResults.NotFound(nameof(MangaId));
+            return TypedResults.NotFound(nameof(SeriesId));
 
         foreach (var chapter in manga.Chapters)
             chapter.ParentManga = manga;
@@ -218,22 +218,22 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IJo
     /// Stores the layout preference and returns a reorganize preview using the new layout.
     /// Does NOT execute any file moves.
     /// </summary>
-    /// <param name="MangaId"><see cref="SchemaManga"/>.Key</param>
+    /// <param name="SeriesId"><see cref="SchemaManga"/>.Key</param>
     /// <param name="request">New layout preference</param>
     /// <response code="200">Layout stored; response includes reorganize preview with new layout paths</response>
     /// <response code="404">Series not found</response>
     [HttpPut("libraryLayout")]
     [ProducesResponseType<LibraryLayoutResult>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
-    public async Task<Results<Ok<LibraryLayoutResult>, NotFound<string>>> PutLibraryLayout(string MangaId, [FromBody] PutLibraryLayoutRecord request)
+    public async Task<Results<Ok<LibraryLayoutResult>, NotFound<string>>> PutLibraryLayout(string SeriesId, [FromBody] PutLibraryLayoutRecord request)
     {
         var manga = await context.Series
             .Include(m => m.Library)
             .Include(m => m.Chapters)
-            .FirstOrDefaultAsync(m => m.Key == MangaId, HttpContext.RequestAborted);
+            .FirstOrDefaultAsync(m => m.Key == SeriesId, HttpContext.RequestAborted);
 
         if (manga is null)
-            return TypedResults.NotFound(nameof(MangaId));
+            return TypedResults.NotFound(nameof(SeriesId));
 
         manga.LibraryLayout = request.Layout;
         await context.Sync(HttpContext.RequestAborted, GetType(), nameof(PutLibraryLayout));
@@ -255,7 +255,7 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IJo
     /// Chapters not found are listed in the response; the request is not failed.
     /// Also marks MetadataSource as Manual/Confirmed on the manga.
     /// </summary>
-    /// <param name="MangaId"><see cref="SchemaManga"/>.Key</param>
+    /// <param name="SeriesId"><see cref="SchemaManga"/>.Key</param>
     /// <param name="request">Map of ChapterNumber to VolumeNumber</param>
     /// <response code="200">Assignment applied; returns count of applied and list of not-found chapter numbers</response>
     /// <response code="404">Series not found</response>
@@ -263,15 +263,15 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IJo
     [ProducesResponseType<BulkAssignmentResult>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     public async Task<Results<Ok<BulkAssignmentResult>, NotFound<string>>> PostBulkAssignment(
-        string MangaId, [FromBody] BulkAssignmentRecord request)
+        string SeriesId, [FromBody] BulkAssignmentRecord request)
     {
         var manga = await context.Series
             .Include(m => m.Chapters)
             .Include(m => m.MetadataSource)
-            .FirstOrDefaultAsync(m => m.Key == MangaId, HttpContext.RequestAborted);
+            .FirstOrDefaultAsync(m => m.Key == SeriesId, HttpContext.RequestAborted);
 
         if (manga is null)
-            return TypedResults.NotFound(nameof(MangaId));
+            return TypedResults.NotFound(nameof(SeriesId));
 
         var notFound = new List<string>();
         int applied = 0;
@@ -306,7 +306,7 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IJo
     /// <summary>
     /// Enqueues a ReconcileVolumeBundle job to merge all unbundled chapters into a single CBZ.
     /// </summary>
-    /// <param name="MangaId"><see cref="SchemaManga"/>.Key</param>
+    /// <param name="SeriesId"><see cref="SchemaManga"/>.Key</param>
     /// <param name="VolumeNumber">Volume number to bundle</param>
     /// <response code="202">Worker queued; returns job ID</response>
     /// <response code="404">Series or VolumeMetadata not found</response>
@@ -315,18 +315,18 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IJo
     [ProducesResponseType<BundleJobResult>(Status202Accepted, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType<string>(Status409Conflict, "text/plain")]
-    public async Task<Results<Accepted<BundleJobResult>, NotFound<string>, Conflict<string>>> PostBundle(string MangaId, int VolumeNumber)
+    public async Task<Results<Accepted<BundleJobResult>, NotFound<string>, Conflict<string>>> PostBundle(string SeriesId, int VolumeNumber)
     {
         var manga = await context.Series
             .Include(m => m.Library)
-            .FirstOrDefaultAsync(m => m.Key == MangaId, HttpContext.RequestAborted);
+            .FirstOrDefaultAsync(m => m.Key == SeriesId, HttpContext.RequestAborted);
         if (manga is null)
-            return TypedResults.NotFound(nameof(MangaId));
+            return TypedResults.NotFound(nameof(SeriesId));
 
         // VolumeMetadata is derived on demand by the bundler, so its absence is not a 404 —
         // what matters is whether there are unbundled chapters with files to bundle.
         bool hasUnbundledChapters = await context.Chapters
-            .AnyAsync(c => c.ParentSeriesId == MangaId
+            .AnyAsync(c => c.ParentSeriesId == SeriesId
                            && c.VolumeNumber == VolumeNumber
                            && !c.IsBundled
                            && c.FileName != null, HttpContext.RequestAborted);
@@ -334,15 +334,15 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IJo
             return TypedResults.Conflict("No unbundled chapters with files exist for this volume");
 
         JobEntity job = await jobStore.EnqueueAsync(new JobEntity(ReconcileVolumeBundleHandler.Type,
-            ReconcileVolumeBundleHandler.PayloadFor(MangaId, VolumeNumber, BundleAction.Bundle), clock.UtcNow,
-            resourceKey: MangaId), HttpContext.RequestAborted);
+            ReconcileVolumeBundleHandler.PayloadFor(SeriesId, VolumeNumber, BundleAction.Bundle), clock.UtcNow,
+            resourceKey: SeriesId), HttpContext.RequestAborted);
         return TypedResults.Accepted<BundleJobResult>((string?)null, new BundleJobResult(job.Key));
     }
 
     /// <summary>
     /// Enqueues a ReconcileVolumeBundle (Unbundle) job to split the bundle CBZ back into chapter CBZs.
     /// </summary>
-    /// <param name="MangaId"><see cref="SchemaManga"/>.Key</param>
+    /// <param name="SeriesId"><see cref="SchemaManga"/>.Key</param>
     /// <param name="VolumeNumber">Volume number to unbundle</param>
     /// <response code="202">Worker queued; returns job ID (may include warning if no map exists)</response>
     /// <response code="404">Series or VolumeMetadata not found</response>
@@ -351,16 +351,16 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IJo
     [ProducesResponseType<UnbundleJobResult>(Status202Accepted, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType<string>(Status409Conflict, "text/plain")]
-    public async Task<Results<Accepted<UnbundleJobResult>, NotFound<string>, Conflict<string>>> DeleteBundle(string MangaId, int VolumeNumber)
+    public async Task<Results<Accepted<UnbundleJobResult>, NotFound<string>, Conflict<string>>> DeleteBundle(string SeriesId, int VolumeNumber)
     {
         var manga = await context.Series
             .Include(m => m.Library)
-            .FirstOrDefaultAsync(m => m.Key == MangaId, HttpContext.RequestAborted);
+            .FirstOrDefaultAsync(m => m.Key == SeriesId, HttpContext.RequestAborted);
         if (manga is null)
-            return TypedResults.NotFound(nameof(MangaId));
+            return TypedResults.NotFound(nameof(SeriesId));
 
         var volumeMetadata = await context.VolumeMetadata
-            .FirstOrDefaultAsync(v => v.MangaId == MangaId && v.VolumeNumber == VolumeNumber, HttpContext.RequestAborted);
+            .FirstOrDefaultAsync(v => v.SeriesId == SeriesId && v.VolumeNumber == VolumeNumber, HttpContext.RequestAborted);
         if (volumeMetadata is null)
             return TypedResults.NotFound(nameof(VolumeNumber));
 
@@ -375,8 +375,8 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IJo
             : "No chapter map found; unbundle may be incomplete";
 
         JobEntity job = await jobStore.EnqueueAsync(new JobEntity(ReconcileVolumeBundleHandler.Type,
-            ReconcileVolumeBundleHandler.PayloadFor(MangaId, VolumeNumber, BundleAction.Unbundle), clock.UtcNow,
-            resourceKey: MangaId), HttpContext.RequestAborted);
+            ReconcileVolumeBundleHandler.PayloadFor(SeriesId, VolumeNumber, BundleAction.Unbundle), clock.UtcNow,
+            resourceKey: SeriesId), HttpContext.RequestAborted);
         return TypedResults.Accepted<UnbundleJobResult>((string?)null, new UnbundleJobResult(job.Key, warning));
     }
 

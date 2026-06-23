@@ -173,9 +173,9 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.IDisco
         results.Cast<(Series, SourceId<Series>)?>().FirstOrDefault(r =>
             string.Equals(r!.Value.Item1.Name, name, StringComparison.OrdinalIgnoreCase));
 
-    public override async Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> mangaId, string? language = null)
+    public override async Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> seriesId, string? language = null)
     {
-        string seriesTitle = mangaId.Obj.Name;
+        string seriesTitle = seriesId.Obj.Name;
         var byNumber = new Dictionary<string, (Chapter, SourceId<Chapter>)>();
         var numberless = new Dictionary<string, Post>(); // by url — one-shot candidates, deduped
         foreach (Post post in await FetchPostsFor(seriesTitle))
@@ -187,13 +187,13 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.IDisco
             {
                 // The pack itself is a zip of further archives — useless as one chapter file — but
                 // its body lists per-item links, and the readable ones become chapters.
-                await ExpandCollectionPost(post, seriesTitle, mangaId, byNumber);
+                await ExpandCollectionPost(post, seriesTitle, seriesId, byNumber);
                 continue;
             }
             if (parsed.Number is null)
                 numberless[post.Url] = post;
             else
-                AddChapter(byNumber, mangaId, parsed.Number, parsed.Volume, post.Title, parsed.Number, post.Url);
+                AddChapter(byNumber, seriesId, parsed.Number, parsed.Volume, post.Title, parsed.Number, post.Url);
         }
 
         // A one-shot / OGN carries no issue number. When it is the series' only post (no numbered
@@ -202,7 +202,7 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.IDisco
         if (byNumber.Count == 0 && numberless.Count == 1)
         {
             Post post = numberless.Values.Single();
-            AddChapter(byNumber, mangaId, "1", null, post.Title, "1", post.Url);
+            AddChapter(byNumber, seriesId, "1", null, post.Title, "1", post.Url);
         }
 
         Log.InfoFormat("Found {0} chapters for {1}", byNumber.Count, seriesTitle);
@@ -237,7 +237,7 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.IDisco
         return all;
     }
 
-    private async Task ExpandCollectionPost(Post post, string seriesTitle, SourceId<Series> mangaId,
+    private async Task ExpandCollectionPost(Post post, string seriesTitle, SourceId<Series> seriesId,
         Dictionary<string, (Chapter, SourceId<Chapter>)> byNumber)
     {
         HtmlDocument doc = await FetchPostDocument(post.Url, CancellationToken.None);
@@ -251,18 +251,18 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.IDisco
                 Log.InfoFormat("Skipping unreadable or unnumbered collection row: {0}", label);
                 continue;
             }
-            AddChapter(byNumber, mangaId, parsed.Number, parsed.Volume, label, label, post.Url);
+            AddChapter(byNumber, seriesId, parsed.Number, parsed.Volume, label, label, post.Url);
         }
     }
 
-    private void AddChapter(Dictionary<string, (Chapter, SourceId<Chapter>)> byNumber, SourceId<Series> mangaId,
+    private void AddChapter(Dictionary<string, (Chapter, SourceId<Chapter>)> byNumber, SourceId<Series> seriesId,
         string number, int? volume, string title, string idOnSite, string url)
     {
         if (byNumber.ContainsKey(number))
             return;
 
-        var chapter = new Chapter(mangaId.Obj, number, volume, title);
-        var chId = new SourceId<Chapter>(chapter, this, idOnSite, url, mangaId.UseForDownload);
+        var chapter = new Chapter(seriesId.Obj, number, volume, title);
+        var chId = new SourceId<Chapter>(chapter, this, idOnSite, url, seriesId.UseForDownload);
         chapter.SourceIds.Add(chId);
         byNumber[number] = (chapter, chId);
     }

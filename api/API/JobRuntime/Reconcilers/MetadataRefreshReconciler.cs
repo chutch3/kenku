@@ -17,7 +17,7 @@ public class MetadataRefreshReconciler(IServiceScopeFactory scopeFactory, IClock
 {
     protected override TimeSpan Interval => TimeSpan.FromHours(12);
 
-    public static string DedupKey(string mangaId) => $"refresh-metadata:{mangaId}";
+    public static string DedupKey(string seriesId) => $"refresh-metadata:{seriesId}";
 
     protected override Task TickAsync(IServiceProvider scope, CancellationToken ct) =>
         ScanAndEnqueueAsync(
@@ -38,16 +38,16 @@ public class MetadataRefreshReconciler(IServiceScopeFactory scopeFactory, IClock
 
         List<string> mangaIds = (await series.SeriesSourceIds
             .Where(m => m.UseForDownload)
-            .Join(series.MetadataEntries, mcId => mcId.ObjId, e => e.MangaId, (_, e) => e.MangaId)
+            .Join(series.MetadataEntries, mcId => mcId.ObjId, e => e.SeriesId, (_, e) => e.SeriesId)
             .Distinct()
             .ToListAsync(ct))
             .Where(id => !finished.Contains(id))
             .ToList();
 
-        foreach (string mangaId in mangaIds)
+        foreach (string seriesId in mangaIds)
             await store.EnqueueAsync(new Job(RefreshExternalMetadataHandler.Type,
-                RefreshExternalMetadataHandler.PayloadFor(mangaId), now,
-                resourceKey: mangaId, dedupKey: DedupKey(mangaId)), ct);
+                RefreshExternalMetadataHandler.PayloadFor(seriesId), now,
+                resourceKey: seriesId, dedupKey: DedupKey(seriesId)), ct);
 
         return mangaIds.Count;
     }

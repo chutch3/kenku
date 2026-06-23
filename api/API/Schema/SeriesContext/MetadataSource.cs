@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace API.Schema.SeriesContext;
 
-[PrimaryKey("MangaId")]
+[PrimaryKey("SeriesId")]
 public class MetadataSource
 {
-    [Key] [StringLength(64)] public string MangaId { get; private set; } = null!;
-    [ForeignKey(nameof(MangaId))] public Series Series { get; private set; } = null!;
+    [Key] [StringLength(64)] public string SeriesId { get; private set; } = null!;
+    [ForeignKey(nameof(SeriesId))] public Series Series { get; private set; } = null!;
     public MetadataSourceType SourceType { get; internal set; }
     [StringLength(256)] public string? ExternalId { get; internal set; }
     public MetadataSourceStatus Status { get; internal set; }
@@ -18,9 +18,9 @@ public class MetadataSource
     /// <summary>
     /// EF ONLY!!!
     /// </summary>
-    internal MetadataSource(string mangaId, MetadataSourceType sourceType, MetadataSourceStatus status)
+    internal MetadataSource(string seriesId, MetadataSourceType sourceType, MetadataSourceStatus status)
     {
-        MangaId = mangaId;
+        SeriesId = seriesId;
         SourceType = sourceType;
         Status = status;
     }

@@ -61,8 +61,8 @@ public class MangaworldTests
         var settings = CreateSettings();
         var mangaworld = new Mangaworld(settings, CreateMockClient(html).Object);
 
-        var mangaId = CreateDummyManga(mangaworld);
-        var chapters = await mangaworld.GetChapters(mangaId);
+        var seriesId = CreateDummyManga(mangaworld);
+        var chapters = await mangaworld.GetChapters(seriesId);
 
         Assert.Single(chapters);
         Assert.Equal(expectedVolume, chapters[0].Item1.VolumeNumber);

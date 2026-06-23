@@ -59,8 +59,8 @@ public class MangaDexTests
         var settings = CreateSettings();
         var mangaDex = new MangaDex(settings, CreateMockClient(json).Object);
 
-        var mangaId = CreateDummyManga(mangaDex);
-        var chapters = await mangaDex.GetChapters(mangaId);
+        var seriesId = CreateDummyManga(mangaDex);
+        var chapters = await mangaDex.GetChapters(seriesId);
 
         Assert.Single(chapters);
         Assert.Equal(expectedVolume, chapters[0].Item1.VolumeNumber);
@@ -91,9 +91,9 @@ public class MangaDexTests
         var settings = CreateSettings();
         var mangaDex = new MangaDex(settings, CreateMockClient(json).Object);
 
-        var mangaId = CreateDummyManga(mangaDex);
+        var seriesId = CreateDummyManga(mangaDex);
         
-        var chapters = await mangaDex.GetChapters(mangaId);
+        var chapters = await mangaDex.GetChapters(seriesId);
 
         Assert.Single(chapters);
         Assert.Null(chapters[0].Item1.VolumeNumber);

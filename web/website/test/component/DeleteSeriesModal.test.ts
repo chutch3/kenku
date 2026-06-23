@@ -39,7 +39,7 @@ describe('DeleteSeriesModal', () => {
 
     it('asks before deleting and shows the request in flight until the API answers', async () => {
         const wrapper = await mountSuspended(DeleteSeriesModal, {
-            props: { mangaId: 's1', seriesName: 'The Boys', open: true },
+            props: { seriesId: 's1', seriesName: 'The Boys', open: true },
         });
 
         // Confirmation first — nothing fires on open.
@@ -59,7 +59,7 @@ describe('DeleteSeriesModal', () => {
 
     it('surfaces a failed delete instead of closing silently', async () => {
         const wrapper = await mountSuspended(DeleteSeriesModal, {
-            props: { mangaId: 'broken', seriesName: 'The Boys', open: true },
+            props: { seriesId: 'broken', seriesName: 'The Boys', open: true },
         });
 
         findButton('Delete').click();
@@ -72,7 +72,7 @@ describe('DeleteSeriesModal', () => {
 
     it('cancel closes without calling the API', async () => {
         await mountSuspended(DeleteSeriesModal, {
-            props: { mangaId: 's1', seriesName: 'The Boys', open: true },
+            props: { seriesId: 's1', seriesName: 'The Boys', open: true },
         });
 
         findButton('Cancel').click();

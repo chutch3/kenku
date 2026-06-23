@@ -692,7 +692,7 @@ public class VolumeResolutionServiceTests : IDisposable
 
         await Resolve(settings, manga.Key);
 
-        var updatedSource = await _mangaContext.Set<MetadataSource>().FirstAsync(s => s.MangaId == manga.Key);
+        var updatedSource = await _mangaContext.Set<MetadataSource>().FirstAsync(s => s.SeriesId == manga.Key);
         Assert.Equal(MetadataSourceStatus.AutoMatched, updatedSource.Status);
         Assert.Equal("true-uuid", updatedSource.ExternalId);
     }
@@ -724,7 +724,7 @@ public class VolumeResolutionServiceTests : IDisposable
 
         await Resolve(settings, manga.Key);
 
-        var updatedSource = await _mangaContext.Set<MetadataSource>().FirstAsync(s => s.MangaId == manga.Key);
+        var updatedSource = await _mangaContext.Set<MetadataSource>().FirstAsync(s => s.SeriesId == manga.Key);
         Assert.Equal(MetadataSourceStatus.AutoMatched, updatedSource.Status);
         Assert.Equal("berserk-uuid", updatedSource.ExternalId);
         Assert.NotNull(updatedSource.MatchScore);
@@ -756,7 +756,7 @@ public class VolumeResolutionServiceTests : IDisposable
 
         await Resolve(settings, manga.Key);
 
-        var updatedSource = await _mangaContext.Set<MetadataSource>().FirstAsync(s => s.MangaId == manga.Key);
+        var updatedSource = await _mangaContext.Set<MetadataSource>().FirstAsync(s => s.SeriesId == manga.Key);
         Assert.Equal(MetadataSourceStatus.NoMatch, updatedSource.Status);
         Assert.Null(updatedSource.ExternalId);
 
@@ -823,7 +823,7 @@ public class VolumeResolutionServiceTests : IDisposable
 
         await Resolve(settings, manga.Key);
 
-        var updatedSource = await _mangaContext.Set<MetadataSource>().FirstAsync(s => s.MangaId == manga.Key);
+        var updatedSource = await _mangaContext.Set<MetadataSource>().FirstAsync(s => s.SeriesId == manga.Key);
         Assert.Equal(MetadataSourceStatus.Ambiguous, updatedSource.Status);
         Assert.Null(updatedSource.ExternalId);
         Assert.Null((await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
@@ -855,7 +855,7 @@ public class VolumeResolutionServiceTests : IDisposable
 
         await Resolve(settings, manga.Key);
 
-        var updatedSource = await _mangaContext.Set<MetadataSource>().FirstAsync(s => s.MangaId == manga.Key);
+        var updatedSource = await _mangaContext.Set<MetadataSource>().FirstAsync(s => s.SeriesId == manga.Key);
         Assert.Equal(MetadataSourceStatus.Unlinked, updatedSource.Status);
         Assert.Null(updatedSource.ExternalId);
         Assert.Null((await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);
@@ -887,7 +887,7 @@ public class VolumeResolutionServiceTests : IDisposable
 
         await Resolve(settings, manga.Key);
 
-        var updatedSource = await _mangaContext.Set<MetadataSource>().FirstAsync(s => s.MangaId == manga.Key);
+        var updatedSource = await _mangaContext.Set<MetadataSource>().FirstAsync(s => s.SeriesId == manga.Key);
         Assert.Equal(MetadataSourceStatus.AutoMatched, updatedSource.Status);
         Assert.Equal("dandadan-uuid", updatedSource.ExternalId);
         Assert.Equal(1, (await _mangaContext.Chapters.FirstAsync(c => c.ChapterNumber == "1")).VolumeNumber);

@@ -34,7 +34,7 @@ public class MetadataSourceTests
     {
         var manga = MakeTestManga("Naruto");
 
-        Assert.Equal(manga.Key, manga.MetadataSource!.MangaId);
+        Assert.Equal(manga.Key, manga.MetadataSource!.SeriesId);
     }
 
     [Fact]

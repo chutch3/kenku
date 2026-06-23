@@ -22,16 +22,16 @@ public class VolumeBundler(KenkuSettings settings)
     /// ready. Idempotent — safe to re-run. Absorbs the EnsureReadyVolumesBundled / EnsureBundledVolumesFresh
     /// reconcilers into a single per-volume operation.
     /// </summary>
-    public async Task ReconcileAsync(SeriesContext context, string mangaId, int volumeNumber, CancellationToken ct)
+    public async Task ReconcileAsync(SeriesContext context, string seriesId, int volumeNumber, CancellationToken ct)
     {
-        if (await context.Series.Include(m => m.Chapters).FirstOrDefaultAsync(m => m.Key == mangaId, ct) is not { } series)
+        if (await context.Series.Include(m => m.Chapters).FirstOrDefaultAsync(m => m.Key == seriesId, ct) is not { } series)
         {
-            Log.Warn($"Series not found for manga {mangaId}");
+            Log.Warn($"Series not found for manga {seriesId}");
             return;
         }
 
         VolumeMetadata? volumeMetadata = await context.VolumeMetadata
-            .FirstOrDefaultAsync(v => v.MangaId == mangaId && v.VolumeNumber == volumeNumber, ct);
+            .FirstOrDefaultAsync(v => v.SeriesId == seriesId && v.VolumeNumber == volumeNumber, ct);
 
         if (volumeMetadata?.ArchiveFileName is not null)
         {
@@ -44,21 +44,21 @@ public class VolumeBundler(KenkuSettings settings)
             if (desired.SetEquals(recorded))
                 return; // bundle is fresh
 
-            await UnbundleAsync(context, mangaId, volumeNumber, ct);
-            await BundleAsync(context, mangaId, volumeNumber, ct);
+            await UnbundleAsync(context, seriesId, volumeNumber, ct);
+            await BundleAsync(context, seriesId, volumeNumber, ct);
             return;
         }
 
         if (VolumeBundlePolicy.VolumesReadyToBundle(series).Contains(volumeNumber))
-            await BundleAsync(context, mangaId, volumeNumber, ct);
+            await BundleAsync(context, seriesId, volumeNumber, ct);
     }
 
-    public async Task BundleAsync(SeriesContext context, string mangaId, int volumeNumber, CancellationToken ct)
+    public async Task BundleAsync(SeriesContext context, string seriesId, int volumeNumber, CancellationToken ct)
     {
         var volumeMetadata = await context.VolumeMetadata
             .Include(v => v.Series)
             .ThenInclude(m => m.Library)
-            .FirstOrDefaultAsync(v => v.MangaId == mangaId && v.VolumeNumber == volumeNumber, ct);
+            .FirstOrDefaultAsync(v => v.SeriesId == seriesId && v.VolumeNumber == volumeNumber, ct);
 
         Series manga;
         if (volumeMetadata is null)
@@ -66,9 +66,9 @@ public class VolumeBundler(KenkuSettings settings)
             // VolumeMetadata is a projection of Chapter.VolumeNumber; nothing creates it up front, so
             // derive it on demand from the manga. ArchiveFileName is filled in once the bundle is written.
             if (await context.Series.Include(m => m.Library)
-                    .FirstOrDefaultAsync(m => m.Key == mangaId, ct) is not { } series)
+                    .FirstOrDefaultAsync(m => m.Key == seriesId, ct) is not { } series)
             {
-                Log.Warn($"Series not found for manga {mangaId}");
+                Log.Warn($"Series not found for manga {seriesId}");
                 return;
             }
             manga = series;
@@ -81,7 +81,7 @@ public class VolumeBundler(KenkuSettings settings)
         }
 
         var chapters = await context.Chapters
-            .Where(c => c.ParentSeriesId == mangaId
+            .Where(c => c.ParentSeriesId == seriesId
                         && c.VolumeNumber == volumeNumber
                         && !c.IsBundled
                         && c.FileName != null)
@@ -89,7 +89,7 @@ public class VolumeBundler(KenkuSettings settings)
 
         if (chapters.Count == 0)
         {
-            Log.Info($"No unbundled chapters found for manga {mangaId} volume {volumeNumber}");
+            Log.Info($"No unbundled chapters found for manga {seriesId} volume {volumeNumber}");
             return;
         }
 
@@ -152,7 +152,7 @@ public class VolumeBundler(KenkuSettings settings)
         }
         catch (Exception ex)
         {
-            Log.Error($"Error building bundle for manga {mangaId} volume {volumeNumber}: {ex.Message}", ex);
+            Log.Error($"Error building bundle for manga {seriesId} volume {volumeNumber}: {ex.Message}", ex);
             if (File.Exists(outputPath))
             {
                 try { File.Delete(outputPath); } catch { /* best effort */ }
@@ -195,16 +195,16 @@ public class VolumeBundler(KenkuSettings settings)
         }
     }
 
-    public async Task UnbundleAsync(SeriesContext context, string mangaId, int volumeNumber, CancellationToken ct)
+    public async Task UnbundleAsync(SeriesContext context, string seriesId, int volumeNumber, CancellationToken ct)
     {
         var volumeMetadata = await context.VolumeMetadata
             .Include(v => v.Series)
             .ThenInclude(m => m.Library)
-            .FirstOrDefaultAsync(v => v.MangaId == mangaId && v.VolumeNumber == volumeNumber, ct);
+            .FirstOrDefaultAsync(v => v.SeriesId == seriesId && v.VolumeNumber == volumeNumber, ct);
 
         if (volumeMetadata is null)
         {
-            Log.Warn($"VolumeMetadata not found for manga {mangaId} volume {volumeNumber}");
+            Log.Warn($"VolumeMetadata not found for manga {seriesId} volume {volumeNumber}");
             return;
         }
 
@@ -288,7 +288,7 @@ public class VolumeBundler(KenkuSettings settings)
         }
         catch (Exception ex)
         {
-            Log.Error($"Error unbundling volume {volumeNumber} for manga {mangaId}: {ex.Message}", ex);
+            Log.Error($"Error unbundling volume {volumeNumber} for manga {seriesId}: {ex.Message}", ex);
             return;
         }
 

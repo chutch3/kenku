@@ -1,7 +1,7 @@
 <template>
     <SeriesDetailPage :series="series" :rollup="rollup" :kind="kind">
         <div class="grid gap-3 max-xl:grid-flow-row-dense min-2xl:grid-cols-[70%_auto] min-xl:grid-cols-[60%_auto] relative min-xl:h-full">
-            <ChaptersList :manga-id="mangaId" :kind="kind" class="min-xl:h-full min-xl:overflow-y-scroll" />
+            <ChaptersList :series-id="seriesId" :kind="kind" class="min-xl:h-full min-xl:overflow-y-scroll" />
             <div class="flex flex-col gap-3">
                 <!-- Download sources lead: turning a source on is the primary control on this page. -->
                 <UCard v-if="series">
@@ -36,7 +36,7 @@
                     <RematchSourceModal
                         v-if="rematchSource"
                         :open="!!rematchSource"
-                        :manga-id="mangaId"
+                        :series-id="seriesId"
                         :source="rematchSource"
                         :series-name="series?.name"
                         @update:open="(v) => { if (!v) rematchSource = null; }"
@@ -52,22 +52,22 @@
                         </div>
                     </template>
                     <LibrarySelect
-                        :manga-id="mangaId"
+                        :series-id="seriesId"
                         :library-id="series?.fileLibraryId"
                         class="w-full"
-                        @library-changed="refreshNuxtData(FetchKeys.Series.Id(mangaId))" />
+                        @library-changed="refreshNuxtData(FetchKeys.Series.Id(seriesId))" />
                     <!-- Comics are effectively always flat (issues carry no volume number), so the
                          layout choice only exists for manga. -->
                     <LibraryLayoutSelect
                         v-if="series?.fileLibraryId && kind !== 'comic'"
-                        :manga-id="mangaId"
+                        :series-id="seriesId"
                         class="w-full mt-2"
-                        @layout-changed="refreshNuxtData(FetchKeys.Series.Id(mangaId))" />
-                    <LooseChapters v-if="series?.fileLibraryId" :manga-id="mangaId" :kind="kind" class="w-full mt-2" />
+                        @layout-changed="refreshNuxtData(FetchKeys.Series.Id(seriesId))" />
+                    <LooseChapters v-if="series?.fileLibraryId" :series-id="seriesId" :kind="kind" class="w-full mt-2" />
                 </UCard>
 
                 <!-- Per-series slice of the audit trail — the story of what Kenku did with this series. -->
-                <SeriesHistory :manga-id="mangaId" />
+                <SeriesHistory :series-id="seriesId" />
 
                 <!-- Advanced metadata is collapsed so the primary controls above aren't crowded. -->
                 <UCard>
@@ -82,8 +82,8 @@
                     </button>
                     <div v-show="advancedOpen" class="flex flex-col gap-3 mt-3">
                         <!-- Volume mapping is a manga concept; comics enrich via Metron instead. -->
-                        <MetadataSourceLink v-if="kind === 'manga'" :manga-id="mangaId" :series-name="series?.name" />
-                        <SeriesMetadataFetcherTable :manga-id="mangaId" :kind="kind" />
+                        <MetadataSourceLink v-if="kind === 'manga'" :series-id="seriesId" :series-name="series?.name" />
+                        <SeriesMetadataFetcherTable :series-id="seriesId" :kind="kind" />
                     </div>
                 </UCard>
             </div>
@@ -92,7 +92,7 @@
             <template v-if="series">
                 <UButton
                     icon="i-lucide-brick-wall-shield"
-                    :to="`/actions?mangaId=${mangaId}&return=${$route.fullPath}`"
+                    :to="`/actions?seriesId=${seriesId}&return=${$route.fullPath}`"
                     variant="soft"
                     color="secondary"
                     aria-label="Series actions log" />
@@ -106,7 +106,7 @@
                 <UTooltip text="Reload" :kbds="['meta', 'R']">
                     <UButton variant="soft" color="secondary" icon="i-lucide-refresh-ccw" :loading="refreshingData" aria-label="Reload" @click="refreshData()" />
                 </UTooltip>
-                <DeleteSeriesModal v-model:open="deleteOpen" :manga-id="mangaId" :series-name="series?.name" @deleted="onDeleted" />
+                <DeleteSeriesModal v-model:open="deleteOpen" :series-id="seriesId" :series-name="series?.name" @deleted="onDeleted" />
             </template>
         </template>
     </SeriesDetailPage>
@@ -116,10 +116,10 @@
 import SeriesDetailPage from '~/components/SeriesDetailPage.vue';
 import type { components } from '#open-fetch-schemas/api';
 const route = useRoute();
-const mangaId = route.params.mangaId as string;
+const seriesId = route.params.seriesId as string;
 const toast = useToast();
 
-const { series, rollup, kind, refreshingData, refreshData, refreshRollups, setRequestedFrom, syncNow } = useSeriesDetail(mangaId);
+const { series, rollup, kind, refreshingData, refreshData, refreshRollups, setRequestedFrom, syncNow } = useSeriesDetail(seriesId);
 
 const sortedSources = computed(() =>
     [...(series.value?.sourceIds ?? [])].sort((a, b) => a.seriesSourceName.localeCompare(b.seriesSourceName)));

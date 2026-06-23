@@ -40,8 +40,8 @@ registerEndpoint('/v2/Chapters/Series/incomplete-1', {
 });
 registerEndpoint('/v2/Chapters/cI/ForceDownload', { method: 'POST', handler: () => ((forced = 'cI'), {}) });
 
-function mount(mangaId: string, kind?: string) {
-    return mountSuspended(ChaptersList, { props: { mangaId, kind }, global: { stubs: tooltipStub } });
+function mount(seriesId: string, kind?: string) {
+    return mountSuspended(ChaptersList, { props: { seriesId, kind }, global: { stubs: tooltipStub } });
 }
 
 describe('ChaptersList', () => {

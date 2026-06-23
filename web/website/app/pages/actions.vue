@@ -44,8 +44,8 @@
                 </template>
                 <template #series-cell="{ row }">
                     <UButton
-                        v-if="row.original.mangaId"
-                        :to="`/series/${row.original.mangaId}?return=${$route.fullPath}`"
+                        v-if="row.original.seriesId"
+                        :to="`/series/${row.original.seriesId}?return=${$route.fullPath}`"
                         variant="ghost"
                         color="primary"
                         >Series</UButton
@@ -54,7 +54,7 @@
                 <template #chapter-cell="{ row }">
                     <UButton
                         v-if="row.original.chapterId"
-                        :to="`/series/${row.original.mangaId}?return=${$route.fullPath}#${row.original.chapterId}`"
+                        :to="`/series/${row.original.seriesId}?return=${$route.fullPath}#${row.original.chapterId}`"
                         variant="ghost"
                         color="secondary"
                         >Chapter</UButton
@@ -104,7 +104,7 @@ const { data: ActionTypes } = useApi('/v2/Actions/Types', { key: FetchKeys.Actio
 const columns: TableColumn<ActionRecord>[] = [
     { id: 'action', accessorKey: 'action', header: 'Action' },
     { id: 'timestamp', accessorKey: 'performedAt', header: 'Timestamp' },
-    { id: 'series', accessorKey: 'mangaId', header: 'Series' },
+    { id: 'series', accessorKey: 'seriesId', header: 'Series' },
     { id: 'chapter', accessorKey: 'chapterId', header: 'Chapter' },
     { id: 'additional', header: 'Additional' },
 ];

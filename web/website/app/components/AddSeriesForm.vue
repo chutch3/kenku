@@ -158,9 +158,9 @@ const add = async (download: boolean) => {
     if (!libraryId.value || !source.value) return;
     adding.value = download ? 'download' : 'only';
     try {
-        await $api('/v2/Series/{MangaId}/ChangeLibrary/{LibraryId}', {
+        await $api('/v2/Series/{SeriesId}/ChangeLibrary/{LibraryId}', {
             method: 'POST',
-            path: { MangaId: props.series.key, LibraryId: libraryId.value },
+            path: { SeriesId: props.series.key, LibraryId: libraryId.value },
             query: {
                 connectorName: source.value.seriesSourceName,
                 connectorSeriesId: source.value.idOnConnectorSite,

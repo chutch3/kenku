@@ -67,7 +67,7 @@ describe('SeriesCard', () => {
         expect(statusBar(untracked).classes()).toContain('bg-sumi-400/60');
 
         const attention: Partial<SeriesRollup> = {
-            mangaId: 's1', needsAttentionJobs: 2, queuedJobs: 0, runningJobs: 0, downloadedChapters: 1, wantedChapters: 12,
+            seriesId: 's1', needsAttentionJobs: 2, queuedJobs: 0, runningJobs: 0, downloadedChapters: 1, wantedChapters: 12,
         };
         const broken = await mount({ series: series('GetComics', 'lib1'), rollup: attention });
         expect(statusBar(broken).classes()).toContain('bg-vermillion-500');
@@ -75,7 +75,7 @@ describe('SeriesCard', () => {
 
     it('shows downloaded / wanted progress from the rollup, no extra fetch', async () => {
         const rollup: Partial<SeriesRollup> = {
-            mangaId: 's1', needsAttentionJobs: 0, queuedJobs: 1, runningJobs: 0, downloadedChapters: 5, wantedChapters: 12,
+            seriesId: 's1', needsAttentionJobs: 0, queuedJobs: 1, runningJobs: 0, downloadedChapters: 5, wantedChapters: 12,
         };
         const wrapper = await mount({ series: series('WeebCentral', 'lib1'), rollup });
 
@@ -86,7 +86,7 @@ describe('SeriesCard', () => {
     it('offers a Retry that re-syncs the series when it needs attention', async () => {
         syncedManga = null;
         const rollup: Partial<SeriesRollup> = {
-            mangaId: 's1', needsAttentionJobs: 1, queuedJobs: 0, runningJobs: 0, downloadedChapters: 1, wantedChapters: 12,
+            seriesId: 's1', needsAttentionJobs: 1, queuedJobs: 0, runningJobs: 0, downloadedChapters: 1, wantedChapters: 12,
             lastError: 'WeebCentral returned 403',
         };
         const wrapper = await mount({ series: series('WeebCentral', 'lib1'), rollup });

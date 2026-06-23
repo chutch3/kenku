@@ -15,8 +15,8 @@ interface Candidate {
 }
 
 // GET metadataSource and PUT metadataSource share a path, so a single handler branches on method.
-function registerSource(mangaId: string, status: string, onPut?: (body: unknown) => void) {
-    registerEndpoint(`/v2/Series/${mangaId}/metadataSource`, {
+function registerSource(seriesId: string, status: string, onPut?: (body: unknown) => void) {
+    registerEndpoint(`/v2/Series/${seriesId}/metadataSource`, {
         handler: async (event) => {
             if (event.method === 'PUT') {
                 onPut?.(await readBody(event));
@@ -27,8 +27,8 @@ function registerSource(mangaId: string, status: string, onPut?: (body: unknown)
     });
 }
 
-function registerCandidates(mangaId: string, candidates: Candidate[]) {
-    registerEndpoint(`/v2/Series/${mangaId}/metadataSource/candidates`, () => candidates);
+function registerCandidates(seriesId: string, candidates: Candidate[]) {
+    registerEndpoint(`/v2/Series/${seriesId}/metadataSource/candidates`, () => candidates);
 }
 
 const firePunch: Candidate = {
@@ -45,7 +45,7 @@ describe('MetadataSourceLink', () => {
     it('surfaces an unmatched series as needing a link', async () => {
         registerSource('m-status', 'NoMatch');
 
-        const wrapper = await mountSuspended(MetadataSourceLink, { props: { mangaId: 'm-status', seriesName: 'Fire Punch' } });
+        const wrapper = await mountSuspended(MetadataSourceLink, { props: { seriesId: 'm-status', seriesName: 'Fire Punch' } });
         await flushPromises();
 
         expect(wrapper.text().toLowerCase()).toContain('not matched');
@@ -55,7 +55,7 @@ describe('MetadataSourceLink', () => {
         registerSource('m-search', 'NoMatch');
         registerCandidates('m-search', [firePunch]);
 
-        const wrapper = await mountSuspended(MetadataSourceLink, { props: { mangaId: 'm-search', seriesName: 'Fire Punch' } });
+        const wrapper = await mountSuspended(MetadataSourceLink, { props: { seriesId: 'm-search', seriesName: 'Fire Punch' } });
         await flushPromises();
 
         await wrapper.find('[data-test="source-search-btn"]').trigger('click');
@@ -78,7 +78,7 @@ describe('MetadataSourceLink', () => {
             },
         });
 
-        const wrapper = await mountSuspended(MetadataSourceLink, { props: { mangaId: 'm-link', seriesName: 'Fire Punch' } });
+        const wrapper = await mountSuspended(MetadataSourceLink, { props: { seriesId: 'm-link', seriesName: 'Fire Punch' } });
         await flushPromises();
         await wrapper.find('[data-test="source-search-btn"]').trigger('click');
         await vi.waitFor(() => expect(wrapper.find('[data-test="source-link-btn"]').exists()).toBe(true));

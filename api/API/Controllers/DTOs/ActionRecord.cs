@@ -12,7 +12,7 @@ public sealed record ActionRecord : Identifiable
     {
         Action = actionRecord.Action;
         PerformedAt = actionRecord.PerformedAt;
-        MangaId = actionRecord is IActionWithMangaRecord manga ? manga.MangaId : null;
+        SeriesId = actionRecord is IActionWithMangaRecord manga ? manga.SeriesId : null;
         ChapterId = actionRecord is IActionWithChapterRecord chapter ? chapter.ChapterId : null;
         From = actionRecord is DataMovedActionRecord from ? from.From : null;
         To = actionRecord is DataMovedActionRecord to ? to.To : null;
@@ -34,10 +34,10 @@ public sealed record ActionRecord : Identifiable
     public DateTime PerformedAt { get; init; }
     
     /// <summary>
-    /// MangaId if Record is <see cref="IActionWithMangaRecord"/>
+    /// SeriesId if Record is <see cref="IActionWithMangaRecord"/>
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? MangaId { get; init; }
+    public string? SeriesId { get; init; }
     
     /// <summary>
     /// ChapterId if Record is <see cref="IActionWithMangaRecord"/>

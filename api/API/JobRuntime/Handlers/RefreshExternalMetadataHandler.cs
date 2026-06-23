@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace API.JobRuntime.Handlers;
 
 /// <summary>Payload for <see cref="RefreshExternalMetadataHandler"/>.</summary>
-public record RefreshExternalMetadataPayload(string MangaId);
+public record RefreshExternalMetadataPayload(string SeriesId);
 
 /// <summary>
 /// Refreshes one series' external metadata via <see cref="MetadataRefreshService"/> — replacing the bulk
@@ -21,7 +21,7 @@ public class RefreshExternalMetadataHandler(IServiceScopeFactory scopeFactory) :
     public const string Type = "RefreshExternalMetadata";
     public string JobType => Type;
 
-    public static string PayloadFor(string mangaId) => JsonSerializer.Serialize(new RefreshExternalMetadataPayload(mangaId));
+    public static string PayloadFor(string seriesId) => JsonSerializer.Serialize(new RefreshExternalMetadataPayload(seriesId));
 
     public async Task ExecuteAsync(Job job, CancellationToken ct)
     {
@@ -34,6 +34,6 @@ public class RefreshExternalMetadataHandler(IServiceScopeFactory scopeFactory) :
         await service.RefreshAsync(
             provider.GetRequiredService<SeriesContext>(),
             provider.GetRequiredService<ActionsContext>(),
-            payload.MangaId, ct);
+            payload.SeriesId, ct);
     }
 }

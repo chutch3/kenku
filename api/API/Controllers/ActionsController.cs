@@ -44,7 +44,7 @@ public class ActionsController(ActionsContext context) : ControllerBase
     {
         if (page < 1 || pageSize < 1)
             return TypedResults.BadRequest();
-        if (await context.FilterActions(filter.MangaId, filter.ChapterId)
+        if (await context.FilterActions(filter.SeriesId, filter.ChapterId)
                 .Where(a => filter.Start == null || a.PerformedAt >= filter.Start.Value.ToUniversalTime())
                 .Where(a => filter.End == null || a.PerformedAt <= filter.End.Value.ToUniversalTime())
                 .Where(a => filter.Action == null || a.Action == filter.Action)

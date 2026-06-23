@@ -9,14 +9,14 @@ public class MetadataEntry
 {
     [JsonIgnore]
     public Series Series { get; init; } = null!;
-    public string MangaId  { get; init; }
+    public string SeriesId  { get; init; }
     public string MetadataFetcherName { get; init; }
     public string Identifier { get; init; }
 
     public MetadataEntry(MetadataFetcher fetcher, Series manga, string identifier)
     {
         this.Series = manga;
-        this.MangaId = manga.Key;
+        this.SeriesId = manga.Key;
         this.MetadataFetcherName = fetcher.Name;
         this.Identifier = identifier;
     }
@@ -24,12 +24,12 @@ public class MetadataEntry
     /// <summary>
     /// EFCORE only!!!!
     /// </summary>
-    internal MetadataEntry(string mangaId, string identifier, string metadataFetcherName)
+    internal MetadataEntry(string seriesId, string identifier, string metadataFetcherName)
     {
-        this.MangaId = mangaId;
+        this.SeriesId = seriesId;
         this.Identifier = identifier;
         this.MetadataFetcherName = metadataFetcherName;
     }
     
-    public override string ToString() => $"{GetType().FullName} {MangaId} {MetadataFetcherName}";
+    public override string ToString() => $"{GetType().FullName} {SeriesId} {MetadataFetcherName}";
 }

@@ -56,10 +56,10 @@ public class VolumeResolutionReconciler(
                 .Select(m => m.Key)
                 .ToList();
 
-        foreach (string mangaId in mangaIds)
+        foreach (string seriesId in mangaIds)
             await store.EnqueueAsync(new Job(ResolveSeriesVolumesHandler.Type,
-                ResolveSeriesVolumesHandler.PayloadFor(mangaId), now,
-                resourceKey: ResourceKey, dedupKey: DedupKey(mangaId)), ct);
+                ResolveSeriesVolumesHandler.PayloadFor(seriesId), now,
+                resourceKey: ResourceKey, dedupKey: DedupKey(seriesId)), ct);
 
         return mangaIds.Count;
     }

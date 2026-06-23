@@ -78,8 +78,8 @@ public class AsuraComicTests
         var settings = CreateSettings();
         var asuracomic = new AsuraComic(settings, CreateRateLimitHandler(), CreateMockClient(html).Object);
 
-        var mangaId = CreateDummyManga(asuracomic);
-        var chapters = asuracomic.GetChapters(mangaId);
+        var seriesId = CreateDummyManga(asuracomic);
+        var chapters = asuracomic.GetChapters(seriesId);
 
         Assert.Single(await chapters);
         // AsuraComic currently does not parse volume, but we want it to. 

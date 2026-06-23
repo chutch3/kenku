@@ -9,21 +9,21 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ mangaId: string }>();
+const props = defineProps<{ seriesId: string }>();
 const { $api } = useNuxtApp();
 
 // Two cheap count-only queries (pageSize 1) — the API has no per-series count field. Keyed so the
 // fetch joins the Nuxt cache: dedup'd across components and refreshable, instead of a raw per-mount call.
 const { data } = await useAsyncData(
-    `series-progress:${props.mangaId}`,
+    `series-progress:${props.seriesId}`,
     async () => {
         const [all, dl] = await Promise.all([
-            $api('/v2/Chapters/Series/{MangaId}', { method: 'POST', path: { MangaId: props.mangaId }, query: { page: 1, pageSize: 1 }, body: {} }),
-            $api('/v2/Chapters/Series/{MangaId}', { method: 'POST', path: { MangaId: props.mangaId }, query: { page: 1, pageSize: 1 }, body: { downloaded: true } }),
+            $api('/v2/Chapters/Series/{SeriesId}', { method: 'POST', path: { SeriesId: props.seriesId }, query: { page: 1, pageSize: 1 }, body: {} }),
+            $api('/v2/Chapters/Series/{SeriesId}', { method: 'POST', path: { SeriesId: props.seriesId }, query: { page: 1, pageSize: 1 }, body: { downloaded: true } }),
         ]);
         return { total: all.totalCount ?? 0, downloaded: dl.totalCount ?? 0 };
     },
-    { server: false, watch: [() => props.mangaId], default: () => ({ total: 0, downloaded: 0 }) }
+    { server: false, watch: [() => props.seriesId], default: () => ({ total: 0, downloaded: 0 }) }
 );
 
 const total = computed(() => data.value?.total ?? 0);

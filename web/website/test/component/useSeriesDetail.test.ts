@@ -3,7 +3,7 @@ import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime';
 import { defineComponent, h } from 'vue';
 
 registerEndpoint('/v2/Series/Rollup', () => [
-    { mangaId: 'm1', wantedChapters: 10, downloadedChapters: 5, queuedJobs: 0, runningJobs: 0, needsAttentionJobs: 0, lastError: null, lastSyncAt: null, lastSyncChapterCount: null },
+    { seriesId: 'm1', wantedChapters: 10, downloadedChapters: 5, queuedJobs: 0, runningJobs: 0, needsAttentionJobs: 0, lastError: null, lastSyncAt: null, lastSyncChapterCount: null },
 ]);
 registerEndpoint('/v2/SeriesSource', () => [
     { key: 'WeebCentral', name: 'WeebCentral', enabled: true, iconUrl: '', supportedLanguages: ['en'], kind: 'ImageList', contentType: 'Manga' },

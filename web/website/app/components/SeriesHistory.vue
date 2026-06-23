@@ -15,14 +15,14 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ mangaId: string }>();
+const props = defineProps<{ seriesId: string }>();
 const { $api } = useNuxtApp();
 
 // The per-series slice of the audit trail — the same /v2/Actions log the global Activity page reads,
 // scoped here so a series page shows its own story (downloads, metadata updates, moves).
 const { data, status } = await useAsyncData(
-    `series-history-${props.mangaId}`,
-    () => $api('/v2/Actions/Filter', { method: 'POST', body: { mangaId: props.mangaId }, query: { page: 1, pageSize: 25 } }),
+    `series-history-${props.seriesId}`,
+    () => $api('/v2/Actions/Filter', { method: 'POST', body: { seriesId: props.seriesId }, query: { page: 1, pageSize: 25 } }),
     { lazy: true, server: false }
 );
 

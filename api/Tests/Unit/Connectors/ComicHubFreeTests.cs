@@ -154,9 +154,9 @@ public class ComicHubFreeTests
                       + IssueRow("the-boys", "71", "The Boys Issue #71")
                       + """<tr><td><a href="https://comichubfree.com/the-boys/issue-annual">The Boys Annual</a></td></tr>""";
         var connector = CreateConnector(_ => Html(SeriesPage("The Boys", rows)));
-        var mangaId = SeriesId(connector, "The Boys", "the-boys");
+        var seriesId = SeriesId(connector, "The Boys", "the-boys");
 
-        var chapters = await connector.GetChapters(mangaId);
+        var chapters = await connector.GetChapters(seriesId);
 
         Assert.Equal(2, chapters.Length);
         var last = Assert.Single(chapters, c => c.Item1.ChapterNumber == "72");
@@ -196,9 +196,9 @@ public class ComicHubFreeTests
             requested.Add(url);
             return url.Contains("page=2") ? Html(page2) : Html(page1);
         });
-        var mangaId = SeriesId(connector, "The Boys", "the-boys");
+        var seriesId = SeriesId(connector, "The Boys", "the-boys");
 
-        var chapters = await connector.GetChapters(mangaId);
+        var chapters = await connector.GetChapters(seriesId);
 
         Assert.Equal(2, chapters.Length);
         Assert.Contains(requested, u => u.EndsWith("/comic/the-boys"));
@@ -209,9 +209,9 @@ public class ComicHubFreeTests
     public async Task GetChapters_Throws_WhenTheEpisodeListIsMissing()
     {
         var connector = CreateConnector(_ => Html("<html><body>interstitial</body></html>"));
-        var mangaId = SeriesId(connector, "The Boys", "the-boys");
+        var seriesId = SeriesId(connector, "The Boys", "the-boys");
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => connector.GetChapters(mangaId));
+        await Assert.ThrowsAsync<HttpRequestException>(() => connector.GetChapters(seriesId));
     }
 
     [Fact]

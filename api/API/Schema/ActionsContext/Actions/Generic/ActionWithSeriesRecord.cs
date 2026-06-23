@@ -8,5 +8,5 @@ public interface IActionWithMangaRecord
     /// <see cref="Schema.SeriesContext.Series"/> for which the cover was downloaded
     /// </summary>
     [StringLength(64)]
-    public string MangaId { get; init; }
+    public string SeriesId { get; init; }
 }

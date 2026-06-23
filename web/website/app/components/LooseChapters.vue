@@ -25,12 +25,12 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ mangaId: string; kind?: SeriesKind }>();
+const props = defineProps<{ seriesId: string; kind?: SeriesKind }>();
 const { $api } = useNuxtApp();
 
 // Loose chapters are the ones the resolver couldn't place — the volumes endpoint returns them under
 // `unassigned`. Assigning a volume here is a manual, locked assignment the resolver won't overwrite.
-const { data: volumes, refresh } = await useApi('/v2/Series/{MangaId}/volumes', { path: { MangaId: props.mangaId }, server: false });
+const { data: volumes, refresh } = await useApi('/v2/Series/{SeriesId}/volumes', { path: { SeriesId: props.seriesId }, server: false });
 
 // The schema types ChapterId/ChapterNumber as nullable; in practice the API always sends them, so
 // drop any malformed entries and narrow to non-null strings the template can key/index on.
@@ -49,9 +49,9 @@ const assign = async (chapterNumber: string) => {
 
     assigning.value = chapterNumber;
     try {
-        await $api('/v2/Series/{MangaId}/volumes/assignments', {
+        await $api('/v2/Series/{SeriesId}/volumes/assignments', {
             method: 'POST',
-            path: { MangaId: props.mangaId },
+            path: { SeriesId: props.seriesId },
             body: { assignments: { [chapterNumber]: volume } },
         });
         delete volumeInput[chapterNumber];

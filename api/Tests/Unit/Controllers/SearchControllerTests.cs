@@ -56,7 +56,7 @@ public class SearchControllerTests
         public override Task<(SchemaManga, SchemaConnectorId)[]> SearchManga(string mangaSearchName) => throw new NotSupportedException();
         public override Task<(SchemaManga, SchemaConnectorId)?> GetMangaFromUrl(string url) => Task.FromResult(result);
         public override Task<(SchemaManga, SchemaConnectorId)?> GetMangaFromId(string mangaIdOnSite) => throw new NotSupportedException();
-        public override Task<(API.Schema.SeriesContext.Chapter, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>)[]> GetChapters(SchemaConnectorId mangaId, string? language = null) => throw new NotSupportedException();
+        public override Task<(API.Schema.SeriesContext.Chapter, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>)[]> GetChapters(SchemaConnectorId seriesId, string? language = null) => throw new NotSupportedException();
         internal override Task<string[]> GetChapterImageUrls(API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter> chapterId) => throw new NotSupportedException();
     }
 

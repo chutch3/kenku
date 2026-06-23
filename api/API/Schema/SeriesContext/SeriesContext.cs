@@ -112,14 +112,14 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
         modelBuilder.Entity<Series>()
             .HasOne<MetadataSource>(m => m.MetadataSource)
             .WithOne(ms => ms.Series)
-            .HasForeignKey<MetadataSource>(ms => ms.MangaId)
+            .HasForeignKey<MetadataSource>(ms => ms.SeriesId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // Series has many VolumeMetadata
         modelBuilder.Entity<VolumeMetadata>()
             .HasOne<Series>(v => v.Series)
             .WithMany()
-            .HasForeignKey(v => v.MangaId)
+            .HasForeignKey(v => v.SeriesId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // BundleChapterMap composite PK and FKs
@@ -203,9 +203,9 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
         Log.DebugFormat("Upserting Series: {0}", addManga);
         (Series, SourceId<Series>)? result;
 
-        if (await FindMangaLike(addManga, token) is { } mangaId)
+        if (await FindMangaLike(addManga, token) is { } seriesId)
         {
-            Series manga = await MangaIncludeAll().FirstAsync(m => m.Key == mangaId, token);
+            Series manga = await MangaIncludeAll().FirstAsync(m => m.Key == seriesId, token);
             Log.DebugFormat("Merging with existing Series: {0}", manga);
 
             var existingMcId = manga.SourceIds

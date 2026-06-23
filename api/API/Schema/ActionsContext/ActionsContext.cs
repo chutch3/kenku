@@ -20,32 +20,32 @@ public class ActionsContext(DbContextOptions<ActionsContext> options) : KenkuBas
             .HasValue<LibraryMovedActionRecord>(Schema.ActionsContext.Actions.Actions.LibraryMoved)
             .HasValue<StartupActionRecord>(Schema.ActionsContext.Actions.Actions.Startup);
 
-        modelBuilder.Entity<ChapterDownloadedActionRecord>().Property(a => a.MangaId).HasColumnName("MangaId");
+        modelBuilder.Entity<ChapterDownloadedActionRecord>().Property(a => a.SeriesId).HasColumnName("SeriesId");
         modelBuilder.Entity<ChapterDownloadedActionRecord>().Property(a => a.ChapterId).HasColumnName("ChapterId");
         
-        modelBuilder.Entity<CoverDownloadedActionRecord>().Property(a => a.MangaId).HasColumnName("MangaId");
+        modelBuilder.Entity<CoverDownloadedActionRecord>().Property(a => a.SeriesId).HasColumnName("SeriesId");
         
-        modelBuilder.Entity<ChaptersRetrievedActionRecord>().Property(a => a.MangaId).HasColumnName("MangaId");
+        modelBuilder.Entity<ChaptersRetrievedActionRecord>().Property(a => a.SeriesId).HasColumnName("SeriesId");
         
-        modelBuilder.Entity<MetadataUpdatedActionRecord>().Property(a => a.MangaId).HasColumnName("MangaId");
+        modelBuilder.Entity<MetadataUpdatedActionRecord>().Property(a => a.SeriesId).HasColumnName("SeriesId");
         
-        modelBuilder.Entity<LibraryMovedActionRecord>().Property(a => a.MangaId).HasColumnName("MangaId");
+        modelBuilder.Entity<LibraryMovedActionRecord>().Property(a => a.SeriesId).HasColumnName("SeriesId");
     }
 
-    public IQueryable<ActionRecord> FilterActionsManga(string MangaId) => this.Actions
-        .FromSqlInterpolated($"""SELECT * FROM public."Actions" WHERE "MangaId" = {MangaId}""");
+    public IQueryable<ActionRecord> FilterActionsManga(string SeriesId) => this.Actions
+        .FromSqlInterpolated($"""SELECT * FROM public."Actions" WHERE "SeriesId" = {SeriesId}""");
 
     public IQueryable<ActionRecord> FilterActionsChapter(string ChapterId) => this.Actions
         .FromSqlInterpolated($"""SELECT * FROM public."Actions" WHERE "ChapterId" = {ChapterId}""");
     
-    public IQueryable<ActionRecord> FilterActionsMangaAndChapter(string MangaId, string ChapterId) => this.Actions
-        .FromSqlInterpolated($"""SELECT * FROM public."Actions" WHERE "MangaId" = {MangaId} AND "ChapterId" = {ChapterId}""");
+    public IQueryable<ActionRecord> FilterActionsMangaAndChapter(string SeriesId, string ChapterId) => this.Actions
+        .FromSqlInterpolated($"""SELECT * FROM public."Actions" WHERE "SeriesId" = {SeriesId} AND "ChapterId" = {ChapterId}""");
 
-    public IQueryable<ActionRecord> FilterActions(string? MangaId, string? ChapterId)
+    public IQueryable<ActionRecord> FilterActions(string? SeriesId, string? ChapterId)
     {
-        if (MangaId is { } mangaId && ChapterId is { } chapterId)
-            return FilterActionsMangaAndChapter(mangaId, chapterId);
-        if (MangaId is { } mangaId2)
+        if (SeriesId is { } seriesId && ChapterId is { } chapterId)
+            return FilterActionsMangaAndChapter(seriesId, chapterId);
+        if (SeriesId is { } mangaId2)
             return FilterActionsManga(mangaId2);
         if (ChapterId is { } chapterId2)
             return FilterActionsChapter(chapterId2);

@@ -176,9 +176,9 @@ public sealed class Mangaworld : SeriesSource
         return (m, mcId);
     }
 
-    public override async Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> mangaId, string? language = null)
+    public override async Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> seriesId, string? language = null)
     {
-        string[] parts = mangaId.IdOnConnectorSite.Split('/', 2);
+        string[] parts = seriesId.IdOnConnectorSite.Split('/', 2);
         if (parts.Length != 2)
             return [];
 
@@ -195,7 +195,7 @@ public sealed class Mangaworld : SeriesSource
         HtmlDocument doc = new HtmlDocument();
         doc.LoadHtml(html);
 
-        List<(Chapter, SourceId<Chapter>)> chapters = ParseChaptersFromHtml(mangaId.Obj, doc, baseUri);
+        List<(Chapter, SourceId<Chapter>)> chapters = ParseChaptersFromHtml(seriesId.Obj, doc, baseUri);
         return chapters.OrderBy(c => c.Item1, new Chapter.ChapterComparer()).ToArray();
     }
 

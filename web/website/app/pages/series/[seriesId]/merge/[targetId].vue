@@ -27,25 +27,25 @@
 <script setup lang="ts">
 const route = useRoute();
 const targetId = route.params.targetId as string;
-const mangaId = route.params.mangaId as string;
+const seriesId = route.params.seriesId as string;
 const { $api } = useNuxtApp();
 
 const reverse = ref(false);
-const { data: target } = await useApi('/v2/Series/{MangaId}', {
-    path: { MangaId: targetId },
+const { data: target } = await useApi('/v2/Series/{SeriesId}', {
+    path: { SeriesId: targetId },
     key: FetchKeys.Series.Id(targetId),
     server: false,
 });
-const { data: series } = await useApi('/v2/Series/{MangaId}', {
-    path: { MangaId: mangaId },
-    key: FetchKeys.Series.Id(mangaId),
+const { data: series } = await useApi('/v2/Series/{SeriesId}', {
+    path: { SeriesId: seriesId },
+    key: FetchKeys.Series.Id(seriesId),
     server: false,
 });
 
 const merge = async () => {
-    const from = reverse.value ? mangaId : targetId;
-    const to = reverse.value == false ? targetId : mangaId;
-    await $api('/v2/Series/{MangaIdFrom}/MergeInto/{MangaIdInto}', { method: 'POST', path: { MangaIdFrom: from, MangaIdInto: to } });
+    const from = reverse.value ? seriesId : targetId;
+    const to = reverse.value == false ? targetId : seriesId;
+    await $api('/v2/Series/{SeriesIdFrom}/MergeInto/{SeriesIdInto}', { method: 'POST', path: { SeriesIdFrom: from, SeriesIdInto: to } });
     navigateTo(`/series/${to}?return=${useRoute().fullPath}`);
 };
 

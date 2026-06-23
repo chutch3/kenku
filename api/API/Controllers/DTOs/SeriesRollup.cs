@@ -8,11 +8,11 @@ namespace API.Controllers.DTOs;
 /// failure. This is what the library badge and series page derive their state from — 'Downloading'
 /// means work is actually pending, not merely 'a source is enabled'.
 /// </summary>
-public record SeriesRollup(string MangaId, int WantedChapters, int DownloadedChapters,
+public record SeriesRollup(string SeriesId, int WantedChapters, int DownloadedChapters,
     int QueuedJobs, int RunningJobs, int NeedsAttentionJobs,
     string? LastError, DateTime? LastSyncAt, int? LastSyncChapterCount)
 {
-    [Required] public string MangaId { get; init; } = MangaId;
+    [Required] public string SeriesId { get; init; } = SeriesId;
     [Required] [Description("Chapters wanted for download (a source link is enabled).")]
     public int WantedChapters { get; init; } = WantedChapters;
     [Required] [Description("Wanted chapters already on disk (downloaded or bundled).")]
