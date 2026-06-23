@@ -87,6 +87,46 @@ public class ChaptersControllerTests: IDisposable
     }
 
     [Fact]
+    public async Task ForceDownload_EnqueuesAForcedDownloadJob_ForTheChaptersDownloadSource()
+    {
+        using var ctx = CreateContext();
+        var manga = MakeTestManga("Crossed");
+        var chapter = new API.Schema.SeriesContext.Chapter(manga, "1", null) { Downloaded = true, MissingPageCount = 3 };
+        var chId = new API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>(chapter, "ComicHubFree", "crossed/issue-1", null, useForDownload: true);
+        chapter.SourceIds.Add(chId);
+        ctx.Series.Add(manga);
+        ctx.Chapters.Add(chapter);
+        ctx.MangaConnectorToChapter.Add(chId);
+        await ctx.SaveChangesAsync();
+        var store = new InMemoryJobStore();
+
+        var result = await CreateController(ctx).ForceDownload(chapter.Key, store, new SystemClock());
+
+        Assert.IsType<Ok>(result.Result);
+        var job = Assert.Single(await store.GetAllAsync());
+        Assert.Equal(API.JobRuntime.Handlers.DownloadChapterHandler.Type, job.Type);
+        Assert.Contains("\"Force\":true", job.Payload);
+    }
+
+    [Fact]
+    public async Task ForceDownload_404_WhenChapterHasNoDownloadSource()
+    {
+        using var ctx = CreateContext();
+        var manga = MakeTestManga("Crossed");
+        var chapter = new API.Schema.SeriesContext.Chapter(manga, "1", null);
+        var chId = new API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>(chapter, "ComicHubFree", "x", null, useForDownload: false);
+        chapter.SourceIds.Add(chId);
+        ctx.Series.Add(manga);
+        ctx.Chapters.Add(chapter);
+        ctx.MangaConnectorToChapter.Add(chId);
+        await ctx.SaveChangesAsync();
+
+        var result = await CreateController(ctx).ForceDownload(chapter.Key, new InMemoryJobStore(), new SystemClock());
+
+        Assert.IsType<NotFound<string>>(result.Result);
+    }
+
+    [Fact]
     public async Task GetChapters_ExposesScanGroupAndLanguageOnSources()
     {
         using var ctx = CreateContext();
@@ -107,6 +147,25 @@ public class ChaptersControllerTests: IDisposable
         var dtoSource = Assert.Single(dtoChapter.SourceIds);
         Assert.Equal("Cool Scans", dtoSource.ScanGroup);
         Assert.Equal("en", dtoSource.Language);
+    }
+
+    [Fact]
+    public async Task GetChapters_ExposesTheMissingPageCount()
+    {
+        using var ctx = CreateContext();
+        var manga = MakeTestManga("Crossed");
+        var chapter = new API.Schema.SeriesContext.Chapter(manga, "1", null) { MissingPageCount = 3 };
+        var src = new API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>(chapter, "ComicHubFree", "crossed/issue-1", null, useForDownload: true);
+        chapter.SourceIds.Add(src);
+        ctx.Series.Add(manga);
+        ctx.Chapters.Add(chapter);
+        ctx.MangaConnectorToChapter.Add(src);
+        await ctx.SaveChangesAsync();
+
+        var result = await CreateController(ctx).GetChapters(manga.Key, null, 1, 10);
+
+        var ok = Assert.IsType<Ok<PagedResponse<API.Controllers.DTOs.Chapter>>>(result.Result);
+        Assert.Equal(3, Assert.Single(ok.Value.Data).MissingPageCount);
     }
 
     [Fact]

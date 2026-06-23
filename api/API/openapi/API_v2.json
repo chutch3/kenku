@@ -671,6 +671,40 @@
         }
       }
     },
+    "/v2/Chapters/{ChapterId}/ForceDownload": {
+      "post": {
+        "tags": [
+          "Chapters"
+        ],
+        "summary": "Forces a (re)download of a API.Controllers.DTOs.Chapter from its current download source, rebuilding even\nan on-disk chapter (the acquirer overwrites atomically). Used to recover a chapter that was saved\nwith missing pages once the source has the pages.",
+        "parameters": [
+          {
+            "name": "ChapterId",
+            "in": "path",
+            "description": "API.Schema.SeriesContext.Chapter.Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "No download source is enabled for the chapter",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/Chapters/{ChapterId}/volume": {
       "put": {
         "tags": [
@@ -6343,6 +6377,7 @@
           "downloaded",
           "key",
           "mangaId",
+          "missingPageCount",
           "sourceIds",
           "title",
           "volume"
@@ -6384,6 +6419,11 @@
             "type": "string",
             "description": "Filename of the archive",
             "nullable": true
+          },
+          "missingPageCount": {
+            "type": "integer",
+            "description": "How many pages the source couldn't deliver (0 = complete; >0 = saved but incomplete)",
+            "format": "int32"
           },
           "key": {
             "maxLength": 64,

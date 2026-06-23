@@ -96,8 +96,25 @@
                             Choose download ({{ chapter.sourceIds.length }})
                         </UButton>
 
-                        <!-- TODO: Not implemented yet -->
-                        <UButton variant="outline" color="secondary" class="ml-auto" disabled>Force (re)download</UButton>
+                        <UBadge
+                            v-if="chapter.downloaded && (chapter.missingPageCount ?? 0) > 0"
+                            color="warning"
+                            variant="subtle"
+                            size="sm"
+                            icon="i-lucide-image-off"
+                            :title="`${chapter.missingPageCount} page(s) the source couldn't deliver — force a re-download once it's fixed`">
+                            {{ chapter.missingPageCount }} missing
+                        </UBadge>
+                        <UButton
+                            :data-test="`force-download-${chapter.key}`"
+                            icon="i-lucide-rotate-cw"
+                            variant="outline"
+                            color="secondary"
+                            class="ml-auto"
+                            loading-auto
+                            @click="forceDownload(chapter.key)"
+                            >Force (re)download</UButton
+                        >
                     </div>
                 </template>
             </UPageCard>
@@ -147,6 +164,13 @@ const setDownloadFromSource = async (sourceKey: string, requested: boolean) => {
         method: 'PATCH',
         path: { ChapterSourceKey: sourceKey, IsRequested: requested },
     });
+    await refresh();
+};
+
+// Rebuilds the chapter from its current download source even though it's already on disk — used to
+// recover a chapter saved with missing pages once the source has them.
+const forceDownload = async (chapterKey: string) => {
+    await $api('/v2/Chapters/{ChapterId}/ForceDownload', { method: 'POST', path: { ChapterId: chapterKey } });
     await refresh();
 };
 

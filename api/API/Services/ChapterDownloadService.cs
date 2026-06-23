@@ -46,7 +46,7 @@ public class ChapterDownloadService(
     private static readonly ILog Log = LogManager.GetLogger(typeof(ChapterDownloadService));
 
     public async Task<DownloadOutcome> DownloadAsync(SeriesContext seriesContext, ActionsContext actionsContext,
-        string chapterKey, CancellationToken ct, string? pinnedArchiveUrl = null)
+        string chapterKey, CancellationToken ct, string? pinnedArchiveUrl = null, bool force = false)
     {
         Log.Debug($"Downloading chapter for SourceId {chapterKey}...");
         if (await seriesContext.MangaConnectorToChapter
@@ -59,7 +59,9 @@ public class ChapterDownloadService(
                 .FirstOrDefaultAsync(c => c.Key == chapterKey, ct) is not { } mangaConnectorId)
             throw new InvalidOperationException($"SourceId '{chapterKey}' not found.");
 
-        if (await mangaConnectorId.Obj.CheckDownloaded(seriesContext, settings.ChapterNamingScheme, token: ct))
+        // A forced (re)download rebuilds even an on-disk chapter — the acquirer writes to a temp file and
+        // moves it into place, so the existing .cbz is only replaced atomically on success.
+        if (!force && await mangaConnectorId.Obj.CheckDownloaded(seriesContext, settings.ChapterNamingScheme, token: ct))
         {
             Log.Warn("Chapter already exists!");
             return DownloadOutcome.AlreadyDownloaded;

@@ -453,6 +453,27 @@ public class ChapterDownloadServiceTests
     }
 
     [Fact]
+    public async Task DownloadAsync_AlreadyDownloaded_IsNoOpUnlessForced()
+    {
+        // IsBundled makes CheckDownloaded report the chapter as present without needing a file on disk.
+        var (provider, context, connectorId, connector, settings) =
+            BuildAcquirerFixture(new AcquireResult.Acquired("/tmp/ch.cbz"), "DownloadForce");
+        connectorId.Obj.IsBundled = true;
+        await context.SaveChangesAsync();
+        using var scope = provider.CreateScope();
+        var p = scope.ServiceProvider;
+        ChapterDownloadService Service() => new(settings, [connector.Object], p.GetRequiredService<IJobStore>(),
+            p.GetRequiredService<IClock>(), [new StubAcquirer(new AcquireResult.Acquired("/tmp/ch.cbz"))], new LibraryLayoutResolver());
+        var actions = p.GetRequiredService<API.Schema.ActionsContext.ActionsContext>();
+
+        Assert.Equal(DownloadOutcome.AlreadyDownloaded,
+            await Service().DownloadAsync(context, actions, connectorId.Key, CancellationToken.None));
+
+        Assert.Equal(DownloadOutcome.Downloaded,
+            await Service().DownloadAsync(context, actions, connectorId.Key, CancellationToken.None, force: true));
+    }
+
+    [Fact]
     public async Task DownloadAsync_FailedAcquisition_ThrowsWithTheAcquirersReason()
     {
         var (provider, context, connectorId, connector, settings) =

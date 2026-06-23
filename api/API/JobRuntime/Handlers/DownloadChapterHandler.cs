@@ -10,7 +10,7 @@ namespace API.JobRuntime.Handlers;
 
 /// <summary>Payload for <see cref="DownloadChapterHandler"/>. <see cref="DownloadChapterPayload.PinnedArchiveUrl"/> carries
 /// a user-chosen download from a multi-option post, bypassing URL resolution.</summary>
-public record DownloadChapterPayload(string ChapterKey, string? PinnedArchiveUrl = null);
+public record DownloadChapterPayload(string ChapterKey, string? PinnedArchiveUrl = null, bool Force = false);
 
 /// <summary>
 /// Downloads one chapter via <see cref="ChapterDownloadService"/> (resolve → acquire .cbz → mark
@@ -23,8 +23,8 @@ public class DownloadChapterHandler(IServiceScopeFactory scopeFactory) : IJobHan
     public const string Type = "DownloadChapter";
     public string JobType => Type;
 
-    public static string PayloadFor(string chapterKey, string? pinnedArchiveUrl = null) =>
-        JsonSerializer.Serialize(new DownloadChapterPayload(chapterKey, pinnedArchiveUrl));
+    public static string PayloadFor(string chapterKey, string? pinnedArchiveUrl = null, bool force = false) =>
+        JsonSerializer.Serialize(new DownloadChapterPayload(chapterKey, pinnedArchiveUrl, force));
 
     public async Task ExecuteAsync(Job job, CancellationToken ct)
     {
@@ -38,7 +38,7 @@ public class DownloadChapterHandler(IServiceScopeFactory scopeFactory) : IJobHan
         DownloadOutcome outcome = await service.DownloadAsync(
             provider.GetRequiredService<SeriesContext>(),
             provider.GetRequiredService<ActionsContext>(),
-            payload.ChapterKey, ct, payload.PinnedArchiveUrl);
+            payload.ChapterKey, ct, payload.PinnedArchiveUrl, payload.Force);
         job.Progress = outcome switch
         {
             DownloadOutcome.Downloaded => "chapter downloaded",

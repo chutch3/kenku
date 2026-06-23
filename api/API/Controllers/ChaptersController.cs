@@ -68,7 +68,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
                 IEnumerable<DTOs.SourceId<Chapter>> ids = c.SourceIds.Select(id =>
                     DTOs.SourceId<Chapter>.From(id));
                 return new Chapter(c.Key, c.ParentMangaId, c.VolumeNumber, c.ChapterNumber, c.Title, ids, c.Downloaded,
-                    c.FileName);
+                    c.FileName, c.MissingPageCount);
             });
 
         return TypedResults.Ok(pagedResponse);
@@ -105,7 +105,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
         IEnumerable<DTOs.SourceId<Chapter>> ids = c.SourceIds.Select(id =>
             DTOs.SourceId<Chapter>.From(id));
 
-        return TypedResults.Ok(new Chapter(c.Key, c.ParentMangaId, c.VolumeNumber, c.ChapterNumber, c.Title, ids, c.Downloaded, c.FileName));
+        return TypedResults.Ok(new Chapter(c.Key, c.ParentMangaId, c.VolumeNumber, c.ChapterNumber, c.Title, ids, c.Downloaded, c.FileName, c.MissingPageCount));
     }
     /// <summary>
     /// Returns the latest <see cref="Chapter"/> of requested <see cref="Schema.SeriesContext.Series"/> that is downloaded
@@ -136,7 +136,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
 
         IEnumerable<DTOs.SourceId<Chapter>> ids = c.SourceIds.Select(id =>
             DTOs.SourceId<Chapter>.From(id));
-        return TypedResults.Ok(new Chapter(c.Key, c.ParentMangaId, c.VolumeNumber, c.ChapterNumber, c.Title, ids, c.Downloaded, c.FileName));
+        return TypedResults.Ok(new Chapter(c.Key, c.ParentMangaId, c.VolumeNumber, c.ChapterNumber, c.Title, ids, c.Downloaded, c.FileName, c.MissingPageCount));
     }
 
     /// <summary>
@@ -179,7 +179,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
 
         IEnumerable<DTOs.SourceId<Chapter>> ids = chapter.SourceIds.Select(id =>
             DTOs.SourceId<Chapter>.From(id));
-        return TypedResults.Ok(new Chapter(chapter.Key, chapter.ParentMangaId, chapter.VolumeNumber, chapter.ChapterNumber, chapter.Title,ids, chapter.Downloaded, chapter.FileName));
+        return TypedResults.Ok(new Chapter(chapter.Key, chapter.ParentMangaId, chapter.VolumeNumber, chapter.ChapterNumber, chapter.Title,ids, chapter.Downloaded, chapter.FileName, chapter.MissingPageCount));
     }
 
     /// <summary>
@@ -316,6 +316,34 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
                 maxAttempts: settings.DownloadMaxAttempts),
                 HttpContext.RequestAborted);
 
+        return TypedResults.Ok();
+    }
+
+    /// <summary>
+    /// Forces a (re)download of a <see cref="Chapter"/> from its current download source, rebuilding even
+    /// an on-disk chapter (the acquirer overwrites atomically). Used to recover a chapter that was saved
+    /// with missing pages once the source has the pages.
+    /// </summary>
+    /// <param name="ChapterId"><see cref="Schema.SeriesContext.Chapter"/>.Key</param>
+    /// <response code="200"></response>
+    /// <response code="404">No download source is enabled for the chapter</response>
+    [HttpPost("{ChapterId}/ForceDownload")]
+    [ProducesResponseType(Status200OK)]
+    [ProducesResponseType<string>(Status404NotFound, "text/plain")]
+    public async Task<Results<Ok, NotFound<string>>> ForceDownload(string ChapterId,
+        [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock)
+    {
+        if (await context.MangaConnectorToChapter.Include(id => id.Obj)
+                .FirstOrDefaultAsync(id => id.ObjId == ChapterId && id.UseForDownload, HttpContext.RequestAborted) is not { } source)
+            return TypedResults.NotFound(nameof(ChapterId));
+
+        await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
+            API.JobRuntime.Handlers.DownloadChapterHandler.Type,
+            API.JobRuntime.Handlers.DownloadChapterHandler.PayloadFor(source.Key, force: true), clock.UtcNow,
+            resourceKey: source.Obj.ParentMangaId,
+            dedupKey: $"force-download-{source.Key}",
+            maxAttempts: settings.DownloadMaxAttempts),
+            HttpContext.RequestAborted);
         return TypedResults.Ok();
     }
 

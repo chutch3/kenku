@@ -29,6 +29,17 @@ let pickedSource: string | null = null;
 registerEndpoint('/v2/Chapters/Source/src-b/DownloadFrom/true', { method: 'PATCH', handler: () => ((pickedSource = 'src-b'), {}) });
 registerEndpoint('/v2/Chapters/Source/src-only/DownloadFrom/true', { method: 'PATCH', handler: () => ((pickedSource = 'src-only'), {}) });
 
+// A downloaded-but-incomplete issue (the source served placeholder pages).
+let forced: string | null = null;
+registerEndpoint('/v2/Chapters/Series/incomplete-1', {
+    method: 'POST',
+    handler: () => ({
+        data: [{ key: 'cI', title: 'Crossed', volume: null, chapterNumber: '1', fileName: 'Crossed - 1.cbz', downloaded: true, missingPageCount: 3, sourceIds: [source('src-i', null, true)] }],
+        totalCount: 1,
+    }),
+});
+registerEndpoint('/v2/Chapters/cI/ForceDownload', { method: 'POST', handler: () => ((forced = 'cI'), {}) });
+
 function mount(mangaId: string, kind?: string) {
     return mountSuspended(ChaptersList, { props: { mangaId, kind }, global: { stubs: tooltipStub } });
 }
@@ -83,5 +94,22 @@ describe('ChaptersList', () => {
         pickB.click();
 
         await vi.waitFor(() => expect(pickedSource).toBe('src-b'));
+    });
+
+    it('flags an incomplete issue and force-redownloads it', async () => {
+        forced = null;
+        const wrapper = await mount('incomplete-1', 'comic');
+        await vi.waitFor(() => expect(wrapper.text()).toContain('#1'));
+
+        // The missing-pages indicator is shown.
+        expect(wrapper.text()).toContain('3 missing');
+
+        // The Force (re)download button is enabled and wired.
+        const force = wrapper.find('[data-test="force-download-cI"]');
+        expect(force.exists()).toBe(true);
+        expect(force.attributes('disabled')).toBeUndefined();
+        await force.trigger('click');
+
+        await vi.waitFor(() => expect(forced).toBe('cI'));
     });
 });
