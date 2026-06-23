@@ -453,24 +453,54 @@ public class ChapterDownloadServiceTests
     }
 
     [Fact]
-    public async Task DownloadAsync_AlreadyDownloaded_IsNoOpUnlessForced()
+    public async Task DownloadAsync_AlreadyOnDisk_IsNoOpUnlessForced()
     {
-        // IsBundled makes CheckDownloaded report the chapter as present without needing a file on disk.
-        var (provider, context, connectorId, connector, settings) =
-            BuildAcquirerFixture(new AcquireResult.Acquired("/tmp/ch.cbz"), "DownloadForce");
-        connectorId.Obj.IsBundled = true;
-        await context.SaveChangesAsync();
-        using var scope = provider.CreateScope();
-        var p = scope.ServiceProvider;
-        ChapterDownloadService Service() => new(settings, [connector.Object], p.GetRequiredService<IJobStore>(),
-            p.GetRequiredService<IClock>(), [new StubAcquirer(new AcquireResult.Acquired("/tmp/ch.cbz"))], new LibraryLayoutResolver());
-        var actions = p.GetRequiredService<API.Schema.ActionsContext.ActionsContext>();
+        string tempRoot = Path.Combine(Path.GetTempPath(), "kenku-force-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempRoot);
+        try
+        {
+            var settings = new KenkuSettings { AppData = tempRoot, ChapterNamingScheme = "%M - %C" };
+            var libraryPath = Path.Combine(tempRoot, "library");
+            Directory.CreateDirectory(libraryPath);
+            var options = new DbContextOptionsBuilder<SeriesContext>().UseInMemoryDatabase("Force-" + Guid.NewGuid().ToString("N")).Options;
+            using var context = new SeriesContext(options);
+            var library = new FileLibrary(libraryPath, "Test Lib");
+            context.FileLibraries.Add(library);
+            var manga = new Series("Test Series", "Desc", "http://c", SeriesReleaseStatus.Continuing,
+                new List<Author>(), new List<SeriesTag>(), new List<Link>(), new List<AltTitle>(), library, 0f, 2024, "en");
+            context.Series.Add(manga);
+            var chapter = new Chapter(manga, "1", null, "Title");
+            context.Chapters.Add(chapter);
+            var connectorId = new SourceId<Chapter>(chapter, "MockConnector", "site1", "url1", true);
+            context.MangaConnectorToChapter.Add(connectorId);
+            await context.SaveChangesAsync();
 
-        Assert.Equal(DownloadOutcome.AlreadyDownloaded,
-            await Service().DownloadAsync(context, actions, connectorId.Key, CancellationToken.None));
+            // Put the chapter's .cbz on disk so CheckDownloaded reports it as present.
+            string onDisk = chapter.GetFullFilepath(settings.ChapterNamingScheme)!;
+            Directory.CreateDirectory(Path.GetDirectoryName(onDisk)!);
+            await File.WriteAllTextAsync(onDisk, "stale");
 
-        Assert.Equal(DownloadOutcome.Downloaded,
-            await Service().DownloadAsync(context, actions, connectorId.Key, CancellationToken.None, force: true));
+            var connector = new Mock<SeriesSource>("MockConnector", new[] { "en" }, new[] { "mock.com" }, "icon", settings);
+            var services = new ServiceCollection();
+            services.AddSingleton(context);
+            services.AddDbContext<API.Schema.ActionsContext.ActionsContext>(o => o.UseInMemoryDatabase("Actions-" + Guid.NewGuid().ToString("N")));
+            services.AddSingleton<IClock, SystemClock>();
+            services.AddSingleton<IJobStore, InMemoryJobStore>();
+            var p = services.BuildServiceProvider();
+            var actions = p.GetRequiredService<API.Schema.ActionsContext.ActionsContext>();
+            ChapterDownloadService Service() => new(settings, [connector.Object], p.GetRequiredService<IJobStore>(),
+                p.GetRequiredService<IClock>(), [new StubAcquirer(new AcquireResult.Acquired(onDisk))], new LibraryLayoutResolver());
+
+            Assert.Equal(DownloadOutcome.AlreadyDownloaded,
+                await Service().DownloadAsync(context, actions, connectorId.Key, CancellationToken.None));
+
+            Assert.Equal(DownloadOutcome.Downloaded,
+                await Service().DownloadAsync(context, actions, connectorId.Key, CancellationToken.None, force: true));
+        }
+        finally
+        {
+            try { Directory.Delete(tempRoot, recursive: true); } catch { /* best effort */ }
+        }
     }
 
     [Fact]

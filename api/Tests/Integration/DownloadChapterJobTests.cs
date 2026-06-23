@@ -120,6 +120,52 @@ public class DownloadChapterJobTests : IAsyncLifetime
         Assert.True(chapter.Downloaded, "an incomplete-but-saved chapter is still Downloaded");
         Assert.Equal(1, chapter.MissingPageCount);
     }
+
+    [Fact]
+    public async Task ForcedDownload_RebuildsAnIncompleteOnDiskChapter_WhenTheSourceIsFixed()
+    {
+        // First download: u2 is a placeholder → saved incomplete (MissingPageCount = 1).
+        _connector.Setup(c => c.DownloadImage("u2", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => new MemoryStream(TestImages.Placeholder()));
+
+        var seeded = await _app.WithSeriesContext(async ctx =>
+        {
+            var library = new FileLibrary(_libDir, "Lib");
+            ctx.FileLibraries.Add(library);
+            var manga = new Series("Stub Series", "", "http://x/c.jpg", SeriesReleaseStatus.Continuing, [], [], [], [], library);
+            ctx.Series.Add(manga);
+            var chapter = new Chapter(manga, "1", null, "Title");
+            ctx.Chapters.Add(chapter);
+            var sourceId = new SourceId<Chapter>(chapter, "StubConnector", "site1", "url1", true);
+            ctx.MangaConnectorToChapter.Add(sourceId);
+            await ctx.SaveChangesAsync();
+            return (chapterKey: chapter.Key, sourceKey: sourceId.Key);
+        });
+
+        async Task RunDownload(bool force)
+        {
+            using (var scope = _app.Services.CreateScope())
+                await scope.ServiceProvider.GetRequiredService<IJobStore>().EnqueueAsync(
+                    new JobEntity(DownloadChapterHandler.Type, DownloadChapterHandler.PayloadFor(seeded.sourceKey, force: force), DateTime.UtcNow));
+            using (var scope = _app.Services.CreateScope())
+                Assert.True(await scope.ServiceProvider.GetRequiredService<Dispatcher>().RunOnceAsync());
+        }
+
+        await RunDownload(force: false);
+        Assert.Equal(1, (await _app.WithSeriesContext(c => c.Chapters.FirstAsync(x => x.Key == seeded.chapterKey))).MissingPageCount);
+
+        // Drain the first download's follow-up jobs (cover/refresh) so the next RunOnce runs the forced download.
+        await _app.WithJobsContext(async c => { c.JobQueue.RemoveRange(c.JobQueue); return await c.SaveChangesAsync(); });
+
+        // The source now has the page; a forced re-download rebuilds the on-disk chapter complete.
+        _connector.Setup(c => c.DownloadImage("u2", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => new MemoryStream(TestImages.Jpeg()));
+        await RunDownload(force: true);
+
+        var rebuilt = await _app.WithSeriesContext(c => c.Chapters.FirstAsync(x => x.Key == seeded.chapterKey));
+        Assert.True(rebuilt.Downloaded);
+        Assert.Equal(0, rebuilt.MissingPageCount);
+    }
 }
 
 /// <summary>

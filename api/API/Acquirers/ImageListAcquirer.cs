@@ -14,8 +14,10 @@ namespace API.Acquirers;
 /// <summary>
 /// Acquires a chapter by fetching each page image individually from the connector, optionally
 /// re-encoding them (compression / black-and-white), and packaging the lot into a .cbz with a
-/// ComicInfo.xml. This is the historical Kenku path — preserved verbatim from
-/// DownloadChapterFromSourceWorker so the rename is a behaviour-preserving refactor.
+/// ComicInfo.xml. Pages the source can't deliver — a "missing page" placeholder, or an undownloadable/
+/// undecodable image — are detected (<see cref="MissingPageDetector"/>) and dropped; the chapter is still
+/// saved but reports the dropped count via <see cref="AcquireResult.Acquired.MissingPages"/> so it can be
+/// flagged and force-rebuilt later.
 /// </summary>
 public class ImageListAcquirer(KenkuSettings settings) : IChapterAcquirer
 {

@@ -63,13 +63,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
         if (await queryable.ToListAsync(HttpContext.RequestAborted) is not { } dbChapters)
             return TypedResults.InternalServerError();
         PagedResponse<Chapter> pagedResponse = dbChapters.OrderDescending().CreatePagedResponse(page, pageSize)
-            .ToType(c =>
-            {
-                IEnumerable<DTOs.SourceId<Chapter>> ids = c.SourceIds.Select(id =>
-                    DTOs.SourceId<Chapter>.From(id));
-                return new Chapter(c.Key, c.ParentMangaId, c.VolumeNumber, c.ChapterNumber, c.Title, ids, c.Downloaded,
-                    c.FileName, c.MissingPageCount);
-            });
+            .ToType(Chapter.From);
 
         return TypedResults.Ok(pagedResponse);
     }
@@ -102,10 +96,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
         if (c is null)
             return TypedResults.NoContent();
 
-        IEnumerable<DTOs.SourceId<Chapter>> ids = c.SourceIds.Select(id =>
-            DTOs.SourceId<Chapter>.From(id));
-
-        return TypedResults.Ok(new Chapter(c.Key, c.ParentMangaId, c.VolumeNumber, c.ChapterNumber, c.Title, ids, c.Downloaded, c.FileName, c.MissingPageCount));
+        return TypedResults.Ok(Chapter.From(c));
     }
     /// <summary>
     /// Returns the latest <see cref="Chapter"/> of requested <see cref="Schema.SeriesContext.Series"/> that is downloaded
@@ -134,9 +125,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
         if (c is null)
             return TypedResults.NoContent();
 
-        IEnumerable<DTOs.SourceId<Chapter>> ids = c.SourceIds.Select(id =>
-            DTOs.SourceId<Chapter>.From(id));
-        return TypedResults.Ok(new Chapter(c.Key, c.ParentMangaId, c.VolumeNumber, c.ChapterNumber, c.Title, ids, c.Downloaded, c.FileName, c.MissingPageCount));
+        return TypedResults.Ok(Chapter.From(c));
     }
 
     /// <summary>
@@ -177,9 +166,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
         if (await context.Chapters.FirstOrDefaultAsync(c => c.Key == ChapterId, HttpContext.RequestAborted) is not { } chapter)
             return TypedResults.NotFound(nameof(ChapterId));
 
-        IEnumerable<DTOs.SourceId<Chapter>> ids = chapter.SourceIds.Select(id =>
-            DTOs.SourceId<Chapter>.From(id));
-        return TypedResults.Ok(new Chapter(chapter.Key, chapter.ParentMangaId, chapter.VolumeNumber, chapter.ChapterNumber, chapter.Title,ids, chapter.Downloaded, chapter.FileName, chapter.MissingPageCount));
+        return TypedResults.Ok(Chapter.From(chapter));
     }
 
     /// <summary>
@@ -309,12 +296,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
             return TypedResults.InternalServerError(result.exceptionMessage);
 
         if (IsRequested)
-            await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
-                API.JobRuntime.Handlers.DownloadChapterHandler.Type,
-                API.JobRuntime.Handlers.DownloadChapterHandler.PayloadFor(chId.Key), clock.UtcNow,
-                resourceKey: chId.Obj.ParentMangaId, dedupKey: API.JobRuntime.Reconcilers.DownloadReconciler.DedupKey(chId.Key),
-                maxAttempts: settings.DownloadMaxAttempts),
-                HttpContext.RequestAborted);
+            await EnqueueDownloadJob(jobStore, clock, chId, API.JobRuntime.Reconcilers.DownloadReconciler.DedupKey(chId.Key));
 
         return TypedResults.Ok();
     }
@@ -337,15 +319,20 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
                 .FirstOrDefaultAsync(id => id.ObjId == ChapterId && id.UseForDownload, HttpContext.RequestAborted) is not { } source)
             return TypedResults.NotFound(nameof(ChapterId));
 
-        await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
-            API.JobRuntime.Handlers.DownloadChapterHandler.Type,
-            API.JobRuntime.Handlers.DownloadChapterHandler.PayloadFor(source.Key, force: true), clock.UtcNow,
-            resourceKey: source.Obj.ParentMangaId,
-            dedupKey: $"force-download-{source.Key}",
-            maxAttempts: settings.DownloadMaxAttempts),
-            HttpContext.RequestAborted);
+        await EnqueueDownloadJob(jobStore, clock, source, $"force-download:{source.Key}", force: true);
         return TypedResults.Ok();
     }
+
+    /// <summary>Enqueues a <see cref="API.JobRuntime.Handlers.DownloadChapterHandler"/> job for a chapter
+    /// source, with the configured retry budget. Shared by the request/pinned/force download paths.</summary>
+    private Task EnqueueDownloadJob(API.JobRuntime.Interfaces.IJobStore jobStore, API.JobRuntime.Interfaces.IClock clock,
+        Schema.SeriesContext.SourceId<Schema.SeriesContext.Chapter> chId, string dedupKey,
+        string? pinnedArchiveUrl = null, bool force = false) =>
+        jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
+            API.JobRuntime.Handlers.DownloadChapterHandler.Type,
+            API.JobRuntime.Handlers.DownloadChapterHandler.PayloadFor(chId.Key, pinnedArchiveUrl, force), clock.UtcNow,
+            resourceKey: chId.Obj.ParentMangaId, dedupKey: dedupKey, maxAttempts: settings.DownloadMaxAttempts),
+            HttpContext.RequestAborted);
 
     /// <summary>
     /// Manually assigns a volume number to a <see cref="Schema.SeriesContext.Chapter"/>.
@@ -484,12 +471,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
         if (!offered.Options.Any(o => o.Url == request.Url))
             return TypedResults.BadRequest("the post no longer offers that download — refresh the options");
 
-        await jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
-            API.JobRuntime.Handlers.DownloadChapterHandler.Type,
-            API.JobRuntime.Handlers.DownloadChapterHandler.PayloadFor(chId.Key, request.Url),
-            clock.UtcNow,
-            resourceKey: chId.Obj.ParentMangaId,
-            dedupKey: $"pinned-download:{chId.Key}"), HttpContext.RequestAborted);
+        await EnqueueDownloadJob(jobStore, clock, chId, $"pinned-download:{chId.Key}", pinnedArchiveUrl: request.Url);
         return TypedResults.Ok();
     }
 }

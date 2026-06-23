@@ -62,4 +62,9 @@ public sealed record Chapter(string Key, string MangaId, int? Volume, string Cha
     [Required]
     [Description("How many pages the source couldn't deliver (0 = complete; >0 = saved but incomplete)")]
     public int MissingPageCount { get; init; } = MissingPageCount;
+
+    /// <summary>Projects a persisted chapter to its DTO. SourceIds must be loaded.</summary>
+    public static Chapter From(API.Schema.SeriesContext.Chapter c) =>
+        new(c.Key, c.ParentMangaId, c.VolumeNumber, c.ChapterNumber, c.Title,
+            c.SourceIds.Select(SourceId<Chapter>.From), c.Downloaded, c.FileName, c.MissingPageCount);
 }

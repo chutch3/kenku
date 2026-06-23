@@ -106,6 +106,7 @@
                             {{ chapter.missingPageCount }} missing
                         </UBadge>
                         <UButton
+                            v-if="chapter.downloaded"
                             :data-test="`force-download-${chapter.key}`"
                             icon="i-lucide-rotate-cw"
                             variant="outline"
