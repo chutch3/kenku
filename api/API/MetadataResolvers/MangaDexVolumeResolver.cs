@@ -30,7 +30,7 @@ public class MangaDexVolumeResolver(HttpClient httpClient) : IMangaDexVolumeReso
             // We intentionally do NOT fall back to a blind title search: an unverified top-hit can link the
             // wrong series. Matching now happens up front in auto-match (by AniList id, then scored title),
             // which sets a trusted ExternalId; series it can't confidently link are left for manual linking.
-            var mdConnector = manga.SourceIds.FirstOrDefault(c => c.MangaConnectorName.Equals("MangaDex", StringComparison.OrdinalIgnoreCase));
+            var mdConnector = manga.SourceIds.FirstOrDefault(c => c.SeriesSourceName.Equals("MangaDex", StringComparison.OrdinalIgnoreCase));
             if (mdConnector != null)
                 mangadexUuid = mdConnector.IdOnConnectorSite;
         }

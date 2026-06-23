@@ -67,9 +67,9 @@ public class ChapterDownloadService(
             return DownloadOutcome.AlreadyDownloaded;
         }
 
-        SeriesSource? seriesSource = connectors.FirstOrDefault(c => c.Name.Equals(mangaConnectorId.MangaConnectorName, StringComparison.InvariantCultureIgnoreCase));
+        SeriesSource? seriesSource = connectors.FirstOrDefault(c => c.Name.Equals(mangaConnectorId.SeriesSourceName, StringComparison.InvariantCultureIgnoreCase));
         if (seriesSource is null)
-            throw new InvalidOperationException($"SeriesSource '{mangaConnectorId.MangaConnectorName}' is not registered.");
+            throw new InvalidOperationException($"SeriesSource '{mangaConnectorId.SeriesSourceName}' is not registered.");
 
         Log.Debug($"Downloading chapter for SourceId {mangaConnectorId}...");
 
@@ -154,7 +154,7 @@ public class ChapterDownloadService(
 
             if (directoryPath != null)
             {
-                var sourceIdForSeries = chapter.ParentManga.SourceIds.FirstOrDefault(id => id.MangaConnectorName == seriesSource.Name);
+                var sourceIdForSeries = chapter.ParentManga.SourceIds.FirstOrDefault(id => id.SeriesSourceName == seriesSource.Name);
                 if (sourceIdForSeries != null)
                     await EnsureCoverInPublicationFolder(seriesContext, chapter.ParentManga, seriesSource, sourceIdForSeries, directoryPath, ct);
             }

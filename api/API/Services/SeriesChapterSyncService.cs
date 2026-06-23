@@ -30,9 +30,9 @@ public class SeriesChapterSyncService(IEnumerable<SeriesSource> connectors)
                 .FirstOrDefaultAsync(c => c.Key == sourceIdKey, ct) is not { } mangaConnectorId)
             throw new InvalidOperationException($"SourceId '{sourceIdKey}' not found.");
 
-        SeriesSource? seriesSource = connectors.FirstOrDefault(c => c.Name.Equals(mangaConnectorId.MangaConnectorName, StringComparison.InvariantCultureIgnoreCase));
+        SeriesSource? seriesSource = connectors.FirstOrDefault(c => c.Name.Equals(mangaConnectorId.SeriesSourceName, StringComparison.InvariantCultureIgnoreCase));
         if (seriesSource is null)
-            throw new InvalidOperationException($"SeriesSource '{mangaConnectorId.MangaConnectorName}' is not registered.");
+            throw new InvalidOperationException($"SeriesSource '{mangaConnectorId.SeriesSourceName}' is not registered.");
         Log.DebugFormat("Getting Chapters for SourceId {0}...", mangaConnectorId);
 
         Series manga = mangaConnectorId.Obj;
@@ -87,7 +87,7 @@ public class SeriesChapterSyncService(IEnumerable<SeriesSource> connectors)
         List<SourceId<Chapter>> existingChapterIds = manga.Chapters.SelectMany(c => c.SourceIds).ToList();
         List<SourceId<Chapter>> newIds = allChapters.Select(ch => ch.chapterId)
             .Where(newCh => !existingChapterIds.Any(existing =>
-                existing.MangaConnectorName == newCh.MangaConnectorName &&
+                existing.SeriesSourceName == newCh.SeriesSourceName &&
                 existing.IdOnConnectorSite == newCh.IdOnConnectorSite))
             .ToList();
         // Match tracked entities of Chapters

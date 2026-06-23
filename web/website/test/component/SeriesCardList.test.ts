@@ -9,7 +9,7 @@ registerEndpoint('/v2/SeriesSource', () => [
 
 const series = [{
     key: 's1', name: 'The Boys', description: '', releaseStatus: 'Continuing',
-    sourceIds: [{ key: 'sid1', mangaConnectorName: 'WeebCentral', objId: 's1', idOnConnectorSite: 'the-boys', websiteUrl: null, useForDownload: false }],
+    sourceIds: [{ key: 'sid1', seriesSourceName: 'WeebCentral', objId: 's1', idOnConnectorSite: 'the-boys', websiteUrl: null, useForDownload: false }],
     fileLibraryId: null, originalLanguage: 'en', coverUrl: '',
 }];
 

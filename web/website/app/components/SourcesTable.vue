@@ -20,9 +20,9 @@ const busy = ref<string | null>(null);
 const setEnabled = async (name: string, enabled: boolean) => {
     busy.value = name;
     try {
-        await $api('/v2/SeriesSource/{MangaConnectorName}/SetEnabled/{Enabled}', {
+        await $api('/v2/SeriesSource/{SeriesSourceName}/SetEnabled/{Enabled}', {
             method: 'PATCH',
-            path: { MangaConnectorName: name, Enabled: enabled },
+            path: { SeriesSourceName: name, Enabled: enabled },
         });
         await refresh();
     } finally {

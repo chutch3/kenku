@@ -283,7 +283,7 @@ public class WeebCentral : SeriesSource
         if (chapterId.Obj.ParentManga.SourceIds is not null && chapterId.Obj.ParentManga.SourceIds.Any())
         {
             referrer = chapterId.Obj.ParentManga.SourceIds
-                .FirstOrDefault(id => id.MangaConnectorName == this.Name)?.WebsiteUrl;
+                .FirstOrDefault(id => id.SeriesSourceName == this.Name)?.WebsiteUrl;
         }
 
 		return await GetChapterImageUrlsAsync(chapterId, referrer);

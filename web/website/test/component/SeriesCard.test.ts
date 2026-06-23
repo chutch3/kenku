@@ -28,7 +28,7 @@ function series(connectorName: string, fileLibraryId: string | null = null) {
         sourceIds: [
             {
                 key: 'sid1',
-                mangaConnectorName: connectorName,
+                seriesSourceName: connectorName,
                 objId: 's1',
                 idOnConnectorSite: 'the-boys',
                 websiteUrl: null,

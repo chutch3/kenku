@@ -25,10 +25,10 @@ export function useSeriesDetail(mangaId: string) {
     const refreshRollups = () => rollupQuery.refresh();
     onMounted(refreshRollups);
 
-    const setRequestedFrom = async (mangaConnectorName: string, isRequested: boolean) => {
-        await $api('/v2/Series/{MangaId}/DownloadFrom/{MangaConnectorName}/{IsRequested}', {
+    const setRequestedFrom = async (seriesSourceName: string, isRequested: boolean) => {
+        await $api('/v2/Series/{MangaId}/DownloadFrom/{SeriesSourceName}/{IsRequested}', {
             method: 'PATCH',
-            path: { MangaId: mangaId, MangaConnectorName: mangaConnectorName, IsRequested: isRequested },
+            path: { MangaId: mangaId, SeriesSourceName: seriesSourceName, IsRequested: isRequested },
         });
         await refreshNuxtData(FetchKeys.Series.Id(mangaId));
     };

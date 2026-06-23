@@ -10,7 +10,7 @@ const series = (name: string, connector: string) => ({
     description: '',
     releaseStatus: 'Continuing',
     sourceIds: [
-        { key: `${name}-sid`, mangaConnectorName: connector, objId: `${name}-key`, idOnConnectorSite: name, websiteUrl: null, useForDownload: false },
+        { key: `${name}-sid`, seriesSourceName: connector, objId: `${name}-key`, idOnConnectorSite: name, websiteUrl: null, useForDownload: false },
     ],
     fileLibraryId: null,
     originalLanguage: 'en',

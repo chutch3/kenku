@@ -243,8 +243,8 @@ public class SearchControllerTests
         var single = Assert.Single(ok.Value!);
         Assert.Equal("Naruto", single.Name);
         Assert.Equal(2, single.SourceIds.Count());
-        Assert.Contains(single.SourceIds, s => s.MangaConnectorName == "WeebCentral");
-        Assert.Contains(single.SourceIds, s => s.MangaConnectorName == "MangaDex");
+        Assert.Contains(single.SourceIds, s => s.SeriesSourceName == "WeebCentral");
+        Assert.Contains(single.SourceIds, s => s.SeriesSourceName == "MangaDex");
     }
 
     [Fact]

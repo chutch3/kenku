@@ -8,7 +8,7 @@ type SeriesRollup = components['schemas']['SeriesRollup'];
 function series(key: string, name: string, tracked = true): MinimalSeries {
     return {
         key, name, description: '', releaseStatus: 'Continuing',
-        sourceIds: [{ key: 's', mangaConnectorName: 'Src', objId: key, idOnConnectorSite: 'x', websiteUrl: null, useForDownload: true }],
+        sourceIds: [{ key: 's', seriesSourceName: 'Src', objId: key, idOnConnectorSite: 'x', websiteUrl: null, useForDownload: true }],
         fileLibraryId: tracked ? 'lib1' : null, originalLanguage: 'en', coverUrl: '',
     } as MinimalSeries;
 }

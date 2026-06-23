@@ -20,7 +20,7 @@ function withSources(...names: string[]): MinimalSeries {
         releaseStatus: 'Continuing',
         sourceIds: names.map((n, i) => ({
             key: `sid${i}`,
-            mangaConnectorName: n,
+            seriesSourceName: n,
             objId: 's1',
             idOnConnectorSite: `id${i}`,
             websiteUrl: null,

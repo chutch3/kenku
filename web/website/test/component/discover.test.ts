@@ -13,7 +13,7 @@ const sagaSeries = {
     description: 'Space opera.',
     releaseStatus: 'Continuing',
     sourceIds: [
-        { key: 'sid1', mangaConnectorName: 'GetComics', objId: 'saga-key', idOnConnectorSite: 'Saga', websiteUrl: null, useForDownload: false },
+        { key: 'sid1', seriesSourceName: 'GetComics', objId: 'saga-key', idOnConnectorSite: 'Saga', websiteUrl: null, useForDownload: false },
     ],
     fileLibraryId: null,
     originalLanguage: 'en',

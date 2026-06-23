@@ -145,7 +145,7 @@ const search = async (q: string): Promise<MinimalSeries[]> => {
     if (isUrl(q)) {
         const data = await searchByUrl(q);
         if (!data) return [];
-        connector.value = connectors.value?.find((c) => c.name == data.sourceIds[0]?.mangaConnectorName);
+        connector.value = connectors.value?.find((c) => c.name == data.sourceIds[0]?.seriesSourceName);
         return [data];
     }
     if (!selectedConnector.value?.name) return [];

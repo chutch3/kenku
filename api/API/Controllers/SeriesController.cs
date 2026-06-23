@@ -283,7 +283,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
             return TypedResults.NotFound(nameof(SourceIdKey));
 
         var replacement = new Schema.SeriesContext.SourceId<Schema.SeriesContext.Series>(
-            oldSource.Obj, oldSource.MangaConnectorName, requestData.IdOnConnectorSite, requestData.WebsiteUrl,
+            oldSource.Obj, oldSource.SeriesSourceName, requestData.IdOnConnectorSite, requestData.WebsiteUrl,
             oldSource.UseForDownload);
         context.SeriesSourceIds.Remove(oldSource);
         context.SeriesSourceIds.Add(replacement);
@@ -299,31 +299,31 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     /// (Un-)Marks <see cref="Series"/> as requested for Download from <see cref="API.Connectors.SeriesSource"/>
     /// </summary>
     /// <param name="MangaId"><see cref="Series"/> with <paramref name="MangaId"/></param>
-    /// <param name="MangaConnectorName"><see cref="API.Connectors.SeriesSource"/> with <paramref name="MangaConnectorName"/></param>
+    /// <param name="SeriesSourceName"><see cref="API.Connectors.SeriesSource"/> with <paramref name="SeriesSourceName"/></param>
     /// <param name="IsRequested">true to mark as requested, false to mark as not-requested</param>
     /// <response code="200"></response>
-    /// <response code="404"><paramref name="MangaId"/> or <paramref name="MangaConnectorName"/> not found</response>
+    /// <response code="404"><paramref name="MangaId"/> or <paramref name="SeriesSourceName"/> not found</response>
     /// <response code="412"><see cref="Series"/> was not linked to <see cref="API.Connectors.SeriesSource"/>, so nothing changed</response>
     /// <response code="428"><see cref="Series"/> is not linked to <see cref="API.Connectors.SeriesSource"/> yet. Search for <see cref="Series"/> on <see cref="API.Connectors.SeriesSource"/> first (to create a <see cref="DTOs.SourceId{T}"/>).</response>
     /// <response code="500">Error during Database Operation</response>
-    [HttpPatch("{MangaId}/DownloadFrom/{MangaConnectorName}/{IsRequested}")]
+    [HttpPatch("{MangaId}/DownloadFrom/{SeriesSourceName}/{IsRequested}")]
     [ProducesResponseType(Status200OK)]
     [ProducesResponseType<string>(Status404NotFound,  "text/plain")]
     [ProducesResponseType<string>(Status412PreconditionFailed,  "text/plain")]
     [ProducesResponseType<string>(Status428PreconditionRequired,  "text/plain")]
     [ProducesResponseType<string>(Status500InternalServerError,  "text/plain")]
-    public async Task<Results<Ok, NotFound<string>, StatusCodeHttpResult, InternalServerError<string>>> MarkAsRequested(string MangaId, string MangaConnectorName, bool IsRequested, [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock)
+    public async Task<Results<Ok, NotFound<string>, StatusCodeHttpResult, InternalServerError<string>>> MarkAsRequested(string MangaId, string SeriesSourceName, bool IsRequested, [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock)
     {
         if (await context.Series
                 .Include(m => m.Chapters)
-                .ThenInclude(c => c.SourceIds.Where(chID => chID.MangaConnectorName == MangaConnectorName))
-                .Include(m => m.SourceIds.Where(mId => mId.MangaConnectorName == MangaConnectorName))
+                .ThenInclude(c => c.SourceIds.Where(chID => chID.SeriesSourceName == SeriesSourceName))
+                .Include(m => m.SourceIds.Where(mId => mId.SeriesSourceName == SeriesSourceName))
                 .FirstOrDefaultAsync(m => m.Key == MangaId, HttpContext.RequestAborted) is not { } manga)
             return TypedResults.NotFound(nameof(MangaId));
-        if(!connectors.Any(c => c.Name.Equals(MangaConnectorName, StringComparison.InvariantCultureIgnoreCase)))
-            return TypedResults.NotFound(nameof(MangaConnectorName));
+        if(!connectors.Any(c => c.Name.Equals(SeriesSourceName, StringComparison.InvariantCultureIgnoreCase)))
+            return TypedResults.NotFound(nameof(SeriesSourceName));
 
-        if (manga.SourceIds.FirstOrDefault(mId => mId.MangaConnectorName == MangaConnectorName) is not { } mcId)
+        if (manga.SourceIds.FirstOrDefault(mId => mId.SeriesSourceName == SeriesSourceName) is not { } mcId)
         {
             if(IsRequested)
                 return TypedResults.StatusCode(Status428PreconditionRequired);
@@ -336,7 +336,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
         }
 
         if (manga.Chapters.SelectMany(ch =>
-                ch.SourceIds.Where(chID => chID.MangaConnectorName == MangaConnectorName)) is { } chIds)
+                ch.SourceIds.Where(chID => chID.SeriesSourceName == SeriesSourceName)) is { } chIds)
         {
             foreach (Schema.SeriesContext.SourceId<Chapter> chId in chIds)
             {
@@ -356,20 +356,20 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     /// Initiate a search for <see cref="API.Schema.SeriesContext.Series"/> on a different <see cref="API.Connectors.SeriesSource"/>
     /// </summary>
     /// <param name="MangaId"><see cref="API.Schema.SeriesContext.Series"/> with <paramref name="MangaId"/></param>
-    /// <param name="MangaConnectorName"><see cref="API.Connectors.SeriesSource"/>.Name</param>
+    /// <param name="SeriesSourceName"><see cref="API.Connectors.SeriesSource"/>.Name</param>
     /// <response code="200"><see cref="MinimalSeries"/> exert of <see cref="Schema.SeriesContext.Series"/></response>
     /// <response code="404"><see cref="API.Connectors.SeriesSource"/> with Name not found</response>
     /// <response code="412"><see cref="API.Connectors.SeriesSource"/> with Name is disabled</response>
-    [HttpGet("{MangaId}/OnMangaConnector/{MangaConnectorName}")]
+    [HttpGet("{MangaId}/OnMangaConnector/{SeriesSourceName}")]
     [ProducesResponseType<List<MinimalSeries>>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType(Status406NotAcceptable)]
-    public async Task<Results<Ok<List<MinimalSeries>>, NotFound<string>, StatusCodeHttpResult>> SearchOnDifferentConnector (string MangaId, string MangaConnectorName)
+    public async Task<Results<Ok<List<MinimalSeries>>, NotFound<string>, StatusCodeHttpResult>> SearchOnDifferentConnector (string MangaId, string SeriesSourceName)
     {
         if (await context.Series.FirstOrDefaultAsync(m => m.Key == MangaId, HttpContext.RequestAborted) is not { } manga)
             return TypedResults.NotFound(nameof(MangaId));
 
-        return await new SearchController(context, connectors).SearchManga(MangaConnectorName, manga.Name);
+        return await new SearchController(context, connectors).SearchManga(SeriesSourceName, manga.Name);
     }
     
     /// <summary>
@@ -472,7 +472,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
         if (await context.SeriesSourceIds.FirstOrDefaultAsync(c => c.Key == MangaConnectorIdId, HttpContext.RequestAborted) is not { } mcIdManga)
             return TypedResults.NotFound(nameof(MangaConnectorIdId));
 
-        DTOs.SourceId<Series> result = new (mcIdManga.Key, mcIdManga.MangaConnectorName, mcIdManga.ObjId, mcIdManga.IdOnConnectorSite, mcIdManga.WebsiteUrl, mcIdManga.UseForDownload);
+        DTOs.SourceId<Series> result = new (mcIdManga.Key, mcIdManga.SeriesSourceName, mcIdManga.ObjId, mcIdManga.IdOnConnectorSite, mcIdManga.WebsiteUrl, mcIdManga.UseForDownload);
         
         return TypedResults.Ok(result);
     }

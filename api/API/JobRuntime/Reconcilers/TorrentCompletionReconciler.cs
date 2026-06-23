@@ -53,7 +53,7 @@ public class TorrentCompletionReconciler(IServiceScopeFactory scopeFactory, IClo
         int enqueued = 0;
         foreach (SourceId<Chapter> chId in pending)
         {
-            if (!torrentSourceNames.Contains(chId.MangaConnectorName)) continue;
+            if (!torrentSourceNames.Contains(chId.SeriesSourceName)) continue;
             if (await downloadClient.GetStatus(chId.Key, ct) is not DownloadStatus.Completed completed) continue;
 
             await store.EnqueueAsync(new Job(FinalizeTorrentHandler.Type,

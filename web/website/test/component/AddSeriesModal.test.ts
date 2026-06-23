@@ -13,7 +13,7 @@ const series = {
     description: 'A frozen world.',
     releaseStatus: 'Continuing',
     sourceIds: [
-        { key: 'sid1', mangaConnectorName: 'WeebCentral', objId: 's1', idOnConnectorSite: '01ABC', websiteUrl: null, useForDownload: false },
+        { key: 'sid1', seriesSourceName: 'WeebCentral', objId: 's1', idOnConnectorSite: '01ABC', websiteUrl: null, useForDownload: false },
     ],
     fileLibraryId: null,
     originalLanguage: 'en',
@@ -124,7 +124,7 @@ describe('AddSeriesModal', () => {
         chapters = [{ chapterNumber: '1', volumeNumber: null, title: null }];
         const comicSeries = {
             ...series,
-            sourceIds: [{ ...series.sourceIds[0], mangaConnectorName: 'GetComics' }],
+            sourceIds: [{ ...series.sourceIds[0], seriesSourceName: 'GetComics' }],
         };
         wrapper = await mountSuspended(AddSeriesModal, { props: { series: comicSeries, open: true } });
 
@@ -136,7 +136,7 @@ describe('AddSeriesModal', () => {
         // lib1 is configured, so the "Save to" picker should show — and the contradictory
         // "set one up first" fallback (which only belongs when there are NO libraries) must not.
         chapters = [{ chapterNumber: '1', volumeNumber: null, title: null }];
-        const comicSeries = { ...series, sourceIds: [{ ...series.sourceIds[0], mangaConnectorName: 'GetComics' }] };
+        const comicSeries = { ...series, sourceIds: [{ ...series.sourceIds[0], seriesSourceName: 'GetComics' }] };
         wrapper = await mountSuspended(AddSeriesModal, { props: { series: comicSeries, open: true } });
 
         await vi.waitFor(() => expect(bodyText()).toContain('1 chapter'));
@@ -148,7 +148,7 @@ describe('AddSeriesModal', () => {
         chapters = [{ chapterNumber: '1', volumeNumber: null, title: null }];
         const comicSeries = {
             ...series,
-            sourceIds: [{ ...series.sourceIds[0], mangaConnectorName: 'Indexers' }],
+            sourceIds: [{ ...series.sourceIds[0], seriesSourceName: 'Indexers' }],
         };
         wrapper = await mountSuspended(AddSeriesModal, { props: { series: comicSeries, open: true } });
 

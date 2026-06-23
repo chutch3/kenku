@@ -11,7 +11,7 @@ mockNuxtImport('useToast', () => () => ({ add: toastAdd, remove: vi.fn(), clear:
 function series(): MinimalSeries {
     return {
         key: 's1', name: 'Berserk', description: '', releaseStatus: 'Continuing',
-        sourceIds: [{ key: 'sid', mangaConnectorName: 'WeebCentral', objId: 's1', idOnConnectorSite: 'x', websiteUrl: null, useForDownload: false }],
+        sourceIds: [{ key: 'sid', seriesSourceName: 'WeebCentral', objId: 's1', idOnConnectorSite: 'x', websiteUrl: null, useForDownload: false }],
         fileLibraryId: null, originalLanguage: 'en', coverUrl: '',
     } as MinimalSeries;
 }

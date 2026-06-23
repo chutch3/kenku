@@ -26,7 +26,7 @@ public static class CoverImageCache
         //https?:\/\/[a-zA-Z0-9-]+\.([a-zA-Z0-9-]+\.[a-zA-Z0-9]+)\/(?:.+\/)*(.+\.([a-zA-Z]+)) for only second level domains
         Match match = urlRex.Match(mangaId.Obj.CoverUrl);
         // Clean ONCE up front so the file written to disk and the value returned are always identical.
-        string filename = $"{match.Groups[1].Value}-{mangaId.ObjId}.{mangaId.MangaConnectorName}.{match.Groups[3].Value}".CleanNameForWindows();
+        string filename = $"{match.Groups[1].Value}-{mangaId.ObjId}.{mangaId.SeriesSourceName}.{match.Groups[3].Value}".CleanNameForWindows();
         string saveImagePath = Path.Join(settings.CoverImageCacheOriginal, filename);
 
         if (File.Exists(saveImagePath))

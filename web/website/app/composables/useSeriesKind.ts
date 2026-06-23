@@ -11,7 +11,7 @@ export type SeriesKind = 'manga' | 'comic';
  * keep the two in sync, including the case-insensitive name match. */
 export function seriesKind(series: AnySeries, connectors?: Connector[] | null): SeriesKind {
     const types = (series.sourceIds ?? []).map(
-        (s) => connectors?.find((c) => c.name?.toLowerCase() === s.mangaConnectorName?.toLowerCase())?.contentType
+        (s) => connectors?.find((c) => c.name?.toLowerCase() === s.seriesSourceName?.toLowerCase())?.contentType
     );
     return types.length > 0 && types.every((t) => t === 'Comic') ? 'comic' : 'manga';
 }

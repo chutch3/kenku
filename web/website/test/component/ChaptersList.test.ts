@@ -8,7 +8,7 @@ function chapter(n: string, volume: number | null = null) {
 }
 
 const source = (key: string, group: string | null, useForDownload = false) => ({
-    key, mangaConnectorName: 'MangaDex', objId: 'cX', idOnConnectorSite: key, websiteUrl: null, useForDownload, scanGroup: group, language: 'en',
+    key, seriesSourceName: 'MangaDex', objId: 'cX', idOnConnectorSite: key, websiteUrl: null, useForDownload, scanGroup: group, language: 'en',
 });
 
 registerEndpoint('/v2/Chapters/Series/comic-1', { method: 'POST', handler: () => ({ data: [chapter('1'), chapter('2')], totalCount: 2 }) });

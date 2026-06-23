@@ -27,7 +27,7 @@ public static class ChapterSyncBackfill
             foreach ((Chapter _, SourceId<Chapter> fetchedId) in group)
             {
                 SourceId<Chapter>? match = existing.SourceIds.FirstOrDefault(s =>
-                    s.MangaConnectorName == fetchedId.MangaConnectorName &&
+                    s.SeriesSourceName == fetchedId.SeriesSourceName &&
                     s.IdOnConnectorSite == fetchedId.IdOnConnectorSite);
                 if (match is null)
                     continue;

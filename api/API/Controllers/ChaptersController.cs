@@ -236,7 +236,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
         if (await context.ChapterSourceIds.FirstOrDefaultAsync(c => c.Key == MangaConnectorIdId, HttpContext.RequestAborted) is not { } mcIdManga)
             return TypedResults.NotFound(nameof(MangaConnectorIdId));
 
-        DTOs.SourceId<Chapter> result = new (mcIdManga.Key, mcIdManga.MangaConnectorName, mcIdManga.ObjId, mcIdManga.IdOnConnectorSite, mcIdManga.WebsiteUrl, mcIdManga.UseForDownload);
+        DTOs.SourceId<Chapter> result = new (mcIdManga.Key, mcIdManga.SeriesSourceName, mcIdManga.ObjId, mcIdManga.IdOnConnectorSite, mcIdManga.WebsiteUrl, mcIdManga.UseForDownload);
 
         return TypedResults.Ok(result);
     }
@@ -433,7 +433,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
     /// endpoint and the pinned-download validation).</summary>
     private async Task<DownloadOptionsResponse> ResolveDownloadOptions(API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter> chId)
     {
-        if (connectors.FirstOrDefault(c => c.Name.Equals(chId.MangaConnectorName, StringComparison.OrdinalIgnoreCase))
+        if (connectors.FirstOrDefault(c => c.Name.Equals(chId.SeriesSourceName, StringComparison.OrdinalIgnoreCase))
             is not IArchiveUrlResolver resolver)
             return new DownloadOptionsResponse([], "this source resolves its downloads automatically");
 

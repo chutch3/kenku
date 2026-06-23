@@ -21,8 +21,8 @@ export const useSeriesSearch = () => {
         query: string,
         opts?: { contentType?: ContentType; includeTorrents?: boolean; timeoutMs?: number }
     ): Promise<MinimalSeries[]> =>
-        (await $api('/v2/Search/{MangaConnectorName}/{Query}', {
-            path: { MangaConnectorName: connectorName, Query: query },
+        (await $api('/v2/Search/{SeriesSourceName}/{Query}', {
+            path: { SeriesSourceName: connectorName, Query: query },
             method: 'GET',
             query: { contentType: opts?.contentType, includeTorrents: opts?.includeTorrents },
             signal: opts?.timeoutMs ? AbortSignal.timeout(opts.timeoutMs) : undefined,

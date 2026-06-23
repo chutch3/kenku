@@ -55,10 +55,11 @@ public class ReconcileScopedConnectorChapterIdsTests : IAsyncLifetime
     public async Task Dedup_RemovesRescopedPredecessor_AndKeepsDistinctReuploads()
     {
         await using (var ctx = NewContext())
-            // DedupSql is pinned to the historical table name (the migration runs before the rename);
-            // adapt it to the current schema to re-verify the dedup invariant still holds.
-            await ctx.Database.ExecuteSqlRawAsync(
-                ReconcileScopedConnectorChapterIds.DedupSql.Replace("MangaConnectorToChapter", "ChapterSourceIds"));
+            // DedupSql is pinned to the historical table/column names (the migration runs before the
+            // renames); adapt it to the current schema to re-verify the dedup invariant still holds.
+            await ctx.Database.ExecuteSqlRawAsync(ReconcileScopedConnectorChapterIds.DedupSql
+                .Replace("MangaConnectorToChapter", "ChapterSourceIds")
+                .Replace("MangaConnectorName", "SeriesSourceName"));
 
         await using var verify = NewContext();
         var ids = await verify.ChapterSourceIds.Select(s => s.IdOnConnectorSite).ToListAsync();

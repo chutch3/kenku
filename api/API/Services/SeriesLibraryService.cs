@@ -51,7 +51,7 @@ public class SeriesLibraryService(KenkuSettings settings, IEnumerable<SeriesSour
         List<string> torrentConnectorNames = connectors
             .Where(c => c.Kind == AcquisitionKind.Torrent).Select(c => c.Name.ToLower()).ToList();
         List<string> torrentTags = await context.ChapterSourceIds
-            .Where(id => id.Obj.ParentMangaId == mangaId && torrentConnectorNames.Contains(id.MangaConnectorName.ToLower()))
+            .Where(id => id.Obj.ParentMangaId == mangaId && torrentConnectorNames.Contains(id.SeriesSourceName.ToLower()))
             .Select(id => id.Key)
             .ToListAsync(ct);
 
@@ -124,14 +124,14 @@ public class SeriesLibraryService(KenkuSettings settings, IEnumerable<SeriesSour
         // enabled here and now (the source toggle remains the per-source control afterwards); either
         // way cover + chapter sync queue immediately so the series is never an empty shell.
         SourceId<Series>? addedFrom = connectorName is null ? null
-            : manga.SourceIds.FirstOrDefault(id => id.MangaConnectorName.Equals(connectorName, StringComparison.InvariantCultureIgnoreCase));
+            : manga.SourceIds.FirstOrDefault(id => id.SeriesSourceName.Equals(connectorName, StringComparison.InvariantCultureIgnoreCase));
         if (download && addedFrom is not null)
         {
             addedFrom.UseForDownload = true;
             // A chapter's SourceIds can load null (MangaIncludeAll doesn't ThenInclude them, and
             // SplitQuery leaves an unloaded collection nav null rather than empty) — guard before Where.
             foreach (SourceId<Chapter> chId in manga.Chapters.SelectMany(ch => ch.SourceIds ?? [])
-                         .Where(chId => chId.MangaConnectorName.Equals(connectorName, StringComparison.InvariantCultureIgnoreCase)))
+                         .Where(chId => chId.SeriesSourceName.Equals(connectorName, StringComparison.InvariantCultureIgnoreCase)))
                 chId.UseForDownload = true;
         }
 

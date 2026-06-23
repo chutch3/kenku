@@ -45,10 +45,10 @@ public class CoverDownloadService(IEnumerable<SeriesSource> connectors)
         }
 
         SeriesSource? seriesSource = connectors.FirstOrDefault(c =>
-            c.Name.Equals(mangaConnectorId.MangaConnectorName, StringComparison.InvariantCultureIgnoreCase));
+            c.Name.Equals(mangaConnectorId.SeriesSourceName, StringComparison.InvariantCultureIgnoreCase));
         if (seriesSource is null)
         {
-            Log.Error($"Could not get SeriesSource for {mangaConnectorId.MangaConnectorName}.");
+            Log.Error($"Could not get SeriesSource for {mangaConnectorId.SeriesSourceName}.");
             return CoverOutcome.SourceMissing;
         }
 

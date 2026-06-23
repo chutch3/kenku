@@ -48,7 +48,7 @@ public class Series : Identifiable
     public ICollection<Chapter> Chapters = null!;
 
     [NotMapped]
-    public Dictionary<string, string> IdsOnMangaConnectors => SourceIds.ToDictionary(id => id.MangaConnectorName, id => id.IdOnConnectorSite);
+    public Dictionary<string, string> IdsOnMangaConnectors => SourceIds.ToDictionary(id => id.SeriesSourceName, id => id.IdOnConnectorSite);
     [NotMapped]
     public ICollection<string> SourceIdsIds => SourceIds.Select(id => id.Key).ToList();
     [JsonIgnore]
@@ -136,7 +136,7 @@ public class Series : Identifiable
         List<(string from, string to)> moves = new();
 
         this.SourceIds = this.SourceIds
-            .UnionBy(other.SourceIds, id => id.MangaConnectorName)
+            .UnionBy(other.SourceIds, id => id.SeriesSourceName)
             .ToList();
 
         foreach (Chapter otherChapter in other.Chapters)

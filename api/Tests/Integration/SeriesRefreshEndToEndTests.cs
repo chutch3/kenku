@@ -27,7 +27,7 @@ public class SeriesRefreshEndToEndTests()
         var series = await App.WithSeriesContext(ctx =>
             ctx.Series.Include(m => m.SourceIds).FirstAsync());
 
-        var mcId = series.SourceIds.First(id => id.MangaConnectorName == "WeebCentral");
+        var mcId = series.SourceIds.First(id => id.SeriesSourceName == "WeebCentral");
 
         var patchResponse = await client.PatchAsync(
             $"/v2/Series/{series.Key}/DownloadFrom/WeebCentral/true", null);

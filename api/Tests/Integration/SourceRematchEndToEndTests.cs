@@ -39,7 +39,7 @@ public class SourceRematchEndToEndTests() : OutboundHttpIntegrationTest(Connecto
             c.SeriesSourceIds.Where(id => id.ObjId == mangaId).ToListAsync());
         SourceId<Series> replacement = Assert.Single(sources);
         Assert.Equal("01ABC", replacement.IdOnConnectorSite);
-        Assert.Equal("WeebCentral", replacement.MangaConnectorName);
+        Assert.Equal("WeebCentral", replacement.SeriesSourceName);
         Assert.True(replacement.UseForDownload, "download preference must survive the re-match");
         Assert.NotEqual(oldSourceKey, replacement.Key);
 

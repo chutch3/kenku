@@ -338,7 +338,7 @@ public class AsuraComic : SeriesSource
         if (chapterId.Obj.ParentManga.SourceIds is not null && chapterId.Obj.ParentManga.SourceIds.Any())
         {
             referrer = chapterId.Obj.ParentManga.SourceIds
-                .FirstOrDefault(id => id.MangaConnectorName == this.Name)?.WebsiteUrl;
+                .FirstOrDefault(id => id.SeriesSourceName == this.Name)?.WebsiteUrl;
         }
 
         // Sync wrapper for async MakeRequest

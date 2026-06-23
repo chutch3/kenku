@@ -10,7 +10,7 @@ registerEndpoint('/v2/SeriesSource', () => [
 ]);
 registerEndpoint('/v2/Series/m1', () => ({
     key: 'm1', name: 'Berserk', description: '', releaseStatus: 'Continuing',
-    sourceIds: [{ key: 'sid', mangaConnectorName: 'WeebCentral', objId: 'm1', idOnConnectorSite: 'x', websiteUrl: null, useForDownload: true }],
+    sourceIds: [{ key: 'sid', seriesSourceName: 'WeebCentral', objId: 'm1', idOnConnectorSite: 'x', websiteUrl: null, useForDownload: true }],
     fileLibraryId: 'lib1', originalLanguage: 'en', coverUrl: '', authors: [], tags: [], links: [], altTitles: [], ignoreChaptersBefore: 0,
 }));
 

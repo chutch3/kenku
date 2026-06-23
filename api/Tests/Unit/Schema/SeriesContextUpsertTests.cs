@@ -39,7 +39,7 @@ public class MangaContextUpsertTests
             .Include(m => m.SourceIds)
             .FirstAsync(m => m.Key == manga.Key);
         Assert.Single(saved.SourceIds);
-        Assert.Equal("MangaDex", saved.SourceIds.First().MangaConnectorName);
+        Assert.Equal("MangaDex", saved.SourceIds.First().SeriesSourceName);
     }
 
     [Fact]

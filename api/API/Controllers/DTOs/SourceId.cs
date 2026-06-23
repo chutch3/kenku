@@ -9,14 +9,14 @@ namespace API.Controllers.DTOs;
 /// the referenced object, IdOnConnectorSite is the object's id on the connector site. (They were
 /// historically swapped on the wire, which made connector-id bugs invisible.)
 /// </summary>
-public sealed record SourceId<T>(string Key, string MangaConnectorName, string ObjId, string IdOnConnectorSite, string? WebsiteUrl, bool UseForDownload, string? ScanGroup = null, string? Language = null) : Identifiable(Key) where T : class
+public sealed record SourceId<T>(string Key, string SeriesSourceName, string ObjId, string IdOnConnectorSite, string? WebsiteUrl, bool UseForDownload, string? ScanGroup = null, string? Language = null) : Identifiable(Key) where T : class
 {
     /// <summary>
     /// Name of the Connector
     /// </summary>
     [Required]
     [Description("Name of the Connector")]
-    public string MangaConnectorName { get; init; } = MangaConnectorName;
+    public string SeriesSourceName { get; init; } = SeriesSourceName;
 
     /// <summary>
     /// Key of the referenced object (series or chapter)
@@ -58,5 +58,5 @@ public sealed record SourceId<T>(string Key, string MangaConnectorName, string O
     public string? Language { get; init; } = Language;
 
     public static SourceId<T> From<TEntity>(Schema.SeriesContext.SourceId<TEntity> id) where TEntity : Schema.Identifiable =>
-        new(id.Key, id.MangaConnectorName, id.ObjId, id.IdOnConnectorSite, id.WebsiteUrl, id.UseForDownload, id.ScanGroup, id.Language);
+        new(id.Key, id.SeriesSourceName, id.ObjId, id.IdOnConnectorSite, id.WebsiteUrl, id.UseForDownload, id.ScanGroup, id.Language);
 }

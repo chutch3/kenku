@@ -10,6 +10,6 @@ public static class SeriesContentType
 {
     public static bool IsComic(Schema.SeriesContext.Series series, IEnumerable<SeriesSource> connectors) =>
         series.SourceIds.Count > 0 && series.SourceIds.All(id =>
-            connectors.FirstOrDefault(c => c.Name.Equals(id.MangaConnectorName, StringComparison.OrdinalIgnoreCase))
+            connectors.FirstOrDefault(c => c.Name.Equals(id.SeriesSourceName, StringComparison.OrdinalIgnoreCase))
                 ?.ContentType == ContentType.Comic);
 }

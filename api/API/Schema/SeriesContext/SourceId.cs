@@ -10,7 +10,7 @@ public class SourceId<T> : Identifiable where T : Identifiable
     public T Obj = null!;
     [StringLength(64)] public string ObjId { get; internal set; }
 
-    [StringLength(32)] public string MangaConnectorName { get; private set; }
+    [StringLength(32)] public string SeriesSourceName { get; private set; }
 
     [StringLength(256)] public string IdOnConnectorSite { get; init; }
     [Url] [StringLength(512)] public string? WebsiteUrl { get; internal init; }
@@ -23,13 +23,13 @@ public class SourceId<T> : Identifiable where T : Identifiable
     /// <summary>Translated language of this upload (ISO code), when the connector exposes it.</summary>
     [StringLength(16)] public string? Language { get; internal set; }
 
-    public SourceId(T obj, string mangaConnectorName, string idOnConnectorSite, string? websiteUrl,
+    public SourceId(T obj, string seriesSourceName, string idOnConnectorSite, string? websiteUrl,
         bool useForDownload = false, string? scanGroup = null, string? language = null)
-        : base(TokenGen.CreateToken(typeof(SourceId<T>), mangaConnectorName, idOnConnectorSite))
+        : base(TokenGen.CreateToken(typeof(SourceId<T>), seriesSourceName, idOnConnectorSite))
     {
         this.Obj = obj;
         this.ObjId = obj.Key;
-        this.MangaConnectorName = mangaConnectorName;
+        this.SeriesSourceName = seriesSourceName;
         this.IdOnConnectorSite = idOnConnectorSite;
         this.WebsiteUrl = websiteUrl;
         this.UseForDownload = useForDownload;
@@ -44,11 +44,11 @@ public class SourceId<T> : Identifiable where T : Identifiable
     /// <summary>
     /// EF CORE ONLY!!!
     /// </summary>
-    public SourceId(string key, string objId, string mangaConnectorName, string idOnConnectorSite, bool useForDownload, string? websiteUrl)
+    public SourceId(string key, string objId, string seriesSourceName, string idOnConnectorSite, bool useForDownload, string? websiteUrl)
         : base(key)
     {
         this.ObjId = objId;
-        this.MangaConnectorName = mangaConnectorName;
+        this.SeriesSourceName = seriesSourceName;
         this.IdOnConnectorSite = idOnConnectorSite;
         this.WebsiteUrl = websiteUrl;
         this.UseForDownload = useForDownload;

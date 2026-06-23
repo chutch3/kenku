@@ -3225,7 +3225,7 @@
         }
       }
     },
-    "/v2/Search/{MangaConnectorName}/{Query}": {
+    "/v2/Search/{SeriesSourceName}/{Query}": {
       "get": {
         "tags": [
           "Search"
@@ -3233,7 +3233,7 @@
         "summary": "Initiate a search for a API.Schema.SeriesContext.Series on API.Connectors.SeriesSource with searchTerm",
         "parameters": [
           {
-            "name": "MangaConnectorName",
+            "name": "SeriesSourceName",
             "in": "path",
             "description": "API.Connectors.SeriesSource.Name",
             "required": true,
@@ -3318,7 +3318,7 @@
         }
       }
     },
-    "/v2/Search/{MangaConnectorName}/Series": {
+    "/v2/Search/{SeriesSourceName}/Series": {
       "get": {
         "tags": [
           "Search"
@@ -3326,7 +3326,7 @@
         "summary": "Returns full API.Schema.SeriesContext.Series detail from a API.Connectors.SeriesSource by its site ID, without saving to the database",
         "parameters": [
           {
-            "name": "MangaConnectorName",
+            "name": "SeriesSourceName",
             "in": "path",
             "description": "API.Connectors.SeriesSource.Name",
             "required": true,
@@ -3367,7 +3367,7 @@
         }
       }
     },
-    "/v2/Search/{MangaConnectorName}/Chapters": {
+    "/v2/Search/{SeriesSourceName}/Chapters": {
       "get": {
         "tags": [
           "Search"
@@ -3375,7 +3375,7 @@
         "summary": "Live chapter list from a API.Connectors.SeriesSource, without saving anything — lets the add flow\nshow what a source will actually yield before the user commits to it.",
         "parameters": [
           {
-            "name": "MangaConnectorName",
+            "name": "SeriesSourceName",
             "in": "path",
             "description": "API.Connectors.SeriesSource.Name",
             "required": true,
@@ -3986,7 +3986,7 @@
         }
       }
     },
-    "/v2/Series/{MangaId}/DownloadFrom/{MangaConnectorName}/{IsRequested}": {
+    "/v2/Series/{MangaId}/DownloadFrom/{SeriesSourceName}/{IsRequested}": {
       "patch": {
         "tags": [
           "Series"
@@ -4003,9 +4003,9 @@
             }
           },
           {
-            "name": "MangaConnectorName",
+            "name": "SeriesSourceName",
             "in": "path",
-            "description": "API.Connectors.SeriesSource with MangaConnectorName",
+            "description": "API.Connectors.SeriesSource with SeriesSourceName",
             "required": true,
             "schema": {
               "type": "string"
@@ -4026,7 +4026,7 @@
             "description": ""
           },
           "404": {
-            "description": "MangaId or MangaConnectorName not found",
+            "description": "MangaId or SeriesSourceName not found",
             "content": {
               "text/plain; x-version=2.0": {
                 "schema": {
@@ -4068,7 +4068,7 @@
         }
       }
     },
-    "/v2/Series/{MangaId}/OnMangaConnector/{MangaConnectorName}": {
+    "/v2/Series/{MangaId}/OnMangaConnector/{SeriesSourceName}": {
       "get": {
         "tags": [
           "Series"
@@ -4085,7 +4085,7 @@
             }
           },
           {
-            "name": "MangaConnectorName",
+            "name": "SeriesSourceName",
             "in": "path",
             "description": "API.Connectors.SeriesSource.Name",
             "required": true,
@@ -4434,7 +4434,7 @@
         }
       }
     },
-    "/v2/SeriesSource/{MangaConnectorName}": {
+    "/v2/SeriesSource/{SeriesSourceName}": {
       "get": {
         "tags": [
           "SeriesSource"
@@ -4442,7 +4442,7 @@
         "summary": "Returns the API.Connectors.SeriesSource (Scanlation-Sites) with the requested Name",
         "parameters": [
           {
-            "name": "MangaConnectorName",
+            "name": "SeriesSourceName",
             "in": "path",
             "description": "API.Connectors.SeriesSource.Name",
             "required": true,
@@ -4508,7 +4508,7 @@
         }
       }
     },
-    "/v2/SeriesSource/{MangaConnectorName}/SetEnabled/{Enabled}": {
+    "/v2/SeriesSource/{SeriesSourceName}/SetEnabled/{Enabled}": {
       "patch": {
         "tags": [
           "SeriesSource"
@@ -4516,7 +4516,7 @@
         "summary": "Enabled or disables API.Connectors.SeriesSource (Scanlation-Sites) with Name",
         "parameters": [
           {
-            "name": "MangaConnectorName",
+            "name": "SeriesSourceName",
             "in": "path",
             "description": "API.Connectors.SeriesSource.Name",
             "required": true,
@@ -6549,13 +6549,13 @@
         "required": [
           "idOnConnectorSite",
           "key",
-          "mangaConnectorName",
           "objId",
+          "seriesSourceName",
           "useForDownload"
         ],
         "type": "object",
         "properties": {
-          "mangaConnectorName": {
+          "seriesSourceName": {
             "minLength": 1,
             "type": "string",
             "description": "Name of the Connector"
@@ -7971,13 +7971,13 @@
         "required": [
           "idOnConnectorSite",
           "key",
-          "mangaConnectorName",
           "objId",
+          "seriesSourceName",
           "useForDownload"
         ],
         "type": "object",
         "properties": {
-          "mangaConnectorName": {
+          "seriesSourceName": {
             "minLength": 1,
             "type": "string",
             "description": "Name of the Connector"

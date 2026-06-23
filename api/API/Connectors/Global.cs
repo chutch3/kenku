@@ -69,14 +69,14 @@ public class Global : SeriesSource
     public override async Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> mangaId,
         string? language = null)
     {
-        SeriesSource? seriesSource = GetConnectors().FirstOrDefault(c => c.Name.Equals(mangaId.MangaConnectorName, StringComparison.InvariantCultureIgnoreCase));
+        SeriesSource? seriesSource = GetConnectors().FirstOrDefault(c => c.Name.Equals(mangaId.SeriesSourceName, StringComparison.InvariantCultureIgnoreCase));
         if (seriesSource is null) return [];
         return await seriesSource.GetChapters(mangaId, language);
     }
 
     internal override async Task<string[]> GetChapterImageUrls(SourceId<Chapter> chapterId)
     {
-        SeriesSource? seriesSource = GetConnectors().FirstOrDefault(c => c.Name.Equals(chapterId.MangaConnectorName, StringComparison.InvariantCultureIgnoreCase));
+        SeriesSource? seriesSource = GetConnectors().FirstOrDefault(c => c.Name.Equals(chapterId.SeriesSourceName, StringComparison.InvariantCultureIgnoreCase));
         if (seriesSource is null) return [];
         return await seriesSource.GetChapterImageUrls(chapterId);
     }

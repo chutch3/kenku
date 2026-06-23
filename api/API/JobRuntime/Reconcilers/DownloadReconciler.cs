@@ -68,7 +68,7 @@ public class DownloadReconciler(IServiceScopeFactory scopeFactory, IClock clock,
 
         async Task<bool> TorrentInFlight(SourceId<Chapter> chId)
         {
-            if (!torrentSourceNames.Contains(chId.MangaConnectorName))
+            if (!torrentSourceNames.Contains(chId.SeriesSourceName))
                 return false;
             try
             {

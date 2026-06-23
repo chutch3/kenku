@@ -36,23 +36,23 @@ public class SearchController(
     /// <summary>
     /// Initiate a search for a <see cref="Schema.SeriesContext.Series"/> on <see cref="SeriesSource"/> with searchTerm
     /// </summary>
-    /// <param name="MangaConnectorName"><see cref="SeriesSource"/>.Name</param>
+    /// <param name="SeriesSourceName"><see cref="SeriesSource"/>.Name</param>
     /// <param name="Query">searchTerm</param>
     /// <param name="contentType">Restrict the search to connectors of this content type</param>
     /// <param name="includeTorrents">When false, torrent indexers are skipped — faster, and spends no indexer quota</param>
     /// <response code="200"><see cref="MinimalSeries"/> exert of <see cref="Schema.SeriesContext.Series"/></response>
     /// <response code="404"><see cref="SeriesSource"/> with Name not found</response>
     /// <response code="412"><see cref="SeriesSource"/> with Name is disabled</response>
-    [HttpGet("{MangaConnectorName}/{Query}")]
+    [HttpGet("{SeriesSourceName}/{Query}")]
     [ProducesResponseType<List<MinimalSeries>>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType(Status406NotAcceptable)]
     public async Task<Results<Ok<List<MinimalSeries>>, NotFound<string>, StatusCodeHttpResult>> SearchManga(
-        string MangaConnectorName, string Query,
+        string SeriesSourceName, string Query,
         [FromQuery] ContentType? contentType = null, [FromQuery] bool includeTorrents = true)
     {
-        if (connectors.FirstOrDefault(c => c.Name.Equals(MangaConnectorName, StringComparison.InvariantCultureIgnoreCase)) is not { } connector)
-            return TypedResults.NotFound(nameof(MangaConnectorName));
+        if (connectors.FirstOrDefault(c => c.Name.Equals(SeriesSourceName, StringComparison.InvariantCultureIgnoreCase)) is not { } connector)
+            return TypedResults.NotFound(nameof(SeriesSourceName));
         if (!connector.Enabled)
             return TypedResults.StatusCode(Status412PreconditionFailed);
 
@@ -88,16 +88,16 @@ public class SearchController(
     /// <summary>
     /// Returns full <see cref="Schema.SeriesContext.Series"/> detail from a <see cref="SeriesSource"/> by its site ID, without saving to the database
     /// </summary>
-    /// <param name="MangaConnectorName"><see cref="SeriesSource"/>.Name</param>
+    /// <param name="SeriesSourceName"><see cref="SeriesSource"/>.Name</param>
     /// <param name="ConnectorSeriesId">The manga's ID on the connector site</param>
     /// <response code="200">Full <see cref="DTOs.Series"/> detail</response>
     /// <response code="404">Series not found on connector</response>
-    [HttpGet("{MangaConnectorName}/Series")]
+    [HttpGet("{SeriesSourceName}/Series")]
     [ProducesResponseType<DTOs.Series>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
-    public async Task<Results<Ok<DTOs.Series>, NotFound<string>>> GetMangaFromConnector(string MangaConnectorName, [FromQuery] string ConnectorSeriesId)
+    public async Task<Results<Ok<DTOs.Series>, NotFound<string>>> GetMangaFromConnector(string SeriesSourceName, [FromQuery] string ConnectorSeriesId)
     {
-        if (await LookupFromConnector(MangaConnectorName, ConnectorSeriesId) is not ({ } manga, { } id))
+        if (await LookupFromConnector(SeriesSourceName, ConnectorSeriesId) is not ({ } manga, { } id))
             return TypedResults.NotFound(nameof(ConnectorSeriesId));
         IEnumerable<DTOs.SourceId<DTOs.Series>> ids =
         [
@@ -122,22 +122,22 @@ public class SearchController(
     /// Live chapter list from a <see cref="SeriesSource"/>, without saving anything — lets the add flow
     /// show what a source will actually yield before the user commits to it.
     /// </summary>
-    /// <param name="MangaConnectorName"><see cref="SeriesSource"/>.Name</param>
+    /// <param name="SeriesSourceName"><see cref="SeriesSource"/>.Name</param>
     /// <param name="ConnectorSeriesId">The manga's ID on the connector site</param>
     /// <param name="settings"></param>
     /// <response code="200">Chapters the connector reports, possibly empty</response>
     /// <response code="404">Connector or series not found</response>
     /// <response code="500">The connector failed to deliver a chapter list — surfaced so the user sees a broken source before adding</response>
-    [HttpGet("{MangaConnectorName}/Chapters")]
+    [HttpGet("{SeriesSourceName}/Chapters")]
     [ProducesResponseType<List<ChapterPreview>>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType<string>(Status500InternalServerError, "text/plain")]
     public async Task<Results<Ok<List<ChapterPreview>>, NotFound<string>, InternalServerError<string>>> GetChaptersFromConnector(
-        string MangaConnectorName, [FromQuery] string ConnectorSeriesId, [FromServices] KenkuSettings settings)
+        string SeriesSourceName, [FromQuery] string ConnectorSeriesId, [FromServices] KenkuSettings settings)
     {
-        if (connectors.FirstOrDefault(c => c.Name.Equals(MangaConnectorName, StringComparison.InvariantCultureIgnoreCase)) is not { } connector)
-            return TypedResults.NotFound(nameof(MangaConnectorName));
-        if (await LookupFromConnector(MangaConnectorName, ConnectorSeriesId) is not ({ } _, { } id))
+        if (connectors.FirstOrDefault(c => c.Name.Equals(SeriesSourceName, StringComparison.InvariantCultureIgnoreCase)) is not { } connector)
+            return TypedResults.NotFound(nameof(SeriesSourceName));
+        if (await LookupFromConnector(SeriesSourceName, ConnectorSeriesId) is not ({ } _, { } id))
             return TypedResults.NotFound(nameof(ConnectorSeriesId));
 
         try

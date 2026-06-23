@@ -102,7 +102,7 @@ const emit = defineEmits<{ (e: 'added', payload: { libraryId: string; download: 
 const { $api } = useNuxtApp();
 
 const source = computed(() => props.series.sourceIds[0]);
-const sourceName = computed(() => source.value?.mangaConnectorName ?? 'source');
+const sourceName = computed(() => source.value?.seriesSourceName ?? 'source');
 
 const { data: connectors } = await useApi('/v2/SeriesSource', { key: FetchKeys.MangaConnector.All, server: false });
 const kind = computed(() => seriesKind(props.series, connectors.value));
@@ -133,8 +133,8 @@ watch(
         chaptersError.value = null;
         try {
             chapters.value =
-                (await $api('/v2/Search/{MangaConnectorName}/Chapters', {
-                    path: { MangaConnectorName: src.mangaConnectorName },
+                (await $api('/v2/Search/{SeriesSourceName}/Chapters', {
+                    path: { SeriesSourceName: src.seriesSourceName },
                     query: { ConnectorSeriesId: src.idOnConnectorSite },
                 })) ?? [];
         } catch (e) {
@@ -162,7 +162,7 @@ const add = async (download: boolean) => {
             method: 'POST',
             path: { MangaId: props.series.key, LibraryId: libraryId.value },
             query: {
-                connectorName: source.value.mangaConnectorName,
+                connectorName: source.value.seriesSourceName,
                 connectorSeriesId: source.value.idOnConnectorSite,
                 download,
                 coverUrl: props.coverUrl,

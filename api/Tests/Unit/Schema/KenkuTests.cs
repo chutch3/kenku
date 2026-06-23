@@ -113,7 +113,7 @@ public class KenkuTests
         var mangaInDb = await dbContext.Series.Include(m => m.SourceIds).FirstOrDefaultAsync(m => m.Name == "Berserk");
         Assert.NotNull(mangaInDb);
         Assert.Single(mangaInDb.SourceIds);
-        Assert.Equal("MangaDex", mangaInDb.SourceIds.First().MangaConnectorName);
+        Assert.Equal("MangaDex", mangaInDb.SourceIds.First().SeriesSourceName);
 
         // The worker may complete quickly and be removed from KnownWorkers, so we verify
         // it was tracked at some point by checking AddWorker was called (worker count >= 0 is always true).

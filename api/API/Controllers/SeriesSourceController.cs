@@ -32,16 +32,16 @@ public class SeriesSourceController(SeriesContext context, IEnumerable<MangaConn
     /// <summary>
     /// Returns the <see cref="API.Connectors.SeriesSource"/> (Scanlation-Sites) with the requested Name
     /// </summary>
-    /// <param name="MangaConnectorName"><see cref="API.Connectors.SeriesSource"/>.Name</param>
+    /// <param name="SeriesSourceName"><see cref="API.Connectors.SeriesSource"/>.Name</param>
     /// <response code="200"></response>
     /// <response code="404"><see cref="DTOs.SeriesSource"/> (Scanlation-Sites) with Name not found.</response>
-    [HttpGet("{MangaConnectorName}")]
+    [HttpGet("{SeriesSourceName}")]
     [ProducesResponseType<DTOs.SeriesSource>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
-    public Results<Ok<DTOs.SeriesSource>, NotFound<string>> GetConnector(string MangaConnectorName)
+    public Results<Ok<DTOs.SeriesSource>, NotFound<string>> GetConnector(string SeriesSourceName)
     {
-        if (connectors.FirstOrDefault(c => c.Name.Equals(MangaConnectorName, StringComparison.InvariantCultureIgnoreCase)) is not { } connector)
-            return TypedResults.NotFound(nameof(MangaConnectorName));
+        if (connectors.FirstOrDefault(c => c.Name.Equals(SeriesSourceName, StringComparison.InvariantCultureIgnoreCase)) is not { } connector)
+            return TypedResults.NotFound(nameof(SeriesSourceName));
         
         return TypedResults.Ok(new DTOs.SeriesSource(connector.Name, connector.Enabled, connector.IconUrl, connector.SupportedLanguages, connector.Kind, connector.ContentType));
     }
@@ -63,18 +63,18 @@ public class SeriesSourceController(SeriesContext context, IEnumerable<MangaConn
     /// <summary>
     /// Enabled or disables <see cref="API.Connectors.SeriesSource"/> (Scanlation-Sites) with Name
     /// </summary>
-    /// <param name="MangaConnectorName"><see cref="API.Connectors.SeriesSource"/>.Name</param>
+    /// <param name="SeriesSourceName"><see cref="API.Connectors.SeriesSource"/>.Name</param>
     /// <param name="Enabled">Set true to enable, false to disable</param>
     /// <response code="200"></response>
     /// <response code="404"><see cref="API.Connectors.SeriesSource"/> (Scanlation-Sites) with Name not found.</response>
     /// <response code="500">Error during Database Operation</response>
-    [HttpPatch("{MangaConnectorName}/SetEnabled/{Enabled}")]
+    [HttpPatch("{SeriesSourceName}/SetEnabled/{Enabled}")]
     [ProducesResponseType(Status200OK)]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
-    public Results<Ok, NotFound<string>> SetEnabled(string MangaConnectorName, bool Enabled)
+    public Results<Ok, NotFound<string>> SetEnabled(string SeriesSourceName, bool Enabled)
     {
-        if (connectors.FirstOrDefault(c => c.Name.Equals(MangaConnectorName, StringComparison.InvariantCultureIgnoreCase)) is not { } connector)
-            return TypedResults.NotFound(nameof(MangaConnectorName));
+        if (connectors.FirstOrDefault(c => c.Name.Equals(SeriesSourceName, StringComparison.InvariantCultureIgnoreCase)) is not { } connector)
+            return TypedResults.NotFound(nameof(SeriesSourceName));
         
         connector.Enabled = Enabled;
         settings.SetConnectorEnabled(connector.Name, Enabled);

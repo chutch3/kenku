@@ -15,7 +15,7 @@ public class Chapter : Identifiable, IComparable<Chapter>
     public Series ParentManga = null!;
 
     [NotMapped] public Dictionary<string, string> IdsOnMangaConnectors =>
-        SourceIds.ToDictionary(id => id.MangaConnectorName, id => id.IdOnConnectorSite);
+        SourceIds.ToDictionary(id => id.SeriesSourceName, id => id.IdOnConnectorSite);
     public ICollection<SourceId<Chapter>> SourceIds = null!;
 
     public int? VolumeNumber { get; internal set; }

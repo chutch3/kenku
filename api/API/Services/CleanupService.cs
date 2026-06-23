@@ -175,20 +175,20 @@ public class CleanupService
         Log.Info("Cleaning up old connector-data...");
         string[] connectorNames = connectors.Select(c => c.Name).ToArray();
         int deletedChapterIds = await context.ChapterSourceIds
-            .Where(chId => connectorNames.All(n => n != chId.MangaConnectorName)).ExecuteDeleteAsync(ct);
+            .Where(chId => connectorNames.All(n => n != chId.SeriesSourceName)).ExecuteDeleteAsync(ct);
         Log.InfoFormat("Deleted {0} chapterIds.", deletedChapterIds);
 
         // Series without a connector are written out before deletion, to not lose data.
         if (await context.SeriesSourceIds.Include(id => id.Obj)
-                .Where(mcId => connectorNames.All(name => name != mcId.MangaConnectorName)).ToListAsync(ct) is { Count: > 0 } list)
+                .Where(mcId => connectorNames.All(name => name != mcId.SeriesSourceName)).ToListAsync(ct) is { Count: > 0 } list)
         {
             string filePath = Path.Join(settings.WorkingDirectory, $"deletedManga-{DateTime.UtcNow.Ticks}.txt");
             Log.DebugFormat("Writing deleted manga to {0}.", filePath);
             await File.WriteAllLinesAsync(filePath,
-                list.Select(id => string.Join('-', id.MangaConnectorName, id.IdOnConnectorSite, id.Obj.Name, id.WebsiteUrl)), ct);
+                list.Select(id => string.Join('-', id.SeriesSourceName, id.IdOnConnectorSite, id.Obj.Name, id.WebsiteUrl)), ct);
         }
         int deletedMangaIds = await context.SeriesSourceIds
-            .Where(mcId => connectorNames.All(name => name != mcId.MangaConnectorName)).ExecuteDeleteAsync(ct);
+            .Where(mcId => connectorNames.All(name => name != mcId.SeriesSourceName)).ExecuteDeleteAsync(ct);
         Log.InfoFormat("Deleted {0} mangaIds.", deletedMangaIds);
 
         if (await context.Sync(ct, typeof(CleanupService), nameof(CleanupOrphanSourceIdsAsync)) is { success: false } e)

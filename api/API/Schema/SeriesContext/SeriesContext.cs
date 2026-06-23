@@ -209,13 +209,13 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
             Log.DebugFormat("Merging with existing Series: {0}", manga);
 
             var existingMcId = manga.SourceIds
-                .FirstOrDefault(id => id.MangaConnectorName == addMcId.MangaConnectorName
+                .FirstOrDefault(id => id.SeriesSourceName == addMcId.SeriesSourceName
                                       && id.IdOnConnectorSite == addMcId.IdOnConnectorSite);
 
             SourceId<Series> mcIdToUse;
             if (existingMcId == null)
             {
-                mcIdToUse = new SourceId<Series>(manga, addMcId.MangaConnectorName, addMcId.IdOnConnectorSite, addMcId.WebsiteUrl, addMcId.UseForDownload);
+                mcIdToUse = new SourceId<Series>(manga, addMcId.SeriesSourceName, addMcId.IdOnConnectorSite, addMcId.WebsiteUrl, addMcId.UseForDownload);
                 manga.SourceIds.Add(mcIdToUse);
             }
             else
@@ -223,7 +223,7 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
                 mcIdToUse = existingMcId;
                 if (existingMcId.WebsiteUrl != addMcId.WebsiteUrl)
                 {
-                    var updatedMcId = new SourceId<Series>(manga, existingMcId.MangaConnectorName, existingMcId.IdOnConnectorSite, addMcId.WebsiteUrl, existingMcId.UseForDownload);
+                    var updatedMcId = new SourceId<Series>(manga, existingMcId.SeriesSourceName, existingMcId.IdOnConnectorSite, addMcId.WebsiteUrl, existingMcId.UseForDownload);
                     manga.SourceIds.Remove(existingMcId);
                     manga.SourceIds.Add(updatedMcId);
                     mcIdToUse = updatedMcId;

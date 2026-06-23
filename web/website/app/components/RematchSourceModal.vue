@@ -1,7 +1,7 @@
 <template>
     <UModal
         v-model:open="open"
-        :title="`Re-match ${source.mangaConnectorName} link`"
+        :title="`Re-match ${source.seriesSourceName} link`"
         description="Pick the entry this series should actually point at — its chapters re-sync immediately.">
         <template #body>
             <div class="flex flex-col gap-3">
@@ -15,7 +15,7 @@
                     Currently linked to <span class="font-mono text-toned">{{ source.idOnConnectorSite }}</span>
                 </p>
 
-                <p v-if="searched && !results.length" class="text-sm text-muted">No matches on {{ source.mangaConnectorName }}.</p>
+                <p v-if="searched && !results.length" class="text-sm text-muted">No matches on {{ source.seriesSourceName }}.</p>
                 <ul v-else class="flex flex-col gap-1.5 max-h-80 overflow-y-auto">
                     <li v-for="r in results" :key="r.key" class="flex items-center gap-3 bg-elevated rounded-lg px-3 py-2">
                         <FallbackImage :src="r.coverUrl" :alt="r.name" class="w-10 rounded shrink-0" />
@@ -54,12 +54,12 @@ const performSearch = async () => {
     searching.value = true;
     try {
         results.value =
-            (await $api('/v2/Search/{MangaConnectorName}/{Query}', {
-                path: { MangaConnectorName: props.source.mangaConnectorName, Query: query.value },
+            (await $api('/v2/Search/{SeriesSourceName}/{Query}', {
+                path: { SeriesSourceName: props.source.seriesSourceName, Query: query.value },
             })) ?? [];
     } catch {
         results.value = [];
-        toast.add({ title: 'Search failed', description: `Could not reach ${props.source.mangaConnectorName}.`, icon: 'i-lucide-triangle-alert', color: 'error' });
+        toast.add({ title: 'Search failed', description: `Could not reach ${props.source.seriesSourceName}.`, icon: 'i-lucide-triangle-alert', color: 'error' });
     } finally {
         searched.value = true;
         searching.value = false;

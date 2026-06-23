@@ -12,7 +12,7 @@
                             ? ''
                             : ['outline-2 -outline-offset-1', props.useForDownload ? 'outline-jade-500' : 'outline-sumi-400/60'],
                     ]" />
-                <p v-else>{{ mangaConnectorName }}</p>
+                <p v-else>{{ seriesSourceName }}</p>
             </UTooltip>
         </NuxtLink>
     </div>
@@ -25,9 +25,9 @@ type ChapterSourceId = components['schemas']['ChapterSourceId'];
 
 const props = defineProps<(SeriesSourceId | ChapterSourceId) & { ring?: boolean }>();
 
-const { data: mangaConnector } = await useApi('/v2/SeriesSource/{MangaConnectorName}', {
-    path: { MangaConnectorName: props.mangaConnectorName },
-    key: FetchKeys.MangaConnector.Id(props.mangaConnectorName),
+const { data: mangaConnector } = await useApi('/v2/SeriesSource/{SeriesSourceName}', {
+    path: { SeriesSourceName: props.seriesSourceName },
+    key: FetchKeys.MangaConnector.Id(props.seriesSourceName),
     server: false,
 });
 </script>

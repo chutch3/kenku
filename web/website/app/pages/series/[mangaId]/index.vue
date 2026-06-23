@@ -17,7 +17,7 @@
                             :key="src.key"
                             class="flex items-center gap-3 bg-elevated rounded-lg px-3 py-2">
                             <SourceIcon v-bind="src" />
-                            <span class="text-sm grow truncate">{{ src.mangaConnectorName }}</span>
+                            <span class="text-sm grow truncate">{{ src.seriesSourceName }}</span>
                             <span
                                 class="font-mono text-[0.65rem] uppercase tracking-wide"
                                 :class="src.useForDownload ? 'text-success' : 'text-dimmed'">
@@ -29,8 +29,8 @@
                             <USwitch
                                 :model-value="src.useForDownload"
                                 :disabled="!series?.fileLibraryId"
-                                :aria-label="`Download from ${src.mangaConnectorName}`"
-                                @update:model-value="(v) => setRequestedFrom(src.mangaConnectorName, v)" />
+                                :aria-label="`Download from ${src.seriesSourceName}`"
+                                @update:model-value="(v) => setRequestedFrom(src.seriesSourceName, v)" />
                         </div>
                     </div>
                     <RematchSourceModal
@@ -122,7 +122,7 @@ const toast = useToast();
 const { series, rollup, kind, refreshingData, refreshData, refreshRollups, setRequestedFrom, syncNow } = useSeriesDetail(mangaId);
 
 const sortedSources = computed(() =>
-    [...(series.value?.sourceIds ?? [])].sort((a, b) => a.mangaConnectorName.localeCompare(b.mangaConnectorName)));
+    [...(series.value?.sourceIds ?? [])].sort((a, b) => a.seriesSourceName.localeCompare(b.seriesSourceName)));
 
 const advancedOpen = ref(false);
 
