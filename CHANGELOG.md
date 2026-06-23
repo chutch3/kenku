@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v0.34.1 (2026-06-23)
+
+### Bug Fixes
+
+- Gate force-download to downloaded chapters and consolidate the download enqueue and chapter DTO
+  paths
+  ([`e8214c1`](https://github.com/chutch3/kenku/commit/e8214c1c7163b3782451390598d4190edba10bf8))
+
+
 ## v0.34.0 (2026-06-23)
 
 ### Bug Fixes
