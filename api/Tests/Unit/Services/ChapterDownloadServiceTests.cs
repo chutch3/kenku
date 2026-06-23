@@ -434,6 +434,25 @@ public class ChapterDownloadServiceTests
     }
 
     [Fact]
+    public async Task DownloadAsync_IncompleteAcquisition_MarksDownloaded_AndRecordsTheMissingPageCount()
+    {
+        var (provider, context, connectorId, connector, settings) =
+            BuildAcquirerFixture(new AcquireResult.Acquired("/tmp/ch.cbz", MissingPages: 2), "DownloadIncomplete");
+        using var scope = provider.CreateScope();
+        var p = scope.ServiceProvider;
+        var service = new ChapterDownloadService(settings, [connector.Object], p.GetRequiredService<IJobStore>(),
+            p.GetRequiredService<IClock>(), [new StubAcquirer(new AcquireResult.Acquired("/tmp/ch.cbz", MissingPages: 2))], new LibraryLayoutResolver());
+
+        DownloadOutcome outcome = await service.DownloadAsync(context,
+            p.GetRequiredService<API.Schema.ActionsContext.ActionsContext>(), connectorId.Key, CancellationToken.None);
+
+        Assert.Equal(DownloadOutcome.Downloaded, outcome);
+        var chapter = await context.Chapters.FirstAsync(c => c.Key == connectorId.ObjId);
+        Assert.True(chapter.Downloaded, "an incomplete-but-saved chapter is still Downloaded");
+        Assert.Equal(2, chapter.MissingPageCount);
+    }
+
+    [Fact]
     public async Task DownloadAsync_FailedAcquisition_ThrowsWithTheAcquirersReason()
     {
         var (provider, context, connectorId, connector, settings) =

@@ -54,6 +54,28 @@ public class ImageListAcquirer(KenkuSettings settings) : IChapterAcquirer
         string tempPath = saveArchiveFilePath + ".part";
         try
         {
+            // Download and measure every page up front: a "missing page" placeholder is only detectable
+            // relative to the chapter's real pages (see MissingPageDetector), so we need all the page
+            // sizes before deciding which to keep. A page that won't download or decode gets area 0 and
+            // is treated as missing too.
+            var pages = new List<(byte[] bytes, long area)>(imageUrls.Length);
+            foreach (string imageUrl in imageUrls)
+            {
+                Stream? imageStream = await source.DownloadImage(imageUrl, ct);
+                if (imageStream is null)
+                {
+                    pages.Add(([], 0));
+                    continue;
+                }
+                using MemoryStream buffered = new();
+                await imageStream.CopyToAsync(buffered, ct);
+                await imageStream.DisposeAsync();
+                byte[] bytes = buffered.ToArray();
+                pages.Add((bytes, PageArea(bytes)));
+            }
+
+            var missing = MissingPageDetector.Detect(pages.Select(p => p.area).ToList()).ToHashSet();
+
             int written = 0;
             using (ZipArchive archive = ZipFile.Open(tempPath, ZipArchiveMode.Create))
             {
@@ -64,13 +86,13 @@ public class ImageListAcquirer(KenkuSettings settings) : IChapterAcquirer
                     await comicStream.WriteAsync(Encoding.UTF8.GetBytes(chapter.Obj.GetComicInfoXmlString()), ct);
                 }
 
-                foreach (string imageUrl in imageUrls)
+                for (int i = 0; i < pages.Count; i++)
                 {
-                    Stream? imageStream = await source.DownloadImage(imageUrl, ct);
-                    if (imageStream is null)
-                        continue;
+                    if (missing.Contains(i))
+                        continue; // drop the placeholder / undownloadable page; the count is reported below
 
-                    await using Stream processed = await ProcessImage(imageStream, ct);
+                    await using MemoryStream pageStream = new(pages[i].bytes);
+                    await using Stream processed = await ProcessImage(pageStream, ct);
                     processed.Position = 0;
                     await using Stream zipStream = archive.CreateEntry($"{written}.jpg").Open();
                     await processed.CopyToAsync(zipStream, ct);
@@ -80,13 +102,17 @@ public class ImageListAcquirer(KenkuSettings settings) : IChapterAcquirer
 
             if (written == 0)
             {
-                Log.Warn($"None of the {imageUrls.Length} page image(s) for chapter {chapter.Obj} could be downloaded; not writing an archive.");
+                Log.Warn($"None of the {imageUrls.Length} page image(s) for chapter {chapter.Obj} were usable; not writing an archive.");
                 TryDelete(tempPath);
                 return new AcquireResult.Failed($"none of the {imageUrls.Length} page image(s) could be downloaded");
             }
 
+            if (missing.Count > 0)
+                Log.WarnFormat("Chapter {0} saved with {1} of {2} page(s) missing (placeholder/undownloadable).",
+                    chapter.Obj, missing.Count, imageUrls.Length);
+
             File.Move(tempPath, saveArchiveFilePath, overwrite: true);
-            return new AcquireResult.Acquired(saveArchiveFilePath);
+            return new AcquireResult.Acquired(saveArchiveFilePath, missing.Count);
         }
         catch (Exception ex)
         {
@@ -99,6 +125,20 @@ public class ImageListAcquirer(KenkuSettings settings) : IChapterAcquirer
     private static void TryDelete(string path)
     {
         try { File.Delete(path); } catch (Exception ex) { Log.Warn($"Could not delete temp archive {path}: {ex.Message}"); }
+    }
+
+    /// <summary>The page's pixel area (header-only read), or 0 if the bytes don't decode as an image.</summary>
+    private static long PageArea(byte[] bytes)
+    {
+        try
+        {
+            var info = Image.Identify(new MemoryStream(bytes));
+            return (long)info.Width * info.Height;
+        }
+        catch
+        {
+            return 0;
+        }
     }
 
     private async Task<Stream> ProcessImage(Stream imageStream, CancellationToken cancellationToken)

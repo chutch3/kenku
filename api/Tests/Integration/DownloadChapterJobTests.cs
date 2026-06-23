@@ -29,20 +29,21 @@ public class DownloadChapterJobTests : IAsyncLifetime
     private readonly PostgresFixture _postgres = new();
     private string _dbName = null!;
     private KenkuApplicationFactory _app = null!;
+    private Mock<SeriesSource> _connector = null!;
 
     public async Task InitializeAsync()
     {
         _dbName = await _postgres.CreateDatabaseAsync();
         var settings = new KenkuSettings { AppData = _libDir };
-        var connector = new Mock<SeriesSource>("StubConnector", new[] { "en" }, new[] { "stub.test" }, "icon", settings);
-        connector.Setup(c => c.GetChapterImageUrls(It.IsAny<SourceId<Chapter>>())).ReturnsAsync(["u1", "u2"]);
-        connector.Setup(c => c.DownloadImage(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _connector = new Mock<SeriesSource>("StubConnector", new[] { "en" }, new[] { "stub.test" }, "icon", settings);
+        _connector.Setup(c => c.GetChapterImageUrls(It.IsAny<SourceId<Chapter>>())).ReturnsAsync(["u1", "u2"]);
+        _connector.Setup(c => c.DownloadImage(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => new MemoryStream(TestImages.Jpeg()));
 
         _app = new KenkuApplicationFactory
         {
             OutboundHttpTarget = _server.Url!,
-            ExtraConnectors = [connector.Object],
+            ExtraConnectors = [_connector.Object],
             PostgresConnectionString = _postgres.GetConnectionString(_dbName),
         };
         Directory.CreateDirectory(_libDir);
@@ -84,6 +85,40 @@ public class DownloadChapterJobTests : IAsyncLifetime
         Assert.True(chapter.Downloaded, "the download job should have marked the chapter Downloaded");
         Assert.NotNull(chapter.FileName);
         Assert.True(File.Exists(Path.Combine(seeded.dir, chapter.FileName!)), "a .cbz should exist on disk");
+    }
+
+    [Fact]
+    public async Task DownloadJob_WithAPlaceholderPage_SavesTheChapter_AndFlagsTheMissingPageCount()
+    {
+        // The source serves a real page (u1) and a tiny "missing page" placeholder (u2). End-to-end, the
+        // chapter is still Downloaded but is flagged incomplete (MissingPageCount = 1) for force-rebuild.
+        _connector.Setup(c => c.DownloadImage("u2", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => new MemoryStream(TestImages.Placeholder()));
+
+        var seeded = await _app.WithSeriesContext(async ctx =>
+        {
+            var library = new FileLibrary(_libDir, "Lib");
+            ctx.FileLibraries.Add(library);
+            var manga = new Series("Stub Series", "", "http://x/c.jpg", SeriesReleaseStatus.Continuing, [], [], [], [], library);
+            ctx.Series.Add(manga);
+            var chapter = new Chapter(manga, "1", null, "Title");
+            ctx.Chapters.Add(chapter);
+            var sourceId = new SourceId<Chapter>(chapter, "StubConnector", "site1", "url1", true);
+            ctx.MangaConnectorToChapter.Add(sourceId);
+            await ctx.SaveChangesAsync();
+            return (chapterKey: chapter.Key, sourceKey: sourceId.Key);
+        });
+
+        using (var scope = _app.Services.CreateScope())
+            await scope.ServiceProvider.GetRequiredService<IJobStore>().EnqueueAsync(
+                new JobEntity(DownloadChapterHandler.Type, DownloadChapterHandler.PayloadFor(seeded.sourceKey), DateTime.UtcNow));
+
+        using (var scope = _app.Services.CreateScope())
+            Assert.True(await scope.ServiceProvider.GetRequiredService<Dispatcher>().RunOnceAsync());
+
+        var chapter = await _app.WithSeriesContext(c => c.Chapters.FirstAsync(x => x.Key == seeded.chapterKey));
+        Assert.True(chapter.Downloaded, "an incomplete-but-saved chapter is still Downloaded");
+        Assert.Equal(1, chapter.MissingPageCount);
     }
 }
 

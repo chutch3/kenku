@@ -31,6 +31,11 @@ public class Chapter : Identifiable, IComparable<Chapter>
 
     public bool IsBundled { get; internal set; }
 
+    /// <summary>How many of the chapter's pages the source couldn't deliver (placeholder/undownloadable),
+    /// dropped at download time. 0 = complete; &gt;0 = saved-but-incomplete, eligible for a force re-download
+    /// once the source is fixed.</summary>
+    public int MissingPageCount { get; internal set; }
+
     /// <exception cref="DirectoryNotFoundException">Library for Series not loaded</exception>
     [NotMapped]
     public string? FullArchiveFilePath => GetFullFilepath(null);
@@ -55,7 +60,7 @@ public class Chapter : Identifiable, IComparable<Chapter>
     /// <summary>
     /// EF ONLY!!!
     /// </summary>
-    internal Chapter(string key, int? volumeNumber, string chapterNumber, string? title, string? fileName, bool downloaded, MetadataConfidence? metadataConfidence = null, bool isBundled = false)
+    internal Chapter(string key, int? volumeNumber, string chapterNumber, string? title, string? fileName, bool downloaded, MetadataConfidence? metadataConfidence = null, bool isBundled = false, int missingPageCount = 0)
         : base(key)
     {
         this.VolumeNumber = volumeNumber;
@@ -65,6 +70,7 @@ public class Chapter : Identifiable, IComparable<Chapter>
         this.Downloaded = downloaded;
         this.MetadataConfidence = metadataConfidence;
         this.IsBundled = isBundled;
+        this.MissingPageCount = missingPageCount;
     }
 
     public int CompareTo(Chapter? other)

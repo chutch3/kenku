@@ -103,4 +103,102 @@ public class ImageListAcquirerTests
             try { Directory.Delete(tempRoot, recursive: true); } catch { /* best effort */ }
         }
     }
+
+    [Fact]
+    public async Task AcquireAsync_PlaceholderPage_SavesRealPagesOnly_AndReportsTheMissingCount()
+    {
+        string tempRoot = Path.Combine(Path.GetTempPath(), "kenku-acq-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempRoot);
+        try
+        {
+            (SourceId<Chapter> chapter, KenkuSettings settings) = NewChapter(tempRoot);
+            string finalPath = Path.Combine(tempRoot, "chapter.cbz");
+
+            // Two real pages and one tiny "missing page" placeholder (a 200 with valid but undersized
+            // bytes). The chapter is kept, the placeholder is dropped, and the missing count is reported.
+            var source = new Mock<SeriesSource>("MockConnector", new[] { "en" }, new[] { "mock.com" }, "icon", settings);
+            source.Setup(s => s.GetChapterImageUrls(It.IsAny<SourceId<Chapter>>()))
+                .ReturnsAsync(["page1", "missing", "page3"]);
+            source.Setup(s => s.DownloadImage("page1", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => new MemoryStream(TestImages.Jpeg()));
+            source.Setup(s => s.DownloadImage("missing", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => new MemoryStream(TestImages.Placeholder()));
+            source.Setup(s => s.DownloadImage("page3", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => new MemoryStream(TestImages.Jpeg()));
+
+            var acquirer = new ImageListAcquirer(settings);
+            AcquireResult result = await acquirer.AcquireAsync(chapter, source.Object, finalPath, CancellationToken.None);
+
+            var acquired = Assert.IsType<AcquireResult.Acquired>(result);
+            Assert.Equal(1, acquired.MissingPages);
+            Assert.True(File.Exists(finalPath));
+            using var archive = System.IO.Compression.ZipFile.OpenRead(finalPath);
+            Assert.Equal(2, archive.Entries.Count(e => e.FullName.EndsWith(".jpg")));
+        }
+        finally
+        {
+            try { Directory.Delete(tempRoot, recursive: true); } catch { /* best effort */ }
+        }
+    }
+
+    [Fact]
+    public async Task AcquireAsync_PageDownloadReturnsNull_DropsItAndReportsMissing()
+    {
+        string tempRoot = Path.Combine(Path.GetTempPath(), "kenku-acq-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempRoot);
+        try
+        {
+            (SourceId<Chapter> chapter, KenkuSettings settings) = NewChapter(tempRoot);
+            string finalPath = Path.Combine(tempRoot, "chapter.cbz");
+
+            var source = new Mock<SeriesSource>("MockConnector", new[] { "en" }, new[] { "mock.com" }, "icon", settings);
+            source.Setup(s => s.GetChapterImageUrls(It.IsAny<SourceId<Chapter>>()))
+                .ReturnsAsync(["page1", "gone"]);
+            source.Setup(s => s.DownloadImage("page1", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => new MemoryStream(TestImages.Jpeg()));
+            source.Setup(s => s.DownloadImage("gone", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => (Stream?)null);
+
+            var acquirer = new ImageListAcquirer(settings);
+            AcquireResult result = await acquirer.AcquireAsync(chapter, source.Object, finalPath, CancellationToken.None);
+
+            var acquired = Assert.IsType<AcquireResult.Acquired>(result);
+            Assert.Equal(1, acquired.MissingPages);
+            using var archive = System.IO.Compression.ZipFile.OpenRead(finalPath);
+            Assert.Equal(1, archive.Entries.Count(e => e.FullName.EndsWith(".jpg")));
+        }
+        finally
+        {
+            try { Directory.Delete(tempRoot, recursive: true); } catch { /* best effort */ }
+        }
+    }
+
+    [Fact]
+    public async Task AcquireAsync_EveryPageIsAPlaceholder_Fails()
+    {
+        string tempRoot = Path.Combine(Path.GetTempPath(), "kenku-acq-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempRoot);
+        try
+        {
+            (SourceId<Chapter> chapter, KenkuSettings settings) = NewChapter(tempRoot);
+            string finalPath = Path.Combine(tempRoot, "chapter.cbz");
+
+            var source = new Mock<SeriesSource>("MockConnector", new[] { "en" }, new[] { "mock.com" }, "icon", settings);
+            source.Setup(s => s.GetChapterImageUrls(It.IsAny<SourceId<Chapter>>()))
+                .ReturnsAsync(["p1", "p2"]);
+            source.Setup(s => s.DownloadImage(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => new MemoryStream(TestImages.Placeholder()));
+
+            var acquirer = new ImageListAcquirer(settings);
+            AcquireResult result = await acquirer.AcquireAsync(chapter, source.Object, finalPath, CancellationToken.None);
+
+            Assert.IsType<AcquireResult.Failed>(result);
+            Assert.False(File.Exists(finalPath), "a chapter with no real pages must not be saved");
+            Assert.False(File.Exists(finalPath + ".part"));
+        }
+        finally
+        {
+            try { Directory.Delete(tempRoot, recursive: true); } catch { /* best effort */ }
+        }
+    }
 }

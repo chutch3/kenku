@@ -40,7 +40,9 @@ public interface IChapterAcquirer
 /// </summary>
 public abstract record AcquireResult
 {
-    public sealed record Acquired(string Path) : AcquireResult;
+    /// <summary><paramref name="MissingPages"/> &gt; 0 means the chapter was saved but is incomplete —
+    /// the source served placeholder/undownloadable pages that were dropped (see <c>MissingPageDetector</c>).</summary>
+    public sealed record Acquired(string Path, int MissingPages = 0) : AcquireResult;
     public sealed record Deferred : AcquireResult;
 
     /// <summary><paramref name="NeedsChoice"/> marks a failure that only a user pick can resolve (a

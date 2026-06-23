@@ -40,10 +40,21 @@ public sealed class FakeSeriesSource : SeriesSource
 /// <summary>Shared tiny binary fixtures.</summary>
 public static class TestImages
 {
-    /// <summary>A valid 8×8 JPEG — small enough for any test, real enough for ImageSharp.</summary>
+    /// <summary>A valid 400×600 JPEG — a plausible comic page (well above the acquirer's placeholder
+    /// floor), real enough for ImageSharp.</summary>
     public static byte[] Jpeg()
     {
-        using var image = new Image<Rgba32>(8, 8);
+        using var image = new Image<Rgba32>(400, 600);
+        using var ms = new MemoryStream();
+        image.SaveAsJpeg(ms);
+        return ms.ToArray();
+    }
+
+    /// <summary>A tiny 80×104 image — the size of the "missing page" placeholder some sources serve
+    /// with a 200. The acquirer must reject it as incomplete rather than save it as a page.</summary>
+    public static byte[] Placeholder()
+    {
+        using var image = new Image<Rgba32>(80, 104);
         using var ms = new MemoryStream();
         image.SaveAsJpeg(ms);
         return ms.ToArray();

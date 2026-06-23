@@ -88,10 +88,12 @@ public class ChapterDownloadService(
         IChapterAcquirer acquirer = _acquirers.FirstOrDefault(a => a.Kind == seriesSource.Kind) ?? new ImageListAcquirer(settings);
 
         string acquiredPath;
+        int missingPages = 0;
         switch (await acquirer.AcquireAsync(mangaConnectorId, seriesSource, saveArchiveFilePath, ct, pinnedArchiveUrl))
         {
             case AcquireResult.Acquired acquired:
                 acquiredPath = acquired.Path;
+                missingPages = acquired.MissingPages;
                 break;
             case AcquireResult.Deferred:
                 // Handed off to an external client; the completion path marks Downloaded later.
@@ -109,6 +111,9 @@ public class ChapterDownloadService(
         try
         {
             chapter.Downloaded = true;
+            // Pages the source couldn't deliver were dropped at acquire time; record how many so the UI can
+            // flag the chapter and the user can force a rebuild once the source is fixed (0 clears it).
+            chapter.MissingPageCount = missingPages;
             // Store the path relative to the series dir so the volume subfolder (if any) is recorded,
             // keeping GetFullFilepath / CheckDownloaded consistent with where the file actually lives.
             chapter.FileName = Path.GetRelativePath(chapter.ParentManga.FullDirectoryPath, acquiredPath);
