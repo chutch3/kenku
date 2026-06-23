@@ -48,11 +48,12 @@ public static class ServiceCollectionExtensions
 
         // ---- Search path (always on when the feature is enabled) ----
 
-        if (settings.ManualIndexers.Count > 0)
-            services.AddSingleton<IIndexerProvider>(sp =>
-                new ConfiguredIndexerProvider(
-                    new HttpClient(sp.GetRequiredService<RateLimitHandler>(), disposeHandler: false),
-                    settings.ManualIndexers, sp.GetRequiredService<IndexerCooldown>()));
+        // Manually-added indexers. The provider reads settings live, so we always register it — one
+        // added from the Settings UI takes effect with no restart.
+        services.AddSingleton<IIndexerProvider>(sp =>
+            new ConfiguredIndexerProvider(
+                new HttpClient(sp.GetRequiredService<RateLimitHandler>(), disposeHandler: false),
+                settings, sp.GetRequiredService<IndexerCooldown>()));
 
         // Prowlarr-synced indexers. The provider reads settings live, so we always register it.
         services.AddSingleton<IIndexerProvider>(sp =>

@@ -14,6 +14,7 @@ public record SettingsResponse(
     IReadOnlyList<string> DiscoveryFeeds,
     IReadOnlyList<string> DiscoveryRails,
     IReadOnlyList<SyncedIndexerResponse> SyncedIndexers,
+    IReadOnlyList<ManualIndexerResponse> ManualIndexers,
     IReadOnlyList<DownloadClientResponse> DownloadClients)
 {
     public static SettingsResponse From(KenkuSettings s, API.Indexers.IndexerCooldown cooldowns) => new(
@@ -27,10 +28,21 @@ public record SettingsResponse(
             .Select(i => new SyncedIndexerResponse(i.Id, i.Name, i.Url, i.Categories, i.Protocol, i.Enabled,
                 cooldowns.CooldownUntil(i.Name)))
             .ToList(),
+        s.SnapshotManualIndexers()
+            .Select(i => new ManualIndexerResponse(i.Name, i.Url, i.Categories, cooldowns.CooldownUntil(i.Name)))
+            .ToList(),
         s.SnapshotDownloadClients()
             .Select(c => new DownloadClientResponse(c.Id, c.Name, c.Type, c.BaseUrl, c.Username, c.Category, c.Enabled, c.Priority))
             .ToList());
 }
+
+/// <summary>A manually-added indexer without its API key. CooldownUntil is set while it is
+/// rate-limited (HTTP 429) and skipped from searches.</summary>
+public record ManualIndexerResponse(
+    string Name,
+    string Url,
+    int[] Categories,
+    DateTime? CooldownUntil);
 
 /// <summary>A synced indexer without its API key. CooldownUntil is set while the indexer is
 /// rate-limited (HTTP 429) and skipped from searches.</summary>

@@ -481,6 +481,37 @@ public class SettingsController(KenkuSettings settings) : ControllerBase
         return settings.RemoveDownloadClient(id) ? TypedResults.Ok() : TypedResults.NotFound();
     }
 
+    /// <summary>
+    /// Adds or updates a manually-added Torznab/Newznab indexer (keyed by name). A blank API key on an
+    /// update keeps the stored one.
+    /// </summary>
+    /// <response code="200"></response>
+    /// <response code="400">Name and URL are required</response>
+    [HttpPost("ManualIndexers")]
+    [ProducesResponseType(Status200OK)]
+    [ProducesResponseType(Status400BadRequest)]
+    public Results<Ok, BadRequest> AddManualIndexer([FromBody] SetManualIndexerRecord requestData)
+    {
+        if (string.IsNullOrWhiteSpace(requestData.Name) || string.IsNullOrWhiteSpace(requestData.Url))
+            return TypedResults.BadRequest();
+        settings.AddOrUpdateManualIndexer(new API.Indexers.ManualIndexerConfig(
+            requestData.Name, requestData.Url, requestData.ApiKey ?? "", requestData.Categories ?? []));
+        return TypedResults.Ok();
+    }
+
+    /// <summary>
+    /// Removes a manually-added indexer by name.
+    /// </summary>
+    /// <response code="200"></response>
+    /// <response code="404">No manual indexer with that name</response>
+    [HttpDelete("ManualIndexers/{name}")]
+    [ProducesResponseType(Status200OK)]
+    [ProducesResponseType(Status404NotFound)]
+    public Results<Ok, NotFound> RemoveManualIndexer(string name)
+    {
+        return settings.RemoveManualIndexer(name) ? TypedResults.Ok() : TypedResults.NotFound();
+    }
+
     private static DownloadClientConfig ToConfig(SetDownloadClientRecord r) =>
         new(r.Id, r.Name, r.Type, r.BaseUrl, r.Username, r.Password, r.Category, r.Enabled, r.Priority);
 

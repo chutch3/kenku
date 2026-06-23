@@ -41,10 +41,44 @@
                 </li>
             </ul>
         </div>
+
+        <div class="mt-5 pt-4 border-t border-default">
+            <p class="text-xs uppercase tracking-wide text-muted mb-1.5">Manual indexers</p>
+            <p class="text-xs text-muted mb-2">Add a Torznab/Newznab feed directly, without Prowlarr. Takes effect immediately.</p>
+            <ul v-if="manualIndexers.length" class="flex flex-col gap-1 text-sm mb-3">
+                <li v-for="idx in manualIndexers" :key="idx.name ?? ''" class="flex items-center gap-2">
+                    <span class="text-highlighted">{{ idx.name }}</span>
+                    <span class="text-dimmed text-xs truncate">{{ idx.url }}</span>
+                    <IndexerCooldownBadge :cooldown-until="idx.cooldownUntil" />
+                    <UButton
+                        class="ms-auto shrink-0" color="error" variant="ghost" size="xs" icon="i-lucide-trash"
+                        :aria-label="`Remove ${idx.name}`" loading-auto @click="removeManualIndexer(idx.name ?? '')" />
+                </li>
+            </ul>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <UInput v-model="form.name" placeholder="Indexer name" />
+                <UInput v-model="form.url" placeholder="Torznab/Newznab URL" />
+                <UInput v-model="form.apiKey" type="password" placeholder="API key" />
+                <UInput v-model="form.categories" placeholder="Categories (e.g. 7030, 7000)" />
+            </div>
+            <UButton
+                class="mt-2 w-fit" icon="i-lucide-plus" variant="soft" :disabled="!form.name.trim() || !form.url.trim()"
+                aria-label="Add manual indexer" loading-auto @click="addIndexer">Add indexer</UButton>
+        </div>
     </UCard>
 </template>
 
 <script setup lang="ts">
-const { apiKey, syncedIndexers, regenerateApiKey, copy } = useSettings();
+const { apiKey, syncedIndexers, manualIndexers, regenerateApiKey, copy, addManualIndexer, removeManualIndexer } = useSettings();
 const baseUrl = computed(() => (import.meta.client ? window.location.origin : ''));
+
+const form = reactive({ name: '', url: '', apiKey: '', categories: '' });
+const addIndexer = async () => {
+    const categories = form.categories
+        .split(',')
+        .map((c) => Number.parseInt(c.trim(), 10))
+        .filter((n) => Number.isFinite(n));
+    await addManualIndexer({ name: form.name.trim(), url: form.url.trim(), apiKey: form.apiKey, categories });
+    form.name = form.url = form.apiKey = form.categories = '';
+};
 </script>

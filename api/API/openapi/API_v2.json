@@ -5576,6 +5576,106 @@
         }
       }
     },
+    "/v2/Settings/ManualIndexers": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Adds or updates a manually-added Torznab/Newznab indexer (keyed by name). A blank API key on an\nupdate keeps the stored one.",
+        "requestBody": {
+          "content": {
+            "application/json-patch+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/SetManualIndexerRecord"
+              }
+            },
+            "application/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/SetManualIndexerRecord"
+              }
+            },
+            "text/json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/SetManualIndexerRecord"
+              }
+            },
+            "application/*+json; x-version=2.0": {
+              "schema": {
+                "$ref": "#/components/schemas/SetManualIndexerRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "400": {
+            "description": "Name and URL are required",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/Settings/ManualIndexers/{name}": {
+      "delete": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Removes a manually-added indexer by name.",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "No manual indexer with that name",
+            "content": {
+              "text/plain; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json; x-version=2.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/Torrents": {
       "get": {
         "tags": [
@@ -7057,6 +7157,34 @@
         "additionalProperties": false,
         "description": "API.Schema.SeriesContext.Link DTO"
       },
+      "ManualIndexerResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "cooldownUntil": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A manually-added indexer without its API key. CooldownUntil is set while it is\n            rate-limited (HTTP 429) and skipped from searches."
+      },
       "MetadataEntry": {
         "type": "object",
         "properties": {
@@ -7893,6 +8021,33 @@
         },
         "additionalProperties": false
       },
+      "SetManualIndexerRecord": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "apiKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A manually-added Torznab/Newznab indexer. API.Controllers.Requests.SetManualIndexerRecord.ApiKey may be blank on an edit to\n            mean \"keep the stored key\" — it is redacted on the read path, so the UI never round-trips it."
+      },
       "SetMetronRecord": {
         "required": [
           "password",
@@ -7952,6 +8107,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SyncedIndexerResponse"
+            },
+            "nullable": true
+          },
+          "manualIndexers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManualIndexerResponse"
             },
             "nullable": true
           },

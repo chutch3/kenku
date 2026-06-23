@@ -20,6 +20,7 @@ export function useSettings() {
     const torrentEnabled = computed(() => !!settingsData.value?.torrentEnabled);
     const apiKey = computed(() => settingsData.value?.apiKey ?? '');
     const syncedIndexers = computed(() => settingsData.value?.syncedIndexers ?? []);
+    const manualIndexers = computed(() => settingsData.value?.manualIndexers ?? []);
     const downloadClients = computed(() => settingsData.value?.downloadClients ?? []);
 
     const refreshLibraries = () => refreshNuxtData(FetchKeys.Libraries.All);
@@ -42,6 +43,14 @@ export function useSettings() {
         await $api('/v2/Settings/DownloadClients/{id}', { method: 'DELETE', path: { id } });
         await refreshSettings();
     };
+    const addManualIndexer = async (body: { name: string; url: string; apiKey: string; categories: number[] }) => {
+        await $api('/v2/Settings/ManualIndexers', { method: 'POST', body });
+        await refreshSettings();
+    };
+    const removeManualIndexer = async (name: string) => {
+        await $api('/v2/Settings/ManualIndexers/{name}', { method: 'DELETE', path: { name } });
+        await refreshSettings();
+    };
     const setTorrentEnabled = async (enabled: boolean) => {
         await $api('/v2/Settings/TorrentEnabled/{enabled}', { method: 'PATCH', path: { enabled } });
         await refreshSettings();
@@ -58,8 +67,8 @@ export function useSettings() {
 
     return {
         settingsStatus, settingsData, libraries, stats,
-        komgaConnected, kavitaConnected, metronConnected, torrentEnabled, apiKey, syncedIndexers, downloadClients,
+        komgaConnected, kavitaConnected, metronConnected, torrentEnabled, apiKey, syncedIndexers, manualIndexers, downloadClients,
         refreshLibraries, refreshSettings, disconnectLibrary, regenerateApiKey, disconnectMetron, removeDownloadClient,
-        setTorrentEnabled, copy,
+        addManualIndexer, removeManualIndexer, setTorrentEnabled, copy,
     };
 }

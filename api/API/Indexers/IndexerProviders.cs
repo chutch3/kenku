@@ -6,13 +6,15 @@ public record ManualIndexerConfig(string Name, string Url, string ApiKey, int[] 
 
 /// <summary>
 /// Yields the indexers a user added by hand (Torznab/Newznab endpoints stored in settings). No
-/// Prowlarr involvement — this is the "you can add them" half of the *arr model.
+/// Prowlarr involvement — this is the "you can add them" half of the *arr model. Reads
+/// <see cref="KenkuSettings.ManualIndexers"/> live on every call (like <see cref="SyncedIndexerProvider"/>)
+/// so an indexer added from the Settings UI takes effect with no Kenku restart.
 /// </summary>
-public class ConfiguredIndexerProvider(HttpClient http, IReadOnlyList<ManualIndexerConfig> indexers, IndexerCooldown cooldown) : IIndexerProvider
+public class ConfiguredIndexerProvider(HttpClient http, KenkuSettings settings, IndexerCooldown cooldown) : IIndexerProvider
 {
     public Task<IReadOnlyList<IIndexer>> GetIndexersAsync(CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<IIndexer>>(
-            indexers.Select(i => (IIndexer)new TorznabIndexer(http, i.Name, i.Url, i.ApiKey, i.Categories, cooldown)).ToArray());
+            settings.SnapshotManualIndexers().Select(i => (IIndexer)new TorznabIndexer(http, i.Name, i.Url, i.ApiKey, i.Categories, cooldown)).ToArray());
 }
 
 /// <summary>

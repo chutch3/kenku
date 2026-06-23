@@ -55,6 +55,61 @@ public class SettingsControllerTests : IDisposable
     }
 
     [Fact]
+    public void GetSettings_IncludesManualIndexers_WithoutTheApiKey()
+    {
+        _settings.ManualIndexers.Add(new API.Indexers.ManualIndexerConfig("Nyaa", "http://nyaa/api", "secret-key", [7030]));
+
+        var result = CreateController().GetSettings(new API.Indexers.IndexerCooldown(new API.JobRuntime.SystemClock()));
+
+        var ok = Assert.IsType<Ok<API.Controllers.Responses.SettingsResponse>>(result);
+        var idx = Assert.Single(ok.Value!.ManualIndexers);
+        Assert.Equal("Nyaa", idx.Name);
+        Assert.Equal("http://nyaa/api", idx.Url);
+        Assert.Equal([7030], idx.Categories);
+        // ManualIndexerResponse carries no ApiKey field — the secret is never serialized.
+    }
+
+    [Fact]
+    public void AddManualIndexer_AddsToSettings()
+    {
+        var result = CreateController().AddManualIndexer(new SetManualIndexerRecord("Nyaa", "http://nyaa/api", "key", [7030]));
+
+        Assert.IsType<Ok>(result.Result);
+        var idx = Assert.Single(_settings.ManualIndexers);
+        Assert.Equal("Nyaa", idx.Name);
+        Assert.Equal("key", idx.ApiKey);
+    }
+
+    [Fact]
+    public void AddManualIndexer_RejectsBlankNameOrUrl()
+    {
+        Assert.IsType<BadRequest>(CreateController().AddManualIndexer(new SetManualIndexerRecord("", "http://x", "k", [])).Result);
+        Assert.IsType<BadRequest>(CreateController().AddManualIndexer(new SetManualIndexerRecord("n", "  ", "k", [])).Result);
+    }
+
+    [Fact]
+    public void AddManualIndexer_BlankApiKeyOnUpdate_PreservesStoredKey()
+    {
+        CreateController().AddManualIndexer(new SetManualIndexerRecord("Nyaa", "http://nyaa/api", "secret", [7030]));
+        // The UI never round-trips the redacted key, so a re-submit carries a blank key meaning "unchanged".
+        CreateController().AddManualIndexer(new SetManualIndexerRecord("Nyaa", "http://nyaa/v2", "", [7030]));
+
+        var idx = Assert.Single(_settings.ManualIndexers);
+        Assert.Equal("http://nyaa/v2", idx.Url);
+        Assert.Equal("secret", idx.ApiKey); // preserved, not cleared
+    }
+
+    [Fact]
+    public void RemoveManualIndexer_RemovesByName_Or404WhenMissing()
+    {
+        _settings.ManualIndexers.Add(new API.Indexers.ManualIndexerConfig("Nyaa", "http://nyaa/api", "k", [7030]));
+
+        Assert.IsType<Ok>(CreateController().RemoveManualIndexer("Nyaa").Result);
+        Assert.Empty(_settings.ManualIndexers);
+        Assert.IsType<NotFound>(CreateController().RemoveManualIndexer("Nope").Result);
+    }
+
+    [Fact]
     public void GetUserAgent_ReturnsCurrentUserAgent()
     {
         _settings.UserAgent = "TestAgent/1.0";

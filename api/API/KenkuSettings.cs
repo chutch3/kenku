@@ -279,6 +279,41 @@ public class KenkuSettings
             return SyncedIndexers.ToArray();
     }
 
+    public void AddOrUpdateManualIndexer(API.Indexers.ManualIndexerConfig config)
+    {
+        lock (_listLock)
+        {
+            int idx = ManualIndexers.FindIndex(i => string.Equals(i.Name, config.Name, StringComparison.OrdinalIgnoreCase));
+            if (idx >= 0)
+            {
+                // The API key is redacted on read, so an edit may carry a blank key meaning "unchanged"
+                // rather than "clear it". Preserve the stored secret unless a new non-blank value was supplied.
+                string apiKey = string.IsNullOrEmpty(config.ApiKey) ? ManualIndexers[idx].ApiKey : config.ApiKey;
+                ManualIndexers[idx] = config with { ApiKey = apiKey };
+            }
+            else
+                ManualIndexers.Add(config);
+        }
+        Save();
+    }
+
+    public bool RemoveManualIndexer(string name)
+    {
+        int removed;
+        lock (_listLock)
+            removed = ManualIndexers.RemoveAll(i => string.Equals(i.Name, name, StringComparison.OrdinalIgnoreCase));
+        if (removed > 0)
+            Save();
+        return removed > 0;
+    }
+
+    /// <summary>Thread-safe snapshot of the manual indexers for concurrent reads.</summary>
+    public API.Indexers.ManualIndexerConfig[] SnapshotManualIndexers()
+    {
+        lock (_listLock)
+            return ManualIndexers.ToArray();
+    }
+
     public int AddDownloadClient(DownloadClientConfig config)
     {
         int id;
