@@ -18,9 +18,9 @@ types are generated at build time from the backend's OpenAPI spec
 
 ## Screenshots
 
-| ![Library](Screenshots/Overview.png) | ![Search](Screenshots/Search.png) | ![Series detail](Screenshots/MangaDetail.png) |
-|--------------------------------------|-----------------------------------|-----------------------------------------------|
-| Library                              | Search                            | Series detail                                 |
+| ![Library](Screenshots/Overview.png) | ![Discover](Screenshots/Discover.png) | ![Search](Screenshots/Search.png) |
+|--------------------------------------|---------------------------------------|-----------------------------------|
+| Library                              | Discover                              | Search                            |
 
 ## Screens
 
