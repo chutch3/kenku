@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.33.1 (2026-06-23)
+
+### Bug Fixes
+
+- Retitle the indexers card and move manual-indexer add/edit into a modal for consistency
+  ([`3b43749`](https://github.com/chutch3/kenku/commit/3b4374987f4b6dd45437c1428e532044d7bd1ada))
+
+
 ## v0.33.0 (2026-06-23)
 
 ### Chores
