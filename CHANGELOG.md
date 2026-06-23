@@ -2,6 +2,41 @@
 
 <!-- version list -->
 
+## v0.33.0 (2026-06-23)
+
+### Chores
+
+- Add test-results to .gitignore
+  ([`f92a45a`](https://github.com/chutch3/kenku/commit/f92a45a73f0f9d10bc1c02370b3bd67279199737))
+
+- Stop tracking .claude and add it to .gitignore
+  ([`056fd53`](https://github.com/chutch3/kenku/commit/056fd536584f4a5bdcf8a2657ba152284c56c880))
+
+### Documentation
+
+- Move schema ER diagram out of contributing into docs/SCHEMA.md
+  ([`e4ed952`](https://github.com/chutch3/kenku/commit/e4ed952b4fce55e031383dfe3da1e6365784276d))
+
+- Refresh api contributing guide and trim resolved technical-debt items
+  ([`4549100`](https://github.com/chutch3/kenku/commit/454910045bddbe434e4959e457765a76dd11dcee))
+
+- Replace tranga db diagram with a mermaid ER and refresh api contributor docs
+  ([`a08ca2b`](https://github.com/chutch3/kenku/commit/a08ca2b4041e9dd6e86f990433f2ac1f55371ee1))
+
+- Replace tranga screenshots with current kenku UI (library, discover, search)
+  ([`ac131e7`](https://github.com/chutch3/kenku/commit/ac131e70cd0934a687203d53097a1a21ad9f32f8))
+
+### Features
+
+- Add a settings editor for manual (non-Prowlarr) Torznab indexers
+  ([`3b0b498`](https://github.com/chutch3/kenku/commit/3b0b4987e68793dcb96ae6d41c9ecdaa1e6742f2))
+
+### Refactoring
+
+- Rename the Mangas table to Series via a non-destructive migration
+  ([`76b1f6c`](https://github.com/chutch3/kenku/commit/76b1f6cb69d1906acfd677fc8f48e18eec1b2a71))
+
+
 ## v0.32.1 (2026-06-23)
 
 ### Bug Fixes
