@@ -46,7 +46,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
 
         IQueryable<Schema.SeriesContext.Chapter> queryable = context.Chapters
             .Include(ch => ch.SourceIds)
-            .Where(ch => ch.ParentMangaId == MangaId);
+            .Where(ch => ch.ParentSeriesId == MangaId);
 
         if (filter is not null)
         {
@@ -87,7 +87,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
 
         // 2. Fetch the chapters
         var dbChapters = await context.Chapters.Include(ch => ch.SourceIds)
-            .Where(ch => ch.ParentMangaId == MangaId)
+            .Where(ch => ch.ParentSeriesId == MangaId)
             .ToListAsync(HttpContext.RequestAborted);
 
         Schema.SeriesContext.Chapter? c = dbChapters.Max();
@@ -116,7 +116,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
     public async Task<Results<Ok<Chapter>, NoContent, NotFound<string>, StatusCodeHttpResult>>  GetLatestChapterDownloaded(string MangaId)
     {
         if(await context.Chapters.Include(ch => ch.SourceIds)
-               .Where(ch => ch.ParentMangaId == MangaId && ch.Downloaded)
+               .Where(ch => ch.ParentSeriesId == MangaId && ch.Downloaded)
                .ToListAsync(HttpContext.RequestAborted)
            is not { } dbChapters)
             return TypedResults.NotFound(nameof(MangaId));
@@ -331,7 +331,7 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
         jobStore.EnqueueAsync(new API.Schema.JobsContext.Job(
             API.JobRuntime.Handlers.DownloadChapterHandler.Type,
             API.JobRuntime.Handlers.DownloadChapterHandler.PayloadFor(chId.Key, pinnedArchiveUrl, force), clock.UtcNow,
-            resourceKey: chId.Obj.ParentMangaId, dedupKey: dedupKey, maxAttempts: settings.DownloadMaxAttempts),
+            resourceKey: chId.Obj.ParentSeriesId, dedupKey: dedupKey, maxAttempts: settings.DownloadMaxAttempts),
             HttpContext.RequestAborted);
 
     /// <summary>

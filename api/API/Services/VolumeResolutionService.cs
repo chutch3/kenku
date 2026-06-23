@@ -55,7 +55,7 @@ public class VolumeResolutionService(
         // on the downloaded .cbz. We also load already-assigned chapters so an exact source can correct
         // a stale heuristic guess on a later run; manual assignments are protected inside the merger.
         var chapters = await context.Chapters
-            .Where(c => c.ParentMangaId == mangaId)
+            .Where(c => c.ParentSeriesId == mangaId)
             .ToListAsync(ct);
 
         if (chapters.Count == 0)

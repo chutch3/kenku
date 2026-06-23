@@ -81,7 +81,7 @@ public class VolumeBundler(KenkuSettings settings)
         }
 
         var chapters = await context.Chapters
-            .Where(c => c.ParentMangaId == mangaId
+            .Where(c => c.ParentSeriesId == mangaId
                         && c.VolumeNumber == volumeNumber
                         && !c.IsBundled
                         && c.FileName != null)

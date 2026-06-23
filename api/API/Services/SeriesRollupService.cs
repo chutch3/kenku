@@ -21,7 +21,7 @@ public class SeriesRollupService
 
         var chapterStats = await series.Chapters
             .Where(c => c.SourceIds.Any(s => s.UseForDownload))
-            .GroupBy(c => c.ParentMangaId)
+            .GroupBy(c => c.ParentSeriesId)
             .Select(g => new { MangaId = g.Key, Wanted = g.Count(), Downloaded = g.Count(c => c.Downloaded || c.IsBundled) })
             .ToListAsync(ct);
 

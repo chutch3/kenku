@@ -29,7 +29,7 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
             .Include(m => m.SourceIds)
             .Where(m => m.IsTracked
                         || m.SourceIds.Any(id => id.UseForDownload)
-                        || Chapters.Any(c => c.ParentMangaId == m.Key && c.Downloaded));
+                        || Chapters.Any(c => c.ParentSeriesId == m.Key && c.Downloaded));
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -37,7 +37,7 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
         modelBuilder.Entity<Series>()
             .HasMany<Chapter>(m => m.Chapters)
             .WithOne(c => c.ParentManga)
-            .HasForeignKey(c => c.ParentMangaId)
+            .HasForeignKey(c => c.ParentSeriesId)
             .OnDelete(DeleteBehavior.Cascade);
         //Chapter has SourceIds
         modelBuilder.Entity<Chapter>()

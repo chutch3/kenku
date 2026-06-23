@@ -489,7 +489,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     {
         IQueryable<Schema.SeriesContext.SourceId<Chapter>> queryable = context.ChapterSourceIds.Where(chId  => chId.Obj!.Downloaded);
         if(mangaId is not null)
-            queryable = queryable.Where(chId => chId.Obj!.ParentMangaId == mangaId);
+            queryable = queryable.Where(chId => chId.Obj!.ParentSeriesId == mangaId);
         
         int rowsAffected = await queryable.ExecuteDeleteAsync(HttpContext.RequestAborted);
 

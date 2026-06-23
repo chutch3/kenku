@@ -65,7 +65,7 @@ public class TorrentFinalizationService
         else
         {
             List<Chapter> seriesChapters = await seriesContext.Chapters
-                .Where(c => c.ParentMangaId == chapter.ParentMangaId && !c.Downloaded)
+                .Where(c => c.ParentSeriesId == chapter.ParentSeriesId && !c.Downloaded)
                 .ToListAsync(ct);
             placed = FanOut(archives, chapter.ParentManga.Name, seriesChapters, settings, actionsContext);
         }
@@ -112,7 +112,7 @@ public class TorrentFinalizationService
         }
 
         List<Chapter> chapters = await seriesContext.Chapters
-            .Where(c => c.ParentMangaId == seriesKey && !c.Downloaded)
+            .Where(c => c.ParentSeriesId == seriesKey && !c.Downloaded)
             .ToListAsync(ct);
 
         string[] archives = Directory.EnumerateFiles(savePath, "*.cbz", SearchOption.AllDirectories).ToArray();

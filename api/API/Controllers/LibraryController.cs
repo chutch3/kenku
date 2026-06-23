@@ -33,9 +33,9 @@ public class LibraryController(SeriesContext context) : ControllerBase
                 m.Key,
                 m.Name,
                 UnresolvedChapterCount = context.Chapters.Count(c =>
-                    c.ParentMangaId == m.Key && c.Downloaded && c.VolumeNumber == null),
+                    c.ParentSeriesId == m.Key && c.Downloaded && c.VolumeNumber == null),
                 MissingFileCount = context.Chapters.Count(c =>
-                    c.ParentMangaId == m.Key && c.Downloaded && c.FileName == null)
+                    c.ParentSeriesId == m.Key && c.Downloaded && c.FileName == null)
             })
             .Where(m => m.UnresolvedChapterCount > 0 || m.MissingFileCount > 0)
             .ToListAsync(HttpContext.RequestAborted);

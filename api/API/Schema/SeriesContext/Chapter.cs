@@ -11,7 +11,7 @@ namespace API.Schema.SeriesContext;
 [PrimaryKey("Key")]
 public class Chapter : Identifiable, IComparable<Chapter>
 {
-    [StringLength(64)] public string ParentMangaId { get; init; } = null!;
+    [StringLength(64)] public string ParentSeriesId { get; init; } = null!;
     public Series ParentManga = null!;
 
     [NotMapped] public Dictionary<string, string> IdsOnMangaConnectors =>

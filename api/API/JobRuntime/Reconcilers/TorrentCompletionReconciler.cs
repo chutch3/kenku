@@ -58,7 +58,7 @@ public class TorrentCompletionReconciler(IServiceScopeFactory scopeFactory, IClo
 
             await store.EnqueueAsync(new Job(FinalizeTorrentHandler.Type,
                 FinalizeTorrentHandler.PayloadFor(chId.Key, completed.SavePath), now,
-                resourceKey: chId.Obj.ParentMangaId, dedupKey: DedupKey(chId.Key)), ct);
+                resourceKey: chId.Obj.ParentSeriesId, dedupKey: DedupKey(chId.Key)), ct);
             enqueued++;
         }
 

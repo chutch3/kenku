@@ -60,7 +60,7 @@ public class DownloadReconciler(IServiceScopeFactory scopeFactory, IClock clock,
 
             await store.EnqueueAsync(new Job(DownloadChapterHandler.Type,
                 DownloadChapterHandler.PayloadFor(chapterSourceId.Key), now,
-                resourceKey: chapterSourceId.Obj.ParentMangaId, dedupKey: DedupKey(chapterSourceId.Key),
+                resourceKey: chapterSourceId.Obj.ParentSeriesId, dedupKey: DedupKey(chapterSourceId.Key),
                 maxAttempts: maxAttempts), ct);
             enqueued++;
         }

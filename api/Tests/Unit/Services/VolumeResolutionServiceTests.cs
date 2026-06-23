@@ -522,8 +522,8 @@ public class VolumeResolutionServiceTests : IDisposable
 
         await ResolveAll(settings, new[] { manga1.Key, manga2.Key });
 
-        Assert.Equal(1, (await _mangaContext.Chapters.FirstAsync(c => c.ParentMangaId == manga1.Key)).VolumeNumber);
-        Assert.Equal(1, (await _mangaContext.Chapters.FirstAsync(c => c.ParentMangaId == manga2.Key)).VolumeNumber);
+        Assert.Equal(1, (await _mangaContext.Chapters.FirstAsync(c => c.ParentSeriesId == manga1.Key)).VolumeNumber);
+        Assert.Equal(1, (await _mangaContext.Chapters.FirstAsync(c => c.ParentSeriesId == manga2.Key)).VolumeNumber);
     }
 
     [Fact]

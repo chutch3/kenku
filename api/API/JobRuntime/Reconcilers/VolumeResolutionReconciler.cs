@@ -43,7 +43,7 @@ public class VolumeResolutionReconciler(
 
         List<string> mangaIds = await series.Chapters
             .Where(c => c.VolumeNumber == null)
-            .Select(c => c.ParentMangaId)
+            .Select(c => c.ParentSeriesId)
             .Distinct()
             .ToListAsync(ct);
 

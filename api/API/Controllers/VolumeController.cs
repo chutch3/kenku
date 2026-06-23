@@ -326,7 +326,7 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IJo
         // VolumeMetadata is derived on demand by the bundler, so its absence is not a 404 —
         // what matters is whether there are unbundled chapters with files to bundle.
         bool hasUnbundledChapters = await context.Chapters
-            .AnyAsync(c => c.ParentMangaId == MangaId
+            .AnyAsync(c => c.ParentSeriesId == MangaId
                            && c.VolumeNumber == VolumeNumber
                            && !c.IsBundled
                            && c.FileName != null, HttpContext.RequestAborted);
