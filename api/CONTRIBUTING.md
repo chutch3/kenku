@@ -7,7 +7,7 @@ If you want to contribute, please feel free to fork and create a Pull-Request!
 - Use explicit types for your variables. This improves readability.
     - **DO**
       ```csharp
-      Manga[] zyx = Object.GetAnotherThing(); //I can see that zyx is an Array, without digging through more code
+      Series[] zyx = Object.GetAnotherThing(); //I can see that zyx is an Array, without digging through more code
       ```
     - **DO _NOT_**
       ```csharp
@@ -45,11 +45,15 @@ bool retVal = xyz?
     ?? true;
 ```
 
-### If you want to add a new Website-Connector:
+### If you want to add a new source connector:
 
-1. Copy one of the existing connectors, or start from scratch and inherit from `API.Schema.MangaConnectors.MangaConnector`.
-2. Add the new Connector as Object-Instance in `Kenku.cs` to the MangaConnector-Array `connectors`.
-3. Add the discriminator to the `MangaContext.cs` `MangaConnector`-Entity
+1. Copy one of the existing connectors in `API/Connectors/`, or start from scratch and inherit from
+   `API.Connectors.SeriesSource` (override `SearchManga`, `GetMangaFromUrl`, `GetMangaFromId`,
+   `GetChapters`, and `GetChapterImageUrls` for page-reader sources).
+2. Register it in `API/Extensions/ApplicationServiceCollectionExtensions.cs` as
+   `services.AddSingleton<SeriesSource, YourConnector>();`. It is then picked up everywhere connectors
+   are injected — search, discovery rails, and downloads. Connectors are DI services, not database
+   entities, so no discriminator or migration is needed.
 
 ### Database and EF Core
 
@@ -64,12 +68,119 @@ Kenku is using a **code-first** EF-Core approach. If you modify the database(con
 | POSTGRES_USER     | `postgres`       |
 | POSTGRES_PASSWORD | `postgres`       |
 
-### A broad overview of where is what:
+#### Core schema (`SeriesContext`)
 
-![Image](DB-Layout.png)
+The series/chapter domain. Other contexts — jobs, actions/audit, notifications, libraries, and
+discovery — live in their own databases and are omitted here.
+
+```mermaid
+erDiagram
+    FileLibrary   ||--o{ Series           : holds
+    Series        ||--o{ Chapter          : has
+    Series        ||--o{ SeriesSourceId   : "found on"
+    Chapter       ||--o{ ChapterSourceId  : "found on"
+    Series        }o--o{ Author           : "written by"
+    Series        }o--o{ SeriesTag        : tagged
+    Series        ||--o{ Link             : "external links"
+    Series        ||--o{ AltTitle         : "alt titles"
+    Series        ||--o| MetadataSource   : "enriched by"
+    Series        ||--o{ MetadataEntry    : "fetcher links"
+    Series        ||--o{ VolumeMetadata   : "volumes"
+    VolumeMetadata||--o{ BundleChapterMap : bundles
+    Chapter       ||--o{ BundleChapterMap : "bundled in"
+
+    Series {
+        string Key PK
+        string Name
+        string Description
+        string CoverUrl
+        enum   ReleaseStatus
+        enum   LibraryLayout
+        string LibraryId FK
+        bool   IsTracked
+        uint   Year
+        string OriginalLanguage
+    }
+    Chapter {
+        string Key PK
+        string ParentMangaId FK
+        string ChapterNumber
+        int    VolumeNumber
+        string Title
+        string FileName
+        bool   Downloaded
+        bool   IsBundled
+    }
+    SeriesSourceId {
+        string Key PK
+        string ObjId FK
+        string MangaConnectorName
+        string IdOnConnectorSite
+        string WebsiteUrl
+        bool   UseForDownload
+        string ScanGroup
+        string Language
+    }
+    ChapterSourceId {
+        string Key PK
+        string ObjId FK
+        string MangaConnectorName
+        string IdOnConnectorSite
+        bool   UseForDownload
+        string ScanGroup
+        string Language
+    }
+    FileLibrary {
+        string Key PK
+        string BasePath
+        string LibraryName
+    }
+    Author {
+        string Key PK
+        string AuthorName
+    }
+    SeriesTag {
+        string Tag PK
+    }
+    Link {
+        string Key PK
+        string LinkProvider
+        string LinkUrl
+    }
+    AltTitle {
+        string Key PK
+        string Language
+        string Title
+    }
+    MetadataSource {
+        string MangaId PK
+    }
+    MetadataEntry {
+        string MangaId FK
+        string MetadataFetcherName
+        string Identifier
+    }
+    VolumeMetadata {
+        string MangaId FK
+        int    VolumeNumber
+        string Title
+        string ArchiveFileName
+    }
+    BundleChapterMap {
+        string VolumeKey FK
+        string ChapterKey FK
+    }
+```
+
+> Some tables still carry pre-rename names: `Series` is table `Mangas`, and `SeriesSourceId` /
+> `ChapterSourceId` are `MangaConnectorToManga` / `MangaConnectorToChapter`. Renaming them needs a
+> hand-written migration — see [`TECHNICAL_DEBT.md`](TECHNICAL_DEBT.md).
+
+### A broad overview of where is what:
 
 - `Program.cs` Configuration for ASP.NET, Swagger (also in `NamedSwaggerGenOptions.cs`)
 - `Kenku.cs` Worker-Logic
+- `Connectors/**` Source connectors (page scrapers, direct-archive, and indexer-backed torrent sources)
 - `Schema/**` Entity-Framework Schema Definitions
 - `HttpRequesters/**` Networking-Clients for Scraping (HTTP/FlareSolverr/Chromium request strategies)
 - `DownloadClients/**` Download-client integrations for release acquisition (qBittorrent)

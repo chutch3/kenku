@@ -21,7 +21,7 @@ discarded. Do not run `dotnet ef migrations add` for this rename without rewriti
 restore**:
 
 1. Remove the `[Table("Mangas")]` attribute from `API/Schema/SeriesContext/Series.cs`.
-2. Remove the `[Table("MangaConnector")]` attribute from `API/MangaConnectors/SeriesSource.cs`.
+2. Remove the `[Table("MangaConnector")]` attribute from `API/Connectors/SeriesSource.cs`.
 3. In `API/Schema/SeriesContext/SeriesContext.cs`, revert the join-table name in
    `UsingEntity("SeriesTagToSeries", …)` back to `UsingEntity("MangaTagToManga", …)` — keeping the
    join table name pinned avoids EF wanting to drop+recreate it. (Or commit to renaming it too and
@@ -52,65 +52,17 @@ the dev-DB verification step.
 
 ---
 
-## Concrete `Kind = Torrent` `SeriesSource`
+## Frontend: remaining config-file-only settings
 
-**Status.** All torrent infrastructure exists and no concrete `SeriesSource` declares
-`Kind = AcquisitionKind.Torrent` yet, so the torrent path is built+tested but dormant in production.
-
-**Indexer model (important — not coupled to Prowlarr).** An indexer is a Torznab/Newznab endpoint
-(`IIndexer` / `TorznabIndexer`). Indexers come from `IIndexerProvider`s:
-`ConfiguredIndexerProvider` (manually-added, from `settings.ManualIndexers`) and
-`SyncedIndexerProvider` (exposes the indexers Prowlarr has *pushed/synced* into
-`settings.SyncedIndexers`, reading them live on every search so updates need no restart).
-`AggregateIndexerSearch : IIndexerClient` fans out across all of them. This mirrors the
-*arr model: you add indexers by hand or let Prowlarr sync them in; Prowlarr is one source of indexers,
-not the indexer. A concrete torrent `SeriesSource` therefore depends on `IIndexerClient` (the
-aggregate) and never on Prowlarr directly.
-
-**Suggested implementation: `IndexerBackedSeriesSource` (name it for the model, not for Prowlarr).**
-
-- Override `Kind => AcquisitionKind.Torrent`.
-- `SearchManga(query)`: call `IIndexerClient.Search` with the user's query, dedupe results by parsed
-  series name (strip issue numbers, year, tags from the release title), return one `Series` per
-  distinct match. Cover/description metadata will be sparse — pair with a metadata fetcher (Metron).
-- `GetMangaFromId(id)`: round-trip metadata for the stored series identifier.
-- `GetChapters(seriesId, language)`: call `IIndexerClient.Search` again with just the series name,
-  parse issue numbers from release titles into distinct `Chapter` rows. Title parsing is the hardest
-  bit; a regex over common comic release patterns (`Series Title 060 (2024)`, `Series Title #60`,
-  etc.) is a reasonable v1.
-- `GetChapterImageUrls` / `DownloadImage`: throw (not used; `Kind=Torrent` bypasses these).
-
-Estimated effort: 1-2 hours including parser tests.
-
-**Prowlarr push-sync (DONE).** Kenku now emulates a Mylar application: Prowlarr is configured to point
-at Kenku (base URL + API key) and *pushes* indexer definitions into Kenku via the Mylar-emulating `/api`
-endpoint (`MylarApiController`, `cmd=getVersion|listProviders|addProvider|changeProvider|delProvider`,
-authenticated by the `apikey` query parameter). They persist in `settings.SyncedIndexers` and take effect
-live. Per-indexer enable/disable is honoured by `SyncedIndexerProvider` (only enabled configs are searched).
-
----
-
-## Frontend: settings UI for new integrations
-
-DONE: the Settings page has a read-only Prowlarr-setup panel (Kenku base URL + API key with copy and a
-regenerate button, plus a hint to add Kenku as a *Mylar* application in Prowlarr), a list of the
-Prowlarr-synced indexers, download-client management (add/edit/remove via `DownloadClientModal`, backed
-by `GET/POST/PUT/DELETE /v2/Settings/DownloadClients` and `GET /v2/Settings/ApiKey` +
-`POST /v2/Settings/ApiKey/Regenerate`), and Metron credentials. Metron also appears automatically in the
-existing metadata-fetcher table.
-
-STILL config-file-only:
 - **Manual (non-Prowlarr) indexers** (`ManualIndexers`) — no add/remove UI yet; only Prowlarr-synced
-  indexers are reachable from the website. Add a small list editor if standalone Torznab feeds are
-  needed.
-- **Pending torrent downloads view** — no UI surfaces in-flight torrents (the `TorrentCompletionWorker`
-  state). A read-only panel would be nice-to-have.
+  indexers are reachable from the website (`IndexersCard` is read-only). Add a small list editor if
+  standalone Torznab feeds are needed.
 - **Secrets in `GET /v2/Settings`** — passwords/API keys are serialised in the settings GET (matches
   the pre-existing pattern; the API has no auth layer anyway). Modals never pre-fill them. If an auth
   layer is added later, redact these via a response DTO.
 
 
-## Other items
+## Legacy column / identifier names
 
 - `MetadataEntries.MangaId`, `MetadataSources.MangaId`, `VolumeMetadata.MangaId`,
   `Chapter.ParentMangaId`, `NotificationConnector.MangaConnectorName` (parameter names) — kept as
