@@ -9,7 +9,6 @@ using static System.IO.UnixFileMode;
 namespace API.Schema.SeriesContext;
 
 [PrimaryKey("Key")]
-[Table("Mangas")] // Existing DB table; a follow-up hand-crafted migration is needed to rename to "Series" (see TECHNICAL_DEBT.md).
 public class Series : Identifiable
 {
     [StringLength(512)] public string Name { get; internal set; }

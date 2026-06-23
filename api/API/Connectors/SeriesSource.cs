@@ -12,7 +12,6 @@ using Microsoft.EntityFrameworkCore;
 namespace API.Connectors;
 
 [PrimaryKey("Name")]
-[Table("MangaConnector")] // Existing DB table; a follow-up hand-crafted migration is needed to rename to "SeriesSource" (see TECHNICAL_DEBT.md).
 public abstract class SeriesSource(string name, string[] supportedLanguages, string[] baseUris, string iconUrl, KenkuSettings settings)
 {
     [NotMapped] internal IHttpRequester downloadClient { get; init; } = null!;

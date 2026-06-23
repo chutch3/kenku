@@ -103,6 +103,6 @@ erDiagram
     }
 ```
 
-> Some tables still carry pre-rename names: `Series` is table `Mangas`, and `SeriesSourceId` /
-> `ChapterSourceId` are `MangaConnectorToManga` / `MangaConnectorToChapter`. Renaming them needs a
-> hand-written migration — see [`TECHNICAL_DEBT.md`](../TECHNICAL_DEBT.md).
+> A few tables still carry pre-rename names: `SeriesSourceId` / `ChapterSourceId` are tables
+> `MangaConnectorToManga` / `MangaConnectorToChapter`, and `Author`↔`Series` joins through `AuthorToManga`.
+> (The main `Series` table was renamed from `Mangas`.) See [`TECHNICAL_DEBT.md`](../TECHNICAL_DEBT.md).
