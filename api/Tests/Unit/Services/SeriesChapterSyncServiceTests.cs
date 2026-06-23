@@ -128,7 +128,7 @@ public class SeriesChapterSyncServiceTests : IDisposable
 
         mockConnector.Setup(c => c.GetChapters(It.IsAny<SourceId>(), It.IsAny<string>())).ReturnsAsync([]);
         var fresh = new Series("Test Series", "Desc", "https://temp-new.example/cover.webp", SeriesReleaseStatus.Continuing, [], [], [], []);
-        mockConnector.Setup(c => c.GetMangaFromId("manga-id"))
+        mockConnector.Setup(c => c.GetSeriesFromId("manga-id"))
             .ReturnsAsync((fresh, new SourceId(fresh, "MangaDex", "manga-id", "url")));
 
         await new SeriesChapterSyncService([mockConnector.Object])
@@ -151,7 +151,7 @@ public class SeriesChapterSyncServiceTests : IDisposable
         var ch1 = new Chapter(manga, "1", null, null);
         mockConnector.Setup(c => c.GetChapters(It.IsAny<SourceId>(), It.IsAny<string>()))
             .ReturnsAsync([(ch1, new ChapterConnectorId(ch1, "MangaDex", "c1", "u1"))]);
-        mockConnector.Setup(c => c.GetMangaFromId("manga-id")).ThrowsAsync(new HttpRequestException("site drifted"));
+        mockConnector.Setup(c => c.GetSeriesFromId("manga-id")).ThrowsAsync(new HttpRequestException("site drifted"));
 
         var (reported, added) = await new SeriesChapterSyncService([mockConnector.Object])
             .SyncAsync(_mangaContext, _actionsContext, mangaMcId.Key, "en", CancellationToken.None);

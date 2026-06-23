@@ -76,7 +76,7 @@ public class IndexerBackedSeriesSourceTests
             R("Saga 061 (2024)"),
             R("The Walking Dead 100 (2012)"));
 
-        var results = await source.SearchManga("comic");
+        var results = await source.SearchSeries("comic");
 
         Assert.Equal(2, results.Length);
         Assert.Contains(results, s => s.Item1.Name == "Saga");
@@ -94,7 +94,7 @@ public class IndexerBackedSeriesSourceTests
             R("Saga 061 (2024)"),
             R("Some Other Book 005 (2020)")); // different series — excluded
 
-        var (series, seriesId) = (await source.SearchManga("Saga")).First(s => s.Item1.Name == "Saga");
+        var (series, seriesId) = (await source.SearchSeries("Saga")).First(s => s.Item1.Name == "Saga");
 
         var chapters = await source.GetChapters(seriesId);
 
@@ -109,7 +109,7 @@ public class IndexerBackedSeriesSourceTests
             R("Saga 001-005 (2012) (digital)"),  // pack → issues 1..5
             R("Saga 004 (2012)"));               // overlaps the pack — still one chapter per issue
 
-        var (series, seriesId) = (await source.SearchManga("Saga")).First(s => s.Item1.Name == "Saga");
+        var (series, seriesId) = (await source.SearchSeries("Saga")).First(s => s.Item1.Name == "Saga");
 
         var chapters = await source.GetChapters(seriesId);
 
@@ -126,7 +126,7 @@ public class IndexerBackedSeriesSourceTests
             R("Invincible 001-144 (2003-2018) (digital)"),
             R("Invincible 106 (2013)"));
 
-        var results = await source.SearchManga("Invincible");
+        var results = await source.SearchSeries("Invincible");
 
         Assert.Equal("Invincible", Assert.Single(results).Item1.Name);
     }

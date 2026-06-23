@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using SchemaManga = API.Schema.SeriesContext.Series;
+using SchemaSeries = API.Schema.SeriesContext.Series;
 using SchemaFileLibrary = API.Schema.SeriesContext.FileLibrary;
 using SchemaChapter = API.Schema.SeriesContext.Chapter;
 
@@ -56,7 +56,7 @@ public class VolumeControllerBundleTests : IDisposable
         return new SchemaFileLibrary(libPath, "TestLib");
     }
 
-    private static SchemaManga MakeManga(string name, SchemaFileLibrary library)
+    private static SchemaSeries MakeSeries(string name, SchemaFileLibrary library)
         => new(name, "", "http://example.com/img.jpg", SeriesReleaseStatus.Continuing, [], [], [], [], library);
 
     // ──────────────────────────────────────────────────────
@@ -82,7 +82,7 @@ public class VolumeControllerBundleTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeManga("Test Series", library);
+        var manga = MakeSeries("Test Series", library);
         ctx.Series.Add(manga);
         // Deliberately no VolumeMetadata row.
         var ch = new SchemaChapter(manga, "1", 1) { Downloaded = true, FileName = "ch1.cbz" };
@@ -103,7 +103,7 @@ public class VolumeControllerBundleTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeManga("Bundled Series", library);
+        var manga = MakeSeries("Bundled Series", library);
         ctx.Series.Add(manga);
         var vol = new VolumeMetadata(manga, 1);
         ctx.VolumeMetadata.Add(vol);
@@ -124,7 +124,7 @@ public class VolumeControllerBundleTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeManga("One Piece", library);
+        var manga = MakeSeries("One Piece", library);
         ctx.Series.Add(manga);
         var vol = new VolumeMetadata(manga, 1);
         ctx.VolumeMetadata.Add(vol);
@@ -162,7 +162,7 @@ public class VolumeControllerBundleTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeManga("Test Series", library);
+        var manga = MakeSeries("Test Series", library);
         ctx.Series.Add(manga);
         await ctx.SaveChangesAsync();
 
@@ -178,7 +178,7 @@ public class VolumeControllerBundleTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeManga("Unbundled Series", library);
+        var manga = MakeSeries("Unbundled Series", library);
         ctx.Series.Add(manga);
         var vol = new VolumeMetadata(manga, 1); // ArchiveFileName is null
         ctx.VolumeMetadata.Add(vol);
@@ -196,7 +196,7 @@ public class VolumeControllerBundleTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeManga("Bundled Series", library);
+        var manga = MakeSeries("Bundled Series", library);
         ctx.Series.Add(manga);
         var vol = new VolumeMetadata(manga, 1);
         vol.ArchiveFileName = "Vol 1.cbz";
@@ -230,7 +230,7 @@ public class VolumeControllerBundleTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeManga("Bundled No Map", library);
+        var manga = MakeSeries("Bundled No Map", library);
         ctx.Series.Add(manga);
         var vol = new VolumeMetadata(manga, 1);
         vol.ArchiveFileName = "Vol 1.cbz";

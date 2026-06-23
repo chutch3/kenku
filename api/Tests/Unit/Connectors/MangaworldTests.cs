@@ -28,7 +28,7 @@ public class MangaworldTests
         return mockClient;
     }
 
-    private static SourceId<Series> CreateDummyManga(SeriesSource connector)
+    private static SourceId<Series> CreateDummySeries(SeriesSource connector)
     {
         var manga = new Series("Test Series", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], []);
         return new SourceId<Series>(manga, connector, "2003/test", "https://example.com/test");
@@ -61,7 +61,7 @@ public class MangaworldTests
         var settings = CreateSettings();
         var mangaworld = new Mangaworld(settings, CreateMockClient(html).Object);
 
-        var seriesId = CreateDummyManga(mangaworld);
+        var seriesId = CreateDummySeries(mangaworld);
         var chapters = await mangaworld.GetChapters(seriesId);
 
         Assert.Single(chapters);

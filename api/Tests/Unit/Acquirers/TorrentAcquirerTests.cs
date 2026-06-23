@@ -91,7 +91,7 @@ public class TorrentAcquirerTests
 
             Assert.IsType<AcquireResult.Deferred>(result);
             Assert.Equal("magnet:?xt=urn:btih:pack", capturedUrl);
-            Assert.Equal(PackTag.For(chapterId.Obj.ParentManga.Key, "magnet:?xt=urn:btih:pack"), capturedTag);
+            Assert.Equal(PackTag.For(chapterId.Obj.ParentSeries.Key, "magnet:?xt=urn:btih:pack"), capturedTag);
         }
         finally { try { Directory.Delete(tempRoot, recursive: true); } catch { } }
     }

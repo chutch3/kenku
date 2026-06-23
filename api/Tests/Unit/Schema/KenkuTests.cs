@@ -45,7 +45,7 @@ public class KenkuTests
         services.AddDbContext<ActionsContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
         services.AddDbContext<NotificationsContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
 
-        // AddMangaToContext enqueues a cover-download job through the runtime store.
+        // AddSeriesToContext enqueues a cover-download job through the runtime store.
         services.AddSingleton<API.JobRuntime.Interfaces.IJobStore, API.JobRuntime.InMemoryJobStore>();
         services.AddSingleton<API.JobRuntime.Interfaces.IClock, API.JobRuntime.SystemClock>();
 
@@ -102,10 +102,10 @@ public class KenkuTests
 
         using var dbContext = GetInMemoryDbContext();
 
-        var newManga = new Series("Berserk", "A dark fantasy", "cover.jpg", SeriesReleaseStatus.Continuing, [], [], [], []);
-        var newConnectorId = new SourceId<Series>(newManga, "MangaDex", "12345", "https://mangadex.org/title/12345");
+        var newSeries = new Series("Berserk", "A dark fantasy", "cover.jpg", SeriesReleaseStatus.Continuing, [], [], [], []);
+        var newConnectorId = new SourceId<Series>(newSeries, "MangaDex", "12345", "https://mangadex.org/title/12345");
 
-        var result = await kenkuManager.AddMangaToContext(dbContext, newManga, newConnectorId, CancellationToken.None);
+        var result = await kenkuManager.AddSeriesToContext(dbContext, newSeries, newConnectorId, CancellationToken.None);
 
         Assert.NotNull(result);
         Assert.Equal("Berserk", result.Value.manga.Name);

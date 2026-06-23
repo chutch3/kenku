@@ -54,20 +54,20 @@ public class SeriesIncludeSplitQueryTests : IAsyncLifetime
         var counter = new SelectCommandCounter();
         await using var ctx = new SeriesContext(SplitOptions(counter));
 
-        var series = await ctx.MangaIncludeAll().FirstAsync();
+        var series = await ctx.SeriesIncludeAll().FirstAsync();
 
         // Correctness: every collection is fully and exactly loaded (EF dedups, so this passes even
         // with the cartesian bug — which is why it alone never caught the regression).
         Assert.Equal(2, series.Chapters.Count);
         Assert.Equal(2, series.Authors.Count);
-        Assert.Equal(2, series.MangaTags.Count);
+        Assert.Equal(2, series.SeriesTags.Count);
         Assert.Equal(2, series.AltTitles.Count);
         Assert.Equal(2, series.Links.Count);
 
         // The actual guard: one cartesian query would be a single SELECT; SplitQuery issues a
         // separate SELECT per collection. More than one SELECT proves the JOIN fan-out is gone.
         Assert.True(counter.SelectCommands > 1,
-            $"MangaIncludeAll ran as a single cartesian query ({counter.SelectCommands} SELECT). SplitQuery default lost.");
+            $"SeriesIncludeAll ran as a single cartesian query ({counter.SelectCommands} SELECT). SplitQuery default lost.");
     }
 
     [Fact]

@@ -34,7 +34,7 @@ public class ChapterFilePlacementReconciler(IServiceScopeFactory scopeFactory, I
         DateTime now, CancellationToken ct)
     {
         var chapters = await context.Chapters
-            .Include(c => c.ParentManga)
+            .Include(c => c.ParentSeries)
             .ThenInclude(m => m.Library)
             .Where(c => c.Downloaded && c.FileName != null && !c.IsBundled)
             .ToListAsync(ct);
@@ -43,10 +43,10 @@ public class ChapterFilePlacementReconciler(IServiceScopeFactory scopeFactory, I
         int enqueued = 0;
         foreach (var chapter in chapters)
         {
-            if (chapter.FileName == placement.ExpectedFileName(chapter.ParentManga, chapter)) continue;
+            if (chapter.FileName == placement.ExpectedFileName(chapter.ParentSeries, chapter)) continue;
             await store.EnqueueAsync(new Job(PlaceChapterFileHandler.Type,
                 PlaceChapterFileHandler.PayloadFor(chapter.Key), now,
-                resourceKey: chapter.ParentManga.Key, dedupKey: DedupKey(chapter.Key)), ct);
+                resourceKey: chapter.ParentSeries.Key, dedupKey: DedupKey(chapter.Key)), ct);
             enqueued++;
         }
         return enqueued;

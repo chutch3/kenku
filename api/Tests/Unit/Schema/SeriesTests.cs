@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace API.Tests.Unit.Schema;
 
-public class MangaTests
+public class SeriesTests
 {
     private SeriesContext CreateContext()
     {
@@ -13,19 +13,19 @@ public class MangaTests
         return new SeriesContext(options);
     }
 
-    internal static Series MakeTestManga(string name = "Test Series")
+    internal static Series MakeTestSeries(string name = "Test Series")
         => new(name, "", "http://example.com/img.jpg", SeriesReleaseStatus.Continuing, [], [], [], []);
 
     [Fact]
     public async Task GetTrackedMangas_IncludesManga_WhenIsTrackedTrue()
     {
         await using var ctx = CreateContext();
-        var manga = MakeTestManga();
+        var manga = MakeTestSeries();
         manga.IsTracked = true;
         ctx.Series.Add(manga);
         await ctx.SaveChangesAsync();
 
-        var result = await ctx.GetTrackedMangas().ToArrayAsync();
+        var result = await ctx.GetTrackedSeries().ToArrayAsync();
 
         Assert.Single(result);
         Assert.Equal(manga.Key, result[0].Key);
@@ -35,13 +35,13 @@ public class MangaTests
     public async Task GetTrackedMangas_IncludesManga_WhenUseForDownloadTrue()
     {
         await using var ctx = CreateContext();
-        var manga = MakeTestManga();
+        var manga = MakeTestSeries();
         ctx.Series.Add(manga);
         var connectorId = new SourceId<Series>(manga, "TestConnector", "ext-id-1", null, useForDownload: true);
         ctx.Set<SourceId<Series>>().Add(connectorId);
         await ctx.SaveChangesAsync();
 
-        var result = await ctx.GetTrackedMangas().ToArrayAsync();
+        var result = await ctx.GetTrackedSeries().ToArrayAsync();
 
         Assert.Single(result);
     }
@@ -50,14 +50,14 @@ public class MangaTests
     public async Task GetTrackedMangas_IncludesManga_WhenHasDownloadedChapter()
     {
         await using var ctx = CreateContext();
-        var manga = MakeTestManga();
+        var manga = MakeTestSeries();
         ctx.Series.Add(manga);
         var chapter = new Chapter(manga, "1", null);
         chapter.Downloaded = true;
         ctx.Chapters.Add(chapter);
         await ctx.SaveChangesAsync();
 
-        var result = await ctx.GetTrackedMangas().ToArrayAsync();
+        var result = await ctx.GetTrackedSeries().ToArrayAsync();
 
         Assert.Single(result);
     }
@@ -66,11 +66,11 @@ public class MangaTests
     public async Task GetTrackedMangas_ExcludesManga_WhenSearchOnlyResult()
     {
         await using var ctx = CreateContext();
-        var manga = MakeTestManga();
+        var manga = MakeTestSeries();
         ctx.Series.Add(manga);
         await ctx.SaveChangesAsync();
 
-        var result = await ctx.GetTrackedMangas().ToArrayAsync();
+        var result = await ctx.GetTrackedSeries().ToArrayAsync();
 
         Assert.Empty(result);
     }
@@ -79,13 +79,13 @@ public class MangaTests
     public async Task GetTrackedMangas_ExcludesManga_WhenConnectorIdExistsButUseForDownloadFalse()
     {
         await using var ctx = CreateContext();
-        var manga = MakeTestManga();
+        var manga = MakeTestSeries();
         ctx.Series.Add(manga);
         var connectorId = new SourceId<Series>(manga, "TestConnector", "ext-id-2", null, useForDownload: false);
         ctx.Set<SourceId<Series>>().Add(connectorId);
         await ctx.SaveChangesAsync();
 
-        var result = await ctx.GetTrackedMangas().ToArrayAsync();
+        var result = await ctx.GetTrackedSeries().ToArrayAsync();
 
         Assert.Empty(result);
     }
@@ -93,7 +93,7 @@ public class MangaTests
     [Fact]
     public void Manga_DefaultLibraryLayout_IsFlat()
     {
-        var manga = MakeTestManga();
+        var manga = MakeTestSeries();
         Assert.Equal(LibraryLayout.Flat, manga.LibraryLayout);
     }
 

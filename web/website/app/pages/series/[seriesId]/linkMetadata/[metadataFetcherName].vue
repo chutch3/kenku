@@ -34,7 +34,7 @@ const { data: series } = await useApi('/v2/Series/{SeriesId}', {
     },
 });
 
-const { data: searchData, status } = await useApi('/v2/MetadataFetcher/{MetadataFetcherName}/SearchManga/{SeriesId}', {
+const { data: searchData, status } = await useApi('/v2/MetadataFetcher/{MetadataFetcherName}/SearchSeries/{SeriesId}', {
     method: 'POST',
     path: { MetadataFetcherName: metadataFetcherName, SeriesId: seriesId },
     lazy: true,

@@ -93,17 +93,17 @@
 
 <script setup lang="ts">
 import type { components } from '#open-fetch-schemas/api';
-type MangaConnector = components['schemas']['SeriesSource'];
+type SeriesSource = components['schemas']['SeriesSource'];
 type MinimalSeries = components['schemas']['MinimalSeries'];
 
 const gridClass =
     'grid min-sm:grid-cols-[repeat(auto-fill,_minmax(var(--mangacover-width),_1fr))] max-sm:grid-cols-[repeat(auto-fill,_minmax(var(--mangacover-width-sm),_1fr))] gap-4';
 
-const { data: connectors } = await useApi('/v2/SeriesSource', { key: FetchKeys.MangaConnector.All, server: false });
+const { data: connectors } = await useApi('/v2/SeriesSource', { key: FetchKeys.SeriesSource.All, server: false });
 
 const query = ref<string>();
 const { mode, contentType } = useMediaMode();
-const connector = useState<MangaConnector | undefined>('search-connector', () => undefined);
+const connector = useState<SeriesSource | undefined>('search-connector', () => undefined);
 // Only the active mode's sources are pickable (plus All-sources); a comic source in manga mode would
 // just return nothing, so don't offer it.
 const visibleConnectors = computed(
@@ -116,7 +116,7 @@ const busy = ref(false);
 const searched = ref(false);
 const toast = useToast();
 
-const connectorClick = (c: MangaConnector) => {
+const connectorClick = (c: SeriesSource) => {
     connector.value = c;
     if (query.value) performSearch();
 };

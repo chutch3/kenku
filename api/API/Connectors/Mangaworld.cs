@@ -33,7 +33,7 @@ public sealed class Mangaworld : SeriesSource
 
     public override AcquisitionKind Kind => AcquisitionKind.ImageList;
 
-    public override async Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName)
+    public override async Task<(Series, SourceId<Series>)[]> SearchSeries(string mangaSearchName)
     {
         // 1) Tentativo con la stringa così com'è
         (Series, SourceId<Series>)[] first = await SearchOnce(mangaSearchName);
@@ -82,7 +82,7 @@ public sealed class Mangaworld : SeriesSource
             if (!seen.Add(canonical))
                 continue;
 
-            (Series, SourceId<Series>)? manga = await GetMangaFromUrl(canonical);
+            (Series, SourceId<Series>)? manga = await GetSeriesFromUrl(canonical);
             if (manga is null)
                 continue;
 
@@ -92,15 +92,15 @@ public sealed class Mangaworld : SeriesSource
         return list.ToArray();
     }
 
-    public override async Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string url)
+    public override async Task<(Series, SourceId<Series>)?> GetSeriesFromUrl(string url)
     {
         Match m = SeriesUrl.Match(url);
         if (!m.Success)
             return null;
-        return await GetMangaFromId($"{m.Groups["id"].Value}/{m.Groups["slug"].Value}");
+        return await GetSeriesFromId($"{m.Groups["id"].Value}/{m.Groups["slug"].Value}");
     }
 
-    public override async Task<(Series, SourceId<Series>)?> GetMangaFromId(string mangaIdOnSite)
+    public override async Task<(Series, SourceId<Series>)?> GetSeriesFromId(string mangaIdOnSite)
     {
         string[] parts = mangaIdOnSite.Split('/', 2);
         if (parts.Length != 2)
@@ -112,7 +112,7 @@ public sealed class Mangaworld : SeriesSource
         Uri seriesUrl = new Uri($"https://www.mangaworld.mx/manga/{id}/{slug}/");
 
         using HttpResponseMessage res =
-            await downloadClient.MakeRequest(seriesUrl.ToString(), RequestType.MangaInfo);
+            await downloadClient.MakeRequest(seriesUrl.ToString(), RequestType.SeriesInfo);
 
         if ((int)res.StatusCode < 200 || (int)res.StatusCode >= 300)
             return null;
@@ -204,7 +204,7 @@ public sealed class Mangaworld : SeriesSource
         string raw = chapterId.WebsiteUrl ?? $"https://www.mangaworld.mx/manga/{chapterId.IdOnConnectorSite}";
         string url = EnsureReaderUrl(raw);
 
-        if (await downloadClient.MakeRequest(url, RequestType.MangaInfo) is not { IsSuccessStatusCode: true } res)
+        if (await downloadClient.MakeRequest(url, RequestType.SeriesInfo) is not { IsSuccessStatusCode: true } res)
             return [];
 
         string html = await res.Content.ReadAsStringAsync();

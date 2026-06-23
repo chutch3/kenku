@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using SchemaManga = API.Schema.SeriesContext.Series;
+using SchemaSeries = API.Schema.SeriesContext.Series;
 using SchemaFileLibrary = API.Schema.SeriesContext.FileLibrary;
 using SchemaChapter = API.Schema.SeriesContext.Chapter;
 
@@ -53,7 +53,7 @@ public class LibraryControllerTests : IDisposable
         return new SchemaFileLibrary(libPath, "TestLib");
     }
 
-    private static SchemaManga MakeTestManga(string name, SchemaFileLibrary library)
+    private static SchemaSeries MakeTestSeries(string name, SchemaFileLibrary library)
         => new(name, "", "http://example.com/img.jpg", SeriesReleaseStatus.Continuing, [], [], [], [], library);
 
     // ──────────────────────────────────────────────────────
@@ -66,7 +66,7 @@ public class LibraryControllerTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("Perfect Series", library);
+        var manga = MakeTestSeries("Perfect Series", library);
         ctx.Series.Add(manga);
 
         // Chapter downloaded with volume number set — no issues
@@ -90,7 +90,7 @@ public class LibraryControllerTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("Unresolved Series", library);
+        var manga = MakeTestSeries("Unresolved Series", library);
         ctx.Series.Add(manga);
 
         // Downloaded but no volume number — unresolved
@@ -117,7 +117,7 @@ public class LibraryControllerTests : IDisposable
         Assert.Single(ok.Value!.Series);
         var entry = ok.Value.Series[0];
         Assert.Equal(manga.Key, entry.SeriesId);
-        Assert.Equal(manga.Name, entry.MangaName);
+        Assert.Equal(manga.Name, entry.SeriesName);
         Assert.Equal(2, entry.UnresolvedChapterCount);
         Assert.Equal(0, entry.MissingFileCount);
     }
@@ -128,7 +128,7 @@ public class LibraryControllerTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("Missing Files Series", library);
+        var manga = MakeTestSeries("Missing Files Series", library);
         ctx.Series.Add(manga);
 
         // Downloaded but FileName is null — broken/missing
@@ -164,7 +164,7 @@ public class LibraryControllerTests : IDisposable
         using var ctx = CreateContext();
 
         // Series with no library (search result / not tracked)
-        var manga = new SchemaManga("Search Result", "", "http://example.com/img.jpg",
+        var manga = new SchemaSeries("Search Result", "", "http://example.com/img.jpg",
             SeriesReleaseStatus.Continuing, [], [], [], []);
         ctx.Series.Add(manga);
 
@@ -187,7 +187,7 @@ public class LibraryControllerTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("Series With Not Downloaded", library);
+        var manga = MakeTestSeries("Series With Not Downloaded", library);
         ctx.Series.Add(manga);
 
         // Not downloaded — should not count
@@ -210,17 +210,17 @@ public class LibraryControllerTests : IDisposable
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
 
-        var goodManga = MakeTestManga("Good Series", library);
-        var badManga = MakeTestManga("Bad Series", library);
-        ctx.Series.AddRange(goodManga, badManga);
+        var goodSeries = MakeTestSeries("Good Series", library);
+        var badSeries = MakeTestSeries("Bad Series", library);
+        ctx.Series.AddRange(goodSeries, badSeries);
 
         // Good manga — all resolved
-        var ch1 = new SchemaChapter(goodManga, "1", 1);
+        var ch1 = new SchemaChapter(goodSeries, "1", 1);
         ch1.Downloaded = true;
         ch1.FileName = "chapter1.cbz";
 
         // Bad manga — unresolved chapter
-        var ch2 = new SchemaChapter(badManga, "1", null);
+        var ch2 = new SchemaChapter(badSeries, "1", null);
         ch2.Downloaded = true;
         ch2.FileName = "chapter1.cbz";
 
@@ -232,6 +232,6 @@ public class LibraryControllerTests : IDisposable
 
         var ok = Assert.IsType<Ok<UnresolvedDashboardResult>>(result);
         Assert.Single(ok.Value!.Series);
-        Assert.Equal(badManga.Key, ok.Value.Series[0].SeriesId);
+        Assert.Equal(badSeries.Key, ok.Value.Series[0].SeriesId);
     }
 }

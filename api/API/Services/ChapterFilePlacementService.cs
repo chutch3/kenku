@@ -30,17 +30,17 @@ public class ChapterFilePlacementService(KenkuSettings settings, ILibraryLayoutR
     public async Task PlaceAsync(SeriesContext context, string chapterKey, string? targetFileName, CancellationToken ct)
     {
         var chapter = await context.Chapters
-            .Include(c => c.ParentManga)
+            .Include(c => c.ParentSeries)
             .ThenInclude(m => m.Library)
             .FirstOrDefaultAsync(c => c.Key == chapterKey, ct);
 
         if (chapter is null) return;
 
-        string newFileName = targetFileName ?? ExpectedFileName(chapter.ParentManga, chapter);
+        string newFileName = targetFileName ?? ExpectedFileName(chapter.ParentSeries, chapter);
         if (chapter.FileName == newFileName) return;
 
         string? oldPath = chapter.FullArchiveFilePath;
-        string? newPath = chapter.ParentManga.FullDirectoryPath is { } dir
+        string? newPath = chapter.ParentSeries.FullDirectoryPath is { } dir
             ? Path.Join(dir, newFileName)
             : null;
 

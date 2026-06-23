@@ -59,7 +59,7 @@ onMounted(() => {
 
 const rollupsByKey = computed(() => Object.fromEntries((rollups.value ?? []).map((r) => [r.seriesId, r])));
 
-const { data: connectors } = await useApi('/v2/SeriesSource', { key: FetchKeys.MangaConnector.All, server: false });
+const { data: connectors } = await useApi('/v2/SeriesSource', { key: FetchKeys.SeriesSource.All, server: false });
 
 const filterText = ref('');
 const statusFilter = ref<'all' | TrackState>('all');

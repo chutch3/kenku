@@ -13,7 +13,7 @@ namespace API.Tests.Unit.Controllers;
 
 public class MetadataFetcherControllerTests
 {
-    private SeriesContext CreateMangaContext() =>
+    private SeriesContext CreateSeriesContext() =>
         new(new DbContextOptionsBuilder<SeriesContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options);
@@ -24,11 +24,11 @@ public class MetadataFetcherControllerTests
             .Options);
 
     private MetadataFetcherController CreateController(
-        SeriesContext mangaCtx,
+        SeriesContext seriesCtx,
         ActionsContext actionsCtx,
         IEnumerable<MetadataFetcher> fetchers)
     {
-        var controller = new MetadataFetcherController(mangaCtx, actionsCtx, fetchers);
+        var controller = new MetadataFetcherController(seriesCtx, actionsCtx, fetchers);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()
@@ -47,12 +47,12 @@ public class MetadataFetcherControllerTests
     [Fact]
     public void GetConnectors_ReturnsAllFetcherNames()
     {
-        using var mangaCtx = CreateMangaContext();
+        using var seriesCtx = CreateSeriesContext();
         using var actionsCtx = CreateActionsContext();
         var f1 = new FakeFetcher();
         var f2 = new FakeFetcher();
 
-        var result = CreateController(mangaCtx, actionsCtx, [f1, f2]).GetConnectors();
+        var result = CreateController(seriesCtx, actionsCtx, [f1, f2]).GetConnectors();
 
         var ok = Assert.IsType<Ok<List<string>>>(result);
         Assert.Equal(2, ok.Value!.Count);
@@ -63,10 +63,10 @@ public class MetadataFetcherControllerTests
     [Fact]
     public void GetConnectors_WhenEmpty_ReturnsEmptyList()
     {
-        using var mangaCtx = CreateMangaContext();
+        using var seriesCtx = CreateSeriesContext();
         using var actionsCtx = CreateActionsContext();
 
-        var result = CreateController(mangaCtx, actionsCtx, []).GetConnectors();
+        var result = CreateController(seriesCtx, actionsCtx, []).GetConnectors();
 
         var ok = Assert.IsType<Ok<List<string>>>(result);
         Assert.Empty(ok.Value!);
@@ -75,10 +75,10 @@ public class MetadataFetcherControllerTests
     [Fact]
     public async Task GetLinkedEntries_NoEntries_ReturnsEmptyList()
     {
-        using var mangaCtx = CreateMangaContext();
+        using var seriesCtx = CreateSeriesContext();
         using var actionsCtx = CreateActionsContext();
 
-        var result = await CreateController(mangaCtx, actionsCtx, []).GetLinkedEntries();
+        var result = await CreateController(seriesCtx, actionsCtx, []).GetLinkedEntries();
 
         var ok = Assert.IsType<Ok<List<MetadataEntry>>>(result.Result);
         Assert.Empty(ok.Value!);
@@ -87,12 +87,12 @@ public class MetadataFetcherControllerTests
     [Fact]
     public async Task SearchMangaMetadata_UnknownMangaId_ReturnsNotFound()
     {
-        using var mangaCtx = CreateMangaContext();
+        using var seriesCtx = CreateSeriesContext();
         using var actionsCtx = CreateActionsContext();
         var fetcher = new FakeFetcher();
 
-        var result = await CreateController(mangaCtx, actionsCtx, [fetcher])
-            .SearchMangaMetadata("nonexistent-id", fetcher.Name);
+        var result = await CreateController(seriesCtx, actionsCtx, [fetcher])
+            .SearchSeriesMetadata("nonexistent-id", fetcher.Name);
 
         Assert.IsType<NotFound<string>>(result.Result);
     }
@@ -100,14 +100,14 @@ public class MetadataFetcherControllerTests
     [Fact]
     public async Task SearchMangaMetadata_UnknownFetcherName_ReturnsBadRequest()
     {
-        using var mangaCtx = CreateMangaContext();
+        using var seriesCtx = CreateSeriesContext();
         using var actionsCtx = CreateActionsContext();
-        var manga = MangaTests.MakeTestManga();
-        mangaCtx.Series.Add(manga);
-        await mangaCtx.SaveChangesAsync();
+        var manga = SeriesTests.MakeTestSeries();
+        seriesCtx.Series.Add(manga);
+        await seriesCtx.SaveChangesAsync();
 
-        var result = await CreateController(mangaCtx, actionsCtx, [])
-            .SearchMangaMetadata(manga.Key, "UnknownFetcher");
+        var result = await CreateController(seriesCtx, actionsCtx, [])
+            .SearchSeriesMetadata(manga.Key, "UnknownFetcher");
 
         Assert.IsType<BadRequest>(result.Result);
     }
@@ -115,12 +115,12 @@ public class MetadataFetcherControllerTests
     [Fact]
     public async Task LinkMangaMetadata_UnknownMangaId_ReturnsNotFound()
     {
-        using var mangaCtx = CreateMangaContext();
+        using var seriesCtx = CreateSeriesContext();
         using var actionsCtx = CreateActionsContext();
         var fetcher = new FakeFetcher();
 
-        var result = await CreateController(mangaCtx, actionsCtx, [fetcher])
-            .LinkMangaMetadata("nonexistent-id", fetcher.Name, "12345");
+        var result = await CreateController(seriesCtx, actionsCtx, [fetcher])
+            .LinkSeriesMetadata("nonexistent-id", fetcher.Name, "12345");
 
         Assert.IsType<NotFound<string>>(result.Result);
     }
@@ -128,14 +128,14 @@ public class MetadataFetcherControllerTests
     [Fact]
     public async Task LinkMangaMetadata_UnknownFetcherName_ReturnsBadRequest()
     {
-        using var mangaCtx = CreateMangaContext();
+        using var seriesCtx = CreateSeriesContext();
         using var actionsCtx = CreateActionsContext();
-        var manga = MangaTests.MakeTestManga();
-        mangaCtx.Series.Add(manga);
-        await mangaCtx.SaveChangesAsync();
+        var manga = SeriesTests.MakeTestSeries();
+        seriesCtx.Series.Add(manga);
+        await seriesCtx.SaveChangesAsync();
 
-        var result = await CreateController(mangaCtx, actionsCtx, [])
-            .LinkMangaMetadata(manga.Key, "UnknownFetcher", "12345");
+        var result = await CreateController(seriesCtx, actionsCtx, [])
+            .LinkSeriesMetadata(manga.Key, "UnknownFetcher", "12345");
 
         Assert.IsType<BadRequest>(result.Result);
     }
@@ -143,12 +143,12 @@ public class MetadataFetcherControllerTests
     [Fact]
     public async Task UnlinkMangaMetadata_UnknownMangaId_ReturnsNotFound()
     {
-        using var mangaCtx = CreateMangaContext();
+        using var seriesCtx = CreateSeriesContext();
         using var actionsCtx = CreateActionsContext();
         var fetcher = new FakeFetcher();
 
-        var result = await CreateController(mangaCtx, actionsCtx, [fetcher])
-            .UnlinkMangaMetadata("nonexistent-id", fetcher.Name);
+        var result = await CreateController(seriesCtx, actionsCtx, [fetcher])
+            .UnlinkSeriesMetadata("nonexistent-id", fetcher.Name);
 
         Assert.IsType<NotFound<string>>(result.Result);
     }
@@ -156,14 +156,14 @@ public class MetadataFetcherControllerTests
     [Fact]
     public async Task UnlinkMangaMetadata_UnknownFetcherName_ReturnsBadRequest()
     {
-        using var mangaCtx = CreateMangaContext();
+        using var seriesCtx = CreateSeriesContext();
         using var actionsCtx = CreateActionsContext();
-        var manga = MangaTests.MakeTestManga();
-        mangaCtx.Series.Add(manga);
-        await mangaCtx.SaveChangesAsync();
+        var manga = SeriesTests.MakeTestSeries();
+        seriesCtx.Series.Add(manga);
+        await seriesCtx.SaveChangesAsync();
 
-        var result = await CreateController(mangaCtx, actionsCtx, [])
-            .UnlinkMangaMetadata(manga.Key, "UnknownFetcher");
+        var result = await CreateController(seriesCtx, actionsCtx, [])
+            .UnlinkSeriesMetadata(manga.Key, "UnknownFetcher");
 
         Assert.IsType<BadRequest>(result.Result);
     }
@@ -171,11 +171,11 @@ public class MetadataFetcherControllerTests
     [Fact]
     public async Task UpdateMetadata_NoLinkedEntry_ReturnsPreconditionFailed()
     {
-        using var mangaCtx = CreateMangaContext();
+        using var seriesCtx = CreateSeriesContext();
         using var actionsCtx = CreateActionsContext();
         var fetcher = new FakeFetcher();
 
-        var result = await CreateController(mangaCtx, actionsCtx, [fetcher])
+        var result = await CreateController(seriesCtx, actionsCtx, [fetcher])
             .UpdateMetadata("some-manga-id", fetcher.Name);
 
         var statusResult = Assert.IsType<StatusCodeHttpResult>(result.Result);
@@ -192,18 +192,18 @@ public class MetadataFetcherControllerTests
     [Fact]
     public async Task SearchMangaMetadata_WhenFetcherThrows_ReturnsProblem()
     {
-        using var mangaCtx = CreateMangaContext();
+        using var seriesCtx = CreateSeriesContext();
         using var actionsCtx = CreateActionsContext();
         var manga = new Series("Test", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], []);
-        mangaCtx.Series.Add(manga);
-        await mangaCtx.SaveChangesAsync();
+        seriesCtx.Series.Add(manga);
+        await seriesCtx.SaveChangesAsync();
         
         var fetcher = new ExplodingFetcher();
 
         // This currently propagates the exception and returns 500 (crash)
         // We want it to return a clean error response.
-        var result = await CreateController(mangaCtx, actionsCtx, [fetcher])
-            .SearchMangaMetadata(manga.Key, fetcher.Name);
+        var result = await CreateController(seriesCtx, actionsCtx, [fetcher])
+            .SearchSeriesMetadata(manga.Key, fetcher.Name);
 
         // We expect some kind of non-crashing error result
         Assert.IsAssignableFrom<IStatusCodeHttpResult>(result.Result);

@@ -77,7 +77,7 @@ public class CleanupServiceTests : IDisposable
         _mangaContext.FileLibraries.Add(library);
         
         // Setup tracked manga and chapter pointing to a subdirectory
-        var manga = new Series("MoveManga", "Desc", "http://example.com/cover.jpg", SeriesReleaseStatus.Continuing, [], [], [], [], library);
+        var manga = new Series("MoveSeries", "Desc", "http://example.com/cover.jpg", SeriesReleaseStatus.Continuing, [], [], [], [], library);
         _mangaContext.Series.Add(manga);
         
         string subDir = "Volume 1";

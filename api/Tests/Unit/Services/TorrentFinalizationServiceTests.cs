@@ -131,7 +131,7 @@ public class TorrentFinalizationServiceTests : IDisposable
     public async Task FinalizePack_PlacesEveryMatchingChapterAndRemovesTheTag()
     {
         var (chapter, _) = await Seed("58", "59");
-        string seriesKey = chapter.ParentManga.Key;
+        string seriesKey = chapter.ParentSeries.Key;
         string tag = API.Acquirers.PackTag.For(seriesKey, "magnet:?xt=urn:btih:pack");
         string savePath = SavePathWithCbz(
             "Saga 058 (2018) (digital).cbz",

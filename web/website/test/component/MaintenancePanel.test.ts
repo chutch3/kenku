@@ -8,7 +8,7 @@ const posted: string[] = [];
 let patchedRetention: string | null = null;
 
 for (const task of [
-    'CleanupNoDownloadManga',
+    'CleanupNoDownloadSeries',
     'CleanupActions',
     'CleanupOrphanedFiles',
     'ResolveMissingVolumes',
@@ -52,7 +52,7 @@ describe('MaintenancePanel', () => {
         await mountSuspended(MaintenancePanel, { attachTo: document.body });
 
         const buttons: [string, string][] = [
-            ['Clean database', 'CleanupNoDownloadManga'],
+            ['Clean database', 'CleanupNoDownloadSeries'],
             ['Clean actions', 'CleanupActions'],
             ['Clean orphaned files', 'CleanupOrphanedFiles'],
             ['Resolve missing volumes', 'ResolveMissingVolumes'],

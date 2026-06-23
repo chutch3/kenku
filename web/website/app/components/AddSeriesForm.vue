@@ -104,7 +104,7 @@ const { $api } = useNuxtApp();
 const source = computed(() => props.series.sourceIds[0]);
 const sourceName = computed(() => source.value?.seriesSourceName ?? 'source');
 
-const { data: connectors } = await useApi('/v2/SeriesSource', { key: FetchKeys.MangaConnector.All, server: false });
+const { data: connectors } = await useApi('/v2/SeriesSource', { key: FetchKeys.SeriesSource.All, server: false });
 const kind = computed(() => seriesKind(props.series, connectors.value));
 const description = computed(() => {
     if (kind.value !== 'comic') return `From ${sourceName.value}`;

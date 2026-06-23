@@ -106,7 +106,7 @@ public class GetComicsTests
             Article("https://getcomics.org/other-comics/saga-60/", "Saga #60 (2024)", "https://img.test/saga.jpg"));
         var connector = CreateConnector(_ => Html(html));
 
-        var results = await connector.SearchManga("battle beast");
+        var results = await connector.SearchSeries("battle beast");
 
         Assert.Equal(2, results.Length);
         var battleBeast = Assert.Single(results, r => r.Item1.Name == "Invincible Universe – Battle Beast");
@@ -124,7 +124,7 @@ public class GetComicsTests
         // that is a legitimate empty result, not a parse failure.
         var connector = CreateConnector(_ => Html(SearchPage()));
 
-        var results = await connector.SearchManga("zzzznoresults");
+        var results = await connector.SearchSeries("zzzznoresults");
 
         Assert.Empty(results);
     }
@@ -136,7 +136,7 @@ public class GetComicsTests
         // served — silently returning [] here is the "I am a hero" bug, so it must be loud.
         var connector = CreateConnector(_ => Html("<html><body><p>maintenance</p></body></html>"));
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => connector.SearchManga("saga"));
+        await Assert.ThrowsAsync<HttpRequestException>(() => connector.SearchSeries("saga"));
     }
 
     [Fact]
@@ -144,7 +144,7 @@ public class GetComicsTests
     {
         var connector = CreateConnector(_ => Html("", HttpStatusCode.ServiceUnavailable));
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => connector.SearchManga("saga"));
+        await Assert.ThrowsAsync<HttpRequestException>(() => connector.SearchSeries("saga"));
     }
 
     [Fact]
@@ -273,7 +273,7 @@ public class GetComicsTests
             Article("https://getcomics.org/c/inv-144/", "Invincible #144 (2018)"));
         var connector = CreateConnector(_ => Html(html));
 
-        var results = await connector.SearchManga("invincible");
+        var results = await connector.SearchSeries("invincible");
 
         var series = Assert.Single(results);
         Assert.Equal("Invincible", series.Item1.Name);
@@ -445,7 +445,7 @@ public class GetComicsTests
         string tagPage = SearchPage(Article("https://getcomics.org/c/inv-144/", "Invincible #144 (2018)", "https://img.test/inv.jpg"));
         var connector = CreateConnector(url => url.Contains("/tag/") ? Html(tagPage) : Html(noise));
 
-        var result = await connector.GetMangaFromId("Invincible");
+        var result = await connector.GetSeriesFromId("Invincible");
 
         Assert.NotNull(result);
         Assert.Equal("Invincible", result.Value.Item1.Name);
@@ -487,7 +487,7 @@ public class GetComicsTests
             Article("https://getcomics.org/c/saga-60/", "Saga #60 (2024)", "https://img.test/saga.jpg"));
         var connector = CreateConnector(_ => Html(html));
 
-        var result = await connector.GetMangaFromId("Saga");
+        var result = await connector.GetSeriesFromId("Saga");
 
         Assert.NotNull(result);
         Assert.Equal("Saga", result.Value.Item1.Name);
@@ -499,7 +499,7 @@ public class GetComicsTests
     {
         var connector = CreateConnector(_ => Html(SearchPage()));
 
-        Assert.Null(await connector.GetMangaFromId("Saga"));
+        Assert.Null(await connector.GetSeriesFromId("Saga"));
     }
 
     [Fact]
@@ -514,7 +514,7 @@ public class GetComicsTests
             """;
         var connector = CreateConnector(_ => Html(postHtml));
 
-        var result = await connector.GetMangaFromUrl("https://getcomics.org/other-comics/bb-9/");
+        var result = await connector.GetSeriesFromUrl("https://getcomics.org/other-comics/bb-9/");
 
         Assert.NotNull(result);
         Assert.Equal("Invincible Universe – Battle Beast", result.Value.Item1.Name);

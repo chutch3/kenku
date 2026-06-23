@@ -30,9 +30,9 @@ public class TorrentCompletionReconcilerTests : IDisposable
     private sealed class FakeTorrentSource(KenkuSettings s) : SeriesSource("FakeTorrent", ["en"], ["fake.test"], "i", s)
     {
         public override AcquisitionKind Kind => AcquisitionKind.Torrent;
-        public override Task<(Series, SourceId<Series>)[]> SearchManga(string q) => throw new NotSupportedException();
-        public override Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string u) => throw new NotSupportedException();
-        public override Task<(Series, SourceId<Series>)?> GetMangaFromId(string i) => throw new NotSupportedException();
+        public override Task<(Series, SourceId<Series>)[]> SearchSeries(string q) => throw new NotSupportedException();
+        public override Task<(Series, SourceId<Series>)?> GetSeriesFromUrl(string u) => throw new NotSupportedException();
+        public override Task<(Series, SourceId<Series>)?> GetSeriesFromId(string i) => throw new NotSupportedException();
         public override Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> m, string? l = null) => throw new NotSupportedException();
         internal override Task<string[]> GetChapterImageUrls(SourceId<Chapter> c) => throw new NotSupportedException();
     }

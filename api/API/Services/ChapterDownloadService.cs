@@ -51,11 +51,11 @@ public class ChapterDownloadService(
         Log.Debug($"Downloading chapter for SourceId {chapterKey}...");
         if (await seriesContext.ChapterSourceIds
                 .Include(id => id.Obj)
-                .ThenInclude(c => c.ParentManga)
+                .ThenInclude(c => c.ParentSeries)
                 .ThenInclude(m => m.Library)
                 .Include(id => id.Obj)
-                .ThenInclude(c => c.ParentManga)
-                .ThenInclude(m => m.SourceIds) // cover propagation reads ParentManga.SourceIds — must be loaded
+                .ThenInclude(c => c.ParentSeries)
+                .ThenInclude(m => m.SourceIds) // cover propagation reads ParentSeries.SourceIds — must be loaded
                 .FirstOrDefaultAsync(c => c.Key == chapterKey, ct) is not { } mangaConnectorId)
             throw new InvalidOperationException($"SourceId '{chapterKey}' not found.");
 
@@ -74,12 +74,12 @@ public class ChapterDownloadService(
         Log.Debug($"Downloading chapter for SourceId {mangaConnectorId}...");
 
         Chapter chapter = mangaConnectorId.Obj;
-        if (chapter.ParentManga.LibraryId is null)
-            throw new InvalidOperationException($"Library is not set for {chapter.ParentManga} {chapter}.");
+        if (chapter.ParentSeries.LibraryId is null)
+            throw new InvalidOperationException($"Library is not set for {chapter.ParentSeries} {chapter}.");
 
         // Place the chapter according to the series' LibraryLayout (Flat / Vol N folder) rather than
         // always at the series root. Volume-less chapters fall back to the root (see resolver).
-        ResolvedChapterPath target = layoutResolver.Resolve(chapter.ParentManga, chapter, settings.ChapterNamingScheme);
+        ResolvedChapterPath target = layoutResolver.Resolve(chapter.ParentSeries, chapter, settings.ChapterNamingScheme);
         string saveArchiveFilePath = target.FullPath;
         Log.Debug($"Placing {chapter} at {target.Placement} ({target.Reason}).");
         string? directoryPath = Path.GetDirectoryName(saveArchiveFilePath);
@@ -118,11 +118,11 @@ public class ChapterDownloadService(
             chapter.MissingPageCount = missingPages;
             // Store the path relative to the series dir so the volume subfolder (if any) is recorded,
             // keeping GetFullFilepath / CheckDownloaded consistent with where the file actually lives.
-            chapter.FileName = Path.GetRelativePath(chapter.ParentManga.FullDirectoryPath, acquiredPath);
+            chapter.FileName = Path.GetRelativePath(chapter.ParentSeries.FullDirectoryPath, acquiredPath);
 
             Log.Debug($"Downloaded chapter {chapter}.");
 
-            await actionsContext.Actions.AddAsync(new ChapterDownloadedActionRecord(chapter.ParentManga, chapter), ct);
+            await actionsContext.Actions.AddAsync(new ChapterDownloadedActionRecord(chapter.ParentSeries, chapter), ct);
 
             // Notification emission has moved to NotifyOnNewDownloadsWorker which observes the
             // ChapterDownloadedActionRecord rows produced here — keeps a single emission point that
@@ -142,7 +142,7 @@ public class ChapterDownloadService(
             {
                 try
                 {
-                    string body = $"{chapter.ParentManga.Name} Ch. {chapter.ChapterNumber}" +
+                    string body = $"{chapter.ParentSeries.Name} Ch. {chapter.ChapterNumber}" +
                                   (string.IsNullOrEmpty(chapter.FileName) ? "" : $" - {chapter.FileName}");
                     await notificationDispatcher.DispatchAsync("Chapter downloaded", body, ct);
                 }
@@ -154,9 +154,9 @@ public class ChapterDownloadService(
 
             if (directoryPath != null)
             {
-                var sourceIdForSeries = chapter.ParentManga.SourceIds.FirstOrDefault(id => id.SeriesSourceName == seriesSource.Name);
+                var sourceIdForSeries = chapter.ParentSeries.SourceIds.FirstOrDefault(id => id.SeriesSourceName == seriesSource.Name);
                 if (sourceIdForSeries != null)
-                    await EnsureCoverInPublicationFolder(seriesContext, chapter.ParentManga, seriesSource, sourceIdForSeries, directoryPath, ct);
+                    await EnsureCoverInPublicationFolder(seriesContext, chapter.ParentSeries, seriesSource, sourceIdForSeries, directoryPath, ct);
             }
         }
         catch (Exception ex)
@@ -165,7 +165,7 @@ public class ChapterDownloadService(
             throw;
         }
 
-        await EnqueueReadyVolumeBundleJobs(seriesContext, chapter.ParentManga, ct);
+        await EnqueueReadyVolumeBundleJobs(seriesContext, chapter.ParentSeries, ct);
         await MaybeEnqueueLibraryRefresh(seriesContext, ct);
         return DownloadOutcome.Downloaded;
     }

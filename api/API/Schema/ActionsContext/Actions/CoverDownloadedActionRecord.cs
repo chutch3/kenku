@@ -5,7 +5,7 @@ using API.Schema.SeriesContext;
 namespace API.Schema.ActionsContext.Actions;
 
 public sealed class CoverDownloadedActionRecord(Actions action, DateTime performedAt, string seriesId, string filename)
-    : ActionRecord(action, performedAt), IActionWithMangaRecord
+    : ActionRecord(action, performedAt), IActionWithSeriesRecord
 {
     public CoverDownloadedActionRecord(Series manga, string filename) : this(Actions.CoverDownloaded, DateTime.UtcNow, manga.Key, filename) { }
 

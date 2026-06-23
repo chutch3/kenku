@@ -9,11 +9,11 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Moq;
-using MangaConnectorImpl = API.Connectors.SeriesSource;
+using SeriesSourceImpl = API.Connectors.SeriesSource;
 
 namespace API.Tests.Unit.Controllers;
 
-public class MangaConnectorControllerTests
+public class SeriesSourceControllerTests
 {
     private readonly KenkuSettings _settings = new() { AppData = Path.GetTempPath() };
 
@@ -25,14 +25,14 @@ public class MangaConnectorControllerTests
         return new SeriesContext(options);
     }
 
-    private Mock<MangaConnectorImpl> MakeConnector(string name, bool enabled = true, string[] languages = null!)
+    private Mock<SeriesSourceImpl> MakeConnector(string name, bool enabled = true, string[] languages = null!)
     {
-        var mock = new Mock<MangaConnectorImpl>(name, languages ?? ["en"], new[] { "example.com" }, "icon.png", _settings);
+        var mock = new Mock<SeriesSourceImpl>(name, languages ?? ["en"], new[] { "example.com" }, "icon.png", _settings);
         mock.Object.Enabled = enabled;
         return mock;
     }
 
-    private SeriesSourceController CreateController(SeriesContext ctx, IEnumerable<MangaConnectorImpl> connectors, KenkuSettings settings)
+    private SeriesSourceController CreateController(SeriesContext ctx, IEnumerable<SeriesSourceImpl> connectors, KenkuSettings settings)
     {
         var controller = new SeriesSourceController(ctx, connectors, settings);
         controller.ControllerContext = new ControllerContext

@@ -38,14 +38,14 @@ public class MetadataSourceControllerAniListTests
         return controller;
     }
 
-    private static API.Schema.SeriesContext.Series MakeTestManga(string name = "Test Series")
+    private static API.Schema.SeriesContext.Series MakeTestSeries(string name = "Test Series")
         => new(name, "", "http://example.com/img.jpg", SeriesReleaseStatus.Continuing, [], [], [], []);
 
     [Fact]
     public async Task GetCandidates_WithSourceAniList_CallsAniListServiceNotMangaDex()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Berserk");
+        var manga = MakeTestSeries("Berserk");
         ctx.Series.Add(manga);
         await ctx.SaveChangesAsync();
 
@@ -82,7 +82,7 @@ public class MetadataSourceControllerAniListTests
     public async Task GetCandidates_WithSourceMangadex_CallsMangaDexNotAniList()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("One Piece");
+        var manga = MakeTestSeries("One Piece");
         ctx.Series.Add(manga);
         await ctx.SaveChangesAsync();
 
@@ -116,7 +116,7 @@ public class MetadataSourceControllerAniListTests
     public async Task GetCandidates_WithNoSourceParam_DefaultsToMangaDex()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Naruto");
+        var manga = MakeTestSeries("Naruto");
         ctx.Series.Add(manga);
         await ctx.SaveChangesAsync();
 
@@ -149,7 +149,7 @@ public class MetadataSourceControllerAniListTests
     public async Task GetCandidates_WithSourceAniList_ReturnsScoresAndExternalIdAsString()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Berserk");
+        var manga = MakeTestSeries("Berserk");
         ctx.Series.Add(manga);
         await ctx.SaveChangesAsync();
 

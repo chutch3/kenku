@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using SchemaManga = API.Schema.SeriesContext.Series;
+using SchemaSeries = API.Schema.SeriesContext.Series;
 using SchemaFileLibrary = API.Schema.SeriesContext.FileLibrary;
 using SchemaChapter = API.Schema.SeriesContext.Chapter;
 
@@ -57,7 +57,7 @@ public class VolumeControllerAssignmentTests : IDisposable
         return new SchemaFileLibrary(libPath, "TestLib");
     }
 
-    private static SchemaManga MakeTestManga(string name, SchemaFileLibrary library)
+    private static SchemaSeries MakeTestSeries(string name, SchemaFileLibrary library)
         => new(name, "", "http://example.com/img.jpg", SeriesReleaseStatus.Continuing, [], [], [], [], library);
 
     // ──────────────────────────────────────────────────────
@@ -82,7 +82,7 @@ public class VolumeControllerAssignmentTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("One Piece", library);
+        var manga = MakeTestSeries("One Piece", library);
         ctx.Series.Add(manga);
 
         var ch1 = new SchemaChapter(manga, "1", null);
@@ -126,7 +126,7 @@ public class VolumeControllerAssignmentTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("Naruto", library);
+        var manga = MakeTestSeries("Naruto", library);
         ctx.Series.Add(manga);
 
         var ch1 = new SchemaChapter(manga, "1", null);
@@ -156,7 +156,7 @@ public class VolumeControllerAssignmentTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("Berserk", library);
+        var manga = MakeTestSeries("Berserk", library);
         ctx.Series.Add(manga);
 
         var ch1 = new SchemaChapter(manga, "1", null);
@@ -169,13 +169,13 @@ public class VolumeControllerAssignmentTests : IDisposable
         await controller.PostBulkAssignment(manga.Key, request);
 
         // Reload manga with MetadataSource
-        var updatedManga = await ctx.Series
+        var updatedSeries = await ctx.Series
             .Include(m => m.MetadataSource)
             .FirstAsync(m => m.Key == manga.Key);
 
-        Assert.NotNull(updatedManga.MetadataSource);
-        Assert.Equal(MetadataSourceType.Manual, updatedManga.MetadataSource!.SourceType);
-        Assert.Equal(MetadataSourceStatus.Confirmed, updatedManga.MetadataSource.Status);
+        Assert.NotNull(updatedSeries.MetadataSource);
+        Assert.Equal(MetadataSourceType.Manual, updatedSeries.MetadataSource!.SourceType);
+        Assert.Equal(MetadataSourceStatus.Confirmed, updatedSeries.MetadataSource.Status);
     }
 
     [Fact]
@@ -184,7 +184,7 @@ public class VolumeControllerAssignmentTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("Bleach", library);
+        var manga = MakeTestSeries("Bleach", library);
         ctx.Series.Add(manga);
 
         var ch = new SchemaChapter(manga, "5", null);

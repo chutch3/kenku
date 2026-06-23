@@ -54,7 +54,7 @@ public class ComicHubFree : SeriesSource, API.Discovery.IDiscoveryRailProvider
             .ToList();
     }
 
-    public override async Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName)
+    public override async Task<(Series, SourceId<Series>)[]> SearchSeries(string mangaSearchName)
     {
         string requestUrl = $"https://comichubfree.com/search-comic?key={HttpUtility.UrlEncode(mangaSearchName)}";
         HtmlDocument doc = await FetchDocument(requestUrl);
@@ -89,15 +89,15 @@ public class ComicHubFree : SeriesSource, API.Discovery.IDiscoveryRailProvider
         }
     }
 
-    public override async Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string url)
+    public override async Task<(Series, SourceId<Series>)?> GetSeriesFromUrl(string url)
     {
         Match match = SeriesUrlRx.Match(url);
-        return match.Success ? await GetMangaFromId(match.Groups["slug"].Value) : null;
+        return match.Success ? await GetSeriesFromId(match.Groups["slug"].Value) : null;
     }
 
-    public override async Task<(Series, SourceId<Series>)?> GetMangaFromId(string mangaIdOnSite)
+    public override async Task<(Series, SourceId<Series>)?> GetSeriesFromId(string mangaIdOnSite)
     {
-        HtmlDocument doc = await FetchDocument(SeriesUrl(mangaIdOnSite), RequestType.MangaInfo);
+        HtmlDocument doc = await FetchDocument(SeriesUrl(mangaIdOnSite), RequestType.SeriesInfo);
 
         HtmlNode? titleNode = doc.DocumentNode.SelectSingleNode("//span[contains(@class, 'title-1')]");
         if (titleNode is null)

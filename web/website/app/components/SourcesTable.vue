@@ -12,7 +12,7 @@
 <script setup lang="ts">
 const { $api } = useNuxtApp();
 
-const { data: connectors, refresh } = useApi('/v2/SeriesSource', { key: FetchKeys.MangaConnector.All, server: false });
+const { data: connectors, refresh } = useApi('/v2/SeriesSource', { key: FetchKeys.SeriesSource.All, server: false });
 // Global is the search-all pseudo-source; it has no enabled state of its own.
 const sources = computed(() => (connectors.value ?? []).filter((c): c is typeof c & { name: string } => !!c.name && c.name !== 'Global'));
 

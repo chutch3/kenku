@@ -42,7 +42,7 @@ public class SeriesChapterSyncService(IEnumerable<SeriesSource> connectors)
         // sync — chapters matter more than covers.
         try
         {
-            if (await seriesSource.GetMangaFromId(mangaConnectorId.IdOnConnectorSite) is ({ } fresh, _)
+            if (await seriesSource.GetSeriesFromId(mangaConnectorId.IdOnConnectorSite) is ({ } fresh, _)
                 && manga.SetCover(fresh.CoverUrl, CoverSource.Connector))
                 Log.InfoFormat("Cover URL for {0} changed; updating from the connector.", manga.Name);
         }

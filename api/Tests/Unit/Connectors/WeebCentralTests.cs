@@ -28,7 +28,7 @@ public class WeebCentralTests
         return mockClient;
     }
 
-    private static SourceId<Series> CreateDummyManga(SeriesSource connector)
+    private static SourceId<Series> CreateDummySeries(SeriesSource connector)
     {
         var manga = new Series("Test Series", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], []);
         return new SourceId<Series>(manga, connector, "test-id", "https://example.com/test");
@@ -54,7 +54,7 @@ public class WeebCentralTests
         var settings = CreateSettings();
         var weebCentral = new WeebCentral(settings, CreateMockClient(html).Object);
 
-        var seriesId = CreateDummyManga(weebCentral);
+        var seriesId = CreateDummySeries(weebCentral);
         var chapters = await weebCentral.GetChapters(seriesId);
 
         Assert.Single(chapters);
@@ -95,7 +95,7 @@ public class WeebCentralTests
         // A failed fetch must be loud: returning an empty list here is what made a sync job report
         // "Succeeded" with 0 chapters while the series sat empty with no signal.
         var weebCentral = new WeebCentral(CreateSettings(), CreateMockClient("", HttpStatusCode.NotFound).Object);
-        var seriesId = CreateDummyManga(weebCentral);
+        var seriesId = CreateDummySeries(weebCentral);
 
         await Assert.ThrowsAsync<HttpRequestException>(() => weebCentral.GetChapters(seriesId));
     }
@@ -115,7 +115,7 @@ public class WeebCentralTests
             .Setup(c => c.MakeRequest(It.IsAny<string>(), It.IsAny<RequestType>(), It.IsAny<string>(), It.IsAny<CancellationToken?>()))
             .ReturnsAsync(response);
         var weebCentral = new WeebCentral(CreateSettings(), mockClient.Object);
-        var seriesId = CreateDummyManga(weebCentral);
+        var seriesId = CreateDummySeries(weebCentral);
 
         await Assert.ThrowsAsync<HttpRequestException>(() => weebCentral.GetChapters(seriesId));
     }
@@ -141,7 +141,7 @@ public class WeebCentralTests
         var settings = CreateSettings();
         var weebCentral = new WeebCentral(settings, CreateMockClient(html).Object);
 
-        var result = await weebCentral.GetMangaFromId("01J76XYBR7JHFW7Q80MHJP5VYW");
+        var result = await weebCentral.GetSeriesFromId("01J76XYBR7JHFW7Q80MHJP5VYW");
 
         Assert.NotNull(result);
         var links = result.Value.Item1.Links;
@@ -168,7 +168,7 @@ public class WeebCentralTests
         var settings = CreateSettings();
         var weebCentral = new WeebCentral(settings, CreateMockClient(html).Object);
 
-        var result = await weebCentral.GetMangaFromId("wc-1");
+        var result = await weebCentral.GetSeriesFromId("wc-1");
 
         Assert.NotNull(result);
         var aniListLinks = result.Value.Item1.Links.Where(l => l.LinkProvider == "AniList").ToList();
@@ -194,7 +194,7 @@ public class WeebCentralTests
         var settings = CreateSettings();
         var weebCentral = new WeebCentral(settings, CreateMockClient(html).Object);
 
-        var result = await weebCentral.GetMangaFromId("wc-1");
+        var result = await weebCentral.GetSeriesFromId("wc-1");
 
         Assert.NotNull(result);
         var providers = result.Value.Item1.Links.Select(l => l.LinkProvider).OrderBy(p => p).ToArray();

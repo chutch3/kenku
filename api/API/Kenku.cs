@@ -43,17 +43,17 @@ public class Kenku
     }
 
     // 5. Removed 'this' from SeriesContext. It is now just a normal method you call on Kenku.
-    internal async Task<(Series manga, SourceId<Series> id)?> AddMangaToContext(SeriesContext context, (Series, SourceId<Series>) addManga, CancellationToken token) =>
-        await AddMangaToContext(context, addManga.Item1, addManga.Item2, token);
+    internal async Task<(Series manga, SourceId<Series> id)?> AddSeriesToContext(SeriesContext context, (Series, SourceId<Series>) addSeries, CancellationToken token) =>
+        await AddSeriesToContext(context, addSeries.Item1, addSeries.Item2, token);
 
-    internal async Task<(Series manga, SourceId<Series> id)?> AddMangaToContext(SeriesContext context, Series addManga, SourceId<Series> addMcId, CancellationToken token)
+    internal async Task<(Series manga, SourceId<Series> id)?> AddSeriesToContext(SeriesContext context, Series addSeries, SourceId<Series> addMcId, CancellationToken token)
     {
         context.ChangeTracker.Clear();
-        Log.DebugFormat("Adding Series to Context: {0}", addManga);
+        Log.DebugFormat("Adding Series to Context: {0}", addSeries);
         (Series, SourceId<Series>)? result;
-        if (await context.FindMangaLike(addManga, token) is { } seriesId)
+        if (await context.FindSeriesLike(addSeries, token) is { } seriesId)
         {
-            Series manga = await context.MangaIncludeAll().FirstAsync(m => m.Key == seriesId, token);
+            Series manga = await context.SeriesIncludeAll().FirstAsync(m => m.Key == seriesId, token);
             Log.DebugFormat("Merging with existing Series: {0}", manga);
 
             var existingMcId = manga.SourceIds
@@ -85,26 +85,26 @@ public class Kenku
         else
         {
             Log.Debug("Series does not exist yet.");
-            IEnumerable<SeriesTag> mergedTags = addManga.MangaTags.Select(mt =>
+            IEnumerable<SeriesTag> mergedTags = addSeries.SeriesTags.Select(mt =>
             {
                 SeriesTag? inDb = context.Tags.Find(mt.Tag);
                 return inDb ?? mt;
             });
-            addManga.MangaTags = mergedTags.ToList();
+            addSeries.SeriesTags = mergedTags.ToList();
 
-            IEnumerable<Author> mergedAuthors = addManga.Authors.Select(ma =>
+            IEnumerable<Author> mergedAuthors = addSeries.Authors.Select(ma =>
             {
                 Author? inDb = context.Authors.Find(ma.Key);
                 return inDb ?? ma;
             });
-            addManga.Authors = mergedAuthors.ToList();
+            addSeries.Authors = mergedAuthors.ToList();
 
-            context.Series.Add(addManga);
+            context.Series.Add(addSeries);
             context.Set<SourceId<Series>>().Add(addMcId);
-            result = (addManga, addMcId);
+            result = (addSeries, addMcId);
         }
 
-        if (await context.Sync(token, reason: "AddMangaToContext") is { success: false })
+        if (await context.Sync(token, reason: "AddSeriesToContext") is { success: false })
             return null;
 
         using (IServiceScope scope = _serviceProvider.CreateScope())

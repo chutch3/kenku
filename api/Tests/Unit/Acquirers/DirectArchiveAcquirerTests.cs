@@ -34,9 +34,9 @@ public class DirectArchiveAcquirerTests
         public override AcquisitionKind Kind => AcquisitionKind.DirectArchive;
         public Task<ArchiveResolution> ResolveArchiveUrl(SourceId<Chapter> chapter, CancellationToken ct) =>
             Task.FromResult(resolution);
-        public override Task<(Series, SourceId<Series>)[]> SearchManga(string m) => throw new NotSupportedException();
-        public override Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string url) => throw new NotSupportedException();
-        public override Task<(Series, SourceId<Series>)?> GetMangaFromId(string id) => throw new NotSupportedException();
+        public override Task<(Series, SourceId<Series>)[]> SearchSeries(string m) => throw new NotSupportedException();
+        public override Task<(Series, SourceId<Series>)?> GetSeriesFromUrl(string url) => throw new NotSupportedException();
+        public override Task<(Series, SourceId<Series>)?> GetSeriesFromId(string id) => throw new NotSupportedException();
         public override Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> id, string? language = null) => throw new NotSupportedException();
         internal override Task<string[]> GetChapterImageUrls(SourceId<Chapter> id) => throw new NotSupportedException();
     }
@@ -157,9 +157,9 @@ public class DirectArchiveAcquirerTests
         public override AcquisitionKind Kind => AcquisitionKind.DirectArchive;
         public Task<ArchiveResolution> ResolveArchiveUrl(SourceId<Chapter> chapter, CancellationToken ct) =>
             Task.FromResult(resolution);
-        public override Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName) => throw new NotSupportedException();
-        public override Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string url) => throw new NotSupportedException();
-        public override Task<(Series, SourceId<Series>)?> GetMangaFromId(string mangaIdOnSite) => throw new NotSupportedException();
+        public override Task<(Series, SourceId<Series>)[]> SearchSeries(string mangaSearchName) => throw new NotSupportedException();
+        public override Task<(Series, SourceId<Series>)?> GetSeriesFromUrl(string url) => throw new NotSupportedException();
+        public override Task<(Series, SourceId<Series>)?> GetSeriesFromId(string mangaIdOnSite) => throw new NotSupportedException();
         public override Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> seriesId, string? language = null) => throw new NotSupportedException();
         internal override Task<string[]> GetChapterImageUrls(SourceId<Chapter> chapterId) => throw new NotSupportedException();
     }

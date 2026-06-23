@@ -19,15 +19,15 @@ public class Global : SeriesSource
 
     public override AcquisitionKind Kind => AcquisitionKind.ImageList;
 
-    public override Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName) =>
-        SearchMangaScoped(mangaSearchName, contentType: null, includeTorrents: true);
+    public override Task<(Series, SourceId<Series>)[]> SearchSeries(string mangaSearchName) =>
+        SearchSeriesScoped(mangaSearchName, contentType: null, includeTorrents: true);
 
     /// <summary>
     /// Search restricted to connectors of one content type, optionally skipping torrent indexers.
     /// Discover's in-place add resolves through this: skipping the indexers keeps the click fast and
     /// spends no indexer quota, and an AniList card can only ever match a manga source anyway.
     /// </summary>
-    public async Task<(Series, SourceId<Series>)[]> SearchMangaScoped(string mangaSearchName,
+    public async Task<(Series, SourceId<Series>)[]> SearchSeriesScoped(string mangaSearchName,
         ContentType? contentType, bool includeTorrents)
     {
         Log.Debug("Searching Series on all enabled connectors in scope:");
@@ -42,7 +42,7 @@ public class Global : SeriesSource
         Log.Debug(string.Join(", ", enabledConnectors.Select(c => c.Name)));
 
         Task<(Series, SourceId<Series>)[]>[] tasks =
-            enabledConnectors.Select(c => c.SearchManga(mangaSearchName)).ToArray();
+            enabledConnectors.Select(c => c.SearchSeries(mangaSearchName)).ToArray();
         
         await Task.WhenAll(tasks);
 
@@ -55,13 +55,13 @@ public class Global : SeriesSource
         return ret;
     }
 
-    public override async Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string url)
+    public override async Task<(Series, SourceId<Series>)?> GetSeriesFromUrl(string url)
     {
         SeriesSource? mc = GetConnectors().FirstOrDefault(c => c.UrlMatchesConnector(url));
-        return mc is not null ? await mc.GetMangaFromUrl(url) : null;
+        return mc is not null ? await mc.GetSeriesFromUrl(url) : null;
     }
 
-    public override async Task<(Series, SourceId<Series>)?> GetMangaFromId(string mangaIdOnSite)
+    public override async Task<(Series, SourceId<Series>)?> GetSeriesFromId(string mangaIdOnSite)
     {
         return null;
     }

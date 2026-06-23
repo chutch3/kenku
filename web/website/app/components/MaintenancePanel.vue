@@ -1,7 +1,7 @@
 <template>
     <div class="flex flex-col gap-4">
         <div class="flex gap-2 flex-wrap">
-            <UButton icon="i-lucide-database" variant="soft" loading-auto class="w-fit" @click="run('/v2/Maintenance/CleanupNoDownloadManga', 'Removed series with no download sources', FetchKeys.Series.All)">
+            <UButton icon="i-lucide-database" variant="soft" loading-auto class="w-fit" @click="run('/v2/Maintenance/CleanupNoDownloadSeries', 'Removed series with no download sources', FetchKeys.Series.All)">
                 Clean database
             </UButton>
             <UButton icon="i-lucide-captions-off" variant="soft" loading-auto class="w-fit" @click="run('/v2/Maintenance/CleanupActions', 'Action log cleared')">

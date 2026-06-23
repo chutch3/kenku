@@ -13,7 +13,7 @@ public enum CleanupKind
     /// <summary>Delete already-sent notifications.</summary>
     OldNotifications,
     /// <summary>Delete cover-cache files no series references.</summary>
-    MangaCovers,
+    SeriesCovers,
     /// <summary>Delete source-ids whose connector no longer exists (orphans).</summary>
     OrphanSourceIds,
     /// <summary>Delete library archive files not tracked as downloaded chapters.</summary>
@@ -24,7 +24,7 @@ public enum CleanupKind
 
 /// <summary>
 /// The parameterized cleanup domain logic, shared by the Cleanup job handler (and previously the
-/// RemoveOldNotifications / CleanupMangaCovers / CleanupSourceIdsWithoutSource workers). Each routine is
+/// RemoveOldNotifications / CleanupSeriesCovers / CleanupSourceIdsWithoutSource workers). Each routine is
 /// idempotent: a re-run removes zero new items.
 /// </summary>
 public class CleanupService
@@ -53,7 +53,7 @@ public class CleanupService
         Log.DebugFormat("Removed {0} completed jobs finished before {1:o}.", removed, cutoff);
     }
 
-    public void CleanupMangaCovers(SeriesContext context, KenkuSettings settings, CancellationToken ct)
+    public void CleanupSeriesCovers(SeriesContext context, KenkuSettings settings, CancellationToken ct)
     {
         Log.Info("Removing stale cover files...");
         string[] usedFiles = context.Series.Where(m => m.CoverFileNameInCache != null)
@@ -95,7 +95,7 @@ public class CleanupService
 
         List<FileLibrary> libraries = await context.FileLibraries.ToListAsync(ct);
         List<Chapter> chapters = await context.Chapters
-            .Include(c => c.ParentManga)
+            .Include(c => c.ParentSeries)
             .ThenInclude(m => m.Library)
             .Where(c => c.Downloaded && c.FileName != null)
             .ToListAsync(ct);
@@ -182,14 +182,14 @@ public class CleanupService
         if (await context.SeriesSourceIds.Include(id => id.Obj)
                 .Where(mcId => connectorNames.All(name => name != mcId.SeriesSourceName)).ToListAsync(ct) is { Count: > 0 } list)
         {
-            string filePath = Path.Join(settings.WorkingDirectory, $"deletedManga-{DateTime.UtcNow.Ticks}.txt");
+            string filePath = Path.Join(settings.WorkingDirectory, $"deletedSeries-{DateTime.UtcNow.Ticks}.txt");
             Log.DebugFormat("Writing deleted manga to {0}.", filePath);
             await File.WriteAllLinesAsync(filePath,
                 list.Select(id => string.Join('-', id.SeriesSourceName, id.IdOnConnectorSite, id.Obj.Name, id.WebsiteUrl)), ct);
         }
-        int deletedMangaIds = await context.SeriesSourceIds
+        int deletedSeriesIds = await context.SeriesSourceIds
             .Where(mcId => connectorNames.All(name => name != mcId.SeriesSourceName)).ExecuteDeleteAsync(ct);
-        Log.InfoFormat("Deleted {0} mangaIds.", deletedMangaIds);
+        Log.InfoFormat("Deleted {0} mangaIds.", deletedSeriesIds);
 
         if (await context.Sync(ct, typeof(CleanupService), nameof(CleanupOrphanSourceIdsAsync)) is { success: false } e)
             Log.ErrorFormat("Failed to save database changes: {0}", e.exceptionMessage);

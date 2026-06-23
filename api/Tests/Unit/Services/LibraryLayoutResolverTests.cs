@@ -2,7 +2,7 @@ using API.Services.Interfaces;
 using API;
 using API.Schema.SeriesContext;
 using API.Services;
-using SchemaManga = API.Schema.SeriesContext.Series;
+using SchemaSeries = API.Schema.SeriesContext.Series;
 using SchemaFileLibrary = API.Schema.SeriesContext.FileLibrary;
 using SchemaChapter = API.Schema.SeriesContext.Chapter;
 
@@ -72,7 +72,7 @@ public class LibraryLayoutResolverTests
     public void Resolve_DerivesPathFromSeriesLayoutAndChapterVolume()
     {
         var library = new SchemaFileLibrary("/library", "Lib");
-        var manga = new SchemaManga("My Series", "", "http://example.com/img.jpg",
+        var manga = new SchemaSeries("My Series", "", "http://example.com/img.jpg",
             SeriesReleaseStatus.Continuing, [], [], [], [], library);
         manga.LibraryLayout = LibraryLayout.VolumeFolder;
         var chapter = new SchemaChapter(manga, "1", 4, null);

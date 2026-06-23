@@ -111,7 +111,7 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.IDisco
     private static string LatestUrl(int page) => $"https://getcomics.org/page/{page}/";
     private static string CategoryUrl(string slug) => $"https://getcomics.org/cat/{slug}/";
 
-    public override async Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName)
+    public override async Task<(Series, SourceId<Series>)[]> SearchSeries(string mangaSearchName)
     {
         Post[] posts = await FetchSearchPage(SearchUrl(mangaSearchName, 1)) ?? [];
         (Series, SourceId<Series>)[] list = CollapsePosts(posts);
@@ -134,9 +134,9 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.IDisco
         return list.ToArray();
     }
 
-    public override async Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string url)
+    public override async Task<(Series, SourceId<Series>)?> GetSeriesFromUrl(string url)
     {
-        using HttpResponseMessage response = await downloadClient.MakeRequest(url, RequestType.MangaInfo);
+        using HttpResponseMessage response = await downloadClient.MakeRequest(url, RequestType.SeriesInfo);
         if (!response.IsSuccessStatusCode)
         {
             Log.ErrorFormat("Failed to retrieve post page {0}: HTTP {1}", url, (int)response.StatusCode);
@@ -156,12 +156,12 @@ public class GetComics : SeriesSource, IArchiveUrlResolver, API.Discovery.IDisco
         return BuildSeries(parsed.SeriesTitle, parsed.Year, coverUrl);
     }
 
-    public override async Task<(Series, SourceId<Series>)?> GetMangaFromId(string mangaIdOnSite)
+    public override async Task<(Series, SourceId<Series>)?> GetSeriesFromId(string mangaIdOnSite)
     {
         // The id is the collapsed series title; re-searching reproduces the same collapse (and its
         // cover — building the series bare here would lose it at add time). For an ended run the
         // recency-ordered search page misses it, so the per-series tag archive answers instead.
-        (Series, SourceId<Series>)? match = MatchByName(await SearchManga(mangaIdOnSite), mangaIdOnSite);
+        (Series, SourceId<Series>)? match = MatchByName(await SearchSeries(mangaIdOnSite), mangaIdOnSite);
         if (match is not null)
             return match;
 

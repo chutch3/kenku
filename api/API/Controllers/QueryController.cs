@@ -48,7 +48,7 @@ public class QueryController(SeriesContext mangaContext, NotificationsContext no
         // query also hardcoded the wrong physical table name for Series, which is mapped to "Mangas").
         CancellationToken ct = HttpContext.RequestAborted;
         Stats stats = new(
-            NumberManga: await mangaContext.Series.CountAsync(ct),
+            NumberSeries: await mangaContext.Series.CountAsync(ct),
             NumberChapters: await mangaContext.Chapters.CountAsync(ct),
             MissingChapters: await mangaContext.Chapters.CountAsync(c => !c.Downloaded, ct),
             DownloadedChapters: await mangaContext.Chapters.CountAsync(c => c.Downloaded, ct),

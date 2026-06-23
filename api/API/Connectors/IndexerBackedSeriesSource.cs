@@ -37,7 +37,7 @@ public sealed class IndexerBackedSeriesSource : SeriesSource
 
     public override ContentType ContentType => ContentType.Comic;
 
-    public override async Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName)
+    public override async Task<(Series, SourceId<Series>)[]> SearchSeries(string mangaSearchName)
     {
         IndexerSearchResult[] results = await _indexers.Search(
             new IndexerQuery(mangaSearchName, null, null, _categories), CancellationToken.None);
@@ -57,10 +57,10 @@ public sealed class IndexerBackedSeriesSource : SeriesSource
         return list.ToArray();
     }
 
-    public override Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string url)
+    public override Task<(Series, SourceId<Series>)?> GetSeriesFromUrl(string url)
         => Task.FromResult<(Series, SourceId<Series>)?>(null);
 
-    public override Task<(Series, SourceId<Series>)?> GetMangaFromId(string mangaIdOnSite)
+    public override Task<(Series, SourceId<Series>)?> GetSeriesFromId(string mangaIdOnSite)
         => Task.FromResult<(Series, SourceId<Series>)?>(BuildSeries(mangaIdOnSite, null));
 
     public override async Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> seriesId, string? language = null)

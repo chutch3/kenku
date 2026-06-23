@@ -6,7 +6,7 @@ namespace API.Tests.Integration;
 
 /// <summary>
 /// Outside-in: a series is imported through the actual add-to-library HTTP endpoint, so the request flows
-/// controller -> WeebCentral connector -> UpsertManga -> EF. The only thing stubbed is the connector's HTTP
+/// controller -> WeebCentral connector -> UpsertSeries -> EF. The only thing stubbed is the connector's HTTP
 /// edge (the injected <see cref="API.HttpRequesters.Interfaces.IHttpRequester"/>). Asserts the external links the
 /// connector surfaced actually round-tripped to the database.
 /// </summary>
@@ -34,7 +34,7 @@ public class ConnectorLinkCaptureEndToEndTests() : OutboundHttpIntegrationTest(C
     public async Task ReimportingExistingSeries_BackfillsItsExternalLinks_WithoutDuplicating()
     {
         // A series imported before link-capture existed has no links. Re-importing it must backfill the
-        // links onto the SAME series (UpsertManga merge path), not drop them or create a duplicate.
+        // links onto the SAME series (UpsertSeries merge path), not drop them or create a duplicate.
         string libraryKey = await SeedLibrary();
         await App.WithSeriesContext(async ctx =>
         {

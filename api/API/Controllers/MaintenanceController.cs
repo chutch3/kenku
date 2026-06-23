@@ -26,10 +26,10 @@ public class MaintenanceController(SeriesContext mangaContext, ActionsContext ac
     /// </summary>
     /// <response code="200"></response>
     /// <response code="500">Error during Database Operation</response>
-    [HttpPost("CleanupNoDownloadManga")]
+    [HttpPost("CleanupNoDownloadSeries")]
     [ProducesResponseType(Status200OK)]
     [ProducesResponseType<string>(Status500InternalServerError, "text/plain")]
-    public async Task<Results<Ok, InternalServerError<string>>> CleanupNoDownloadManga()
+    public async Task<Results<Ok, InternalServerError<string>>> CleanupNoDownloadSeries()
     {
         if (await mangaContext.Series
                 .Include(m => m.SourceIds)

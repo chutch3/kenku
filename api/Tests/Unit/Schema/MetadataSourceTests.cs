@@ -13,13 +13,13 @@ public class MetadataSourceTests
         return new SeriesContext(options);
     }
 
-    private static Series MakeTestManga(string name = "Test Series")
+    private static Series MakeTestSeries(string name = "Test Series")
         => new(name, "", "http://example.com/img.jpg", SeriesReleaseStatus.Continuing, [], [], [], []);
 
     [Fact]
     public void NewManga_InitializesMetadataSource_WithConnectorTypeAndUnlinkedStatus()
     {
-        var manga = MakeTestManga("One Piece");
+        var manga = MakeTestSeries("One Piece");
 
         Assert.NotNull(manga.MetadataSource);
         Assert.Equal(MetadataSourceType.Connector, manga.MetadataSource!.SourceType);
@@ -32,7 +32,7 @@ public class MetadataSourceTests
     [Fact]
     public void NewManga_MetadataSource_HasCorrectMangaId()
     {
-        var manga = MakeTestManga("Naruto");
+        var manga = MakeTestSeries("Naruto");
 
         Assert.Equal(manga.Key, manga.MetadataSource!.SeriesId);
     }
@@ -46,7 +46,7 @@ public class MetadataSourceTests
             .Options;
 
         await using var ctx = new SeriesContext(options);
-        var manga = MakeTestManga("Bleach");
+        var manga = MakeTestSeries("Bleach");
         ctx.Series.Add(manga);
         await ctx.SaveChangesAsync();
 
@@ -63,7 +63,7 @@ public class MetadataSourceTests
     [Fact]
     public void MetadataSource_CanUpdateFields()
     {
-        var manga = MakeTestManga("Dragon Ball");
+        var manga = MakeTestSeries("Dragon Ball");
         var source = manga.MetadataSource!;
 
         source.SourceType = MetadataSourceType.MangaDex;

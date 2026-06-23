@@ -24,7 +24,7 @@ public class WeebCentral : SeriesSource
 
     public override AcquisitionKind Kind => AcquisitionKind.ImageList;
 
-    public override async Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName)
+    public override async Task<(Series, SourceId<Series>)[]> SearchSeries(string mangaSearchName)
     {
         Log.InfoFormat("Searching: {0}", mangaSearchName);
         string sanitizedTitle = string.Join(' ', Regex.Matches(mangaSearchName, @"[A-Za-z]+").Where(m => m.Value.Length > 0)).ToLowerInvariant();
@@ -61,7 +61,7 @@ public class WeebCentral : SeriesSource
                 if (seenUrls.Add(fullUrl))
                 {
                     Log.DebugFormat("Fetching from {0}", fullUrl); // Debug URL
-                    (Series, SourceId<Series>)? manga = await GetMangaFromUrl(fullUrl);
+                    (Series, SourceId<Series>)? manga = await GetSeriesFromUrl(fullUrl);
                     if (manga.HasValue)
                     {
                         mangas.Add(manga.Value);
@@ -79,7 +79,7 @@ public class WeebCentral : SeriesSource
         return mangas.DistinctBy(r => r.Item1.Key).ToArray(); // Dedup by manga Key
     }
 
-   public override async Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string url)
+   public override async Task<(Series, SourceId<Series>)?> GetSeriesFromUrl(string url)
     {
         Log.InfoFormat("Fetching manga from URL: {0}", url);
         // Robust regex: Capture full slug before optional UID
@@ -91,7 +91,7 @@ public class WeebCentral : SeriesSource
         string storedUrl = $"https://weebcentral.com/series/{coreSlug}";  // Stable wildcard
 
         // Fetch once using full url (no double fetch)
-        using HttpResponseMessage response = await downloadClient.MakeRequest(url, RequestType.MangaInfo);
+        using HttpResponseMessage response = await downloadClient.MakeRequest(url, RequestType.SeriesInfo);
         if (!response.IsSuccessStatusCode)
         {
             Log.Error("Failed to retrieve manga page");
@@ -102,13 +102,13 @@ public class WeebCentral : SeriesSource
         HtmlDocument doc = new();
         doc.LoadHtml(html);
 
-        return ParseMangaFromHtml(doc, coreSlug, storedUrl);
+        return ParseSeriesFromHtml(doc, coreSlug, storedUrl);
     }
 
-    public override async Task<(Series, SourceId<Series>)?> GetMangaFromId(string mangaIdOnSite)
+    public override async Task<(Series, SourceId<Series>)?> GetSeriesFromId(string mangaIdOnSite)
     {
         string url = $"https://weebcentral.com/series/{mangaIdOnSite}";
-        using HttpResponseMessage response = await downloadClient.MakeRequest(url, RequestType.MangaInfo);
+        using HttpResponseMessage response = await downloadClient.MakeRequest(url, RequestType.SeriesInfo);
         if (!response.IsSuccessStatusCode)
         {
             Log.Error("Failed to retrieve manga page");
@@ -119,10 +119,10 @@ public class WeebCentral : SeriesSource
         HtmlDocument doc = new();
         doc.LoadHtml(html);
 
-        return ParseMangaFromHtml(doc, mangaIdOnSite, url); // Use full slug as ID
+        return ParseSeriesFromHtml(doc, mangaIdOnSite, url); // Use full slug as ID
     }
 
-    private (Series, SourceId<Series>) ParseMangaFromHtml(HtmlDocument doc, string mangaIdOnSite, string url)
+    private (Series, SourceId<Series>) ParseSeriesFromHtml(HtmlDocument doc, string mangaIdOnSite, string url)
     {
         // Title with cleanup (kept for robustness, but simple decode to match original)
         HtmlNode? titleNode = doc.DocumentNode.SelectSingleNode("//title");
@@ -280,9 +280,9 @@ public class WeebCentral : SeriesSource
         }
 
         string? referrer = null;
-        if (chapterId.Obj.ParentManga.SourceIds is not null && chapterId.Obj.ParentManga.SourceIds.Any())
+        if (chapterId.Obj.ParentSeries.SourceIds is not null && chapterId.Obj.ParentSeries.SourceIds.Any())
         {
-            referrer = chapterId.Obj.ParentManga.SourceIds
+            referrer = chapterId.Obj.ParentSeries.SourceIds
                 .FirstOrDefault(id => id.SeriesSourceName == this.Name)?.WebsiteUrl;
         }
 

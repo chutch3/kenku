@@ -96,7 +96,7 @@ public class ComicHubFreeTests
         string? requestedUrl = null;
         var connector = CreateConnector(url => { requestedUrl = url; return Html(html); });
 
-        var results = await connector.SearchManga("the boys");
+        var results = await connector.SearchSeries("the boys");
 
         Assert.Equal(2, results.Length);
         var boys = Assert.Single(results, r => r.Item1.Name == "The Boys");
@@ -112,7 +112,7 @@ public class ComicHubFreeTests
     {
         var connector = CreateConnector(_ => Html(NoResultsPage));
 
-        Assert.Empty(await connector.SearchManga("zzz"));
+        Assert.Empty(await connector.SearchSeries("zzz"));
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public class ComicHubFreeTests
     {
         var connector = CreateConnector(_ => Html("<html><body><p>maintenance</p></body></html>"));
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => connector.SearchManga("saga"));
+        await Assert.ThrowsAsync<HttpRequestException>(() => connector.SearchSeries("saga"));
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public class ComicHubFreeTests
     {
         var connector = CreateConnector(_ => Html(SeriesPage("The Boys", IssueRow("the-boys", "1", "The Boys Issue #1"))));
 
-        var result = await connector.GetMangaFromId("the-boys");
+        var result = await connector.GetSeriesFromId("the-boys");
 
         Assert.NotNull(result);
         Assert.Equal("The Boys", result.Value.Item1.Name);
@@ -141,7 +141,7 @@ public class ComicHubFreeTests
     {
         var connector = CreateConnector(_ => Html(SeriesPage("The Boys", IssueRow("the-boys", "1", "The Boys Issue #1"))));
 
-        var result = await connector.GetMangaFromUrl("https://comichubfree.com/comic/the-boys");
+        var result = await connector.GetSeriesFromUrl("https://comichubfree.com/comic/the-boys");
 
         Assert.NotNull(result);
         Assert.Equal("The Boys", result.Value.Item1.Name);

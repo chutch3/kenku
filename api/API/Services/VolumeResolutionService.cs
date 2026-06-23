@@ -470,10 +470,10 @@ public class VolumeResolutionService(
         return jaro + prefix * 0.1f * (1.0f - jaro);
     }
 
-    private static float ScoreCandidate(string normalizedMangaTitle, int ourChapterCount, MangaDexSearchResult candidate)
+    private static float ScoreCandidate(string normalizedSeriesTitle, int ourChapterCount, MangaDexSearchResult candidate)
     {
         string candidateTitle = NormalizeTitle(candidate.Title);
-        float titleSim = JaroWinkler(normalizedMangaTitle, candidateTitle);
+        float titleSim = JaroWinkler(normalizedSeriesTitle, candidateTitle);
 
         // MangaDex's lastChapter is frequently empty for ongoing series (e.g. Dandadan), which
         // leaves us with no chapter-count signal. When the count is unavailable, score on title

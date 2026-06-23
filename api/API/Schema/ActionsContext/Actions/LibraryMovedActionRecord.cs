@@ -5,7 +5,7 @@ using API.Schema.SeriesContext;
 namespace API.Schema.ActionsContext.Actions;
 
 public sealed class LibraryMovedActionRecord(Actions action, DateTime performedAt, string seriesId, string fileLibraryId)
-    : ActionRecord(action, performedAt), IActionWithMangaRecord
+    : ActionRecord(action, performedAt), IActionWithSeriesRecord
 {
     public LibraryMovedActionRecord(Series manga, FileLibrary library) : this(Actions.LibraryMoved, DateTime.UtcNow, manga.Key, library.Key) { }
     

@@ -52,7 +52,7 @@ public class HttpRequesterTests
             Content = new StringContent("not found")
         });
 
-        HttpResponseMessage response = await client.MakeRequest("http://example.test/missing", RequestType.MangaInfo);
+        HttpResponseMessage response = await client.MakeRequest("http://example.test/missing", RequestType.SeriesInfo);
 
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
     }

@@ -32,7 +32,7 @@ public static class CoverImageCache
         if (File.Exists(saveImagePath))
             return filename;
 
-        using HttpResponseMessage coverResult = await http.MakeRequest(seriesId.Obj.CoverUrl, RequestType.MangaCover, $"https://{match.Groups[1].Value}");
+        using HttpResponseMessage coverResult = await http.MakeRequest(seriesId.Obj.CoverUrl, RequestType.SeriesCover, $"https://{match.Groups[1].Value}");
         if ((int)coverResult.StatusCode < 200 || (int)coverResult.StatusCode >= 300)
             return await SaveAsync(settings, http, seriesId, retries - 1);
 

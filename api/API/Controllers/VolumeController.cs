@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using static Microsoft.AspNetCore.Http.StatusCodes;
-using SchemaManga = API.Schema.SeriesContext.Series;
+using SchemaSeries = API.Schema.SeriesContext.Series;
 using JobEntity = API.Schema.JobsContext.Job;
 
 // ReSharper disable InconsistentNaming
@@ -51,10 +51,10 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IJo
 
         string namingScheme = settings.ChapterNamingScheme;
 
-        // Attach ParentManga to each chapter (needed for GetArchiveFileName, FullArchiveFilePath)
+        // Attach ParentSeries to each chapter (needed for GetArchiveFileName, FullArchiveFilePath)
         foreach (var chapter in manga.Chapters)
         {
-            chapter.ParentManga = manga;
+            chapter.ParentSeries = manga;
         }
 
         // Count chapters whose stored FileName differs from what the naming scheme would produce.
@@ -151,7 +151,7 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IJo
             return TypedResults.NotFound(nameof(SeriesId));
 
         foreach (var chapter in manga.Chapters)
-            chapter.ParentManga = manga;
+            chapter.ParentSeries = manga;
 
         var preview = ComputeReorganizePreview(manga);
         return TypedResults.Ok(preview);
@@ -179,7 +179,7 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IJo
             return TypedResults.NotFound(nameof(SeriesId));
 
         foreach (var chapter in manga.Chapters)
-            chapter.ParentManga = manga;
+            chapter.ParentSeries = manga;
 
         var preview = ComputeReorganizePreview(manga);
 
@@ -218,7 +218,7 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IJo
     /// Stores the layout preference and returns a reorganize preview using the new layout.
     /// Does NOT execute any file moves.
     /// </summary>
-    /// <param name="SeriesId"><see cref="SchemaManga"/>.Key</param>
+    /// <param name="SeriesId"><see cref="SchemaSeries"/>.Key</param>
     /// <param name="request">New layout preference</param>
     /// <response code="200">Layout stored; response includes reorganize preview with new layout paths</response>
     /// <response code="404">Series not found</response>
@@ -239,7 +239,7 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IJo
         await context.Sync(HttpContext.RequestAborted, GetType(), nameof(PutLibraryLayout));
 
         foreach (var chapter in manga.Chapters)
-            chapter.ParentManga = manga;
+            chapter.ParentSeries = manga;
 
         var preview = ComputeReorganizePreview(manga);
         var result = new LibraryLayoutResult(
@@ -255,7 +255,7 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IJo
     /// Chapters not found are listed in the response; the request is not failed.
     /// Also marks MetadataSource as Manual/Confirmed on the manga.
     /// </summary>
-    /// <param name="SeriesId"><see cref="SchemaManga"/>.Key</param>
+    /// <param name="SeriesId"><see cref="SchemaSeries"/>.Key</param>
     /// <param name="request">Map of ChapterNumber to VolumeNumber</param>
     /// <response code="200">Assignment applied; returns count of applied and list of not-found chapter numbers</response>
     /// <response code="404">Series not found</response>
@@ -306,7 +306,7 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IJo
     /// <summary>
     /// Enqueues a ReconcileVolumeBundle job to merge all unbundled chapters into a single CBZ.
     /// </summary>
-    /// <param name="SeriesId"><see cref="SchemaManga"/>.Key</param>
+    /// <param name="SeriesId"><see cref="SchemaSeries"/>.Key</param>
     /// <param name="VolumeNumber">Volume number to bundle</param>
     /// <response code="202">Worker queued; returns job ID</response>
     /// <response code="404">Series or VolumeMetadata not found</response>
@@ -342,7 +342,7 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IJo
     /// <summary>
     /// Enqueues a ReconcileVolumeBundle (Unbundle) job to split the bundle CBZ back into chapter CBZs.
     /// </summary>
-    /// <param name="SeriesId"><see cref="SchemaManga"/>.Key</param>
+    /// <param name="SeriesId"><see cref="SchemaSeries"/>.Key</param>
     /// <param name="VolumeNumber">Volume number to unbundle</param>
     /// <response code="202">Worker queued; returns job ID (may include warning if no map exists)</response>
     /// <response code="404">Series or VolumeMetadata not found</response>
@@ -384,13 +384,13 @@ public class VolumeController(SeriesContext context, KenkuSettings settings, IJo
 
     // Layout→path logic lives in LibraryLayoutResolver so the downloader and this preview/reorganize
     // path can never disagree about where a chapter belongs.
-    private static string ComputeTargetPath(SchemaManga manga, Schema.SeriesContext.Chapter chapter, KenkuSettings settings)
+    private static string ComputeTargetPath(SchemaSeries manga, Schema.SeriesContext.Chapter chapter, KenkuSettings settings)
         => API.Services.LibraryLayoutResolver
             .ComputePath(manga.LibraryLayout, manga.FullDirectoryPath, chapter.VolumeNumber,
                 chapter.GetArchiveFileName(settings.ChapterNamingScheme))
             .FullPath;
 
-    private ReorganizePreviewResult ComputeReorganizePreview(SchemaManga manga)
+    private ReorganizePreviewResult ComputeReorganizePreview(SchemaSeries manga)
     {
         string mangaDir = manga.FullDirectoryPath;
 

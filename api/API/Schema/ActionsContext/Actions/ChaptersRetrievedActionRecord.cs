@@ -4,7 +4,7 @@ using API.Schema.SeriesContext;
 namespace API.Schema.ActionsContext.Actions;
 
 public sealed class ChaptersRetrievedActionRecord(Actions action, DateTime performedAt, string seriesId)
-    : ActionRecord(action, performedAt), IActionWithMangaRecord
+    : ActionRecord(action, performedAt), IActionWithSeriesRecord
 {
     public ChaptersRetrievedActionRecord(Series manga, int chapterCount)
         : this(Actions.ChaptersRetrieved, DateTime.UtcNow, manga.Key)

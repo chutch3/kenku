@@ -47,7 +47,7 @@ public class ChapterPreviewTests : IDisposable
         return new SeriesContext(options);
     }
 
-    private static API.Schema.SeriesContext.Series MakeTestManga(string name = "Test Series")
+    private static API.Schema.SeriesContext.Series MakeTestSeries(string name = "Test Series")
         => new(name, "", "http://example.com/img.jpg", SeriesReleaseStatus.Continuing, [], [], [], []);
 
     private ChaptersController CreateController(SeriesContext ctx, IChapterThumbnailService? thumbnailService = null)
@@ -144,7 +144,7 @@ public class ChapterPreviewTests : IDisposable
     public async Task GetPreview_WhenCacheExists_StreamsCachedFile()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Berserk");
+        var manga = MakeTestSeries("Berserk");
         var chapter = new API.Schema.SeriesContext.Chapter(manga, "1", 1);
         ctx.Series.Add(manga);
         ctx.Chapters.Add(chapter);
@@ -171,7 +171,7 @@ public class ChapterPreviewTests : IDisposable
     public async Task GetPreview_WhenNoCacheAndValidCbz_GeneratesThumbnailAndReturns200()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("One Piece");
+        var manga = MakeTestSeries("One Piece");
         var chapter = new API.Schema.SeriesContext.Chapter(manga, "1", 1);
 
         // Create a real CBZ in the temp dir
@@ -180,7 +180,7 @@ public class ChapterPreviewTests : IDisposable
 
         chapter.FileName = "chapter1.cbz";
         // Wire up the chapter's full path by attaching the manga to a library-like structure
-        // We set ParentManga so FullArchiveFilePath resolves to cbzPath
+        // We set ParentSeries so FullArchiveFilePath resolves to cbzPath
         ctx.Series.Add(manga);
         ctx.Chapters.Add(chapter);
         await ctx.SaveChangesAsync();
@@ -207,15 +207,15 @@ public class ChapterPreviewTests : IDisposable
     public async Task GetPreview_WhenNoCacheAndValidCbz_WithRealArchive_GeneratesThumbnailAndReturns200()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Naruto");
+        var manga = MakeTestSeries("Naruto");
         var chapter = new API.Schema.SeriesContext.Chapter(manga, "5", 1);
 
         string cbzPath = Path.Combine(_tempDir, "naruto_ch5.cbz");
         CreateCbzWithImage(cbzPath, "page001.jpg");
 
         // We need to give the chapter a FileName that resolves to cbzPath.
-        // The chapter's FullArchiveFilePath uses ParentManga.FullDirectoryPath + FileName.
-        // Since ParentManga has no library in tests, FullArchiveFilePath will be null.
+        // The chapter's FullArchiveFilePath uses ParentSeries.FullDirectoryPath + FileName.
+        // Since ParentSeries has no library in tests, FullArchiveFilePath will be null.
         // Instead, we test the service directly with the correct path.
         var mockService = new Mock<IChapterThumbnailService>();
         string cachePath = Path.Combine(_previewsDir, $"{chapter.Key}.jpg");
@@ -247,7 +247,7 @@ public class ChapterPreviewTests : IDisposable
     public async Task GetPreview_WhenNoCacheAndUnreadableArchive_Returns404()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Bleach");
+        var manga = MakeTestSeries("Bleach");
         var chapter = new API.Schema.SeriesContext.Chapter(manga, "10", 2);
         ctx.Series.Add(manga);
         ctx.Chapters.Add(chapter);
@@ -269,7 +269,7 @@ public class ChapterPreviewTests : IDisposable
     public async Task GetPreview_WhenNoCacheAndNoImages_Returns404()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Attack on Titan");
+        var manga = MakeTestSeries("Attack on Titan");
         var chapter = new API.Schema.SeriesContext.Chapter(manga, "3", 1);
         ctx.Series.Add(manga);
         ctx.Chapters.Add(chapter);
@@ -298,7 +298,7 @@ public class ChapterPreviewTests : IDisposable
     public async Task GetPreview_WhenBundled_Returns404()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Dragon Ball");
+        var manga = MakeTestSeries("Dragon Ball");
         var chapter = new API.Schema.SeriesContext.Chapter(manga, "1", 1);
         chapter.IsBundled = true;
         ctx.Series.Add(manga);
@@ -345,7 +345,7 @@ public class ChapterPreviewTests : IDisposable
     public async Task GetPreview_ServiceGeneratesThumbnail_CacheFileCreatedAndStreamed()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("HxH");
+        var manga = MakeTestSeries("HxH");
         var chapter = new API.Schema.SeriesContext.Chapter(manga, "1", 1);
         ctx.Series.Add(manga);
         ctx.Chapters.Add(chapter);

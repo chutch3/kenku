@@ -23,7 +23,7 @@ public class TorrentFinalizationService
         IDownloadClient downloadClient, KenkuSettings settings, string sourceIdKey, string savePath, CancellationToken ct)
     {
         SourceId<Chapter>? chId = await seriesContext.ChapterSourceIds
-            .Include(id => id.Obj).ThenInclude(c => c.ParentManga).ThenInclude(m => m.Library)
+            .Include(id => id.Obj).ThenInclude(c => c.ParentSeries).ThenInclude(m => m.Library)
             .FirstOrDefaultAsync(id => id.Key == sourceIdKey, ct);
         if (chId is null)
         {
@@ -35,7 +35,7 @@ public class TorrentFinalizationService
         if (chapter.Downloaded)
             return;
 
-        if (chapter.ParentManga.LibraryId is null)
+        if (chapter.ParentSeries.LibraryId is null)
         {
             Log.WarnFormat("Torrent for {0} completed but chapter has no library assigned; skipping.", chapter);
             return;
@@ -67,7 +67,7 @@ public class TorrentFinalizationService
             List<Chapter> seriesChapters = await seriesContext.Chapters
                 .Where(c => c.ParentSeriesId == chapter.ParentSeriesId && !c.Downloaded)
                 .ToListAsync(ct);
-            placed = FanOut(archives, chapter.ParentManga.Name, seriesChapters, settings, actionsContext);
+            placed = FanOut(archives, chapter.ParentSeries.Name, seriesChapters, settings, actionsContext);
         }
 
         if (placed == 0)
@@ -83,7 +83,7 @@ public class TorrentFinalizationService
         // has ratio targets. The .cbz files themselves we already moved out.
         await downloadClient.Remove(sourceIdKey, deleteData: false, ct);
 
-        Log.InfoFormat("Finalised torrent for {0}: placed {1} chapter file(s).", chapter.ParentManga.Name, placed);
+        Log.InfoFormat("Finalised torrent for {0}: placed {1} chapter file(s).", chapter.ParentSeries.Name, placed);
     }
 
     /// <summary>
@@ -186,7 +186,7 @@ public class TorrentFinalizationService
 
         chapter.Downloaded = true;
         chapter.FileName = new FileInfo(targetPath).Name;
-        actionsContext.Actions.Add(new ChapterDownloadedActionRecord(chapter.ParentManga, chapter));
+        actionsContext.Actions.Add(new ChapterDownloadedActionRecord(chapter.ParentSeries, chapter));
         return true;
     }
 }

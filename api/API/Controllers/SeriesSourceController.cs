@@ -1,7 +1,7 @@
 using API.Services.Interfaces;
 ﻿using API.Controllers.DTOs;
 using API.Connectors;
-using MangaConnectorImpl = API.Connectors.SeriesSource;
+using SeriesSourceImpl = API.Connectors.SeriesSource;
 using API.Schema.SeriesContext;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -14,7 +14,7 @@ namespace API.Controllers;
 [ApiVersion(2)]
 [ApiController]
 [Route("v{v:apiVersion}/[controller]")]
-public class SeriesSourceController(SeriesContext context, IEnumerable<MangaConnectorImpl> connectors, KenkuSettings settings) : ControllerBase
+public class SeriesSourceController(SeriesContext context, IEnumerable<SeriesSourceImpl> connectors, KenkuSettings settings) : ControllerBase
 {
     /// <summary>
     /// Get all <see cref="API.Connectors.SeriesSource"/> (Scanlation-Sites)

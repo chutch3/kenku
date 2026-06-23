@@ -27,7 +27,7 @@ const props = defineProps<(SeriesSourceId | ChapterSourceId) & { ring?: boolean 
 
 const { data: mangaConnector } = await useApi('/v2/SeriesSource/{SeriesSourceName}', {
     path: { SeriesSourceName: props.seriesSourceName },
-    key: FetchKeys.MangaConnector.Id(props.seriesSourceName),
+    key: FetchKeys.SeriesSource.Id(props.seriesSourceName),
     server: false,
 });
 </script>

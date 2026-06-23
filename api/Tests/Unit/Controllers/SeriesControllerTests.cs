@@ -14,7 +14,7 @@ using ConnectorId = API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.S
 
 namespace API.Tests.Unit.Controllers;
 
-public class MangaControllerTests
+public class SeriesControllerTests
 {
     private (SeriesContext, ActionsContext) CreateContexts()
     {
@@ -42,17 +42,17 @@ public class MangaControllerTests
         return controller;
     }
 
-    private static API.Schema.SeriesContext.Series MakeTestManga(string name, string coverUrl = "http://example.com/img.jpg")
+    private static API.Schema.SeriesContext.Series MakeTestSeries(string name, string coverUrl = "http://example.com/img.jpg")
         => new(name, "", coverUrl, SeriesReleaseStatus.Continuing, [], [], [], []);
 
     [Fact]
     public async Task GetAllManga_ExcludesSearchOnlyManga()
     {
         var (ctx, actionsCtx) = CreateContexts();
-        ctx.Series.Add(MakeTestManga("SearchResult"));
+        ctx.Series.Add(MakeTestSeries("SearchResult"));
         await ctx.SaveChangesAsync();
 
-        var result = await CreateController(ctx, actionsCtx).GetAllManga();
+        var result = await CreateController(ctx, actionsCtx).GetAllSeries();
 
         var ok = Assert.IsType<Ok<List<MinimalSeries>>>(result.Result);
         Assert.Empty(ok.Value!);
@@ -66,11 +66,11 @@ public class MangaControllerTests
         ctx.FileLibraries.Add(library);
         await ctx.SaveChangesAsync();
 
-        var manga = MakeTestManga("New Series");
+        var manga = MakeTestSeries("New Series");
         var connectorId = new ConnectorId(manga, "MangaDex", "ext-id", null);
 
         var mockConnector = new Mock<API.Connectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
-        mockConnector.Setup(c => c.GetMangaFromId("ext-id")).ReturnsAsync((manga, connectorId));
+        mockConnector.Setup(c => c.GetSeriesFromId("ext-id")).ReturnsAsync((manga, connectorId));
 
         var controller = CreateController(ctx, actionsCtx, [mockConnector.Object]);
         var libraryService = new API.Services.SeriesLibraryService(
@@ -95,10 +95,10 @@ public class MangaControllerTests
 
         // The connector supplies its own cover, but the user added from Discover seeing a different one —
         // that feed cover must win and stick (User rank), so the cover doesn't swap on the first sync.
-        var manga = MakeTestManga("New Series", "https://connector/cover.jpg");
+        var manga = MakeTestSeries("New Series", "https://connector/cover.jpg");
         var connectorId = new ConnectorId(manga, "MangaDex", "ext-id", null);
         var mockConnector = new Mock<API.Connectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
-        mockConnector.Setup(c => c.GetMangaFromId("ext-id")).ReturnsAsync((manga, connectorId));
+        mockConnector.Setup(c => c.GetSeriesFromId("ext-id")).ReturnsAsync((manga, connectorId));
 
         var controller = CreateController(ctx, actionsCtx, [mockConnector.Object]);
         var libraryService = new API.Services.SeriesLibraryService(
@@ -122,10 +122,10 @@ public class MangaControllerTests
         ctx.FileLibraries.Add(library);
         await ctx.SaveChangesAsync();
 
-        var manga = MakeTestManga("New Series");
+        var manga = MakeTestSeries("New Series");
         var connectorId = new ConnectorId(manga, "MangaDex", "ext-id", null);
         var mockConnector = new Mock<API.Connectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
-        mockConnector.Setup(c => c.GetMangaFromId("ext-id")).ReturnsAsync((manga, connectorId));
+        mockConnector.Setup(c => c.GetSeriesFromId("ext-id")).ReturnsAsync((manga, connectorId));
 
         var controller = CreateController(ctx, actionsCtx, [mockConnector.Object]);
         var libraryService = new API.Services.SeriesLibraryService(

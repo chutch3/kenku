@@ -38,14 +38,14 @@ public class ChaptersControllerMetadataTests
         return controller;
     }
 
-    private static API.Schema.SeriesContext.Series MakeTestManga(string name = "Test Series")
+    private static API.Schema.SeriesContext.Series MakeTestSeries(string name = "Test Series")
         => new(name, "", "http://example.com/img.jpg", SeriesReleaseStatus.Continuing, [], [], [], []);
 
     [Fact]
     public async Task AssignVolume_NonNullVolume_SetsVolumeNumberAndManualConfidence()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Berserk");
+        var manga = MakeTestSeries("Berserk");
         var chapter = new SchemaChapter(manga, "1", null);
         ctx.Series.Add(manga);
         ctx.Chapters.Add(chapter);
@@ -69,7 +69,7 @@ public class ChaptersControllerMetadataTests
     public async Task AssignVolume_NullVolume_ClearsVolumeAndConfidence()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Bleach");
+        var manga = MakeTestSeries("Bleach");
         var chapter = new SchemaChapter(manga, "5", 3);
         chapter.MetadataConfidence = MetadataConfidence.Exact;
         ctx.Series.Add(manga);

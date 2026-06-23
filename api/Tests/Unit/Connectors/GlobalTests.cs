@@ -14,7 +14,7 @@ public class GlobalTests
         var mock = new Mock<SeriesSource>(name, new[] { "en" }, new[] { name + ".test" }, "icon", settings);
         var manga = new Series(resultName, "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], []);
         var id = new SourceId<Series>(manga, mock.Object, name + "-id", "url");
-        mock.Setup(c => c.SearchManga(It.IsAny<string>())).ReturnsAsync([(manga, id)]);
+        mock.Setup(c => c.SearchSeries(It.IsAny<string>())).ReturnsAsync([(manga, id)]);
         mock.Setup(c => c.ContentType).Returns(contentType);
         mock.Setup(c => c.Kind).Returns(kind);
         mock.Object.Enabled = true;
@@ -31,9 +31,9 @@ public class GlobalTests
         services.AddSingleton(Connector(settings, "Indexers", ContentType.Comic, API.Acquirers.AcquisitionKind.Torrent, "Torrent hit").Object);
         var global = new Global(settings, services.BuildServiceProvider());
 
-        var mangaOnly = await global.SearchMangaScoped("q", ContentType.Manga, includeTorrents: false);
-        var comicsNoTorrents = await global.SearchMangaScoped("q", ContentType.Comic, includeTorrents: false);
-        var everything = await global.SearchMangaScoped("q", null, includeTorrents: true);
+        var mangaOnly = await global.SearchSeriesScoped("q", ContentType.Manga, includeTorrents: false);
+        var comicsNoTorrents = await global.SearchSeriesScoped("q", ContentType.Comic, includeTorrents: false);
+        var everything = await global.SearchSeriesScoped("q", null, includeTorrents: true);
 
         Assert.Equal("Manga hit", Assert.Single(mangaOnly).Item1.Name);
         Assert.Equal("Comic hit", Assert.Single(comicsNoTorrents).Item1.Name);
@@ -51,13 +51,13 @@ public class GlobalTests
         var mockItConnector = new Mock<SeriesSource>("Mangaworld", new[] { "it" }, new[] { "mangaworld.mx" }, "icon", settings);
         var mangaIt = new Series("Dan Da Dan IT", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], []);
         var idIt = new SourceId<Series>(mangaIt, mockItConnector.Object, "it-id", "url");
-        mockItConnector.Setup(c => c.SearchManga(It.IsAny<string>())).ReturnsAsync([(mangaIt, idIt)]);
+        mockItConnector.Setup(c => c.SearchSeries(It.IsAny<string>())).ReturnsAsync([(mangaIt, idIt)]);
         mockItConnector.Object.Enabled = true;
 
         var mockEnConnector = new Mock<SeriesSource>("WeebCentral", new[] { "en" }, new[] { "weebcentral.com" }, "icon", settings);
         var mangaEn = new Series("Dan Da Dan EN", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], []);
         var idEn = new SourceId<Series>(mangaEn, mockEnConnector.Object, "en-id", "url");
-        mockEnConnector.Setup(c => c.SearchManga(It.IsAny<string>())).ReturnsAsync([(mangaEn, idEn)]);
+        mockEnConnector.Setup(c => c.SearchSeries(It.IsAny<string>())).ReturnsAsync([(mangaEn, idEn)]);
         mockEnConnector.Object.Enabled = true;
 
         services.AddSingleton(mockItConnector.Object);
@@ -66,9 +66,9 @@ public class GlobalTests
         var sp = services.BuildServiceProvider();
         var global = new Global(settings, sp);
 
-        var results = await global.SearchManga("Dan Da Dan");
+        var results = await global.SearchSeries("Dan Da Dan");
 
         Assert.Equal("Dan Da Dan EN", Assert.Single(results).Item1.Name);
-        mockItConnector.Verify(c => c.SearchManga(It.IsAny<string>()), Times.Never);
+        mockItConnector.Verify(c => c.SearchSeries(It.IsAny<string>()), Times.Never);
     }
 }

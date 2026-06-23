@@ -13,13 +13,13 @@ public class ChapterMetadataTests
         return new SeriesContext(options);
     }
 
-    private static Series MakeTestManga(string name = "Test Series")
+    private static Series MakeTestSeries(string name = "Test Series")
         => new(name, "", "http://example.com/img.jpg", SeriesReleaseStatus.Continuing, [], [], [], []);
 
     [Fact]
     public void NewChapter_MetadataConfidence_IsNull_ByDefault()
     {
-        var manga = MakeTestManga();
+        var manga = MakeTestSeries();
         var chapter = new Chapter(manga, "1", 1);
 
         Assert.Null(chapter.MetadataConfidence);
@@ -28,7 +28,7 @@ public class ChapterMetadataTests
     [Fact]
     public void NewChapter_IsBundled_IsFalse_ByDefault()
     {
-        var manga = MakeTestManga();
+        var manga = MakeTestSeries();
         var chapter = new Chapter(manga, "1", 1);
 
         Assert.False(chapter.IsBundled);
@@ -37,7 +37,7 @@ public class ChapterMetadataTests
     [Fact]
     public void Chapter_MetadataConfidence_CanBeSet()
     {
-        var manga = MakeTestManga();
+        var manga = MakeTestSeries();
         var chapter = new Chapter(manga, "1", 1);
 
         chapter.MetadataConfidence = MetadataConfidence.Exact;
@@ -56,7 +56,7 @@ public class ChapterMetadataTests
     [Fact]
     public void Chapter_IsBundled_CanBeSet()
     {
-        var manga = MakeTestManga();
+        var manga = MakeTestSeries();
         var chapter = new Chapter(manga, "1", 1);
 
         chapter.IsBundled = true;
@@ -67,7 +67,7 @@ public class ChapterMetadataTests
     public async Task Chapter_MetadataConfidence_PersistsToDatabase()
     {
         await using var ctx = CreateContext();
-        var manga = MakeTestManga("Berserk");
+        var manga = MakeTestSeries("Berserk");
         var chapter = new Chapter(manga, "42", 7);
         chapter.MetadataConfidence = MetadataConfidence.Exact;
         chapter.IsBundled = true;

@@ -28,7 +28,7 @@ public class MangaDexTests
         return mockClient;
     }
 
-    private static SourceId<Series> CreateDummyManga(SeriesSource connector)
+    private static SourceId<Series> CreateDummySeries(SeriesSource connector)
     {
         var manga = new Series("Test Series", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], []);
         return new SourceId<Series>(manga, connector, "test-id", "https://example.com/test");
@@ -59,7 +59,7 @@ public class MangaDexTests
         var settings = CreateSettings();
         var mangaDex = new MangaDex(settings, CreateMockClient(json).Object);
 
-        var seriesId = CreateDummyManga(mangaDex);
+        var seriesId = CreateDummySeries(mangaDex);
         var chapters = await mangaDex.GetChapters(seriesId);
 
         Assert.Single(chapters);
@@ -91,7 +91,7 @@ public class MangaDexTests
         var settings = CreateSettings();
         var mangaDex = new MangaDex(settings, CreateMockClient(json).Object);
 
-        var seriesId = CreateDummyManga(mangaDex);
+        var seriesId = CreateDummySeries(mangaDex);
         
         var chapters = await mangaDex.GetChapters(seriesId);
 
@@ -116,7 +116,7 @@ public class MangaDexTests
             .Callback<string, RequestType, string, CancellationToken?>((url, _, _, _) => capturedUrl = url);
 
         var mangaDex = new MangaDex(CreateSettings(), mock.Object);
-        await mangaDex.GetChapters(CreateDummyManga(mangaDex));
+        await mangaDex.GetChapters(CreateDummySeries(mangaDex));
 
         Assert.Contains("includes%5B%5D=scanlation_group", capturedUrl);
     }
@@ -141,7 +141,7 @@ public class MangaDexTests
         """;
 
         var mangaDex = new MangaDex(CreateSettings(), CreateMockClient(json).Object);
-        var chapters = await mangaDex.GetChapters(CreateDummyManga(mangaDex));
+        var chapters = await mangaDex.GetChapters(CreateDummySeries(mangaDex));
 
         Assert.Single(chapters);
         Assert.Equal("Cool Scans", chapters[0].Item2.ScanGroup);
@@ -166,7 +166,7 @@ public class MangaDexTests
         """;
 
         var mangaDex = new MangaDex(CreateSettings(), CreateMockClient(json).Object);
-        var chapters = await mangaDex.GetChapters(CreateDummyManga(mangaDex));
+        var chapters = await mangaDex.GetChapters(CreateDummySeries(mangaDex));
 
         Assert.Single(chapters);
         Assert.Null(chapters[0].Item2.ScanGroup);
@@ -193,7 +193,7 @@ public class MangaDexTests
 
         var mangaDex = new MangaDex(settings, mockClient.Object);
 
-        await mangaDex.SearchManga("Test");
+        await mangaDex.SearchSeries("Test");
 
         Assert.Contains("availableTranslatedLanguage%5B%5D=fr", capturedUrl);
     }
@@ -240,7 +240,7 @@ public class MangaDexTests
         Assert.Contains("availableTranslatedLanguage%5B%5D=en", capturedUrl); // scoped to the download language
         var entry = Assert.Single(entries);
         Assert.Equal("First Page Series", entry.Title);
-        // by-URL resolvable: a real mangadex.org title URL the connector's GetMangaFromUrl handles.
+        // by-URL resolvable: a real mangadex.org title URL the connector's GetSeriesFromUrl handles.
         Assert.Equal("https://mangadex.org/title/manga-1", entry.Url);
         Assert.Equal("MangaDex", entry.Source);
     }
@@ -290,7 +290,7 @@ public class MangaDexTests
         var settings = CreateSettings();
         var mangaDex = new MangaDex(settings, SequencedClient(page1, page2Fail).Object);
 
-        var results = await mangaDex.SearchManga("Test");
+        var results = await mangaDex.SearchSeries("Test");
 
         Assert.Single(results);
         Assert.Equal("First Page Series", results[0].Item1.Name);
@@ -313,7 +313,7 @@ public class MangaDexTests
 
         var mangaDex = new MangaDex(settings, mock.Object);
 
-        await mangaDex.SearchManga("Test");
+        await mangaDex.SearchSeries("Test");
 
         Assert.True(requestCount <= 100, $"Expected at most 100 page requests (offset cap), but made {requestCount}.");
     }
@@ -329,7 +329,7 @@ public class MangaDexTests
         var mangaDex = new MangaDex(settings, mockClient.Object);
 
         // We EXPECT to await this now
-        var results = await mangaDex.SearchManga("One Piece");
+        var results = await mangaDex.SearchSeries("One Piece");
 
         Assert.NotNull(results);
     }

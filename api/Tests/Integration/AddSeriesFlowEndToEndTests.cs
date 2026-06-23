@@ -56,8 +56,8 @@ public class AddSeriesFlowEndToEndTests() : OutboundHttpIntegrationTest(Connecto
     [Fact]
     public async Task AddAndDownload_DoesNotCrash_WhenMergingIntoAnExistingSeriesWithChapters()
     {
-        // Re-adding a series that already exists (unknown key → GetMangaFromId → UpsertManga merge)
-        // loads the existing chapters via MangaIncludeAll, which doesn't ThenInclude chapter SourceIds
+        // Re-adding a series that already exists (unknown key → GetSeriesFromId → UpsertSeries merge)
+        // loads the existing chapters via SeriesIncludeAll, which doesn't ThenInclude chapter SourceIds
         // — so under SplitQuery they're null. The download=true source-enable loop dereferenced that,
         // a bare 500 (the real WeebCentral re-add crash).
         string libraryKey = await App.WithSeriesContext(async ctx =>

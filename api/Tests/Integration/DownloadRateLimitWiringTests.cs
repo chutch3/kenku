@@ -44,13 +44,13 @@ public class DownloadRateLimitWiringTests : IAsyncLifetime
     {
         var requester = _app.Services.GetRequiredService<IHttpRequester>();
 
-        HttpResponseMessage first = await requester.MakeRequest("http://img.test/1", RequestType.MangaImage);
+        HttpResponseMessage first = await requester.MakeRequest("http://img.test/1", RequestType.SeriesImage);
         Assert.Equal(HttpStatusCode.OK, first.StatusCode);
 
         // The second request to the same host has no token and must wait ~1 minute for replenishment. The
         // instant network plus the 300ms request timeout must NOT cancel it.
         using var cts = new CancellationTokenSource();
-        Task<HttpResponseMessage> second = requester.MakeRequest("http://img.test/2", RequestType.MangaImage, cancellationToken: cts.Token);
+        Task<HttpResponseMessage> second = requester.MakeRequest("http://img.test/2", RequestType.SeriesImage, cancellationToken: cts.Token);
         await Task.Delay(TimeSpan.FromMilliseconds(750));
         Assert.False(second.IsCompleted);
 

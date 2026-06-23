@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using SchemaManga = API.Schema.SeriesContext.Series;
+using SchemaSeries = API.Schema.SeriesContext.Series;
 using SchemaFileLibrary = API.Schema.SeriesContext.FileLibrary;
 using SchemaChapter = API.Schema.SeriesContext.Chapter;
 
@@ -58,7 +58,7 @@ public class VolumeControllerTests : IDisposable
         return new SchemaFileLibrary(libPath, "TestLib");
     }
 
-    private static SchemaManga MakeTestManga(string name, SchemaFileLibrary library)
+    private static SchemaSeries MakeTestSeries(string name, SchemaFileLibrary library)
         => new(name, "", "http://example.com/img.jpg", SeriesReleaseStatus.Continuing, [], [], [], [], library);
 
     // ──────────────────────────────────────────────────────
@@ -82,7 +82,7 @@ public class VolumeControllerTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("One Piece", library);
+        var manga = MakeTestSeries("One Piece", library);
         manga.LibraryLayout = LibraryLayout.VolumeCBZ;
         ctx.Series.Add(manga);
 
@@ -116,7 +116,7 @@ public class VolumeControllerTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("One Piece", library);
+        var manga = MakeTestSeries("One Piece", library);
         ctx.Series.Add(manga);
 
         var ch1 = new SchemaChapter(manga,"1", 1);
@@ -150,7 +150,7 @@ public class VolumeControllerTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("Berserk", library);
+        var manga = MakeTestSeries("Berserk", library);
         ctx.Series.Add(manga);
 
         var settings = new KenkuSettings();
@@ -175,7 +175,7 @@ public class VolumeControllerTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("Naruto", library);
+        var manga = MakeTestSeries("Naruto", library);
         ctx.Series.Add(manga);
 
         var chAssigned = new SchemaChapter(manga,"1", 1);
@@ -201,7 +201,7 @@ public class VolumeControllerTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("Bleach", library);
+        var manga = MakeTestSeries("Bleach", library);
         ctx.Series.Add(manga);
 
         var ch = new SchemaChapter(manga,"1", 1);
@@ -230,7 +230,7 @@ public class VolumeControllerTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("Vinland Saga", library);
+        var manga = MakeTestSeries("Vinland Saga", library);
         ctx.Series.Add(manga);
 
         var ch = new SchemaChapter(manga,"1", 3);
@@ -270,7 +270,7 @@ public class VolumeControllerTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("Fullmetal Alchemist", library);
+        var manga = MakeTestSeries("Fullmetal Alchemist", library);
         ctx.Series.Add(manga);
 
         var settings = new KenkuSettings();
@@ -294,7 +294,7 @@ public class VolumeControllerTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("Dragon Ball", library);
+        var manga = MakeTestSeries("Dragon Ball", library);
         ctx.Series.Add(manga);
 
         var ch = new SchemaChapter(manga,"5", 2);
@@ -316,7 +316,7 @@ public class VolumeControllerTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("Attack on Titan", library);
+        var manga = MakeTestSeries("Attack on Titan", library);
         ctx.Series.Add(manga);
 
         var ch = new SchemaChapter(manga,"1", 1);
@@ -353,7 +353,7 @@ public class VolumeControllerTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("Hunter x Hunter", library);
+        var manga = MakeTestSeries("Hunter x Hunter", library);
         ctx.Series.Add(manga);
 
         var ch1 = new SchemaChapter(manga,"1", 1);
@@ -380,7 +380,7 @@ public class VolumeControllerTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("Fairy Tail", library);
+        var manga = MakeTestSeries("Fairy Tail", library);
         ctx.Series.Add(manga);
 
         var settings = new KenkuSettings();
@@ -418,7 +418,7 @@ public class VolumeControllerTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("Naruto", library);
+        var manga = MakeTestSeries("Naruto", library);
         ctx.Series.Add(manga);
         await ctx.SaveChangesAsync();
 
@@ -439,7 +439,7 @@ public class VolumeControllerTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("Bleach", library);
+        var manga = MakeTestSeries("Bleach", library);
         ctx.Series.Add(manga);
 
         // Chapter with volume 1 — under VolumeFolder layout, target path should contain "Vol 1"
@@ -467,7 +467,7 @@ public class VolumeControllerTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("One Piece", library);
+        var manga = MakeTestSeries("One Piece", library);
         ctx.Series.Add(manga);
 
         var ch = new SchemaChapter(manga, "1", 1);
@@ -488,7 +488,7 @@ public class VolumeControllerTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("Dragon Ball Z", library);
+        var manga = MakeTestSeries("Dragon Ball Z", library);
         manga.LibraryLayout = API.Schema.SeriesContext.LibraryLayout.VolumeFolder;
         ctx.Series.Add(manga);
 
@@ -512,7 +512,7 @@ public class VolumeControllerTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("Vinland Saga", library);
+        var manga = MakeTestSeries("Vinland Saga", library);
         manga.LibraryLayout = API.Schema.SeriesContext.LibraryLayout.VolumeFolder;
         ctx.Series.Add(manga);
 
@@ -545,7 +545,7 @@ public class VolumeControllerTests : IDisposable
         using var ctx = CreateContext();
         var library = MakeLibrary();
         ctx.FileLibraries.Add(library);
-        var manga = MakeTestManga("Berserk", library);
+        var manga = MakeTestSeries("Berserk", library);
         manga.LibraryLayout = API.Schema.SeriesContext.LibraryLayout.VolumeFolder;
         ctx.Series.Add(manga);
         await ctx.SaveChangesAsync();

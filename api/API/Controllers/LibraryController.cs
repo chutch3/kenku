@@ -41,7 +41,7 @@ public class LibraryController(SeriesContext context) : ControllerBase
             .ToListAsync(HttpContext.RequestAborted);
 
         var manga = entries
-            .Select(e => new UnresolvedMangaEntry(e.Key, e.Name, e.UnresolvedChapterCount, e.MissingFileCount))
+            .Select(e => new UnresolvedSeriesEntry(e.Key, e.Name, e.UnresolvedChapterCount, e.MissingFileCount))
             .ToList();
 
         return TypedResults.Ok(new UnresolvedDashboardResult(manga));

@@ -8,13 +8,13 @@ using API.JobRuntime;
 using API.JobRuntime.Handlers;
 using API.Schema.SeriesContext;
 using Moq;
-using MangaDto = API.Controllers.DTOs.Series;
+using SeriesDto = API.Controllers.DTOs.Series;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using SchemaManga = API.Schema.SeriesContext.Series;
+using SchemaSeries = API.Schema.SeriesContext.Series;
 using SchemaConnectorId = API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series>;
 
 namespace API.Tests.Unit.Controllers;
@@ -31,7 +31,7 @@ public class SearchControllerTests
 
     private static SearchController CreateController(
         SeriesContext ctx,
-        Func<string, string, (SchemaManga, SchemaConnectorId)?>? connectorLookup = null)
+        Func<string, string, (SchemaSeries, SchemaConnectorId)?>? connectorLookup = null)
     {
         var connectors = Enumerable.Empty<API.Connectors.SeriesSource>();
         var controller = new SearchController(ctx, connectors, connectorLookup ?? ((_, _) => null));
@@ -42,20 +42,20 @@ public class SearchControllerTests
         return controller;
     }
 
-    private static SchemaManga MakeTestManga(string name, string coverUrl = "http://example.com/cover.jpg")
+    private static SchemaSeries MakeTestSeries(string name, string coverUrl = "http://example.com/cover.jpg")
         => new(name, "A description", coverUrl, SeriesReleaseStatus.Continuing, [], [], [], []);
 
-    private static SchemaConnectorId MakeConnectorId(SchemaManga manga, string connectorName, string idOnSite)
+    private static SchemaConnectorId MakeConnectorId(SchemaSeries manga, string connectorName, string idOnSite)
         => new(manga, connectorName, idOnSite, null, false);
 
-    /// <summary>A "Global" connector that resolves a URL to a fixed series — enough to drive GetMangaFromUrl.</summary>
-    private sealed class FakeGlobalConnector(KenkuSettings settings, (SchemaManga, SchemaConnectorId)? result)
+    /// <summary>A "Global" connector that resolves a URL to a fixed series — enough to drive GetSeriesFromUrl.</summary>
+    private sealed class FakeGlobalConnector(KenkuSettings settings, (SchemaSeries, SchemaConnectorId)? result)
         : API.Connectors.SeriesSource("Global", ["en"], ["x.com"], "icon", settings)
     {
         public override AcquisitionKind Kind => AcquisitionKind.ImageList;
-        public override Task<(SchemaManga, SchemaConnectorId)[]> SearchManga(string mangaSearchName) => throw new NotSupportedException();
-        public override Task<(SchemaManga, SchemaConnectorId)?> GetMangaFromUrl(string url) => Task.FromResult(result);
-        public override Task<(SchemaManga, SchemaConnectorId)?> GetMangaFromId(string mangaIdOnSite) => throw new NotSupportedException();
+        public override Task<(SchemaSeries, SchemaConnectorId)[]> SearchSeries(string mangaSearchName) => throw new NotSupportedException();
+        public override Task<(SchemaSeries, SchemaConnectorId)?> GetSeriesFromUrl(string url) => Task.FromResult(result);
+        public override Task<(SchemaSeries, SchemaConnectorId)?> GetSeriesFromId(string mangaIdOnSite) => throw new NotSupportedException();
         public override Task<(API.Schema.SeriesContext.Chapter, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>)[]> GetChapters(SchemaConnectorId seriesId, string? language = null) => throw new NotSupportedException();
         internal override Task<string[]> GetChapterImageUrls(API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter> chapterId) => throw new NotSupportedException();
     }
@@ -64,7 +64,7 @@ public class SearchControllerTests
     public async Task GetMangaFromUrl_EnqueuesChapterSync_SoAddedSeriesGetChaptersImmediately()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("I Am a Hero");
+        var manga = MakeTestSeries("I Am a Hero");
         var connectorId = MakeConnectorId(manga, "MangaDex", "ff5ef336");
         var settings = new KenkuSettings { AppData = Path.Combine(Path.GetTempPath(), "kenku-search-" + Guid.NewGuid().ToString("N")) };
         var controller = new SearchController(ctx, [new FakeGlobalConnector(settings, (manga, connectorId))])
@@ -73,7 +73,7 @@ public class SearchControllerTests
         };
         var store = new InMemoryJobStore();
 
-        await controller.GetMangaFromUrl("http://mangadex.org/title/ff5ef336", store, new SystemClock(), settings);
+        await controller.GetSeriesFromUrl("http://mangadex.org/title/ff5ef336", store, new SystemClock(), settings);
 
         var jobs = await store.GetAllAsync();
         Assert.Contains(jobs, j => j.Type == SyncSeriesChaptersHandler.Type);
@@ -83,19 +83,19 @@ public class SearchControllerTests
     public async Task GetMangaFromConnector_KnownConnectorAndId_ReturnsMangaDto()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Berserk");
+        var manga = MakeTestSeries("Berserk");
         var connectorId = MakeConnectorId(manga, "MangaDex", "berserk-id-123");
 
-        (SchemaManga, SchemaConnectorId)? Lookup(string connectorName, string id)
+        (SchemaSeries, SchemaConnectorId)? Lookup(string connectorName, string id)
         {
             if (connectorName == "MangaDex" && id == "berserk-id-123")
                 return (manga, connectorId);
             return null;
         }
 
-        var result = await CreateController(ctx, Lookup).GetMangaFromConnector("MangaDex", "berserk-id-123");
+        var result = await CreateController(ctx, Lookup).GetSeriesFromSource("MangaDex", "berserk-id-123");
 
-        var ok = Assert.IsType<Ok<MangaDto>>(result.Result);
+        var ok = Assert.IsType<Ok<SeriesDto>>(result.Result);
         Assert.Equal("Berserk", ok.Value!.Name);
         var dtoId = Assert.Single(ok.Value.SourceIds);
         Assert.Equal("berserk-id-123", dtoId.IdOnConnectorSite);
@@ -106,7 +106,7 @@ public class SearchControllerTests
     {
         using var ctx = CreateContext();
 
-        var result = await CreateController(ctx).GetMangaFromConnector("MangaDex", "does-not-exist");
+        var result = await CreateController(ctx).GetSeriesFromSource("MangaDex", "does-not-exist");
 
         Assert.IsType<NotFound<string>>(result.Result);
     }
@@ -115,13 +115,13 @@ public class SearchControllerTests
     public async Task GetMangaFromConnector_DoesNotPersistMangaToDatabase()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Berserk");
+        var manga = MakeTestSeries("Berserk");
         var connectorId = MakeConnectorId(manga, "MangaDex", "berserk-id-123");
 
         var result = await CreateController(ctx, (_, _) => (manga, connectorId))
-            .GetMangaFromConnector("MangaDex", "berserk-id-123");
+            .GetSeriesFromSource("MangaDex", "berserk-id-123");
 
-        Assert.IsType<Ok<MangaDto>>(result.Result);
+        Assert.IsType<Ok<SeriesDto>>(result.Result);
         Assert.Equal(0, await ctx.Series.CountAsync());
     }
 
@@ -131,13 +131,13 @@ public class SearchControllerTests
         // IDs like "2003/one-punch-man" must work; routing must accept ConnectorSeriesId as a query param
         // so that ASP.NET Core doesn't reject the encoded slash (%2F) in a path segment.
         using var ctx = CreateContext();
-        var manga = MakeTestManga("One Punch Man");
+        var manga = MakeTestSeries("One Punch Man");
         var connectorId = MakeConnectorId(manga, "Mangaworld", "2003/one-punch-man");
 
         var result = await CreateController(ctx, (_, id) => id == "2003/one-punch-man" ? (manga, connectorId) : null)
-            .GetMangaFromConnector("Mangaworld", "2003/one-punch-man");
+            .GetSeriesFromSource("Mangaworld", "2003/one-punch-man");
 
-        var ok = Assert.IsType<Ok<MangaDto>>(result.Result);
+        var ok = Assert.IsType<Ok<SeriesDto>>(result.Result);
         Assert.Equal("One Punch Man", ok.Value!.Name);
     }
 
@@ -146,7 +146,7 @@ public class SearchControllerTests
     {
         // Verifies the routing fix: ConnectorSeriesId must be a query param so that
         // IDs containing slashes (e.g. "2003/one-punch-man") are not rejected by ASP.NET Core routing.
-        var method = typeof(SearchController).GetMethod(nameof(SearchController.GetMangaFromConnector));
+        var method = typeof(SearchController).GetMethod(nameof(SearchController.GetSeriesFromSource));
         Assert.NotNull(method);
         var param = method!.GetParameters().Single(p => p.Name == "ConnectorSeriesId");
         Assert.True(
@@ -158,18 +158,18 @@ public class SearchControllerTests
     public async Task SearchManga_ReturnsCoverUrl()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("One Punch Man", "http://example.com/opm.jpg");
+        var manga = MakeTestSeries("One Punch Man", "http://example.com/opm.jpg");
         var connectorId = MakeConnectorId(manga, "MangaDex", "opm-id");
 
         var mockConnector = new Mock<API.Connectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
-        mockConnector.Setup(c => c.SearchManga(It.IsAny<string>())).ReturnsAsync([(manga, connectorId)]);
+        mockConnector.Setup(c => c.SearchSeries(It.IsAny<string>())).ReturnsAsync([(manga, connectorId)]);
         // Enabled is true by default, and Name is set in constructor.
 
         var connectors = new[] { mockConnector.Object };
         var controller = new SearchController(ctx, connectors);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
 
-        var result = await controller.SearchManga("MangaDex", "one punch man");
+        var result = await controller.SearchSeries("MangaDex", "one punch man");
 
         var ok = Assert.IsType<Ok<List<MinimalSeries>>>(result.Result);
         var searchResult = Assert.Single(ok.Value!);
@@ -183,14 +183,14 @@ public class SearchControllerTests
         var settings = new KenkuSettings { DownloadLanguage = "en" };
 
         var mangaSource = new Mock<API.Connectors.SeriesSource>("WeebCentral", new[] { "en" }, new[] { "weebcentral.com" }, "i", settings);
-        var manga = MakeTestManga("Manga hit");
-        mangaSource.Setup(c => c.SearchManga(It.IsAny<string>())).ReturnsAsync([(manga, MakeConnectorId(manga, "WeebCentral", "id1"))]);
+        var manga = MakeTestSeries("Manga hit");
+        mangaSource.Setup(c => c.SearchSeries(It.IsAny<string>())).ReturnsAsync([(manga, MakeConnectorId(manga, "WeebCentral", "id1"))]);
         mangaSource.Setup(c => c.ContentType).Returns(ContentType.Manga);
         mangaSource.Setup(c => c.Kind).Returns(AcquisitionKind.ImageList);
 
         var torrentSource = new Mock<API.Connectors.SeriesSource>("Indexers", new[] { "en" }, new[] { "" }, "i", settings);
-        var torrentHit = MakeTestManga("Torrent hit");
-        torrentSource.Setup(c => c.SearchManga(It.IsAny<string>())).ReturnsAsync([(torrentHit, MakeConnectorId(torrentHit, "Indexers", "id2"))]);
+        var torrentHit = MakeTestSeries("Torrent hit");
+        torrentSource.Setup(c => c.SearchSeries(It.IsAny<string>())).ReturnsAsync([(torrentHit, MakeConnectorId(torrentHit, "Indexers", "id2"))]);
         torrentSource.Setup(c => c.ContentType).Returns(ContentType.Comic);
         torrentSource.Setup(c => c.Kind).Returns(AcquisitionKind.Torrent);
 
@@ -202,11 +202,11 @@ public class SearchControllerTests
         var controller = new SearchController(ctx, [global, mangaSource.Object, torrentSource.Object]);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
 
-        var result = await controller.SearchManga("Global", "q", ContentType.Manga, includeTorrents: false);
+        var result = await controller.SearchSeries("Global", "q", ContentType.Manga, includeTorrents: false);
 
         var ok = Assert.IsType<Ok<List<MinimalSeries>>>(result.Result);
         Assert.Equal("Manga hit", Assert.Single(ok.Value!).Name);
-        torrentSource.Verify(c => c.SearchManga(It.IsAny<string>()), Times.Never);
+        torrentSource.Verify(c => c.SearchSeries(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -218,14 +218,14 @@ public class SearchControllerTests
         // Both sources return a series with the same name → same Series.Key. The user should see one row,
         // not a duplicate per source, with both sources attached so either can be picked.
         var weeb = new Mock<API.Connectors.SeriesSource>("WeebCentral", new[] { "en" }, new[] { "weebcentral.com" }, "i", settings);
-        var fromWeeb = MakeTestManga("Naruto");
-        weeb.Setup(c => c.SearchManga(It.IsAny<string>())).ReturnsAsync([(fromWeeb, MakeConnectorId(fromWeeb, "WeebCentral", "w1"))]);
+        var fromWeeb = MakeTestSeries("Naruto");
+        weeb.Setup(c => c.SearchSeries(It.IsAny<string>())).ReturnsAsync([(fromWeeb, MakeConnectorId(fromWeeb, "WeebCentral", "w1"))]);
         weeb.Setup(c => c.ContentType).Returns(ContentType.Manga);
         weeb.Setup(c => c.Kind).Returns(AcquisitionKind.ImageList);
 
         var dex = new Mock<API.Connectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "i", settings);
-        var fromDex = MakeTestManga("Naruto");
-        dex.Setup(c => c.SearchManga(It.IsAny<string>())).ReturnsAsync([(fromDex, MakeConnectorId(fromDex, "MangaDex", "d1"))]);
+        var fromDex = MakeTestSeries("Naruto");
+        dex.Setup(c => c.SearchSeries(It.IsAny<string>())).ReturnsAsync([(fromDex, MakeConnectorId(fromDex, "MangaDex", "d1"))]);
         dex.Setup(c => c.ContentType).Returns(ContentType.Manga);
         dex.Setup(c => c.Kind).Returns(AcquisitionKind.ImageList);
 
@@ -237,7 +237,7 @@ public class SearchControllerTests
         var controller = new SearchController(ctx, [global, weeb.Object, dex.Object]);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
 
-        var result = await controller.SearchManga("Global", "naruto");
+        var result = await controller.SearchSeries("Global", "naruto");
 
         var ok = Assert.IsType<Ok<List<MinimalSeries>>>(result.Result);
         var single = Assert.Single(ok.Value!);
@@ -254,15 +254,15 @@ public class SearchControllerTests
         var settings = new KenkuSettings { DownloadLanguage = "en" };
 
         var english = new Mock<API.Connectors.SeriesSource>("WeebCentral", new[] { "en" }, new[] { "weebcentral.com" }, "i", settings);
-        var enHit = MakeTestManga("English Hit");
-        english.Setup(c => c.SearchManga(It.IsAny<string>())).ReturnsAsync([(enHit, MakeConnectorId(enHit, "WeebCentral", "e1"))]);
+        var enHit = MakeTestSeries("English Hit");
+        english.Setup(c => c.SearchSeries(It.IsAny<string>())).ReturnsAsync([(enHit, MakeConnectorId(enHit, "WeebCentral", "e1"))]);
         english.Setup(c => c.ContentType).Returns(ContentType.Manga);
         english.Setup(c => c.Kind).Returns(AcquisitionKind.ImageList);
 
         // Mangaworld only serves Italian — with the download language English it should never be queried.
         var italian = new Mock<API.Connectors.SeriesSource>("Mangaworld", new[] { "it" }, new[] { "mangaworld.test" }, "i", settings);
-        var itHit = MakeTestManga("Italian Hit");
-        italian.Setup(c => c.SearchManga(It.IsAny<string>())).ReturnsAsync([(itHit, MakeConnectorId(itHit, "Mangaworld", "i1"))]);
+        var itHit = MakeTestSeries("Italian Hit");
+        italian.Setup(c => c.SearchSeries(It.IsAny<string>())).ReturnsAsync([(itHit, MakeConnectorId(itHit, "Mangaworld", "i1"))]);
         italian.Setup(c => c.ContentType).Returns(ContentType.Manga);
         italian.Setup(c => c.Kind).Returns(AcquisitionKind.ImageList);
 
@@ -274,11 +274,11 @@ public class SearchControllerTests
         var controller = new SearchController(ctx, [global, english.Object, italian.Object]);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
 
-        var result = await controller.SearchManga("Global", "q", ContentType.Manga);
+        var result = await controller.SearchSeries("Global", "q", ContentType.Manga);
 
         var ok = Assert.IsType<Ok<List<MinimalSeries>>>(result.Result);
         Assert.Equal("English Hit", Assert.Single(ok.Value!).Name);
-        italian.Verify(c => c.SearchManga(It.IsAny<string>()), Times.Never);
+        italian.Verify(c => c.SearchSeries(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -292,11 +292,11 @@ public class SearchControllerTests
         var controller = new SearchController(ctx, [torrentSource.Object]);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
 
-        var result = await controller.SearchManga("Indexers", "q", ContentType.Comic, includeTorrents: false);
+        var result = await controller.SearchSeries("Indexers", "q", ContentType.Comic, includeTorrents: false);
 
         var ok = Assert.IsType<Ok<List<MinimalSeries>>>(result.Result);
         Assert.Empty(ok.Value!);
-        torrentSource.Verify(c => c.SearchManga(It.IsAny<string>()), Times.Never);
+        torrentSource.Verify(c => c.SearchSeries(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -306,7 +306,7 @@ public class SearchControllerTests
         var library = new API.Schema.SeriesContext.FileLibrary("/manga", "Main Lib");
         ctx.FileLibraries.Add(library);
         
-        var manga = MakeTestManga("One Piece");
+        var manga = MakeTestSeries("One Piece");
         manga.Library = library;
         manga.IsTracked = true;
         ctx.Series.Add(manga);
@@ -316,9 +316,9 @@ public class SearchControllerTests
         await ctx.SaveChangesAsync();
 
         var result = await CreateController(ctx, (_, _) => (manga, connectorId))
-            .GetMangaFromConnector("MangaDex", "op-123");
+            .GetSeriesFromSource("MangaDex", "op-123");
 
-        var ok = Assert.IsType<Ok<MangaDto>>(result.Result);
+        var ok = Assert.IsType<Ok<SeriesDto>>(result.Result);
         Assert.Equal(library.Key, ok.Value!.FileLibraryId);
         Assert.Equal(manga.Key, ok.Value.Key);
     }
@@ -330,7 +330,7 @@ public class SearchControllerTests
         var library = new API.Schema.SeriesContext.FileLibrary("/manga", "Main Lib");
         ctx.FileLibraries.Add(library);
         
-        var manga = MakeTestManga("One Piece");
+        var manga = MakeTestSeries("One Piece");
         manga.Library = library;
         manga.IsTracked = true;
         ctx.Series.Add(manga);
@@ -340,7 +340,7 @@ public class SearchControllerTests
         ctx.SaveChanges();
 
         var mockConnector = new Mock<API.Connectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
-        mockConnector.Setup(c => c.SearchManga(It.IsAny<string>())).ReturnsAsync([(manga, connectorId)]);
+        mockConnector.Setup(c => c.SearchSeries(It.IsAny<string>())).ReturnsAsync([(manga, connectorId)]);
 
         var controller = CreateController(ctx);
         // We need to inject the mock connector. The CreateController helper doesn't support it well currently.
@@ -349,7 +349,7 @@ public class SearchControllerTests
         var searchController = new SearchController(ctx, connectors, null);
         searchController.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
 
-        var result = await searchController.SearchManga("MangaDex", "One Piece");
+        var result = await searchController.SearchSeries("MangaDex", "One Piece");
 
         var ok = Assert.IsType<Ok<List<MinimalSeries>>>(result.Result);
         var searchResult = Assert.Single(ok.Value!);
@@ -365,12 +365,12 @@ public class SearchControllerTests
     public async Task GetChaptersFromConnector_PreviewsTheLiveChapterList_WithoutSaving()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Saga");
+        var manga = MakeTestSeries("Saga");
         var connectorId = MakeConnectorId(manga, "MangaDex", "saga-1");
         var ch1 = new API.Schema.SeriesContext.Chapter(manga, "1", 1, "Begins");
         var ch2 = new API.Schema.SeriesContext.Chapter(manga, "2", null, null);
         var mockConnector = new Mock<API.Connectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
-        mockConnector.Setup(c => c.GetMangaFromId("saga-1")).ReturnsAsync((manga, connectorId));
+        mockConnector.Setup(c => c.GetSeriesFromId("saga-1")).ReturnsAsync((manga, connectorId));
         mockConnector.Setup(c => c.GetChapters(It.IsAny<SchemaConnectorId>(), It.IsAny<string?>()))
             .ReturnsAsync([
                 (ch1, new API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>(ch1, "MangaDex", "c1", null)),
@@ -392,10 +392,10 @@ public class SearchControllerTests
     public async Task GetChaptersFromConnector_SurfacesAFailingSource_InsteadOfPretendingItIsEmpty()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Saga");
+        var manga = MakeTestSeries("Saga");
         var connectorId = MakeConnectorId(manga, "MangaDex", "saga-1");
         var mockConnector = new Mock<API.Connectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
-        mockConnector.Setup(c => c.GetMangaFromId("saga-1")).ReturnsAsync((manga, connectorId));
+        mockConnector.Setup(c => c.GetSeriesFromId("saga-1")).ReturnsAsync((manga, connectorId));
         mockConnector.Setup(c => c.GetChapters(It.IsAny<SchemaConnectorId>(), It.IsAny<string?>()))
             .ThrowsAsync(new HttpRequestException("chapter list request failed: HTTP 404"));
 
@@ -411,7 +411,7 @@ public class SearchControllerTests
     {
         using var ctx = CreateContext();
         var mockConnector = new Mock<API.Connectors.SeriesSource>("MangaDex", new[] { "en" }, new[] { "mangadex.org" }, "icon.png", new KenkuSettings());
-        mockConnector.Setup(c => c.GetMangaFromId(It.IsAny<string>())).ReturnsAsync((ValueTuple<SchemaManga, SchemaConnectorId>?)null);
+        mockConnector.Setup(c => c.GetSeriesFromId(It.IsAny<string>())).ReturnsAsync((ValueTuple<SchemaSeries, SchemaConnectorId>?)null);
 
         var result = await ConnectorController(ctx, mockConnector.Object)
             .GetChaptersFromConnector("MangaDex", "nope", new KenkuSettings());

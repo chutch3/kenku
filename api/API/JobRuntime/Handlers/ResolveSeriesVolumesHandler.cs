@@ -12,7 +12,7 @@ public record ResolveSeriesVolumesPayload(string SeriesKey);
 
 /// <summary>
 /// Resolves one series' chapter→volume assignments via <see cref="VolumeResolutionService"/> (auto-match,
-/// exact sources, colour heuristic) — replacing the ResolveMissingVolumesForManga worker. Resolves its own
+/// exact sources, colour heuristic) — replacing the ResolveMissingVolumesForSeries worker. Resolves its own
 /// scoped <see cref="SeriesContext"/> and resolver so each job runs against a fresh DbContext (§4.1).
 /// </summary>
 public class ResolveSeriesVolumesHandler(IServiceScopeFactory scopeFactory) : IJobHandler

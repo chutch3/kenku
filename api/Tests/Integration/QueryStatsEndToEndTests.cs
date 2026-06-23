@@ -61,7 +61,7 @@ public class QueryStatsEndToEndTests : IAsyncLifetime
         var stats = await http.GetFromJsonAsync<Stats>("/v2/Stats");
 
         Assert.NotNull(stats);
-        Assert.Equal(2, stats!.NumberManga);
+        Assert.Equal(2, stats!.NumberSeries);
         Assert.Equal(2, stats.NumberChapters);
         Assert.Equal(1, stats.DownloadedChapters);
         Assert.Equal(1, stats.MissingChapters);

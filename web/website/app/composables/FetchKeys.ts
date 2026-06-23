@@ -5,7 +5,7 @@ export const FetchKeys = {
     FileLibraries: 'FileLibraries',
     Chapters: { Series: (seriesId: string) => `Chapters/${seriesId}` },
     Series: { All: 'Series', Id: (id: string) => `Series/${id}`, Rollup: 'Series/Rollup' },
-    MangaConnector: { Id: (id: string) => `MangaConnector/${id}`, All: 'MangaConnector' },
+    SeriesSource: { Id: (id: string) => `SeriesSource/${id}`, All: 'SeriesSource' },
     Metadata: { Fetchers: 'Metadata', Links: 'Metadata/Links', Series: (seriesId: string) => `Metadata/Links/${seriesId}` },
     Libraries: { All: 'Libraries', Id: (id: string) => `Libraries/${id}` },
     Settings: { All: 'Settings', DownloadLanguage: 'Settings/DownloadLanguage', JobRetention: 'Settings/JobRetention' },

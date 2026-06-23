@@ -31,10 +31,10 @@ public record MinimalSeries(string Key, string Name, string Description, SeriesR
     public SeriesReleaseStatus ReleaseStatus { get; init; } = ReleaseStatus;
     
     /// <summary>
-    /// Ids of the Series on MangaConnectors
+    /// Ids of the Series on SeriesSources
     /// </summary>
     [Required]
-    [Description("Ids of the Series on MangaConnectors")]
+    [Description("Ids of the Series on SeriesSources")]
     public IEnumerable<SourceId<Series>> SourceIds { get; init; } = SourceIds;
 
     /// <summary>

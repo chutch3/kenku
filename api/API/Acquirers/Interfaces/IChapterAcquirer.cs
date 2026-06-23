@@ -19,7 +19,7 @@ public interface IChapterAcquirer
     /// implementation produces the file itself. Implementations are responsible for logging their
     /// own errors; a <see cref="AcquireResult.Failed"/> reason is user-facing.
     /// </summary>
-    /// <param name="chapter">The chapter source-id row, with Obj+ParentManga eagerly loaded.</param>
+    /// <param name="chapter">The chapter source-id row, with Obj+ParentSeries eagerly loaded.</param>
     /// <param name="source">The connector that originally produced this chapter.</param>
     /// <param name="saveArchiveFilePath">Absolute path the .cbz must be written to.</param>
     /// <param name="ct">Cancellation token.</param>

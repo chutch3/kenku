@@ -43,7 +43,7 @@ public class MetadataSourceControllerTests
         return controller;
     }
 
-    private static API.Schema.SeriesContext.Series MakeTestManga(string name = "Test Series")
+    private static API.Schema.SeriesContext.Series MakeTestSeries(string name = "Test Series")
         => new(name, "", "http://example.com/img.jpg", SeriesReleaseStatus.Continuing, [], [], [], []);
 
     // --- GET /v2/Series/{seriesId}/metadataSource ---
@@ -52,7 +52,7 @@ public class MetadataSourceControllerTests
     public async Task GetMetadataSource_KnownManga_ReturnsSource()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("One Piece");
+        var manga = MakeTestSeries("One Piece");
         ctx.Series.Add(manga);
         await ctx.SaveChangesAsync();
 
@@ -82,7 +82,7 @@ public class MetadataSourceControllerTests
     public async Task SetMetadataSource_ValidRequest_SetsConfirmedStatus()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Berserk");
+        var manga = MakeTestSeries("Berserk");
         ctx.Series.Add(manga);
         await ctx.SaveChangesAsync();
 
@@ -101,7 +101,7 @@ public class MetadataSourceControllerTests
     public async Task SetMetadataSource_EmptyExternalId_ReturnsBadRequest()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Berserk");
+        var manga = MakeTestSeries("Berserk");
         ctx.Series.Add(manga);
         await ctx.SaveChangesAsync();
 
@@ -115,7 +115,7 @@ public class MetadataSourceControllerTests
     public async Task SetMetadataSource_NullExternalId_ReturnsBadRequest()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Berserk");
+        var manga = MakeTestSeries("Berserk");
         ctx.Series.Add(manga);
         await ctx.SaveChangesAsync();
 
@@ -150,7 +150,7 @@ public class MetadataSourceControllerTests
     public async Task GetCandidates_KnownManga_ReturnsResults()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("One Piece");
+        var manga = MakeTestSeries("One Piece");
         ctx.Series.Add(manga);
         await ctx.SaveChangesAsync();
 
@@ -190,7 +190,7 @@ public class MetadataSourceControllerTests
     public async Task RefreshMetadataSource_UnlinkedSource_ReturnsBadRequest()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Naruto");
+        var manga = MakeTestSeries("Naruto");
         ctx.Series.Add(manga);
         await ctx.SaveChangesAsync();
 
@@ -204,7 +204,7 @@ public class MetadataSourceControllerTests
     public async Task RefreshMetadataSource_ConfirmedSource_EnqueuesResolveJob_AndReturnsAccepted()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Naruto");
+        var manga = MakeTestSeries("Naruto");
         manga.MetadataSource!.ExternalId = "naruto-ext-id";
         manga.MetadataSource!.Status = MetadataSourceStatus.Confirmed;
         ctx.Series.Add(manga);

@@ -89,7 +89,7 @@ public class ConnectorFlowEndToEndTests : IAsyncLifetime
             await scope.ServiceProvider.GetRequiredService<Dispatcher>().RunOnceAsync();
 
         int count = await app.WithSeriesContext(ctx =>
-            ctx.Chapters.CountAsync(c => c.ParentManga.Key == seriesKey));
+            ctx.Chapters.CountAsync(c => c.ParentSeries.Key == seriesKey));
         Assert.Equal(2, count);
 
         // The job row carries its outcome, so the queue can say what happened — not just "Succeeded".

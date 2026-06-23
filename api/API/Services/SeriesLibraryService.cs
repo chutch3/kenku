@@ -100,10 +100,10 @@ public class SeriesLibraryService(KenkuSettings settings, IEnumerable<SeriesSour
             if (connectors.FirstOrDefault(c => c.Name.Equals(connectorName, StringComparison.InvariantCultureIgnoreCase)) is not { } connector)
                 return (ChangeLibraryStatus.ConnectorNotFound, null);
 
-            if (await connector.GetMangaFromId(connectorSeriesId) is not ({ } m, { } id))
+            if (await connector.GetSeriesFromId(connectorSeriesId) is not ({ } m, { } id))
                 return (ChangeLibraryStatus.ConnectorSeriesNotFound, null);
 
-            if (await context.UpsertManga(m, id, ct) is not { } added)
+            if (await context.UpsertSeries(m, id, ct) is not { } added)
                 return (ChangeLibraryStatus.SaveFailed, "Could not add Series to context");
 
             manga = added.manga;
@@ -128,7 +128,7 @@ public class SeriesLibraryService(KenkuSettings settings, IEnumerable<SeriesSour
         if (download && addedFrom is not null)
         {
             addedFrom.UseForDownload = true;
-            // A chapter's SourceIds can load null (MangaIncludeAll doesn't ThenInclude them, and
+            // A chapter's SourceIds can load null (SeriesIncludeAll doesn't ThenInclude them, and
             // SplitQuery leaves an unloaded collection nav null rather than empty) — guard before Where.
             foreach (SourceId<Chapter> chId in manga.Chapters.SelectMany(ch => ch.SourceIds ?? [])
                          .Where(chId => chId.SeriesSourceName.Equals(connectorName, StringComparison.InvariantCultureIgnoreCase)))

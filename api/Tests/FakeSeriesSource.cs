@@ -30,9 +30,9 @@ public sealed class FakeSeriesSource : SeriesSource
 
     public override AcquisitionKind Kind => _kind;
     public override ContentType ContentType => _contentType;
-    public override Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName) => throw new NotSupportedException();
-    public override Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string url) => throw new NotSupportedException();
-    public override Task<(Series, SourceId<Series>)?> GetMangaFromId(string mangaIdOnSite) => throw new NotSupportedException();
+    public override Task<(Series, SourceId<Series>)[]> SearchSeries(string mangaSearchName) => throw new NotSupportedException();
+    public override Task<(Series, SourceId<Series>)?> GetSeriesFromUrl(string url) => throw new NotSupportedException();
+    public override Task<(Series, SourceId<Series>)?> GetSeriesFromId(string mangaIdOnSite) => throw new NotSupportedException();
     public override Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> seriesId, string? language = null) => throw new NotSupportedException();
     internal override Task<string[]> GetChapterImageUrls(SourceId<Chapter> chapterId) => throw new NotSupportedException();
 }

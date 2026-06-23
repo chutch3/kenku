@@ -41,7 +41,7 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
             return [];
 
         // No contentRating filter — the rail relies on MangaDex's API default (safe/suggestive/erotica;
-        // pornographic excluded), unlike SearchManga which sets it explicitly. Scoped to the user's
+        // pornographic excluded), unlike SearchSeries which sets it explicitly. Scoped to the user's
         // download language so the rail only shows series actually readable for them.
         string requestUrl =
             $"https://api.mangadex.org/manga?limit=20&order%5B{order}%5D=desc" +
@@ -61,12 +61,12 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
         {
             try
             {
-                (Series manga, SourceId<Series> id) = ParseMangaFromJToken(item);
+                (Series manga, SourceId<Series> id) = ParseSeriesFromJToken(item);
                 // A real mangadex.org/title URL → the add flow resolves it exactly through this connector
                 // (no fuzzy title match), so the cover never swaps between discover and the library.
                 entries.Add(new API.Discovery.DiscoveryEntry(manga.Name, manga.CoverUrl,
                     $"https://mangadex.org/title/{id.IdOnConnectorSite}", Name, manga.Description,
-                    manga.MangaTags.Select(t => t.Tag).ToList()));
+                    manga.SeriesTags.Select(t => t.Tag).ToList()));
             }
             catch (ParsingException) { /* skip a malformed entry rather than drop the whole rail */ }
         }
@@ -76,7 +76,7 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
     private const int Limit = 100;
     public override AcquisitionKind Kind => AcquisitionKind.ImageList;
 
-    public override async Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName)
+    public override async Task<(Series, SourceId<Series>)[]> SearchSeries(string mangaSearchName)
     {
         Log.InfoFormat("Searching Obj: {0}", mangaSearchName);
         List<(Series, SourceId<Series>)> mangas = new ();
@@ -121,7 +121,7 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
                 break;
             }
 
-            mangas.AddRange(data.Select(ParseMangaFromJToken));
+            mangas.AddRange(data.Select(ParseSeriesFromJToken));
         }
 
         Log.InfoFormat("Search {0} yielded {1} results.", mangaSearchName, mangas.Count);
@@ -129,7 +129,7 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
     }
 
     private static readonly Regex GetSeriesIdFromUrl = new(@"https?:\/\/mangadex\.org\/title\/([a-z0-9-]+)\/?.*");
-    public override async Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string url)
+    public override async Task<(Series, SourceId<Series>)?> GetSeriesFromUrl(string url)
     {
         Log.InfoFormat("Getting Obj: {0}", url);
         if (!UrlMatchesConnector(url))
@@ -146,10 +146,10 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
         }
         string id = match.Groups[1].Value;
 
-        return await GetMangaFromId(id);
+        return await GetSeriesFromId(id);
     }
 
-    public override async Task<(Series, SourceId<Series>)?> GetMangaFromId(string mangaIdOnSite)
+    public override async Task<(Series, SourceId<Series>)?> GetSeriesFromId(string mangaIdOnSite)
     {
         Log.InfoFormat("Getting Obj: {0}", mangaIdOnSite);
         string requestUrl =
@@ -180,7 +180,7 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
             return null;
         }
 
-        return ParseMangaFromJToken(data);
+        return ParseSeriesFromJToken(data);
     }
 
     public override async Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> seriesId, string? language = null)
@@ -287,7 +287,7 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
         return urls.ToArray();
     }
 
-    private (Series manga, SourceId<Series> id) ParseMangaFromJToken(JToken jToken)
+    private (Series manga, SourceId<Series> id) ParseSeriesFromJToken(JToken jToken)
     {
         string? id = jToken.Value<string>("id");
         if(id is null || jToken["attributes"] is not JObject attributes)
@@ -381,7 +381,7 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
         return (manga, mcId);
     }
 
-    private (Chapter chapter, SourceId<Chapter> id) ParseChapterFromJToken(SourceId<Series> mcIdManga, JToken jToken)
+    private (Chapter chapter, SourceId<Chapter> id) ParseChapterFromJToken(SourceId<Series> mcIdSeries, JToken jToken)
     {
         string? id = jToken.Value<string>("id");
         JToken? attributes = jToken["attributes"];
@@ -402,7 +402,7 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
             ?["attributes"]?.Value<string>("name");
 
         string websiteUrl = $"https://mangadex.org/chapter/{id}";
-        Chapter chapter = new (mcIdManga.Obj, chapterStr, volumeNumber, title);
+        Chapter chapter = new (mcIdSeries.Obj, chapterStr, volumeNumber, title);
         SourceId<Chapter> mcId = new(chapter, this, id, websiteUrl, scanGroup: scanGroup, language: language);
         chapter.SourceIds.Add(mcId);
         return (chapter, mcId);

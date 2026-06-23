@@ -72,11 +72,11 @@ public class MetadataFetcherController(
     /// <response code="200"></response>
     /// <response code="400"><see cref="MetadataFetcher"/> (Metadata-Sites) with <paramref name="MetadataFetcherName"/> does not exist</response>
     /// <response code="404"><see cref="Series"/> with <paramref name="SeriesId"/> not found</response>
-    [HttpPost("{MetadataFetcherName}/SearchManga/{SeriesId}")]
+    [HttpPost("{MetadataFetcherName}/SearchSeries/{SeriesId}")]
     [ProducesResponseType<MetadataSearchResult[]>(Status200OK, "application/json")]
     [ProducesResponseType(Status400BadRequest)]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
-    public async Task<Results<Ok<List<MetadataSearchResult>>, BadRequest, NotFound<string>, InternalServerError<string>>> SearchMangaMetadata(string SeriesId, string MetadataFetcherName, [FromBody (EmptyBodyBehavior = EmptyBodyBehavior.Allow)]string? searchTerm = null)
+    public async Task<Results<Ok<List<MetadataSearchResult>>, BadRequest, NotFound<string>, InternalServerError<string>>> SearchSeriesMetadata(string SeriesId, string MetadataFetcherName, [FromBody (EmptyBodyBehavior = EmptyBodyBehavior.Allow)]string? searchTerm = null)
     {
         if (await mangaContext.Series.FirstOrDefaultAsync(m => m.Key == SeriesId, HttpContext.RequestAborted) is not { } manga)
             return TypedResults.NotFound(nameof(SeriesId));
@@ -110,7 +110,7 @@ public class MetadataFetcherController(
     [ProducesResponseType(Status400BadRequest)]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType<string>(Status500InternalServerError, "text/plain")]
-    public async Task<Results<Ok, BadRequest, NotFound<string>, InternalServerError<string>>> LinkMangaMetadata (string SeriesId, string MetadataFetcherName, [FromBody]string Identifier)
+    public async Task<Results<Ok, BadRequest, NotFound<string>, InternalServerError<string>>> LinkSeriesMetadata (string SeriesId, string MetadataFetcherName, [FromBody]string Identifier)
     {
         if (await mangaContext.Series.FirstOrDefaultAsync(m => m.Key == SeriesId, HttpContext.RequestAborted) is not { } manga)
             return TypedResults.NotFound(nameof(SeriesId));
@@ -142,7 +142,7 @@ public class MetadataFetcherController(
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType(Status412PreconditionFailed)]
     [ProducesResponseType<string>(Status500InternalServerError, "text/plain")]
-    public async Task<Results<Ok, BadRequest, NotFound<string>, InternalServerError<string>, StatusCodeHttpResult>> UnlinkMangaMetadata (string SeriesId, string MetadataFetcherName)
+    public async Task<Results<Ok, BadRequest, NotFound<string>, InternalServerError<string>, StatusCodeHttpResult>> UnlinkSeriesMetadata (string SeriesId, string MetadataFetcherName)
     {
         if (!await mangaContext.Series.AnyAsync(m => m.Key == SeriesId, HttpContext.RequestAborted))
             return TypedResults.NotFound(nameof(SeriesId));

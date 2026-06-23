@@ -36,7 +36,7 @@ public class VolumeBundleReconciler(IServiceScopeFactory scopeFactory, IClock cl
             .Where(m => m.LibraryLayout == LibraryLayout.VolumeCBZ)
             .ToListAsync(ct);
 
-        Dictionary<string, List<VolumeMetadata>> bundledByManga = (await series.VolumeMetadata
+        Dictionary<string, List<VolumeMetadata>> bundledBySeries = (await series.VolumeMetadata
                 .Where(v => v.ArchiveFileName != null).ToListAsync(ct))
             .GroupBy(v => v.SeriesId).ToDictionary(g => g.Key, g => g.ToList());
 
@@ -48,7 +48,7 @@ public class VolumeBundleReconciler(IServiceScopeFactory scopeFactory, IClock cl
         {
             var volumes = new HashSet<int>(VolumeBundlePolicy.VolumesReadyToBundle(manga));
 
-            foreach (VolumeMetadata volume in bundledByManga.GetValueOrDefault(manga.Key, []))
+            foreach (VolumeMetadata volume in bundledBySeries.GetValueOrDefault(manga.Key, []))
             {
                 HashSet<string> recorded = recordedByVolumeKey.GetValueOrDefault(volume.Key, []);
                 HashSet<string> desired = manga.Chapters

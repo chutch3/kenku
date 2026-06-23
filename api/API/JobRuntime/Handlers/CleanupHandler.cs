@@ -14,7 +14,7 @@ public record CleanupPayload(CleanupKind Kind, bool DryRun = false, bool Force =
 
 /// <summary>
 /// Parameterized cleanup job: runs one <see cref="CleanupKind"/> via <see cref="CleanupService"/> — replacing
-/// the RemoveOldNotifications / CleanupMangaCovers / CleanupSourceIdsWithoutSource workers. Resolves its own
+/// the RemoveOldNotifications / CleanupSeriesCovers / CleanupSourceIdsWithoutSource workers. Resolves its own
 /// scoped contexts (§4.1).
 /// </summary>
 public class CleanupHandler(IServiceScopeFactory scopeFactory) : IJobHandler
@@ -39,8 +39,8 @@ public class CleanupHandler(IServiceScopeFactory scopeFactory) : IJobHandler
             case CleanupKind.OldNotifications:
                 await service.RemoveOldNotificationsAsync(provider.GetRequiredService<NotificationsContext>(), ct);
                 break;
-            case CleanupKind.MangaCovers:
-                service.CleanupMangaCovers(provider.GetRequiredService<SeriesContext>(), provider.GetRequiredService<KenkuSettings>(), ct);
+            case CleanupKind.SeriesCovers:
+                service.CleanupSeriesCovers(provider.GetRequiredService<SeriesContext>(), provider.GetRequiredService<KenkuSettings>(), ct);
                 break;
             case CleanupKind.OrphanSourceIds:
                 await service.CleanupOrphanSourceIdsAsync(provider.GetRequiredService<SeriesContext>(),

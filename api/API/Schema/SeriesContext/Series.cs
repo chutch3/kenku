@@ -20,7 +20,7 @@ public class Series : Identifiable
     [StringLength(64)] public string? LibraryId { get; private set; }
     public FileLibrary? Library = null!;
     public ICollection<Author> Authors { get; internal set; } = null!;
-    public ICollection<SeriesTag> MangaTags { get; internal set; } = null!;
+    public ICollection<SeriesTag> SeriesTags { get; internal set; } = null!;
     public ICollection<Link> Links { get; internal set; } = null!;
     public ICollection<AltTitle> AltTitles { get; internal set; } = null!;
     public float IgnoreChaptersBefore { get; internal set; }
@@ -48,7 +48,7 @@ public class Series : Identifiable
     public ICollection<Chapter> Chapters = null!;
 
     [NotMapped]
-    public Dictionary<string, string> IdsOnMangaConnectors => SourceIds.ToDictionary(id => id.SeriesSourceName, id => id.IdOnConnectorSite);
+    public Dictionary<string, string> IdsOnSeriesSources => SourceIds.ToDictionary(id => id.SeriesSourceName, id => id.IdOnConnectorSite);
     [NotMapped]
     public ICollection<string> SourceIdsIds => SourceIds.Select(id => id.Key).ToList();
     [JsonIgnore]
@@ -67,7 +67,7 @@ public class Series : Identifiable
         this.ReleaseStatus = releaseStatus;
         this.Library = library;
         this.Authors = authors;
-        this.MangaTags = mangaTags;
+        this.SeriesTags = mangaTags;
         this.Links = links;
         this.AltTitles = altTitles;
         this.IgnoreChaptersBefore = ignoreChaptersBefore;

@@ -13,7 +13,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using static Microsoft.AspNetCore.Http.StatusCodes;
 using Chapter = API.Controllers.DTOs.Chapter;
-using MangaConnectorImpl = API.Connectors.SeriesSource;
+using SeriesSourceImpl = API.Connectors.SeriesSource;
 
 
 // ReSharper disable InconsistentNaming
@@ -23,7 +23,7 @@ namespace API.Controllers;
 [ApiVersion(2)]
 [ApiController]
 [Route("v{v:apiVersion}/[controller]")]
-public class ChaptersController(SeriesContext context, KenkuSettings settings, IEnumerable<MangaConnectorImpl> connectors, IChapterThumbnailService chapterThumbnailService) : ControllerBase
+public class ChaptersController(SeriesContext context, KenkuSettings settings, IEnumerable<SeriesSourceImpl> connectors, IChapterThumbnailService chapterThumbnailService) : ControllerBase
 {
     /// <summary>
     /// Returns all <see cref="Schema.SeriesContext.Chapter"/> of <see cref="Schema.SeriesContext.Series"/> with <paramref name="SeriesId"/>
@@ -225,18 +225,18 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
     /// <summary>
     /// Returns the <see cref="DTOs.SourceId{Chapter}"/> with <see cref="DTOs.SourceId{Chapter}"/>.Key
     /// </summary>
-    /// <param name="MangaConnectorIdId">Key of <see cref="DTOs.SourceId{Chapter}"/></param>
+    /// <param name="SeriesSourceIdId">Key of <see cref="DTOs.SourceId{Chapter}"/></param>
     /// <response code="200"></response>
-    /// <response code="404"><see cref="DTOs.SourceId{Chapter}"/> with <paramref name="MangaConnectorIdId"/> not found</response>
-    [HttpGet("ConnectorId/{MangaConnectorIdId}")]
+    /// <response code="404"><see cref="DTOs.SourceId{Chapter}"/> with <paramref name="SeriesSourceIdId"/> not found</response>
+    [HttpGet("ConnectorId/{SeriesSourceIdId}")]
     [ProducesResponseType<DTOs.SourceId<Chapter>>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
-    public async Task<Results<Ok<DTOs.SourceId<Chapter>>, NotFound<string>>> GetChapterSourceId (string MangaConnectorIdId)
+    public async Task<Results<Ok<DTOs.SourceId<Chapter>>, NotFound<string>>> GetChapterSourceId (string SeriesSourceIdId)
     {
-        if (await context.ChapterSourceIds.FirstOrDefaultAsync(c => c.Key == MangaConnectorIdId, HttpContext.RequestAborted) is not { } mcIdManga)
-            return TypedResults.NotFound(nameof(MangaConnectorIdId));
+        if (await context.ChapterSourceIds.FirstOrDefaultAsync(c => c.Key == SeriesSourceIdId, HttpContext.RequestAborted) is not { } mcIdSeries)
+            return TypedResults.NotFound(nameof(SeriesSourceIdId));
 
-        DTOs.SourceId<Chapter> result = new (mcIdManga.Key, mcIdManga.SeriesSourceName, mcIdManga.ObjId, mcIdManga.IdOnConnectorSite, mcIdManga.WebsiteUrl, mcIdManga.UseForDownload);
+        DTOs.SourceId<Chapter> result = new (mcIdSeries.Key, mcIdSeries.SeriesSourceName, mcIdSeries.ObjId, mcIdSeries.IdOnConnectorSite, mcIdSeries.WebsiteUrl, mcIdSeries.UseForDownload);
 
         return TypedResults.Ok(result);
     }
@@ -244,16 +244,16 @@ public class ChaptersController(SeriesContext context, KenkuSettings settings, I
     /// <summary>
     /// Deletes the <see cref="DTOs.SourceId{Chapter}"/> with <see cref="DTOs.SourceId{Chapter}"/>.Key
     /// </summary>
-    /// <param name="MangaConnectorIdId">Key of <see cref="DTOs.SourceId{Chapter}"/></param>
+    /// <param name="SeriesSourceIdId">Key of <see cref="DTOs.SourceId{Chapter}"/></param>
     /// <response code="200"></response>
-    /// <response code="404"><see cref="DTOs.SourceId{Chapter}"/> with <paramref name="MangaConnectorIdId"/> not found</response>
-    [HttpDelete("ConnectorId/{MangaConnectorIdId}")]
+    /// <response code="404"><see cref="DTOs.SourceId{Chapter}"/> with <paramref name="SeriesSourceIdId"/> not found</response>
+    [HttpDelete("ConnectorId/{SeriesSourceIdId}")]
     [ProducesResponseType(Status200OK)]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
-    public async Task<Results<Ok, NotFound<string>>> DeleteChapterSourceId (string MangaConnectorIdId)
+    public async Task<Results<Ok, NotFound<string>>> DeleteChapterSourceId (string SeriesSourceIdId)
     {
-        if (await context.ChapterSourceIds.Where(c => c.Key == MangaConnectorIdId).ExecuteDeleteAsync(HttpContext.RequestAborted) < 1)
-            return TypedResults.NotFound(nameof(MangaConnectorIdId));
+        if (await context.ChapterSourceIds.Where(c => c.Key == SeriesSourceIdId).ExecuteDeleteAsync(HttpContext.RequestAborted) < 1)
+            return TypedResults.NotFound(nameof(SeriesSourceIdId));
         return TypedResults.Ok();
     }
 

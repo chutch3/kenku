@@ -24,7 +24,7 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
     public DbSet<VolumeMetadata> VolumeMetadata { get; set; }
     public DbSet<BundleChapterMap> BundleChapterMaps { get; set; }
 
-    public IQueryable<Series> GetTrackedMangas() =>
+    public IQueryable<Series> GetTrackedSeries() =>
         Series
             .Include(m => m.SourceIds)
             .Where(m => m.IsTracked
@@ -36,7 +36,7 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
         //Series has many Chapters
         modelBuilder.Entity<Series>()
             .HasMany<Chapter>(m => m.Chapters)
-            .WithOne(c => c.ParentManga)
+            .WithOne(c => c.ParentSeries)
             .HasForeignKey(c => c.ParentSeriesId)
             .OnDelete(DeleteBehavior.Cascade);
         //Chapter has SourceIds
@@ -45,7 +45,7 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
             .WithOne(id => id.Obj)
             .HasForeignKey(id => id.ObjId)
             .OnDelete(DeleteBehavior.Cascade);
-        //Series owns MangaAltTitles
+        //Series owns SeriesAltTitles
         modelBuilder.Entity<Series>()
             .OwnsMany<AltTitle>(m => m.AltTitles)
             .WithOwner();
@@ -61,7 +61,7 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
             .AutoInclude();
         //Series has many Tags associated with many Obj
         modelBuilder.Entity<Series>()
-            .HasMany<SeriesTag>(m => m.MangaTags)
+            .HasMany<SeriesTag>(m => m.SeriesTags)
             .WithMany()
             .UsingEntity("SeriesTagToSeries",
                 l => l.HasOne(typeof(SeriesTag)).WithMany().HasForeignKey("MangaTagIds")
@@ -70,7 +70,7 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
                 j => j.HasKey("MangaTagIds", "MangaIds")
             );
         modelBuilder.Entity<Series>()
-            .Navigation(m => m.MangaTags)
+            .Navigation(m => m.SeriesTags)
             .AutoInclude();
         //Series has many Authors associated with many Obj
         modelBuilder.Entity<Series>()
@@ -137,12 +137,12 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
             .OnDelete(DeleteBehavior.Cascade);
     }
 
-    public async Task<string?> FindMangaLike(Series other, CancellationToken ct)
+    public async Task<string?> FindSeriesLike(Series other, CancellationToken ct)
     {
         if (await Series.FirstOrDefaultAsync(m => m.Key == other.Key, ct) is { } f)
             return other.Key;
 
-        var mangas = await MangaWithMetadata().Select(m => new
+        var mangas = await SeriesWithMetadata().Select(m => new
         {
             Id = m.Key,
             AltTitles = m.AltTitles.Select(a => a.Title).ToList(),
@@ -161,16 +161,16 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
 
     // Eager-loads several collections at once; the SplitQuery default on SeriesContext (see Program.cs)
     // keeps this from fanning out to the product of every collection and timing out on large series.
-    public IQueryable<Series> MangaWithMetadata() =>
+    public IQueryable<Series> SeriesWithMetadata() =>
         Series
             .Include(m => m.Library)
             .Include(m => m.Authors)
-            .Include(m => m.MangaTags)
+            .Include(m => m.SeriesTags)
             .Include(m => m.Links)
             .Include(m => m.AltTitles);
 
-    public IIncludableQueryable<Series, ICollection<SourceId<Series>>> MangaIncludeAll() =>
-        MangaWithMetadata()
+    public IIncludableQueryable<Series, ICollection<SourceId<Series>>> SeriesIncludeAll() =>
+        SeriesWithMetadata()
             .Include(m => m.Chapters)
             .Include(m => m.SourceIds);
 
@@ -197,15 +197,15 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
     /// Upserts a Series into the database: finds an existing match or inserts a new one,
     /// merges tags/authors, and syncs. Does NOT kick off any background workers.
     /// </summary>
-    public async Task<(Series manga, SourceId<Series> id)?> UpsertManga(
-        Series addManga, SourceId<Series> addMcId, CancellationToken token)
+    public async Task<(Series manga, SourceId<Series> id)?> UpsertSeries(
+        Series addSeries, SourceId<Series> addMcId, CancellationToken token)
     {
-        Log.DebugFormat("Upserting Series: {0}", addManga);
+        Log.DebugFormat("Upserting Series: {0}", addSeries);
         (Series, SourceId<Series>)? result;
 
-        if (await FindMangaLike(addManga, token) is { } seriesId)
+        if (await FindSeriesLike(addSeries, token) is { } seriesId)
         {
-            Series manga = await MangaIncludeAll().FirstAsync(m => m.Key == seriesId, token);
+            Series manga = await SeriesIncludeAll().FirstAsync(m => m.Key == seriesId, token);
             Log.DebugFormat("Merging with existing Series: {0}", manga);
 
             var existingMcId = manga.SourceIds
@@ -232,7 +232,7 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
 
             // Backfill any external tracker links the re-fetch surfaced that we don't have yet, so a
             // series imported before link capture existed can still be matched by identifier.
-            foreach (Link link in addManga.Links)
+            foreach (Link link in addSeries.Links)
                 if (manga.Links.All(existing => existing.LinkUrl != link.LinkUrl))
                     manga.Links.Add(new Link(link.LinkProvider, link.LinkUrl));
 
@@ -241,26 +241,26 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
         else
         {
             Log.Debug("Series does not exist yet, inserting.");
-            IEnumerable<SeriesTag> mergedTags = addManga.MangaTags.Select(mt =>
+            IEnumerable<SeriesTag> mergedTags = addSeries.SeriesTags.Select(mt =>
             {
                 SeriesTag? inDb = Tags.Find(mt.Tag);
                 return inDb ?? mt;
             });
-            addManga.MangaTags = mergedTags.ToList();
+            addSeries.SeriesTags = mergedTags.ToList();
 
-            IEnumerable<Author> mergedAuthors = addManga.Authors.Select(ma =>
+            IEnumerable<Author> mergedAuthors = addSeries.Authors.Select(ma =>
             {
                 Author? inDb = Authors.Find(ma.Key);
                 return inDb ?? ma;
             });
-            addManga.Authors = mergedAuthors.ToList();
+            addSeries.Authors = mergedAuthors.ToList();
 
-            Series.Add(addManga);
-            addManga.SourceIds.Add(addMcId);
-            result = (addManga, addMcId);
+            Series.Add(addSeries);
+            addSeries.SourceIds.Add(addMcId);
+            result = (addSeries, addMcId);
         }
 
-        if (await Sync(token, reason: "UpsertManga") is { success: false })
+        if (await Sync(token, reason: "UpsertSeries") is { success: false })
             return null;
 
         return result;
@@ -269,7 +269,7 @@ public class SeriesContext(DbContextOptions<SeriesContext> options) : KenkuBaseC
     /// <summary>
     /// Convenience overload that unpacks a tuple.
     /// </summary>
-    public Task<(Series manga, SourceId<Series> id)?> AddMangaToContext(
-        (Series, SourceId<Series>) addManga, CancellationToken token)
-        => UpsertManga(addManga.Item1, addManga.Item2, token);
+    public Task<(Series manga, SourceId<Series> id)?> AddSeriesToContext(
+        (Series, SourceId<Series>) addSeries, CancellationToken token)
+        => UpsertSeries(addSeries.Item1, addSeries.Item2, token);
 }

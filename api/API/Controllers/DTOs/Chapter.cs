@@ -44,10 +44,10 @@ public sealed record Chapter(string Key, string SeriesId, int? Volume, string Ch
     public bool Downloaded { get; init; } = Downloaded;
     
     /// <summary>
-    /// Ids of the Series on MangaConnectors
+    /// Ids of the Series on SeriesSources
     /// </summary>
     [Required]
-    [Description("Ids of the Series on MangaConnectors")]
+    [Description("Ids of the Series on SeriesSources")]
     public IEnumerable<SourceId<Chapter>> SourceIds { get; init; } = SourceIds;
     
     /// <summary>

@@ -61,14 +61,14 @@ public class ChaptersControllerTests: IDisposable
         }
     }
 
-    private static API.Schema.SeriesContext.Series MakeTestManga(string name)
+    private static API.Schema.SeriesContext.Series MakeTestSeries(string name)
         => new(name, "", "http://example.com/img.jpg", SeriesReleaseStatus.Continuing, [], [], [], []);
 
     [Fact]
     public async Task MarkSourceAsRequested_StampsTheConfiguredAttemptBudget_OnTheDownloadJob()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Berserk");
+        var manga = MakeTestSeries("Berserk");
         var chapter = new API.Schema.SeriesContext.Chapter(manga, "1", null);
         var chId = new API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>(chapter, "Src", "c1", null, false);
         chapter.SourceIds.Add(chId);
@@ -90,7 +90,7 @@ public class ChaptersControllerTests: IDisposable
     public async Task ForceDownload_EnqueuesAForcedDownloadJob_ForTheChaptersDownloadSource()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Crossed");
+        var manga = MakeTestSeries("Crossed");
         var chapter = new API.Schema.SeriesContext.Chapter(manga, "1", null) { Downloaded = true, MissingPageCount = 3 };
         var chId = new API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>(chapter, "ComicHubFree", "crossed/issue-1", null, useForDownload: true);
         chapter.SourceIds.Add(chId);
@@ -112,7 +112,7 @@ public class ChaptersControllerTests: IDisposable
     public async Task ForceDownload_404_WhenChapterHasNoDownloadSource()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Crossed");
+        var manga = MakeTestSeries("Crossed");
         var chapter = new API.Schema.SeriesContext.Chapter(manga, "1", null);
         var chId = new API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>(chapter, "ComicHubFree", "x", null, useForDownload: false);
         chapter.SourceIds.Add(chId);
@@ -130,7 +130,7 @@ public class ChaptersControllerTests: IDisposable
     public async Task GetChapters_ExposesScanGroupAndLanguageOnSources()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Berserk");
+        var manga = MakeTestSeries("Berserk");
         var chapter = new API.Schema.SeriesContext.Chapter(manga, "384", 44);
         var src = new API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>(
             chapter, "MangaDex", "uuid-a", null, useForDownload: false, scanGroup: "Cool Scans", language: "en");
@@ -153,7 +153,7 @@ public class ChaptersControllerTests: IDisposable
     public async Task GetChapters_ExposesTheMissingPageCount()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Crossed");
+        var manga = MakeTestSeries("Crossed");
         var chapter = new API.Schema.SeriesContext.Chapter(manga, "1", null) { MissingPageCount = 3 };
         var src = new API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>(chapter, "ComicHubFree", "crossed/issue-1", null, useForDownload: true);
         chapter.SourceIds.Add(src);
@@ -172,7 +172,7 @@ public class ChaptersControllerTests: IDisposable
     public async Task MarkSourceAsRequested_PicksOneUpload_ClearsSiblings_AndEnqueuesThatSource()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Berserk");
+        var manga = MakeTestSeries("Berserk");
         var chapter = new API.Schema.SeriesContext.Chapter(manga, "384", 44);
         var a = new API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>(
             chapter, "MangaDex", "uuid-a", null, useForDownload: true, scanGroup: "Group A", language: "en");
@@ -214,7 +214,7 @@ public class ChaptersControllerTests: IDisposable
         // This test now implicitly checks that the absolute path logic inside
         // UpdateChapter doesn't crash when loading settings.
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Berserk");
+        var manga = MakeTestSeries("Berserk");
         var chapter = new API.Schema.SeriesContext.Chapter(manga, "23", null);
         chapter.FileName = "Berserk - Ch.23.cbz";
         ctx.Series.Add(manga);
@@ -245,7 +245,7 @@ public class ChaptersControllerTests: IDisposable
     public async Task UpdateChapter_NullVolumeNumber_ClearsVolumeNumber()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Berserk");
+        var manga = MakeTestSeries("Berserk");
         var chapter = new API.Schema.SeriesContext.Chapter(manga, "1", 5);
         ctx.Series.Add(manga);
         ctx.Chapters.Add(chapter);
@@ -273,7 +273,7 @@ public class ChaptersControllerTests: IDisposable
     public async Task GetChapters_WithDownloadedFilter_ReturnsOnlyDownloadedChapters()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("One Punch Man");
+        var manga = MakeTestSeries("One Punch Man");
 
         var downloadedChapter = new API.Schema.SeriesContext.Chapter(manga, "1", 1) { Downloaded = true };
         var missingChapter = new API.Schema.SeriesContext.Chapter(manga, "2", 1) { Downloaded = false };
@@ -297,7 +297,7 @@ public class ChaptersControllerTests: IDisposable
     public async Task GetChapters_MultiplePages_ReturnsCorrectPaginationMetadata()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Naruto");
+        var manga = MakeTestSeries("Naruto");
         ctx.Series.Add(manga);
 
         for (int i = 1; i <= 15; i++)
@@ -318,7 +318,7 @@ public class ChaptersControllerTests: IDisposable
     public async Task GetChapter_KnownId_ReturnsChapter()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Jujutsu Kaisen");
+        var manga = MakeTestSeries("Jujutsu Kaisen");
         var chapter = new API.Schema.SeriesContext.Chapter(manga, "1", 1);
         ctx.Series.Add(manga);
         ctx.Chapters.Add(chapter);
@@ -345,7 +345,7 @@ public class ChaptersControllerTests: IDisposable
     public async Task GetLatestDownloaded_WhenNoneAreDownloaded_ReturnsNoContent()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Mob Psycho 100");
+        var manga = MakeTestSeries("Mob Psycho 100");
 
         ctx.Series.Add(manga);
         ctx.Chapters.Add(new API.Schema.SeriesContext.Chapter(manga, "1", 1) { Downloaded = false });
@@ -363,7 +363,7 @@ public class ChaptersControllerTests: IDisposable
     public async Task IgnoreChaptersBefore_ValidManga_UpdatesThresholdInDatabase()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("My Hero Academia");
+        var manga = MakeTestSeries("My Hero Academia");
         ctx.Series.Add(manga);
         await ctx.SaveChangesAsync();
 
@@ -371,15 +371,15 @@ public class ChaptersControllerTests: IDisposable
         var result = await CreateController(ctx).IgnoreChaptersBefore(manga.Key, newThreshold);
 
         Assert.IsType<Ok>(result.Result);
-        var updatedManga = await ctx.Series.FirstAsync(m => m.Key == manga.Key);
-        Assert.Equal(newThreshold, updatedManga.IgnoreChaptersBefore);
+        var updatedSeries = await ctx.Series.FirstAsync(m => m.Key == manga.Key);
+        Assert.Equal(newThreshold, updatedSeries.IgnoreChaptersBefore);
     }
 
     [Fact]
     public async Task DeleteChapter_ExistingChapter_RemovesFromDatabase()
     {
         using var ctx = CreateContext();
-        var manga = MakeTestManga("Attack on Titan");
+        var manga = MakeTestSeries("Attack on Titan");
         var chapter = new API.Schema.SeriesContext.Chapter(manga, "1", 1);
         ctx.Series.Add(manga);
         ctx.Chapters.Add(chapter);
@@ -409,9 +409,9 @@ public class ChaptersControllerTests: IDisposable
         public override AcquisitionKind Kind => AcquisitionKind.DirectArchive;
         public Task<ArchiveResolution> ResolveArchiveUrl(API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter> chapter, CancellationToken ct) =>
             Task.FromResult(resolution);
-        public override Task<(API.Schema.SeriesContext.Series, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series>)[]> SearchManga(string m) => throw new NotSupportedException();
-        public override Task<(API.Schema.SeriesContext.Series, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series>)?> GetMangaFromUrl(string url) => throw new NotSupportedException();
-        public override Task<(API.Schema.SeriesContext.Series, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series>)?> GetMangaFromId(string id) => throw new NotSupportedException();
+        public override Task<(API.Schema.SeriesContext.Series, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series>)[]> SearchSeries(string m) => throw new NotSupportedException();
+        public override Task<(API.Schema.SeriesContext.Series, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series>)?> GetSeriesFromUrl(string url) => throw new NotSupportedException();
+        public override Task<(API.Schema.SeriesContext.Series, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series>)?> GetSeriesFromId(string id) => throw new NotSupportedException();
         public override Task<(API.Schema.SeriesContext.Chapter, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>)[]> GetChapters(API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Series> id, string? language = null) => throw new NotSupportedException();
         internal override Task<string[]> GetChapterImageUrls(API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter> id) => throw new NotSupportedException();
     }
@@ -422,7 +422,7 @@ public class ChaptersControllerTests: IDisposable
     private async Task<(SeriesContext ctx, API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter> chId)> SeedArchiveChapter()
     {
         var ctx = CreateContext();
-        var manga = MakeTestManga("Spawn");
+        var manga = MakeTestSeries("Spawn");
         var chapter = new API.Schema.SeriesContext.Chapter(manga, "376", null);
         var chId = new API.Schema.SeriesContext.SourceId<API.Schema.SeriesContext.Chapter>(chapter, "FakeArchive", "376", "https://getcomics.org/c/spawn-376/", true);
         ctx.Series.Add(manga);

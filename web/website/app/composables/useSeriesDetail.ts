@@ -9,7 +9,7 @@ export function useSeriesDetail(seriesId: string) {
     const toast = useToast();
 
     const rollupQuery = useApi('/v2/Series/Rollup', { key: FetchKeys.Series.Rollup, lazy: true, server: false });
-    const connectorsQuery = useApi('/v2/SeriesSource', { key: FetchKeys.MangaConnector.All, lazy: true, server: false });
+    const connectorsQuery = useApi('/v2/SeriesSource', { key: FetchKeys.SeriesSource.All, lazy: true, server: false });
     const seriesQuery = useApi('/v2/Series/{SeriesId}', {
         path: { SeriesId: seriesId },
         key: FetchKeys.Series.Id(seriesId),

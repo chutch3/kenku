@@ -95,7 +95,7 @@ public class VolumeResolutionReconcilerTests : IDisposable
         var comic = new Series("The Boys", "", "u", SeriesReleaseStatus.Completed, [], [], [], [], library);
         comic.SourceIds.Add(new SourceId<Series>(comic, "FakeComics", "the-boys", null));
         var manga = new Series("One Piece", "", "u", SeriesReleaseStatus.Continuing, [], [], [], [], library);
-        manga.SourceIds.Add(new SourceId<Series>(manga, "FakeManga", "one-piece", null));
+        manga.SourceIds.Add(new SourceId<Series>(manga, "FakeSeries", "one-piece", null));
         ctx.Series.AddRange(comic, manga);
         ctx.Chapters.Add(new Chapter(comic, "1", null, null));
         ctx.Chapters.Add(new Chapter(manga, "1", null, null));
@@ -104,7 +104,7 @@ public class VolumeResolutionReconcilerTests : IDisposable
         API.Connectors.SeriesSource[] connectors =
         [
             new FakeSeriesSource("FakeComics", settings, contentType: API.Connectors.ContentType.Comic),
-            new FakeSeriesSource("FakeManga", settings),
+            new FakeSeriesSource("FakeSeries", settings),
         ];
 
         int enqueued = await VolumeResolutionReconciler.ScanAndEnqueueAsync(

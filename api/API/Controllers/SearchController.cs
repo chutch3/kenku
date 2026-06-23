@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using API.Acquirers;
 using API.Controllers.DTOs;
 using API.Connectors;
-using MangaConnectorImpl = API.Connectors.SeriesSource;
+using SeriesSourceImpl = API.Connectors.SeriesSource;
 using API.Schema.SeriesContext;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -19,7 +19,7 @@ namespace API.Controllers;
 [Route("v{v:apiVersion}/[controller]")]
 public class SearchController(
     SeriesContext context,
-    IEnumerable<MangaConnectorImpl> connectors,
+    IEnumerable<SeriesSourceImpl> connectors,
     Func<string, string, (Series, Schema.SeriesContext.SourceId<Series>)?>? connectorLookup = null)
     : ControllerBase
 {
@@ -30,7 +30,7 @@ public class SearchController(
 
         if (connectors.FirstOrDefault(c => c.Name.Equals(connectorName, StringComparison.InvariantCultureIgnoreCase)) is not { } connector)
             return null;
-        return await connector.GetMangaFromId(mangaIdOnSite);
+        return await connector.GetSeriesFromId(mangaIdOnSite);
     }
 
     /// <summary>
@@ -47,7 +47,7 @@ public class SearchController(
     [ProducesResponseType<List<MinimalSeries>>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType(Status406NotAcceptable)]
-    public async Task<Results<Ok<List<MinimalSeries>>, NotFound<string>, StatusCodeHttpResult>> SearchManga(
+    public async Task<Results<Ok<List<MinimalSeries>>, NotFound<string>, StatusCodeHttpResult>> SearchSeries(
         string SeriesSourceName, string Query,
         [FromQuery] ContentType? contentType = null, [FromQuery] bool includeTorrents = true)
     {
@@ -58,10 +58,10 @@ public class SearchController(
 
         (Series manga, Schema.SeriesContext.SourceId<Series> id)[] mangas = connector switch
         {
-            Global global => await global.SearchMangaScoped(Query, contentType, includeTorrents),
+            Global global => await global.SearchSeriesScoped(Query, contentType, includeTorrents),
             _ when (contentType is not null && connector.ContentType != contentType)
                    || (!includeTorrents && connector.Kind == AcquisitionKind.Torrent) => [],
-            _ => await connector.SearchManga(Query),
+            _ => await connector.SearchSeries(Query),
         };
 
         // The same series found on several sources shares a Series.Key (derived from its name), so collapse
@@ -95,7 +95,7 @@ public class SearchController(
     [HttpGet("{SeriesSourceName}/Series")]
     [ProducesResponseType<DTOs.Series>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
-    public async Task<Results<Ok<DTOs.Series>, NotFound<string>>> GetMangaFromConnector(string SeriesSourceName, [FromQuery] string ConnectorSeriesId)
+    public async Task<Results<Ok<DTOs.Series>, NotFound<string>>> GetSeriesFromSource(string SeriesSourceName, [FromQuery] string ConnectorSeriesId)
     {
         if (await LookupFromConnector(SeriesSourceName, ConnectorSeriesId) is not ({ } manga, { } id))
             return TypedResults.NotFound(nameof(ConnectorSeriesId));
@@ -104,7 +104,7 @@ public class SearchController(
             DTOs.SourceId<DTOs.Series>.From(id)
         ];
         IEnumerable<DTOs.Author> authors = manga.Authors.Select(a => new DTOs.Author(a.Key, a.AuthorName));
-        IEnumerable<string> tags = manga.MangaTags.Select(t => t.Tag);
+        IEnumerable<string> tags = manga.SeriesTags.Select(t => t.Tag);
         IEnumerable<DTOs.Link> links = manga.Links.Select(l => new DTOs.Link(l.Key, l.LinkProvider, l.LinkUrl));
         IEnumerable<DTOs.AltTitle> altTitles = manga.AltTitles.Select(a => new DTOs.AltTitle(a.Language, a.Title));
 
@@ -164,7 +164,7 @@ public class SearchController(
     [ProducesResponseType<MinimalSeries>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType<string>(Status500InternalServerError, "text/plain")]
-    public async Task<Results<Ok<MinimalSeries>, NotFound<string>, InternalServerError<string>>> GetMangaFromUrl(
+    public async Task<Results<Ok<MinimalSeries>, NotFound<string>, InternalServerError<string>>> GetSeriesFromUrl(
         [FromQuery] string url, [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore,
         [FromServices] API.JobRuntime.Interfaces.IClock clock, [FromServices] KenkuSettings settings)
     {
@@ -172,10 +172,10 @@ public class SearchController(
         if (connectors.FirstOrDefault(c => c.Name.Equals("Global", StringComparison.InvariantCultureIgnoreCase)) is not { } connector)
             return TypedResults.InternalServerError("Could not find Global Connector.");
 
-        if (await connector.GetMangaFromUrl(url) is not ({ } m, not null) manga)
+        if (await connector.GetSeriesFromUrl(url) is not ({ } m, not null) manga)
             return TypedResults.NotFound("Could not retrieve Series");
 
-        if (await context.UpsertManga(manga.Item1, manga.Item2, HttpContext.RequestAborted) is not { } added)
+        if (await context.UpsertSeries(manga.Item1, manga.Item2, HttpContext.RequestAborted) is not { } added)
             return TypedResults.InternalServerError("Could not add Series to context");
 
         added.manga.IsTracked = true;

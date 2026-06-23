@@ -28,7 +28,7 @@ public class AsuraComicTests
         return mockClient;
     }
 
-    private static SourceId<Series> CreateDummyManga(SeriesSource connector)
+    private static SourceId<Series> CreateDummySeries(SeriesSource connector)
     {
         var manga = new Series("Test Series", "Desc", "url", SeriesReleaseStatus.Continuing, [], [], [], []);
         return new SourceId<Series>(manga, connector, "test-id", "https://example.com/test");
@@ -51,7 +51,7 @@ public class AsuraComicTests
         var settings = CreateSettings();
         var asuracomic = new AsuraComic(settings, CreateRateLimitHandler(), CreateMockClient(html).Object);
 
-        var result = await asuracomic.GetMangaFromId("some-series-id");
+        var result = await asuracomic.GetSeriesFromId("some-series-id");
 
         Assert.NotNull(result);
         var links = result.Value.Item1.Links;
@@ -78,7 +78,7 @@ public class AsuraComicTests
         var settings = CreateSettings();
         var asuracomic = new AsuraComic(settings, CreateRateLimitHandler(), CreateMockClient(html).Object);
 
-        var seriesId = CreateDummyManga(asuracomic);
+        var seriesId = CreateDummySeries(asuracomic);
         var chapters = asuracomic.GetChapters(seriesId);
 
         Assert.Single(await chapters);

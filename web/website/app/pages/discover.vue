@@ -81,7 +81,7 @@ const { data: rails, pending: railsPending } = useApi('/v2/Discover/Rails', { ke
 const { data: feed, pending: feedPending } = useApi('/v2/Discover/Feed', { key: FetchKeys.Discover.Feed, lazy: true, server: false });
 const { data: library } = useApi('/v2/Series', { key: FetchKeys.Series.All, lazy: true, server: false });
 const { data: settings } = useApi('/v2/Settings', { key: FetchKeys.Settings.All, lazy: true, server: false });
-const { data: connectors } = useApi('/v2/SeriesSource', { key: FetchKeys.MangaConnector.All, lazy: true, server: false });
+const { data: connectors } = useApi('/v2/SeriesSource', { key: FetchKeys.SeriesSource.All, lazy: true, server: false });
 const genres = computed(() => settings.value?.discoveryGenres ?? []);
 const config = useRuntimeConfig();
 

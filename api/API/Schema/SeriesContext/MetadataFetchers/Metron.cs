@@ -44,15 +44,15 @@ public class Metron : MetadataFetcher
     {
         Log.DebugFormat("Updating Metadata from Metron: {0}", metadataEntry.SeriesId);
 
-        Series? dbManga = metadataEntry.Series;
-        if (dbManga is null)
+        Series? dbSeries = metadataEntry.Series;
+        if (dbSeries is null)
         {
             if (await dbContext.Series.FirstOrDefaultAsync(m => m.Key == metadataEntry.SeriesId, token) is not { } update)
             {
                 Log.ErrorFormat("Series not found: {0}", metadataEntry.SeriesId);
                 return;
             }
-            dbManga = update;
+            dbSeries = update;
         }
 
         // Metron only updates scalar fields (name/description/cover), so we deliberately do NOT load
@@ -67,11 +67,11 @@ public class Metron : MetadataFetcher
         }
 
         if (!string.IsNullOrWhiteSpace(detail.Name))
-            dbManga.Name = detail.Name;
+            dbSeries.Name = detail.Name;
         if (!string.IsNullOrWhiteSpace(detail.Description))
-            dbManga.Description = detail.Description;
+            dbSeries.Description = detail.Description;
         // Provider-ranked backfill: won't clobber a connector/user cover (was an unconditional overwrite).
-        dbManga.SetCover(detail.CoverUrl, CoverSource.Provider);
+        dbSeries.SetCover(detail.CoverUrl, CoverSource.Provider);
 
         if (await dbContext.Sync(token, GetType(), "Update metadata") is { success: true })
             Log.InfoFormat("Updated Metadata from Metron: {0}", metadataEntry.SeriesId);

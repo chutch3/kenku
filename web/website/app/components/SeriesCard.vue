@@ -68,7 +68,7 @@ const props = defineProps<SeriesCardProps>();
 const { $api } = useNuxtApp();
 const toast = useToast();
 
-const { data: connectors } = useApi('/v2/SeriesSource', { key: FetchKeys.MangaConnector.All, server: false });
+const { data: connectors } = useApi('/v2/SeriesSource', { key: FetchKeys.SeriesSource.All, server: false });
 const kind = computed(() => seriesKind(props.series, connectors.value));
 const trackState = computed(() => seriesTrackState(props.series, props.rollup));
 const meta = computed(() => trackStateMeta(props.series, props.rollup));

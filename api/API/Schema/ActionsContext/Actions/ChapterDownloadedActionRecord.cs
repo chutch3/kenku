@@ -3,7 +3,7 @@ using API.Schema.SeriesContext;
 
 namespace API.Schema.ActionsContext.Actions;
 
-public sealed class ChapterDownloadedActionRecord(Actions action, DateTime performedAt, string seriesId, string chapterId) : ActionRecord(action, performedAt), IActionWithChapterRecord, IActionWithMangaRecord
+public sealed class ChapterDownloadedActionRecord(Actions action, DateTime performedAt, string seriesId, string chapterId) : ActionRecord(action, performedAt), IActionWithChapterRecord, IActionWithSeriesRecord
 {
     public ChapterDownloadedActionRecord(Series manga, Chapter chapter) : this(Actions.ChapterDownloaded, DateTime.UtcNow, manga.Key, chapter.Key) { }
     public string ChapterId { get; init; } = chapterId;

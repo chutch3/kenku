@@ -34,7 +34,7 @@ public class TorrentAcquirer(
         string? pinnedArchiveUrl = null)
     {
         Chapter ch = chapter.Obj;
-        Series series = ch.ParentManga;
+        Series series = ch.ParentSeries;
 
         // A torrent for this chapter may already be in the client (a re-run after the hand-off job
         // succeeded, or a manual re-trigger) — never search/add a second one for the same chapter.

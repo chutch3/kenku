@@ -236,7 +236,7 @@ public class VolumeBundler(KenkuSettings settings)
 
         var chapterKeys = maps.Select(m => m.ChapterKey).ToHashSet();
         var chapters = await context.Chapters
-            .Include(c => c.ParentManga)
+            .Include(c => c.ParentSeries)
             .ThenInclude(m => m.Library)
             .Where(c => chapterKeys.Contains(c.Key))
             .ToListAsync(ct);
@@ -318,12 +318,12 @@ public class VolumeBundler(KenkuSettings settings)
                lower.EndsWith(".png") || lower.EndsWith(".webp");
     }
 
-    private static string BuildComicInfoXml(string mangaName, int vol, int pageCount)
+    private static string BuildComicInfoXml(string seriesName, int vol, int pageCount)
     {
         return $"""
                 <?xml version="1.0"?>
                 <ComicInfo>
-                  <Series>{EscapeXml(mangaName)}</Series>
+                  <Series>{EscapeXml(seriesName)}</Series>
                   <Volume>{vol}</Volume>
                   <PageCount>{pageCount}</PageCount>
                 </ComicInfo>

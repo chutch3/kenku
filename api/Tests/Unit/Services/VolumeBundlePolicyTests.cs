@@ -1,6 +1,6 @@
 using API.Schema.SeriesContext;
 using API.Services;
-using SchemaManga = API.Schema.SeriesContext.Series;
+using SchemaSeries = API.Schema.SeriesContext.Series;
 using SchemaFileLibrary = API.Schema.SeriesContext.FileLibrary;
 using SchemaChapter = API.Schema.SeriesContext.Chapter;
 
@@ -14,16 +14,16 @@ namespace API.Tests.Unit.Services;
 /// </summary>
 public class VolumeBundlePolicyTests
 {
-    private static SchemaManga MakeManga(LibraryLayout layout, SeriesReleaseStatus status = SeriesReleaseStatus.Continuing)
+    private static SchemaSeries MakeSeries(LibraryLayout layout, SeriesReleaseStatus status = SeriesReleaseStatus.Continuing)
     {
         var library = new SchemaFileLibrary("/lib", "Lib");
-        var manga = new SchemaManga("S", "", "http://x/c.jpg", status, [], [], [], [], library);
+        var manga = new SchemaSeries("S", "", "http://x/c.jpg", status, [], [], [], [], library);
         manga.LibraryLayout = layout;
         manga.Chapters = new List<SchemaChapter>();
         return manga;
     }
 
-    private static void AddChapter(SchemaManga manga, string number, int? volume, bool downloaded, bool bundled = false)
+    private static void AddChapter(SchemaSeries manga, string number, int? volume, bool downloaded, bool bundled = false)
     {
         var chapter = new SchemaChapter(manga, number, volume, null) { Downloaded = downloaded };
         chapter.IsBundled = bundled;
@@ -33,7 +33,7 @@ public class VolumeBundlePolicyTests
     [Fact]
     public void NonVolumeCBZ_Layout_ReturnsNothing()
     {
-        var manga = MakeManga(LibraryLayout.VolumeFolder);
+        var manga = MakeSeries(LibraryLayout.VolumeFolder);
         AddChapter(manga, "1", 1, downloaded: true);
         AddChapter(manga, "3", 2, downloaded: true);
 
@@ -43,7 +43,7 @@ public class VolumeBundlePolicyTests
     [Fact]
     public void ClosedVolume_FullyDownloaded_IsReady()
     {
-        var manga = MakeManga(LibraryLayout.VolumeCBZ);
+        var manga = MakeSeries(LibraryLayout.VolumeCBZ);
         AddChapter(manga, "1", 1, downloaded: true);
         AddChapter(manga, "2", 1, downloaded: true);
         AddChapter(manga, "3", 2, downloaded: false); // a later volume exists → vol 1 is closed
@@ -54,7 +54,7 @@ public class VolumeBundlePolicyTests
     [Fact]
     public void TrailingVolume_NotReady_EvenWhenComplete()
     {
-        var manga = MakeManga(LibraryLayout.VolumeCBZ);
+        var manga = MakeSeries(LibraryLayout.VolumeCBZ);
         AddChapter(manga, "1", 1, downloaded: true);
         AddChapter(manga, "2", 1, downloaded: true); // only volume present, so it may still grow
 
@@ -64,7 +64,7 @@ public class VolumeBundlePolicyTests
     [Fact]
     public void IncompleteClosedVolume_NotReady()
     {
-        var manga = MakeManga(LibraryLayout.VolumeCBZ);
+        var manga = MakeSeries(LibraryLayout.VolumeCBZ);
         AddChapter(manga, "1", 1, downloaded: true);
         AddChapter(manga, "2", 1, downloaded: false); // missing a chapter
         AddChapter(manga, "3", 2, downloaded: true);
@@ -75,7 +75,7 @@ public class VolumeBundlePolicyTests
     [Fact]
     public void AlreadyBundledVolume_Excluded()
     {
-        var manga = MakeManga(LibraryLayout.VolumeCBZ);
+        var manga = MakeSeries(LibraryLayout.VolumeCBZ);
         AddChapter(manga, "1", 1, downloaded: true, bundled: true);
         AddChapter(manga, "3", 2, downloaded: true);
 
@@ -85,7 +85,7 @@ public class VolumeBundlePolicyTests
     [Fact]
     public void CompletedSeries_TrailingVolume_IsReady()
     {
-        var manga = MakeManga(LibraryLayout.VolumeCBZ, SeriesReleaseStatus.Completed);
+        var manga = MakeSeries(LibraryLayout.VolumeCBZ, SeriesReleaseStatus.Completed);
         AddChapter(manga, "1", 1, downloaded: true);
         AddChapter(manga, "2", 1, downloaded: true); // series is done → no more chapters coming
 
@@ -95,7 +95,7 @@ public class VolumeBundlePolicyTests
     [Fact]
     public void VolumelessChapters_AreIgnored()
     {
-        var manga = MakeManga(LibraryLayout.VolumeCBZ);
+        var manga = MakeSeries(LibraryLayout.VolumeCBZ);
         AddChapter(manga, "1", 1, downloaded: true);
         AddChapter(manga, "2", 2, downloaded: true);   // trailing
         AddChapter(manga, "100", null, downloaded: true); // loose, never bundled
@@ -108,7 +108,7 @@ public class VolumeBundlePolicyTests
     [Fact]
     public void Classify_ReportsStateAndCountsPerVolume()
     {
-        var manga = MakeManga(LibraryLayout.VolumeCBZ);
+        var manga = MakeSeries(LibraryLayout.VolumeCBZ);
         AddChapter(manga, "1", 1, downloaded: true);
         AddChapter(manga, "2", 1, downloaded: true);   // vol 1 complete + closed → ready
         AddChapter(manga, "3", 2, downloaded: true);
@@ -131,7 +131,7 @@ public class VolumeBundlePolicyTests
     [Fact]
     public void Classify_TrailingCompleteVolume_IsPendingNewerVolume()
     {
-        var manga = MakeManga(LibraryLayout.VolumeCBZ);
+        var manga = MakeSeries(LibraryLayout.VolumeCBZ);
         AddChapter(manga, "1", 1, downloaded: true); // only volume, complete → not yet eligible
 
         Assert.Equal(VolumeBundleState.PendingNewerVolume, VolumeBundlePolicy.Classify(manga).Single().State);
@@ -140,7 +140,7 @@ public class VolumeBundlePolicyTests
     [Fact]
     public void Classify_NonVolumeCBZ_IsNotApplicable()
     {
-        var manga = MakeManga(LibraryLayout.Flat);
+        var manga = MakeSeries(LibraryLayout.Flat);
         AddChapter(manga, "1", 1, downloaded: true);
 
         Assert.Equal(VolumeBundleState.NotApplicable, VolumeBundlePolicy.Classify(manga).Single().State);
@@ -149,7 +149,7 @@ public class VolumeBundlePolicyTests
     [Fact]
     public void Classify_BundledVolume_IsBundled()
     {
-        var manga = MakeManga(LibraryLayout.VolumeCBZ);
+        var manga = MakeSeries(LibraryLayout.VolumeCBZ);
         AddChapter(manga, "1", 1, downloaded: true, bundled: true);
         AddChapter(manga, "2", 2, downloaded: true);
 

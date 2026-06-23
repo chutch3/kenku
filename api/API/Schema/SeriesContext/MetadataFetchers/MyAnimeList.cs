@@ -61,22 +61,22 @@ public class MyAnimeList : MetadataFetcher
     public override async Task UpdateMetadata(MetadataEntry metadataEntry, SeriesContext dbContext, CancellationToken token)
     {
         Log.DebugFormat("Updating Metadata: {0}", metadataEntry.SeriesId);
-        Series? dbManga = metadataEntry.Series; //Might be null!
-        if (dbManga is null)
+        Series? dbSeries = metadataEntry.Series; //Might be null!
+        if (dbSeries is null)
         {
             if (await dbContext.Series.FirstOrDefaultAsync(m => m.Key == metadataEntry.SeriesId, token) is not
                 { } update)
                 throw new DbUpdateException("Series not found");
-            dbManga = update;
+            dbSeries = update;
         }
 
         // Load all collections (tags, links, authors)...
-        foreach (CollectionEntry collectionEntry in dbContext.Entry(dbManga).Collections)
+        foreach (CollectionEntry collectionEntry in dbContext.Entry(dbSeries).Collections)
         {
             if(!collectionEntry.IsLoaded)
                 await collectionEntry.LoadAsync(token);
         }
-        await dbContext.Entry(dbManga).Reference(m => m.Library).LoadAsync(token);
+        await dbContext.Entry(dbSeries).Reference(m => m.Library).LoadAsync(token);
         
         MangaFull resultData;
         try
@@ -95,16 +95,16 @@ public class MyAnimeList : MetadataFetcher
             return;
         }
 
-        dbManga.Name = resultData.Titles.First().Title;
-        dbManga.Description = resultData.Synopsis;
-        dbManga.AltTitles.Clear();
-        dbManga.AltTitles = resultData.Titles.Select(t => new AltTitle(t.Type, t.Title)).ToList();
-        dbManga.Authors.Clear();
-        dbManga.Authors = await dbContext.ResolveAuthorsAsync(resultData.Authors.Select(a => a.Name), token);
+        dbSeries.Name = resultData.Titles.First().Title;
+        dbSeries.Description = resultData.Synopsis;
+        dbSeries.AltTitles.Clear();
+        dbSeries.AltTitles = resultData.Titles.Select(t => new AltTitle(t.Type, t.Title)).ToList();
+        dbSeries.Authors.Clear();
+        dbSeries.Authors = await dbContext.ResolveAuthorsAsync(resultData.Authors.Select(a => a.Name), token);
         // Provider-ranked backfill: fills only when no higher-ranked (connector/user) cover exists. This
         // rescues series whose connector page yields no cover URL (the Chainsaw Man / Berserk case).
         if (resultData.Images?.JPG?.ImageUrl is { Length: > 0 } imageUrl)
-            dbManga.SetCover(imageUrl, CoverSource.Provider);
+            dbSeries.SetCover(imageUrl, CoverSource.Provider);
 
         if (await dbContext.Sync(token, GetType(), "Update metadata") is { success: true })
         {

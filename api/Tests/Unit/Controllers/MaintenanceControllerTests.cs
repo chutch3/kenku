@@ -77,7 +77,7 @@ public class MaintenanceControllerTests
         await mangaCtx.SaveChangesAsync();
 
         var controller = CreateController(mangaCtx, actionsCtx);
-        var result = await controller.CleanupNoDownloadManga();
+        var result = await controller.CleanupNoDownloadSeries();
 
         Assert.IsType<Ok>(result.Result);
         Assert.Empty(await mangaCtx.Series.ToListAsync());
@@ -95,7 +95,7 @@ public class MaintenanceControllerTests
         mangaCtx.Series.AddRange(watchlisted, untracked);
         await mangaCtx.SaveChangesAsync();
 
-        var result = await CreateController(mangaCtx, actionsCtx).CleanupNoDownloadManga();
+        var result = await CreateController(mangaCtx, actionsCtx).CleanupNoDownloadSeries();
 
         Assert.IsType<Ok>(result.Result);
         var survivor = Assert.Single(await mangaCtx.Series.ToListAsync());

@@ -71,11 +71,11 @@ public abstract class SeriesSource(string name, string[] supportedLanguages, str
     /// <summary>What this source serves. Comic sources opt in; the historical scrapers are manga.</summary>
     [NotMapped] public virtual ContentType ContentType => ContentType.Manga;
 
-    public abstract Task<(Series, SourceId<Series>)[]> SearchManga(string mangaSearchName);
+    public abstract Task<(Series, SourceId<Series>)[]> SearchSeries(string mangaSearchName);
 
-    public abstract Task<(Series, SourceId<Series>)?> GetMangaFromUrl(string url);
+    public abstract Task<(Series, SourceId<Series>)?> GetSeriesFromUrl(string url);
 
-    public abstract Task<(Series, SourceId<Series>)?> GetMangaFromId(string mangaIdOnSite);
+    public abstract Task<(Series, SourceId<Series>)?> GetSeriesFromId(string mangaIdOnSite);
 
     public abstract Task<(Chapter, SourceId<Chapter>)[]> GetChapters(SourceId<Series> seriesId,
         string? language = null);
@@ -89,7 +89,7 @@ public abstract class SeriesSource(string name, string[] supportedLanguages, str
 
     public virtual async Task<Stream?> DownloadImage(string imageUrl, CancellationToken ct)
     {
-        HttpResponseMessage requestResult = await downloadClient.MakeRequest(imageUrl, RequestType.MangaImage, cancellationToken: ct);
+        HttpResponseMessage requestResult = await downloadClient.MakeRequest(imageUrl, RequestType.SeriesImage, cancellationToken: ct);
         return requestResult.IsSuccessStatusCode ? await requestResult.Content.ReadAsStreamAsync(ct) : null;
     }
 }

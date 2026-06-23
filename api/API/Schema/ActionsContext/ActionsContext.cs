@@ -32,21 +32,21 @@ public class ActionsContext(DbContextOptions<ActionsContext> options) : KenkuBas
         modelBuilder.Entity<LibraryMovedActionRecord>().Property(a => a.SeriesId).HasColumnName("SeriesId");
     }
 
-    public IQueryable<ActionRecord> FilterActionsManga(string SeriesId) => this.Actions
+    public IQueryable<ActionRecord> FilterActionsSeries(string SeriesId) => this.Actions
         .FromSqlInterpolated($"""SELECT * FROM public."Actions" WHERE "SeriesId" = {SeriesId}""");
 
     public IQueryable<ActionRecord> FilterActionsChapter(string ChapterId) => this.Actions
         .FromSqlInterpolated($"""SELECT * FROM public."Actions" WHERE "ChapterId" = {ChapterId}""");
     
-    public IQueryable<ActionRecord> FilterActionsMangaAndChapter(string SeriesId, string ChapterId) => this.Actions
+    public IQueryable<ActionRecord> FilterActionsSeriesAndChapter(string SeriesId, string ChapterId) => this.Actions
         .FromSqlInterpolated($"""SELECT * FROM public."Actions" WHERE "SeriesId" = {SeriesId} AND "ChapterId" = {ChapterId}""");
 
     public IQueryable<ActionRecord> FilterActions(string? SeriesId, string? ChapterId)
     {
         if (SeriesId is { } seriesId && ChapterId is { } chapterId)
-            return FilterActionsMangaAndChapter(seriesId, chapterId);
+            return FilterActionsSeriesAndChapter(seriesId, chapterId);
         if (SeriesId is { } mangaId2)
-            return FilterActionsManga(mangaId2);
+            return FilterActionsSeries(mangaId2);
         if (ChapterId is { } chapterId2)
             return FilterActionsChapter(chapterId2);
         return this.Actions.AsQueryable();

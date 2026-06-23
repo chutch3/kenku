@@ -15,7 +15,7 @@ using Author = API.Controllers.DTOs.Author;
 using Chapter = API.Schema.SeriesContext.Chapter;
 using Link = API.Controllers.DTOs.Link;
 using Series = API.Controllers.DTOs.Series;
-using MangaConnectorImpl = API.Connectors.SeriesSource;
+using SeriesSourceImpl = API.Connectors.SeriesSource;
 
 // ReSharper disable InconsistentNaming
 
@@ -24,20 +24,20 @@ namespace API.Controllers;
 [ApiVersion(2)]
 [ApiController]
 [Route("v{v:apiVersion}/[controller]")]
-public class SeriesController(SeriesContext context, ActionsContext actionsContext, KenkuSettings settings, IEnumerable<MangaConnectorImpl> connectors) : ControllerBase
+public class SeriesController(SeriesContext context, ActionsContext actionsContext, KenkuSettings settings, IEnumerable<SeriesSourceImpl> connectors) : ControllerBase
 {
     
     /// <summary>
     /// Returns all cached <see cref="DTOs.Series"/>
     /// </summary>
-    /// <response code="200"><see cref="MinimalSeries"/> exert of <see cref="Schema.SeriesContext.Series"/>. Use <see cref="GetManga"/> for more information</response>
+    /// <response code="200"><see cref="MinimalSeries"/> exert of <see cref="Schema.SeriesContext.Series"/>. Use <see cref="GetSeries"/> for more information</response>
     /// <response code="500">Error during Database Operation</response>
     [HttpGet]
     [ProducesResponseType<List<MinimalSeries>>(Status200OK, "application/json")]
     [ProducesResponseType(Status500InternalServerError)]
-    public async Task<Results<Ok<List<MinimalSeries>>, InternalServerError>> GetAllManga ()
+    public async Task<Results<Ok<List<MinimalSeries>>, InternalServerError>> GetAllSeries ()
     {
-        if (await context.GetTrackedMangas()
+        if (await context.GetTrackedSeries()
                 .OrderBy(m => m.Name)
                 .ToArrayAsync(HttpContext.RequestAborted) is not
             { } result)
@@ -49,12 +49,12 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     /// <summary>
     /// Returns all <see cref="Schema.SeriesContext.Series"/> that are being downloaded from at least one <see cref="API.Connectors.SeriesSource"/>
     /// </summary>
-    /// <response code="200"><see cref="MinimalSeries"/> exert of <see cref="Schema.SeriesContext.Series"/>. Use <see cref="GetManga"/> for more information</response>
+    /// <response code="200"><see cref="MinimalSeries"/> exert of <see cref="Schema.SeriesContext.Series"/>. Use <see cref="GetSeries"/> for more information</response>
     /// <response code="500">Error during Database Operation</response>
     [HttpGet("Downloading")]
     [ProducesResponseType<MinimalSeries[]>(Status200OK, "application/json")]
     [ProducesResponseType(Status500InternalServerError)]
-    public async Task<Results<Ok<List<MinimalSeries>>, InternalServerError>> GetMangaDownloading()
+    public async Task<Results<Ok<List<MinimalSeries>>, InternalServerError>> GetSeriesDownloading()
     {
         if (await context.Series
                 .Include(m => m.SourceIds)
@@ -88,14 +88,14 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [HttpGet("{SeriesId}")]
     [ProducesResponseType<Series>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
-    public async Task<Results<Ok<Series>, NotFound<string>>> GetManga (string SeriesId)
+    public async Task<Results<Ok<Series>, NotFound<string>>> GetSeries (string SeriesId)
     {
-        if (await context.MangaWithMetadata().Include(m => m.SourceIds).FirstOrDefaultAsync(m => m.Key == SeriesId, HttpContext.RequestAborted) is not { } manga)
+        if (await context.SeriesWithMetadata().Include(m => m.SourceIds).FirstOrDefaultAsync(m => m.Key == SeriesId, HttpContext.RequestAborted) is not { } manga)
             return TypedResults.NotFound(nameof(SeriesId));
         
         IEnumerable<DTOs.SourceId<Series>> ids = manga.SourceIds.Select(id => DTOs.SourceId<Series>.From(id));
         IEnumerable<Author> authors = manga.Authors.Select(a => new Author(a.Key, a.AuthorName));
-        IEnumerable<string> tags = manga.MangaTags.Select(t => t.Tag);
+        IEnumerable<string> tags = manga.SeriesTags.Select(t => t.Tag);
         IEnumerable<Link> links = manga.Links.Select(l => new Link(l.Key, l.LinkProvider, l.LinkUrl));
         IEnumerable<AltTitle> altTitles = manga.AltTitles.Select(a => new AltTitle(a.Language, a.Title));
         Series result = new (manga.Key, manga.Name, manga.Description, manga.ReleaseStatus, ids, manga.IgnoreChaptersBefore, manga.Year, manga.OriginalLanguage, authors, tags, links, altTitles, manga.LibraryId, manga.CoverUrl);
@@ -114,7 +114,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [ProducesResponseType(Status200OK)]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType<string>(Status500InternalServerError, "text/plain")]
-    public async Task<Results<Ok, NotFound<string>, InternalServerError<string>>> DeleteManga (string SeriesId,
+    public async Task<Results<Ok, NotFound<string>, InternalServerError<string>>> DeleteSeries (string SeriesId,
         [FromServices] API.Services.SeriesLibraryService libraryService, [FromServices] Schema.JobsContext.JobsContext jobsContext)
     {
         if (!await libraryService.DeleteAsync(context, jobsContext, SeriesId, HttpContext.RequestAborted))
@@ -133,12 +133,12 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [HttpPost("{SeriesIdFrom}/MergeInto/{SeriesIdInto}")]
     [ProducesResponseType(Status200OK)]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
-    public async Task<Results<Ok, NotFound<string>>> MergeIntoManga (string SeriesIdFrom, string SeriesIdInto,
+    public async Task<Results<Ok, NotFound<string>>> MergeIntoSeries (string SeriesIdFrom, string SeriesIdInto,
         [FromServices] API.JobRuntime.Interfaces.IJobStore jobStore, [FromServices] API.JobRuntime.Interfaces.IClock clock)
     {
-        if (await context.MangaIncludeAll().FirstOrDefaultAsync(m => m.Key == SeriesIdFrom, HttpContext.RequestAborted) is not { } from)
+        if (await context.SeriesIncludeAll().FirstOrDefaultAsync(m => m.Key == SeriesIdFrom, HttpContext.RequestAborted) is not { } from)
             return TypedResults.NotFound(nameof(SeriesIdFrom));
-        if (await context.MangaIncludeAll().FirstOrDefaultAsync(m => m.Key == SeriesIdInto, HttpContext.RequestAborted) is not { } into)
+        if (await context.SeriesIncludeAll().FirstOrDefaultAsync(m => m.Key == SeriesIdInto, HttpContext.RequestAborted) is not { } into)
             return TypedResults.NotFound(nameof(SeriesIdInto));
 
         foreach ((string from_, string to) in into.MergeFrom(from, context))
@@ -360,7 +360,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     /// <response code="200"><see cref="MinimalSeries"/> exert of <see cref="Schema.SeriesContext.Series"/></response>
     /// <response code="404"><see cref="API.Connectors.SeriesSource"/> with Name not found</response>
     /// <response code="412"><see cref="API.Connectors.SeriesSource"/> with Name is disabled</response>
-    [HttpGet("{SeriesId}/OnMangaConnector/{SeriesSourceName}")]
+    [HttpGet("{SeriesId}/OnSeriesSource/{SeriesSourceName}")]
     [ProducesResponseType<List<MinimalSeries>>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType(Status406NotAcceptable)]
@@ -369,7 +369,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
         if (await context.Series.FirstOrDefaultAsync(m => m.Key == SeriesId, HttpContext.RequestAborted) is not { } manga)
             return TypedResults.NotFound(nameof(SeriesId));
 
-        return await new SearchController(context, connectors).SearchManga(SeriesSourceName, manga.Name);
+        return await new SearchController(context, connectors).SearchSeries(SeriesSourceName, manga.Name);
     }
     
     /// <summary>
@@ -382,12 +382,12 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [HttpGet("WithAuthorId/{AuthorId}")]
     [ProducesResponseType<List<Series>>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
-    public async Task<Results<Ok<List<Series>>, NotFound<string>, InternalServerError>> GetMangaWithAuthorIds (string AuthorId)
+    public async Task<Results<Ok<List<Series>>, NotFound<string>, InternalServerError>> GetSeriesWithAuthorIds (string AuthorId)
     {
         if (await context.Authors.FirstOrDefaultAsync(a => a.Key == AuthorId, HttpContext.RequestAborted) is not { } _)
             return TypedResults.NotFound(nameof(AuthorId));
 
-        if (await context.MangaWithMetadata().Include(m => m.SourceIds)
+        if (await context.SeriesWithMetadata().Include(m => m.SourceIds)
                 .Where(m => m.Authors.Any(a => a.Key == AuthorId))
                 .OrderBy(m => m.Name)
                 .ToListAsync(HttpContext.RequestAborted) is not { } result)
@@ -397,7 +397,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
         {
             IEnumerable<DTOs.SourceId<Series>> ids = m.SourceIds.Select(id => DTOs.SourceId<Series>.From(id));
             IEnumerable<Author> authors = m.Authors.Select(a => new Author(a.Key, a.AuthorName));
-            IEnumerable<string> tags = m.MangaTags.Select(t => t.Tag);
+            IEnumerable<string> tags = m.SeriesTags.Select(t => t.Tag);
             IEnumerable<Link> links = m.Links.Select(l => new Link(l.Key, l.LinkProvider, l.LinkUrl));
             IEnumerable<AltTitle> altTitles = m.AltTitles.Select(a => new AltTitle(a.Language, a.Title));
             return new Series(m.Key, m.Name, m.Description, m.ReleaseStatus, ids, m.IgnoreChaptersBefore, m.Year, m.OriginalLanguage, authors, tags, links, altTitles, m.LibraryId);
@@ -415,12 +415,12 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [ProducesResponseType<Series[]>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType(Status500InternalServerError)]
-    public async Task<Results<Ok<List<MinimalSeries>>, NotFound<string>, InternalServerError>> GetMangasWithTag (string Tag)
+    public async Task<Results<Ok<List<MinimalSeries>>, NotFound<string>, InternalServerError>> GetSeriesWithTag (string Tag)
     {
         if (await context.Series
                 .Include(m => m.SourceIds)
-                .Include(m => m.MangaTags)
-                .Where(m => m.MangaTags.Any(t => t.Tag == Tag))
+                .Include(m => m.SeriesTags)
+                .Where(m => m.SeriesTags.Any(t => t.Tag == Tag))
                 .OrderBy(m => m.Name)
                 .ToListAsync(HttpContext.RequestAborted) is not { } result)
             return TypedResults.InternalServerError();
@@ -439,7 +439,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [ProducesResponseType<List<string>>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
     [ProducesResponseType(Status500InternalServerError)]
-    public async Task<Results<Ok<List<string>>, NotFound<string>, InternalServerError>> GetSimilarManga (string SeriesId)
+    public async Task<Results<Ok<List<string>>, NotFound<string>, InternalServerError>> GetSimilarSeries (string SeriesId)
     {
         if (await context.Series.FirstOrDefaultAsync(m => m.Key == SeriesId, HttpContext.RequestAborted) is not { } manga)
             return TypedResults.NotFound(nameof(SeriesId));
@@ -461,18 +461,18 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     /// <summary>
     /// Returns the <see cref="DTOs.SourceId{T}"/> with <see cref="DTOs.SourceId{T}"/>.Key
     /// </summary>
-    /// <param name="MangaConnectorIdId">Key of <see cref="DTOs.SourceId{T}"/></param>
+    /// <param name="SeriesSourceIdId">Key of <see cref="DTOs.SourceId{T}"/></param>
     /// <response code="200"></response>
-    /// <response code="404"><see cref="DTOs.SourceId{T}"/> with <paramref name="MangaConnectorIdId"/> not found</response>
-    [HttpGet("ConnectorId/{MangaConnectorIdId}")]
+    /// <response code="404"><see cref="DTOs.SourceId{T}"/> with <paramref name="SeriesSourceIdId"/> not found</response>
+    [HttpGet("ConnectorId/{SeriesSourceIdId}")]
     [ProducesResponseType<DTOs.SourceId<Series>>(Status200OK, "application/json")]
     [ProducesResponseType<string>(Status404NotFound, "text/plain")]
-    public async Task<Results<Ok<DTOs.SourceId<Series>>, NotFound<string>>> GetMangaMangaConnectorId (string MangaConnectorIdId)
+    public async Task<Results<Ok<DTOs.SourceId<Series>>, NotFound<string>>> GetSeriesSourceId (string SeriesSourceIdId)
     {
-        if (await context.SeriesSourceIds.FirstOrDefaultAsync(c => c.Key == MangaConnectorIdId, HttpContext.RequestAborted) is not { } mcIdManga)
-            return TypedResults.NotFound(nameof(MangaConnectorIdId));
+        if (await context.SeriesSourceIds.FirstOrDefaultAsync(c => c.Key == SeriesSourceIdId, HttpContext.RequestAborted) is not { } mcIdSeries)
+            return TypedResults.NotFound(nameof(SeriesSourceIdId));
 
-        DTOs.SourceId<Series> result = new (mcIdManga.Key, mcIdManga.SeriesSourceName, mcIdManga.ObjId, mcIdManga.IdOnConnectorSite, mcIdManga.WebsiteUrl, mcIdManga.UseForDownload);
+        DTOs.SourceId<Series> result = new (mcIdSeries.Key, mcIdSeries.SeriesSourceName, mcIdSeries.ObjId, mcIdSeries.IdOnConnectorSite, mcIdSeries.WebsiteUrl, mcIdSeries.UseForDownload);
         
         return TypedResults.Ok(result);
     }
@@ -485,7 +485,7 @@ public class SeriesController(SeriesContext context, ActionsContext actionsConte
     [HttpPost("ForceRecheck")]
     [HttpPost("ForceRecheck/{seriesId?}")]
     [ProducesResponseType<int>(Status200OK, "text/plain")]
-    public async Task<Ok<int>> ForceRecheckMangaChapters(string? seriesId = null)
+    public async Task<Ok<int>> ForceRecheckSeriesChapters(string? seriesId = null)
     {
         IQueryable<Schema.SeriesContext.SourceId<Chapter>> queryable = context.ChapterSourceIds.Where(chId  => chId.Obj!.Downloaded);
         if(seriesId is not null)
