@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.34.0 (2026-06-23)
+
+### Bug Fixes
+
+- Detect and drop placeholder pages from downloads, flag incomplete chapters
+  ([`c687f1a`](https://github.com/chutch3/kenku/commit/c687f1a5eab9c05f9e4b5f7dba27b00f76198103))
+
+### Features
+
+- Flag incomplete chapters and wire up the force (re)download button
+  ([`d6e0e83`](https://github.com/chutch3/kenku/commit/d6e0e83b9ad9984c28dfe3336712b075b0254a57))
+
+
 ## v0.33.1 (2026-06-23)
 
 ### Bug Fixes
