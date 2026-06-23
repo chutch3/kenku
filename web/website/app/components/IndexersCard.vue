@@ -2,9 +2,11 @@
     <UCard>
         <template #header>
             <SettingsHeader
-                title="Indexers via Prowlarr"
-                subtitle="Kenku appears as a Mylar app in Prowlarr, which syncs your comic indexers automatically.">
-                <UBadge :color="syncedIndexers.length ? 'success' : 'neutral'" variant="subtle">{{ syncedIndexers.length }} synced</UBadge>
+                title="Indexers"
+                subtitle="Where Kenku searches for releases — synced from Prowlarr, or added by hand.">
+                <UBadge :color="syncedIndexers.length || manualIndexers.length ? 'success' : 'neutral'" variant="subtle">
+                    {{ syncedIndexers.length + manualIndexers.length }}
+                </UBadge>
             </SettingsHeader>
         </template>
         <div class="rounded-lg bg-elevated ring-1 ring-default px-3 py-2 mb-3">
@@ -43,42 +45,38 @@
         </div>
 
         <div class="mt-5 pt-4 border-t border-default">
-            <p class="text-xs uppercase tracking-wide text-muted mb-1.5">Manual indexers</p>
-            <p class="text-xs text-muted mb-2">Add a Torznab/Newznab feed directly, without Prowlarr. Takes effect immediately.</p>
-            <ul v-if="manualIndexers.length" class="flex flex-col gap-1 text-sm mb-3">
+            <div class="flex items-center justify-between mb-1.5">
+                <p class="text-xs uppercase tracking-wide text-muted">Manual indexers</p>
+                <UButton size="xs" variant="soft" icon="i-lucide-plus" aria-label="Add manual indexer" @click="openIndexer(null)">Add</UButton>
+            </div>
+            <p class="text-xs text-muted mb-2">Torznab/Newznab feeds added directly, without Prowlarr. Take effect immediately.</p>
+            <p v-if="!manualIndexers.length" class="text-dimmed text-sm">None added.</p>
+            <ul v-else class="flex flex-col gap-1 text-sm">
                 <li v-for="idx in manualIndexers" :key="idx.name ?? ''" class="flex items-center gap-2">
                     <span class="text-highlighted">{{ idx.name }}</span>
                     <span class="text-dimmed text-xs truncate">{{ idx.url }}</span>
                     <IndexerCooldownBadge :cooldown-until="idx.cooldownUntil" />
                     <UButton
-                        class="ms-auto shrink-0" color="error" variant="ghost" size="xs" icon="i-lucide-trash"
+                        class="ms-auto shrink-0" size="xs" variant="ghost" icon="i-lucide-pencil"
+                        :aria-label="`Edit ${idx.name}`" @click="openIndexer(idx)" />
+                    <UButton
+                        class="shrink-0" size="xs" variant="ghost" color="error" icon="i-lucide-trash"
                         :aria-label="`Remove ${idx.name}`" loading-auto @click="removeManualIndexer(idx.name ?? '')" />
                 </li>
             </ul>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <UInput v-model="form.name" placeholder="Indexer name" />
-                <UInput v-model="form.url" placeholder="Torznab/Newznab URL" />
-                <UInput v-model="form.apiKey" type="password" placeholder="API key" />
-                <UInput v-model="form.categories" placeholder="Categories (e.g. 7030, 7000)" />
-            </div>
-            <UButton
-                class="mt-2 w-fit" icon="i-lucide-plus" variant="soft" :disabled="!form.name.trim() || !form.url.trim()"
-                aria-label="Add manual indexer" loading-auto @click="addIndexer">Add indexer</UButton>
         </div>
     </UCard>
 </template>
 
 <script setup lang="ts">
-const { apiKey, syncedIndexers, manualIndexers, regenerateApiKey, copy, addManualIndexer, removeManualIndexer } = useSettings();
+import { LazyManualIndexerModal } from '#components';
+import type { components } from '#open-fetch-schemas/api';
+type ManualIndexerResponse = components['schemas']['ManualIndexerResponse'];
+
+const { apiKey, syncedIndexers, manualIndexers, regenerateApiKey, copy, removeManualIndexer } = useSettings();
 const baseUrl = computed(() => (import.meta.client ? window.location.origin : ''));
 
-const form = reactive({ name: '', url: '', apiKey: '', categories: '' });
-const addIndexer = async () => {
-    const categories = form.categories
-        .split(',')
-        .map((c) => Number.parseInt(c.trim(), 10))
-        .filter((n) => Number.isFinite(n));
-    await addManualIndexer({ name: form.name.trim(), url: form.url.trim(), apiKey: form.apiKey, categories });
-    form.name = form.url = form.apiKey = form.categories = '';
-};
+const overlay = useOverlay();
+const indexerModal = overlay.create(LazyManualIndexerModal);
+const openIndexer = (indexer?: ManualIndexerResponse | null) => indexerModal.open({ indexer });
 </script>

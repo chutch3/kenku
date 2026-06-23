@@ -43,10 +43,6 @@ export function useSettings() {
         await $api('/v2/Settings/DownloadClients/{id}', { method: 'DELETE', path: { id } });
         await refreshSettings();
     };
-    const addManualIndexer = async (body: { name: string; url: string; apiKey: string; categories: number[] }) => {
-        await $api('/v2/Settings/ManualIndexers', { method: 'POST', body });
-        await refreshSettings();
-    };
     const removeManualIndexer = async (name: string) => {
         await $api('/v2/Settings/ManualIndexers/{name}', { method: 'DELETE', path: { name } });
         await refreshSettings();
@@ -69,6 +65,6 @@ export function useSettings() {
         settingsStatus, settingsData, libraries, stats,
         komgaConnected, kavitaConnected, metronConnected, torrentEnabled, apiKey, syncedIndexers, manualIndexers, downloadClients,
         refreshLibraries, refreshSettings, disconnectLibrary, regenerateApiKey, disconnectMetron, removeDownloadClient,
-        addManualIndexer, removeManualIndexer, setTorrentEnabled, copy,
+        removeManualIndexer, setTorrentEnabled, copy,
     };
 }
