@@ -128,8 +128,10 @@ public class SeriesLibraryService(KenkuSettings settings, IEnumerable<SeriesSour
         if (download && addedFrom is not null)
         {
             addedFrom.UseForDownload = true;
-            foreach (SourceId<Chapter> chId in manga.Chapters.SelectMany(ch =>
-                         ch.SourceIds.Where(chId => chId.MangaConnectorName.Equals(connectorName, StringComparison.InvariantCultureIgnoreCase))))
+            // A chapter's SourceIds can load null (MangaIncludeAll doesn't ThenInclude them, and
+            // SplitQuery leaves an unloaded collection nav null rather than empty) — guard before Where.
+            foreach (SourceId<Chapter> chId in manga.Chapters.SelectMany(ch => ch.SourceIds ?? [])
+                         .Where(chId => chId.MangaConnectorName.Equals(connectorName, StringComparison.InvariantCultureIgnoreCase)))
                 chId.UseForDownload = true;
         }
 

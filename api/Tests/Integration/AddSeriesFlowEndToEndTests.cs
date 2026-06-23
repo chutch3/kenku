@@ -54,6 +54,32 @@ public class AddSeriesFlowEndToEndTests() : OutboundHttpIntegrationTest(Connecto
     }
 
     [Fact]
+    public async Task AddAndDownload_DoesNotCrash_WhenMergingIntoAnExistingSeriesWithChapters()
+    {
+        // Re-adding a series that already exists (unknown key → GetMangaFromId → UpsertManga merge)
+        // loads the existing chapters via MangaIncludeAll, which doesn't ThenInclude chapter SourceIds
+        // — so under SplitQuery they're null. The download=true source-enable loop dereferenced that,
+        // a bare 500 (the real WeebCentral re-add crash).
+        string libraryKey = await App.WithSeriesContext(async ctx =>
+        {
+            var library = new FileLibrary(Path.Combine(Path.GetTempPath(), "kenku-nullsrc-" + Guid.NewGuid().ToString("N")), "Lib");
+            ctx.FileLibraries.Add(library);
+            var manga = new Series("Fire Punch", "", "http://x/c.jpg", SeriesReleaseStatus.Continuing, [], [], [], [], library)
+                { IsTracked = true };
+            manga.SourceIds.Add(new SourceId<Series>(manga, "WeebCentral", "wc-1", "https://weebcentral.com/series/wc-1"));
+            ctx.Series.Add(manga);
+            ctx.Chapters.Add(new Chapter(manga, "1", null, null));
+            await ctx.SaveChangesAsync();
+            return library.Key;
+        });
+
+        var response = await App.CreateClient().PostAsync(
+            $"/v2/Series/unknown/ChangeLibrary/{libraryKey}?connectorName=WeebCentral&connectorSeriesId=wc-1&download=true", null);
+
+        response.EnsureSuccessStatusCode();
+    }
+
+    [Fact]
     public async Task AddOnly_TracksWithoutEnablingTheSource_ButStillSyncsTheChapterList()
     {
         string libraryKey = await SeedLibrary();
