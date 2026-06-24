@@ -15,6 +15,5 @@ export default defineNuxtConfig({
     },
     vite: { plugins: [tailwindcss()] },
     nitro: { prerender: { failOnError: false } },
-    // `data-theme` defaults to karasu so the scoped theme tokens apply from first paint; useTheme overrides it later.
-    app: { head: { title: 'Kenku', htmlAttrs: { lang: 'en', 'data-theme': 'karasu' }, link: [{ rel: 'icon', type: 'image/svg+xml', href: '/kenku.svg' }] } },
+    app: { head: { title: 'Kenku', htmlAttrs: { lang: 'en' }, link: [{ rel: 'icon', type: 'image/svg+xml', href: '/kenku.svg' }] } },
 });
