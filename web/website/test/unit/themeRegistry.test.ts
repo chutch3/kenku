@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { THEMES, getTheme } from '~/theme/registry';
-import { renderCatalogCss } from '~/theme/generate';
+import { renderCatalogCss, generateTheme, contrastRatio } from '~/theme/generate';
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
@@ -36,5 +36,12 @@ describe('theme registry', () => {
     it('has a committed themes.generated.css that matches the registry', () => {
         const committed = readFileSync('app/assets/css/themes.generated.css', 'utf8');
         expect(committed).toContain(renderCatalogCss(THEMES));
+    });
+
+    // Every shipped theme must stay readable — body text vs background meets WCAG AA in both modes.
+    it.each(THEMES.map((t) => t.id))('keeps %s readable (WCAG AA) in light and dark', (id) => {
+        const { light, dark } = generateTheme(getTheme(id)!.seeds);
+        expect(contrastRatio(light['--ui-text']!, light['--ui-bg']!)).toBeGreaterThanOrEqual(4.5);
+        expect(contrastRatio(dark['--ui-text']!, dark['--ui-bg']!)).toBeGreaterThanOrEqual(4.5);
     });
 });
