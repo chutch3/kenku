@@ -276,27 +276,4 @@ public class ComicHubFreeTests
         Assert.Empty(await ((API.Discovery.IDiscoveryRailProvider)connector).GetRailAsync("nope", CancellationToken.None));
     }
 
-    // comichubfree's Cloudflare edge serves a tiny placeholder for an image's canonical URL once our
-    // referer-less requests trip its hotlink protection and the placeholder gets cached. The download
-    // must send the issue's reader page as the referer (so the origin returns the real image) and a
-    // unique cache-buster (so we skip the already-poisoned edge entry).
-    [Fact]
-    public async Task DownloadImage_SendsReaderRefererAndCacheBuster()
-    {
-        string? capturedUrl = null;
-        string? capturedReferer = null;
-        var client = new Mock<IHttpRequester>();
-        client
-            .Setup(c => c.MakeRequest(It.IsAny<string>(), It.IsAny<RequestType>(), It.IsAny<string>(), It.IsAny<CancellationToken?>()))
-            .Callback((string url, RequestType _, string? referrer, CancellationToken? _) => { capturedUrl = url; capturedReferer = referrer; })
-            .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1, 2, 3]) });
-        var connector = new ComicHubFree(CreateSettings(), client.Object);
-
-        const string imageUrl = "https://comichubfree.com/the-walking-dead/issue-61/16239/1.jpg";
-        await connector.DownloadImage(imageUrl, CancellationToken.None);
-
-        Assert.Equal("https://comichubfree.com/the-walking-dead/issue-61", capturedReferer);
-        Assert.StartsWith(imageUrl + "?", capturedUrl);
-        Assert.Contains("cb=", capturedUrl);
-    }
 }

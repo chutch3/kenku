@@ -187,29 +187,6 @@ public class ComicHubFree : SeriesSource, API.Discovery.IDiscoveryRailProvider
         return src.StartsWith("data:") ? "" : src;
     }
 
-    /// <summary>
-    /// comichubfree's Cloudflare edge serves a tiny placeholder for a page's canonical URL once a
-    /// referer-less request trips its hotlink protection and that placeholder gets cached. Send the
-    /// issue's reader page as the referer (so the origin returns the real image) and a unique
-    /// cache-buster query (so we bypass the already-poisoned edge entry).
-    /// </summary>
-    public override async Task<Stream?> DownloadImage(string imageUrl, CancellationToken ct)
-    {
-        string referer = ReaderPageOf(imageUrl);
-        string bustedUrl = imageUrl + (imageUrl.Contains('?') ? '&' : '?') + "cb=" + Guid.NewGuid().ToString("N");
-        HttpResponseMessage result = await downloadClient.MakeRequest(bustedUrl, RequestType.SeriesImage, referer, ct);
-        return result.IsSuccessStatusCode ? await result.Content.ReadAsStreamAsync(ct) : null;
-    }
-
-    /// <summary>A page image URL is <c>.../{slug}/issue-N/{id}/{page}.jpg</c>; its reader page (used as
-    /// the hotlink referer) is that URL with the trailing <c>/{id}/{page}.jpg</c> removed.</summary>
-    private static string ReaderPageOf(string imageUrl)
-    {
-        int page = imageUrl.LastIndexOf('/');
-        int id = page > 0 ? imageUrl.LastIndexOf('/', page - 1) : -1;
-        return id > 0 ? imageUrl[..id] : imageUrl;
-    }
-
     private static string SeriesUrl(string slug) => $"https://comichubfree.com/comic/{slug}";
 
     private async Task<HtmlDocument> FetchDocument(string url, RequestType requestType = RequestType.Default)
