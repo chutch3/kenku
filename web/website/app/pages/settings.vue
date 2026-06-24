@@ -75,6 +75,8 @@
                             <SettingsHeader title="Theme" subtitle="Pick a colour theme. Light/dark stays on the toggle in the header." />
                         </template>
                         <ThemePicker />
+                        <USeparator label="Build your own" class="my-5" />
+                        <CustomThemeBuilder />
                     </UCard>
                 </template>
 

@@ -16,6 +16,22 @@ const Harness = defineComponent({
     </div>`,
 });
 
+const CustomHarness = defineComponent({
+    setup() {
+        const { current, setCustom, customSeeds } = useTheme();
+        return {
+            current,
+            primary: computed(() => customSeeds.value?.primary ?? ''),
+            apply: () => setCustom({ primary: '#112233', secondary: '#445566', neutral: '#778899' }),
+        };
+    },
+    template: `<div>
+        <span class="cur">{{ current }}</span>
+        <span class="primary">{{ primary }}</span>
+        <button class="apply" @click="apply">a</button>
+    </div>`,
+});
+
 describe('useTheme', () => {
     it('defaults to karasu, ignores unknown ids, and switches to known themes', async () => {
         const wrapper = await mountSuspended(Harness);
@@ -27,5 +43,12 @@ describe('useTheme', () => {
 
         await wrapper.find('.to-pride').trigger('click');
         expect(wrapper.find('.cur').text()).toBe('trans-pride');
+    });
+
+    it('applies and persists a custom theme from user seeds', async () => {
+        const wrapper = await mountSuspended(CustomHarness);
+        await wrapper.find('.apply').trigger('click');
+        expect(wrapper.find('.cur').text()).toBe('custom');
+        expect(wrapper.find('.primary').text()).toBe('#112233');
     });
 });
