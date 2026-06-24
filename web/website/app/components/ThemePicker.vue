@@ -9,15 +9,17 @@
                     type="button"
                     :data-test="`theme-${t.id}`"
                     :aria-pressed="t.id === current"
-                    class="flex items-center gap-3 rounded-lg p-2 ring-1 text-left transition"
+                    class="flex flex-col gap-2 rounded-lg p-2 ring-1 text-left transition"
                     :class="t.id === current ? 'ring-primary bg-elevated' : 'ring-default hover:bg-elevated/60'"
                     @click="set(t.id)">
-                    <ThemeSwatches :seeds="t.seeds" />
-                    <span class="min-w-0">
-                        <span class="block text-sm text-highlighted truncate">{{ t.name }}</span>
-                        <span v-if="t.jaName" class="block text-xs text-dimmed truncate">{{ t.jaName }}</span>
+                    <ThemePreview :theme-id="t.id" class="w-full" />
+                    <span class="flex items-center gap-1 w-full">
+                        <span class="min-w-0 flex-1">
+                            <span class="block text-sm text-highlighted truncate">{{ t.name }}</span>
+                            <span v-if="t.jaName" class="block text-xs text-dimmed truncate">{{ t.jaName }}</span>
+                        </span>
+                        <UIcon v-if="t.id === current" name="i-lucide-check" class="text-primary shrink-0" />
                     </span>
-                    <UIcon v-if="t.id === current" name="i-lucide-check" class="ml-auto text-primary shrink-0" />
                 </button>
             </div>
         </div>
