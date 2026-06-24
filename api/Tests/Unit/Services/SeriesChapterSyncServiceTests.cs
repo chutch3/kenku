@@ -218,6 +218,38 @@ public class SeriesChapterSyncServiceTests : IDisposable
         Assert.Contains("duplicate key", ex.Message);
     }
 
+    // A one-shot whose connector lists the same upload twice yields two chapter source-ids with the same
+    // primary key (Key = token(connector, idOnConnectorSite)). They must be de-duplicated before insert,
+    // or the save dies on PK_ChapterSourceIds — which is how Batman: The Killing Joke got stuck.
+    [Fact]
+    public async Task Sync_DeduplicatesChapterSourceIds_WhenTheConnectorListsAnUploadTwice()
+    {
+        var manga = new Series("Batman: The Killing Joke", "Desc", "url", SeriesReleaseStatus.Completed, [], [], [], []);
+        _mangaContext.Series.Add(manga);
+        var mockConnector = new Mock<SeriesSource>("ComicHubFree", new[] { "en" }, new[] { "comichubfree.com" }, "icon.png", new KenkuSettings());
+        var mangaMcId = new SourceId(manga, "ComicHubFree", "batman-the-killing-joke", "url");
+        manga.SourceIds.Add(mangaMcId);
+        _mangaContext.SeriesSourceIds.Add(mangaMcId);
+        await _mangaContext.SaveChangesAsync();
+
+        // Two distinct chapters whose uploads resolve to the SAME id-on-site → same source-id key. Each
+        // chapter carries its source-id (as page-reader connectors like ComicHubFree do), so both cascade
+        // toward insert with the same PK. The sync must collapse them, not hand the DB a duplicate key.
+        var c1 = new Chapter(manga, "1", null, null);
+        var c2 = new Chapter(manga, "2", null, null);
+        var id1 = new ChapterConnectorId(c1, "ComicHubFree", "batman-the-killing-joke/full", "url");
+        var id2 = new ChapterConnectorId(c2, "ComicHubFree", "batman-the-killing-joke/full", "url");
+        c1.SourceIds.Add(id1);
+        c2.SourceIds.Add(id2);
+        mockConnector.Setup(c => c.GetChapters(It.IsAny<SourceId>(), It.IsAny<string>()))
+            .ReturnsAsync([(c1, id1), (c2, id2)]);
+
+        await new SeriesChapterSyncService([mockConnector.Object])
+            .SyncAsync(_mangaContext, _actionsContext, mangaMcId.Key, "en", CancellationToken.None);
+
+        Assert.Single(await _mangaContext.ChapterSourceIds.ToListAsync());
+    }
+
     [Fact]
     public async Task Sync_RecordsTheRetrievedChapterCount_OnTheActionRecord()
     {

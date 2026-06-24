@@ -61,7 +61,12 @@ public class SeriesChapterSyncService(IEnumerable<SeriesSource> connectors)
 
         // Collapse the several uploads a connector may return for one chapter number into one chapter
         // (clearing the title when they disagree).
-        (Chapter chapter, SourceId<Chapter> chapterId)[] allChapters = ChapterTitleReconciler.Reconcile(fetched);
+        // Then drop uploads that resolve to the same source-id key (connector + id-on-site): a connector
+        // can list one upload under two chapters (e.g. ComicHubFree's "tpb"/"full" one-shots), and since
+        // each chapter carries its own source-id those would cascade-insert duplicate PK_ChapterSourceIds.
+        (Chapter chapter, SourceId<Chapter> chapterId)[] allChapters = ChapterTitleReconciler.Reconcile(fetched)
+            .DistinctBy(c => c.Item2.Key)
+            .ToArray();
         Log.DebugFormat("Got {0} chapters from connector.", allChapters.Length);
 
         // Filter for new Chapters
