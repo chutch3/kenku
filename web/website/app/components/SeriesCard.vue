@@ -18,14 +18,14 @@
                         :model-value="progress.downloaded"
                         :max="progress.total"
                         size="xs"
-                        :color="progress.complete ? 'success' : 'info'"
+                        :color="progress.complete ? 'success' : 'primary'"
                         class="grow" />
                     <span class="font-mono text-[0.6rem] text-white/80 tabular-nums shrink-0">{{ progress.downloaded }}/{{ progress.total }}</span>
                 </div>
 
                 <!-- Needs attention: show the failure and let the user re-sync without opening the series. -->
                 <div v-if="trackState === 'attention'" class="mt-1.5 flex items-center gap-1.5">
-                    <span class="text-[0.6rem] text-vermillion-200 truncate" :title="rollup?.lastError ?? meta.hint">
+                    <span class="text-[0.6rem] text-error truncate" :title="rollup?.lastError ?? meta.hint">
                         {{ rollup?.lastError ?? 'A job needs attention' }}
                     </span>
                     <UButton

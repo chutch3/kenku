@@ -64,13 +64,13 @@ describe('SeriesCard', () => {
 
     it('colors the status bar by track state', async () => {
         const untracked = await mount({ series: series('GetComics') });
-        expect(statusBar(untracked).classes()).toContain('bg-sumi-400/60');
+        expect(statusBar(untracked).classes()).toContain('bg-muted');
 
         const attention: Partial<SeriesRollup> = {
             seriesId: 's1', needsAttentionJobs: 2, queuedJobs: 0, runningJobs: 0, downloadedChapters: 1, wantedChapters: 12,
         };
         const broken = await mount({ series: series('GetComics', 'lib1'), rollup: attention });
-        expect(statusBar(broken).classes()).toContain('bg-vermillion-500');
+        expect(statusBar(broken).classes()).toContain('bg-error');
     });
 
     it('shows downloaded / wanted progress from the rollup, no extra fetch', async () => {

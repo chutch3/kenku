@@ -66,9 +66,21 @@ describe('seriesTrackState', () => {
         expect(seriesTrackState(series())).toBe('downloading');
     });
 
-    it('carries the bar color in the status meta — single source of truth for the card', () => {
-        expect(trackStateMeta(series(), rollup({ needsAttentionJobs: 1 })).bar).toContain('vermillion');
-        expect(trackStateMeta(series(), rollup()).bar).toContain('jade');
-        expect(trackStateMeta(series({ fileLibraryId: null })).bar).toContain('sumi');
+    // Option A: in-progress work uses the themed primary; "done" and "failed" keep their universal
+    // semantic colours (success/error) so they read the same in every theme. Bars track the same role.
+    it('maps each track state to a themed, semantic colour and bar', () => {
+        const attention = trackStateMeta(series(), rollup({ needsAttentionJobs: 1 }));
+        expect(attention.color).toBe('error');
+        expect(attention.bar).toBe('bg-error');
+
+        const downloading = trackStateMeta(series(), rollup({ queuedJobs: 1 }));
+        expect(downloading.color).toBe('primary');
+        expect(downloading.bar).toBe('bg-primary');
+
+        const upToDate = trackStateMeta(series(), rollup());
+        expect(upToDate.color).toBe('success');
+        expect(upToDate.bar).toBe('bg-success');
+
+        expect(trackStateMeta(series({ fileLibraryId: null })).bar).toBe('bg-muted');
     });
 });
