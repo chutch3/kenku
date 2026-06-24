@@ -2,6 +2,53 @@
 
 <!-- version list -->
 
+## v0.36.0 (2026-06-24)
+
+### Chores
+
+- Remove resolved tech-debt doc and the stale duplicate migration script
+  ([`388e65a`](https://github.com/chutch3/kenku/commit/388e65a427b00fb708edc74bc3ee71825260e6a4))
+
+- Remove unused blahaj.png inherited from the Tranga import
+  ([`466010b`](https://github.com/chutch3/kenku/commit/466010bdb91067e9df6239e49dec7a194ab391ac))
+
+- Remove unused ScopeNotSetException
+  ([`aaa31aa`](https://github.com/chutch3/kenku/commit/aaa31aa096b38fa7b8e5fc736b7a4a00825c376b))
+
+### Features
+
+- Add a build-your-own custom theme with live contrast warning
+  ([`7041d82`](https://github.com/chutch3/kenku/commit/7041d82a1cd32dcf3fd14de42eaee8e9256220e9))
+
+- Add a theme picker to the Settings appearance tab
+  ([`6806e91`](https://github.com/chutch3/kenku/commit/6806e91e33bec550c038ce9aaa79f658d00cbcd6))
+
+- Add the full theme catalog (21 cause and heritage palettes) with a contrast audit
+  ([`76f37b0`](https://github.com/chutch3/kenku/commit/76f37b0223dcb93cb0a5ca01d2bb4c218a93d03d))
+
+- Add the pure theme generator (color ramps, surface derivation, WCAG contrast)
+  ([`af0888a`](https://github.com/chutch3/kenku/commit/af0888a56e2d94ab2af022aade6b4a6d4a3ee3aa))
+
+- Generate theme catalog CSS from a registry and wire the trans-pride pilot
+  ([`c38826b`](https://github.com/chutch3/kenku/commit/c38826b24751a55e19e10d8668f5ca3717eb1025))
+
+- Persist the selected theme and apply it before paint (no flash)
+  ([`b08b491`](https://github.com/chutch3/kenku/commit/b08b491381fe73fbbd6b923596627f12c7c22eec))
+
+### Refactoring
+
+- Extract ThemeSwatches and align theme cookie naming with the app convention
+  ([`34f918a`](https://github.com/chutch3/kenku/commit/34f918a784a42dc8338b93f5b6e3be350fe9e9ee))
+
+- Scope the Karasu theme tokens under data-theme as the default
+  ([`1625680`](https://github.com/chutch3/kenku/commit/1625680894742cca3e09ca19331a70adf8a8e5a1))
+
+### Testing
+
+- Add theme persistence and custom-theme e2e plus a theming doc
+  ([`376dae7`](https://github.com/chutch3/kenku/commit/376dae78d206c51283576e49a1fffe53eeb2dfb1))
+
+
 ## v0.35.0 (2026-06-23)
 
 ### Refactoring
