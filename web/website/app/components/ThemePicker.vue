@@ -12,11 +12,7 @@
                     class="flex items-center gap-3 rounded-lg p-2 ring-1 text-left transition"
                     :class="t.id === current ? 'ring-primary bg-elevated' : 'ring-default hover:bg-elevated/60'"
                     @click="set(t.id)">
-                    <span class="flex -space-x-1 shrink-0">
-                        <span class="size-5 rounded-full ring-1 ring-inverted/10" :style="{ backgroundColor: t.seeds.primary }" />
-                        <span class="size-5 rounded-full ring-1 ring-inverted/10" :style="{ backgroundColor: t.seeds.secondary }" />
-                        <span class="size-5 rounded-full ring-1 ring-inverted/10" :style="{ backgroundColor: t.seeds.neutral }" />
-                    </span>
+                    <ThemeSwatches :seeds="t.seeds" />
                     <span class="min-w-0">
                         <span class="block text-sm text-highlighted truncate">{{ t.name }}</span>
                         <span v-if="t.jaName" class="block text-xs text-dimmed truncate">{{ t.jaName }}</span>

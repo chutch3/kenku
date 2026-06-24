@@ -8,11 +8,11 @@ export const CUSTOM_THEME_ID = 'custom';
  * theme plugin renders `data-theme` server-side from it, so there's no flash); a shared useState
  * keeps every consumer in sync within a session. Orthogonal to light/dark, which stays on colorMode. */
 export function useTheme() {
-    const cookie = useCookie<string>('kenku-theme', { default: () => 'karasu', sameSite: 'lax' });
-    const current = useState<string>('kenku-theme', () => cookie.value ?? 'karasu');
+    const cookie = useCookie<string>('theme', { default: () => 'karasu', sameSite: 'lax' });
+    const current = useState<string>('theme', () => cookie.value ?? 'karasu');
 
-    const customCookie = useCookie<Seeds | null>('kenku-theme-custom', { default: () => null, sameSite: 'lax' });
-    const customSeeds = useState<Seeds | null>('kenku-theme-custom', () => customCookie.value ?? null);
+    const customCookie = useCookie<Seeds | null>('theme-custom', { default: () => null, sameSite: 'lax' });
+    const customSeeds = useState<Seeds | null>('theme-custom', () => customCookie.value ?? null);
 
     const set = (id: string) => {
         // Catalogue ids must exist; the custom id is valid only once seeds have been saved.

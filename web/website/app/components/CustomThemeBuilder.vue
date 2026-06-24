@@ -14,11 +14,7 @@
 
         <div class="flex items-center gap-2">
             <span class="text-sm text-muted">Preview</span>
-            <span class="flex -space-x-1">
-                <span class="size-6 rounded-full ring-1 ring-inverted/10" :style="{ backgroundColor: seeds.primary }" />
-                <span class="size-6 rounded-full ring-1 ring-inverted/10" :style="{ backgroundColor: seeds.secondary }" />
-                <span class="size-6 rounded-full ring-1 ring-inverted/10" :style="{ backgroundColor: seeds.neutral }" />
-            </span>
+            <ThemeSwatches :seeds="seeds" size="lg" />
         </div>
 
         <p v-if="lowContrast" data-test="contrast-warning" class="text-xs text-warning flex items-center gap-1">
@@ -34,14 +30,17 @@
 
 <script setup lang="ts">
 import { contrastRatio } from '~/theme/generate';
+import { getTheme } from '~/theme/registry';
 import { CUSTOM_THEME_ID } from '~/composables/useTheme';
 
 const { current, customSeeds, setCustom } = useTheme();
 
+// Seed the builder from the saved custom theme, falling back to the default (Karasu) palette.
+const defaults = getTheme('karasu')!.seeds;
 const seeds = reactive({
-    primary: customSeeds.value?.primary ?? '#e5483a',
-    secondary: customSeeds.value?.secondary ?? '#12b299',
-    neutral: customSeeds.value?.neutral ?? '#585d70',
+    primary: customSeeds.value?.primary ?? defaults.primary,
+    secondary: customSeeds.value?.secondary ?? defaults.secondary,
+    neutral: customSeeds.value?.neutral ?? defaults.neutral,
 });
 
 const fields = [
