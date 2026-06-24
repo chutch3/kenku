@@ -2,6 +2,26 @@
 
 <!-- version list -->
 
+## v0.37.0 (2026-06-24)
+
+### Features
+
+- Emit full primary/secondary/neutral shade ramps so all themed components recolor
+  ([`effcc91`](https://github.com/chutch3/kenku/commit/effcc91dbbc7b93e14781d840dfc7c09af6edfc9))
+
+- Give themes distinct ambient moods via a per-theme atmosphere profile
+  ([`40559e6`](https://github.com/chutch3/kenku/commit/40559e6e1830e2adad17c467bc210ac9211c0e98))
+
+- Recolor the logo and atmosphere accents from the active theme
+  ([`a91890b`](https://github.com/chutch3/kenku/commit/a91890ba20330604c86daa6c3f492b29d2d8ebae))
+
+- Show a live theme preview in the picker instead of plain swatches
+  ([`0246366`](https://github.com/chutch3/kenku/commit/02463661d811e132c3f495f7568708ab2f0d14ad))
+
+- Theme library status indicators - themed primary while active, semantic success/error otherwise
+  ([`ab83452`](https://github.com/chutch3/kenku/commit/ab83452b40c0c61f938875b2f926f44909e47325))
+
+
 ## v0.36.1 (2026-06-24)
 
 ### Bug Fixes
