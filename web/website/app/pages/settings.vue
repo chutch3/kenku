@@ -68,6 +68,16 @@
                     </UCard>
                 </template>
 
+                <!-- APPEARANCE -->
+                <template #appearance>
+                    <UCard class="max-w-3xl">
+                        <template #header>
+                            <SettingsHeader title="Theme" subtitle="Pick a colour theme. Light/dark stays on the toggle in the header." />
+                        </template>
+                        <ThemePicker />
+                    </UCard>
+                </template>
+
                 <!-- MAINTENANCE -->
                 <template #maintenance>
                     <UCard class="max-w-3xl">
@@ -95,6 +105,7 @@ const tabs = [
     { label: 'Downloading', icon: 'i-lucide-download', slot: 'downloading' as const },
     { label: 'Discovery', icon: 'i-lucide-compass', slot: 'discovery' as const },
     { label: 'Notifications', icon: 'i-lucide-bell', slot: 'notifications' as const },
+    { label: 'Appearance', icon: 'i-lucide-palette', slot: 'appearance' as const },
     { label: 'Maintenance', icon: 'i-lucide-wrench', slot: 'maintenance' as const },
 ];
 
