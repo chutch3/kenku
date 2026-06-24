@@ -32,7 +32,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # A version build checks out its tag, not main HEAD — so it is reproducible and a
           # failed/lost release build can be re-run later without picking up newer commits.
