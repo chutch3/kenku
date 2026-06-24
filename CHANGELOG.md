@@ -2,6 +2,18 @@
 
 <!-- version list -->
 
+## v0.36.1 (2026-06-24)
+
+### Bug Fixes
+
+- Give generated themes full Karasu token parity so backgrounds, surfaces and dark mode work
+  ([`700e139`](https://github.com/chutch3/kenku/commit/700e139a634fb2464fdfde15725f057e2450e91b))
+
+- Send a reader referer and cache-buster on ComicHubFree image downloads to dodge poisoned
+  placeholders
+  ([`b32e8d9`](https://github.com/chutch3/kenku/commit/b32e8d9246f5bf5ff1aff088a21b564b6f35a68a))
+
+
 ## v0.36.0 (2026-06-24)
 
 ### Chores
