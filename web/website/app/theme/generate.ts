@@ -58,28 +58,62 @@ export interface Seeds {
 export type ThemeVars = Record<string, string>;
 
 /**
- * Turns seed colours into the light + dark CSS-variable maps a theme needs. Surfaces come from the
- * neutral ramp (lightest/darkest ends); the accent semantics anchor to the seed in light and the
- * 400 stop in dark (matching Nuxt UI's own ramp), so solid controls stay legible on dark surfaces.
+ * Turns seed colours into the light + dark CSS-variable maps a theme needs. This must reach parity
+ * with the hand-authored Karasu block in main.css: the full surface set (bg/border/text families)
+ * derived from the neutral ramp, the accents (anchored to the seed in light and the 400 stop in dark
+ * so solid controls stay legible on dark surfaces), and the `--kenku-*` atmosphere vars that actually
+ * drive the page background, screentone and grain. Omitting any of these renders the theme broken.
  */
 export function generateTheme(seeds: Seeds): { light: ThemeVars; dark: ThemeVars } {
     const primary = buildRamp(seeds.primary);
     const secondary = buildRamp(seeds.secondary);
-    const neutral = buildRamp(seeds.neutral);
+    const n = buildRamp(seeds.neutral);
     return {
         light: {
-            '--ui-bg': neutral['50']!,
-            '--ui-text': neutral['900']!,
-            '--ui-border': neutral['200']!,
+            '--ui-bg': n['100']!,
+            '--ui-bg-muted': n['200']!,
+            '--ui-bg-elevated': n['50']!,
+            '--ui-bg-accented': n['200']!,
+            '--ui-bg-inverted': n['900']!,
+            '--ui-border': n['200']!,
+            '--ui-border-muted': n['100']!,
+            '--ui-border-accented': n['300']!,
+            '--ui-border-inverted': n['900']!,
+            '--ui-text-dimmed': n['400']!,
+            '--ui-text-muted': n['500']!,
+            '--ui-text-toned': n['700']!,
+            '--ui-text': n['800']!,
+            '--ui-text-highlighted': n['950']!,
+            '--ui-text-inverted': n['50']!,
             '--ui-primary': primary['500']!,
             '--ui-secondary': secondary['500']!,
+            '--kenku-paper': n['100']!,
+            '--kenku-screentone': '0, 0, 0',
+            '--kenku-grain-opacity': '0.05',
+            '--kenku-glow-strength': '0.1',
         },
         dark: {
-            '--ui-bg': neutral['950']!,
-            '--ui-text': neutral['50']!,
-            '--ui-border': neutral['800']!,
+            '--ui-bg': n['950']!,
+            '--ui-bg-muted': n['900']!,
+            '--ui-bg-elevated': n['800']!,
+            '--ui-bg-accented': n['700']!,
+            '--ui-bg-inverted': n['50']!,
+            '--ui-border': n['800']!,
+            '--ui-border-muted': n['900']!,
+            '--ui-border-accented': n['700']!,
+            '--ui-border-inverted': n['50']!,
+            '--ui-text-dimmed': n['500']!,
+            '--ui-text-muted': n['400']!,
+            '--ui-text-toned': n['300']!,
+            '--ui-text': n['100']!,
+            '--ui-text-highlighted': n['50']!,
+            '--ui-text-inverted': n['950']!,
             '--ui-primary': primary['400']!,
             '--ui-secondary': secondary['400']!,
+            '--kenku-paper': n['950']!,
+            '--kenku-screentone': '255, 255, 255',
+            '--kenku-grain-opacity': '0.035',
+            '--kenku-glow-strength': '0.16',
         },
     };
 }

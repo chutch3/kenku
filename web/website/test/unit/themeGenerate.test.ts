@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { buildRamp, RAMP_STOPS, generateTheme, contrastRatio, renderThemeCss, renderCatalogCss } from '~/theme/generate';
 
 // sRGB relative luminance (WCAG) — used here to assert a ramp gets monotonically darker.
@@ -61,6 +62,30 @@ describe('generateTheme', () => {
         const t = generateTheme(KARASU);
         expect(contrastRatio(t.light['--ui-text']!, t.light['--ui-bg']!)).toBeGreaterThanOrEqual(4.5);
         expect(contrastRatio(t.dark['--ui-text']!, t.dark['--ui-bg']!)).toBeGreaterThanOrEqual(4.5);
+    });
+});
+
+describe('generateTheme parity with the Karasu reference block', () => {
+    // The hand-authored Karasu block in main.css is the known-good set of variables every theme must
+    // define — surfaces (--ui-*) and the atmosphere vars (--kenku-paper/screentone/grain/glow) that
+    // actually drive the page background. A generated theme that omits any of them renders broken
+    // (white background, full-opacity noise grain, dead dark mode).
+    const KARASU = { primary: '#e5483a', secondary: '#12b299', neutral: '#585d70' };
+    const css = readFileSync('app/assets/css/main.css', 'utf8');
+    const varsDefinedIn = (selector: string) => {
+        const open = css.indexOf('{', css.indexOf(selector));
+        const close = css.indexOf('}', open);
+        return [...css.slice(open, close).matchAll(/(--[a-z-]+)\s*:/g)].map((m) => m[1]!);
+    };
+
+    it('emits every variable the Karasu light block defines', () => {
+        const keys = Object.keys(generateTheme(KARASU).light);
+        for (const v of varsDefinedIn("[data-theme='karasu'] {")) expect(keys).toContain(v);
+    });
+
+    it('emits every variable the Karasu dark block defines', () => {
+        const keys = Object.keys(generateTheme(KARASU).dark);
+        for (const v of varsDefinedIn("[data-theme='karasu'].dark {")) expect(keys).toContain(v);
     });
 });
 
