@@ -57,6 +57,13 @@ export interface Seeds {
 /** The CSS-variable map for one colour mode. */
 export type ThemeVars = Record<string, string>;
 
+/** A colour ramp as Nuxt UI's `--ui-color-{role}-{stop}` variables. */
+function rampVars(role: string, ramp: Ramp): ThemeVars {
+    const out: ThemeVars = {};
+    for (const [stop, hex] of Object.entries(ramp)) out[`--ui-color-${role}-${stop}`] = hex;
+    return out;
+}
+
 /**
  * Turns seed colours into the light + dark CSS-variable maps a theme needs. This must reach parity
  * with the hand-authored Karasu block in main.css: the full surface set (bg/border/text families)
@@ -70,6 +77,11 @@ export function generateTheme(seeds: Seeds): { light: ThemeVars; dark: ThemeVars
     const n = buildRamp(seeds.neutral);
     return {
         light: {
+            // The shade ramps are mode-independent and live in the base block; Nuxt UI components read
+            // these (not the bare --ui-primary) for fills, hovers, rings — so they must be themed too.
+            ...rampVars('primary', primary),
+            ...rampVars('secondary', secondary),
+            ...rampVars('neutral', n),
             '--ui-bg': n['100']!,
             '--ui-bg-muted': n['200']!,
             '--ui-bg-elevated': n['50']!,

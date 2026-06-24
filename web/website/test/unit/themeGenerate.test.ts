@@ -58,6 +58,17 @@ describe('generateTheme', () => {
         expect(generateTheme(KARASU).light['--ui-primary']!.toLowerCase()).toBe('#e5483a');
     });
 
+    it('emits the full primary, secondary and neutral shade ramps Nuxt UI components read', () => {
+        const t = generateTheme(KARASU);
+        for (const stop of RAMP_STOPS) {
+            expect(t.light[`--ui-color-primary-${stop}`]).toMatch(HEX);
+            expect(t.light[`--ui-color-secondary-${stop}`]).toMatch(HEX);
+            expect(t.light[`--ui-color-neutral-${stop}`]).toMatch(HEX);
+        }
+        // The 500 stop anchors to the seed, so shaded components (buttons, progress, rings) track the theme.
+        expect(t.light['--ui-color-primary-500']!.toLowerCase()).toBe('#e5483a');
+    });
+
     it('keeps body text readable (WCAG AA) on the background in both modes', () => {
         const t = generateTheme(KARASU);
         expect(contrastRatio(t.light['--ui-text']!, t.light['--ui-bg']!)).toBeGreaterThanOrEqual(4.5);
