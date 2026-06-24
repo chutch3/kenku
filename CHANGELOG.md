@@ -2,6 +2,20 @@
 
 <!-- version list -->
 
+## v0.37.1 (2026-06-24)
+
+### Bug Fixes
+
+- Collapse chapter uploads sharing a source-id key to avoid a duplicate-key save on sync
+  ([`bdcfea1`](https://github.com/chutch3/kenku/commit/bdcfea1e43a9bc566b3de93b018ee9902ccf0597))
+
+- Drop the ComicHubFree image cache-buster — the site now 404s query strings, making downloads worse
+  ([`948ef59`](https://github.com/chutch3/kenku/commit/948ef59614453cc073a6ad0bf1edf9b72701b340))
+
+- Throttle ComicHubFree to 20 requests/min per host to avoid its burst-triggered IP flagging
+  ([`305d5a0`](https://github.com/chutch3/kenku/commit/305d5a0d8ede9ba48f2913929334e1e0a4105616))
+
+
 ## v0.37.0 (2026-06-24)
 
 ### Features
