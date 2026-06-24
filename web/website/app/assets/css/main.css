@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import '@nuxt/ui';
+@import './themes.generated.css';
 
 /* ============================================================================
    烏  KARASU — the Kenku theme

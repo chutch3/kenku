@@ -14,7 +14,8 @@
         "lint": "eslint . --fix",
         "clean": "eslint . --fix && prettier . --write",
         "test:component": "vitest run",
-        "test:e2e": "playwright test"
+        "test:e2e": "playwright test",
+        "gen:themes": "node scripts/gen-themes.mjs"
     },
     "dependencies": {
         "@nuxt/content": "^3.7.1",

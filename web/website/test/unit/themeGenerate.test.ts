@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildRamp, RAMP_STOPS, generateTheme, contrastRatio } from '~/theme/generate';
+import { buildRamp, RAMP_STOPS, generateTheme, contrastRatio, renderThemeCss, renderCatalogCss } from '~/theme/generate';
 
 // sRGB relative luminance (WCAG) — used here to assert a ramp gets monotonically darker.
 function luminance(hex: string): number {
@@ -61,5 +61,29 @@ describe('generateTheme', () => {
         const t = generateTheme(KARASU);
         expect(contrastRatio(t.light['--ui-text']!, t.light['--ui-bg']!)).toBeGreaterThanOrEqual(4.5);
         expect(contrastRatio(t.dark['--ui-text']!, t.dark['--ui-bg']!)).toBeGreaterThanOrEqual(4.5);
+    });
+});
+
+describe('renderThemeCss', () => {
+    const pride = { id: 'trans-pride', name: 'Trans', package: 'Pride' as const, seeds: { primary: '#87ceeb', secondary: '#ffc0cb', neutral: '#94a3b8' } };
+
+    it('emits a data-theme block and a .dark override for the theme', () => {
+        const css = renderThemeCss(pride);
+        expect(css).toContain('[data-theme="trans-pride"] {');
+        expect(css).toContain('[data-theme="trans-pride"].dark {');
+        expect(css).toContain('--ui-bg:');
+        expect(css).toContain('--ui-primary: #87ceeb');
+    });
+});
+
+describe('renderCatalogCss', () => {
+    const karasu = { id: 'karasu', name: 'Karasu', package: 'House' as const, builtin: true, seeds: { primary: '#e5483a', secondary: '#12b299', neutral: '#585d70' } };
+    const pride = { id: 'trans-pride', name: 'Trans', package: 'Pride' as const, seeds: { primary: '#87ceeb', secondary: '#ffc0cb', neutral: '#94a3b8' } };
+
+    it('wraps generated themes in @layer base and skips builtin (hand-authored) themes', () => {
+        const css = renderCatalogCss([karasu, pride]);
+        expect(css).toContain('@layer base');
+        expect(css).toContain('[data-theme="trans-pride"]');
+        expect(css).not.toContain('[data-theme="karasu"]');
     });
 });

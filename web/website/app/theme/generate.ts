@@ -84,6 +84,34 @@ export function generateTheme(seeds: Seeds): { light: ThemeVars; dark: ThemeVars
     };
 }
 
+/** Minimum a theme needs to be rendered to CSS — kept local so this module doesn't depend on the registry. */
+export interface RenderableTheme {
+    id: string;
+    seeds: Seeds;
+    builtin?: boolean;
+}
+
+function declarations(vars: ThemeVars): string {
+    return Object.entries(vars)
+        .map(([k, v]) => `        ${k}: ${v};`)
+        .join('\n');
+}
+
+/** Renders one theme as its `[data-theme]` light block plus a `.dark` override. */
+export function renderThemeCss(theme: RenderableTheme): string {
+    const { light, dark } = generateTheme(theme.seeds);
+    return (
+        `    [data-theme="${theme.id}"] {\n${declarations(light)}\n    }\n` +
+        `    [data-theme="${theme.id}"].dark {\n${declarations(dark)}\n    }`
+    );
+}
+
+/** Renders the full catalogue (skipping builtin/hand-authored themes) wrapped in `@layer base`. */
+export function renderCatalogCss(themes: RenderableTheme[]): string {
+    const blocks = themes.filter((t) => !t.builtin).map(renderThemeCss);
+    return `@layer base {\n${blocks.join('\n\n')}\n}\n`;
+}
+
 /** Builds an 11-stop ramp from a seed, anchoring the 500 stop to the seed colour. */
 export function buildRamp(seed: string): Ramp {
     const [r, g, b] = parseHex(seed);
