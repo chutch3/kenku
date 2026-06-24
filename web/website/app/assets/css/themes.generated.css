@@ -293,8 +293,8 @@
         --ui-secondary: #228b22;
         --kenku-paper: #f3f4f5;
         --kenku-screentone: 0, 0, 0;
-        --kenku-grain-opacity: 0.05;
-        --kenku-glow-strength: 0.1;
+        --kenku-grain-opacity: 0.035;
+        --kenku-glow-strength: 0.06;
     }
     [data-theme="mental-health"].dark {
         --ui-bg: #222426;
@@ -316,8 +316,8 @@
         --ui-secondary: #64ae64;
         --kenku-paper: #222426;
         --kenku-screentone: 255, 255, 255;
-        --kenku-grain-opacity: 0.035;
-        --kenku-glow-strength: 0.16;
+        --kenku-grain-opacity: 0.025;
+        --kenku-glow-strength: 0.096;
     }
 
     [data-theme="progress-pride"] {
@@ -533,8 +533,8 @@
         --ui-secondary: #9b59b6;
         --kenku-paper: #e6e8ea;
         --kenku-screentone: 0, 0, 0;
-        --kenku-grain-opacity: 0.05;
-        --kenku-glow-strength: 0.1;
+        --kenku-grain-opacity: 0.07;
+        --kenku-glow-strength: 0.18;
     }
     [data-theme="non-binary"].dark {
         --ui-bg: #0a0e12;
@@ -556,8 +556,8 @@
         --ui-secondary: #b98bcc;
         --kenku-paper: #0a0e12;
         --kenku-screentone: 255, 255, 255;
-        --kenku-grain-opacity: 0.035;
-        --kenku-glow-strength: 0.16;
+        --kenku-grain-opacity: 0.049;
+        --kenku-glow-strength: 0.288;
     }
 
     [data-theme="bisexual"] {
@@ -693,8 +693,8 @@
         --ui-secondary: #00bfff;
         --kenku-paper: #f4f4f4;
         --kenku-screentone: 0, 0, 0;
-        --kenku-grain-opacity: 0.05;
-        --kenku-glow-strength: 0.1;
+        --kenku-grain-opacity: 0.07;
+        --kenku-glow-strength: 0.18;
     }
     [data-theme="pansexual"].dark {
         --ui-bg: #242424;
@@ -716,8 +716,8 @@
         --ui-secondary: #4dd2ff;
         --kenku-paper: #242424;
         --kenku-screentone: 255, 255, 255;
-        --kenku-grain-opacity: 0.035;
-        --kenku-glow-strength: 0.16;
+        --kenku-grain-opacity: 0.049;
+        --kenku-glow-strength: 0.288;
     }
 
     [data-theme="lesbian"] {
@@ -933,8 +933,8 @@
         --ui-secondary: #d3d3d3;
         --kenku-paper: #e6e6e6;
         --kenku-screentone: 0, 0, 0;
-        --kenku-grain-opacity: 0.05;
-        --kenku-glow-strength: 0.1;
+        --kenku-grain-opacity: 0.07;
+        --kenku-glow-strength: 0.18;
     }
     [data-theme="firefighter"].dark {
         --ui-bg: #090909;
@@ -956,8 +956,8 @@
         --ui-secondary: #e0e0e0;
         --kenku-paper: #090909;
         --kenku-screentone: 255, 255, 255;
-        --kenku-grain-opacity: 0.035;
-        --kenku-glow-strength: 0.16;
+        --kenku-grain-opacity: 0.049;
+        --kenku-glow-strength: 0.288;
     }
 
     [data-theme="ems"] {
@@ -1173,8 +1173,8 @@
         --ui-secondary: #b39ddb;
         --kenku-paper: #f5f6f8;
         --kenku-screentone: 0, 0, 0;
-        --kenku-grain-opacity: 0.05;
-        --kenku-glow-strength: 0.1;
+        --kenku-grain-opacity: 0.035;
+        --kenku-glow-strength: 0.06;
     }
     [data-theme="global-peace"].dark {
         --ui-bg: #26282b;
@@ -1196,8 +1196,8 @@
         --ui-secondary: #cabae6;
         --kenku-paper: #26282b;
         --kenku-screentone: 255, 255, 255;
-        --kenku-grain-opacity: 0.035;
-        --kenku-glow-strength: 0.16;
+        --kenku-grain-opacity: 0.025;
+        --kenku-glow-strength: 0.096;
     }
 
     [data-theme="environmental"] {
@@ -1493,8 +1493,8 @@
         --ui-secondary: #708090;
         --kenku-paper: #f5f4f3;
         --kenku-screentone: 0, 0, 0;
-        --kenku-grain-opacity: 0.05;
-        --kenku-glow-strength: 0.1;
+        --kenku-grain-opacity: 0.035;
+        --kenku-glow-strength: 0.06;
     }
     [data-theme="wabi-sabi"].dark {
         --ui-bg: #252423;
@@ -1516,8 +1516,8 @@
         --ui-secondary: #9ba6b1;
         --kenku-paper: #252423;
         --kenku-screentone: 255, 255, 255;
-        --kenku-grain-opacity: 0.035;
-        --kenku-glow-strength: 0.16;
+        --kenku-grain-opacity: 0.025;
+        --kenku-glow-strength: 0.096;
     }
 
     [data-theme="aizome"] {
@@ -1573,8 +1573,8 @@
         --ui-secondary: #4682b4;
         --kenku-paper: #eff0f2;
         --kenku-screentone: 0, 0, 0;
-        --kenku-grain-opacity: 0.05;
-        --kenku-glow-strength: 0.1;
+        --kenku-grain-opacity: 0.035;
+        --kenku-glow-strength: 0.06;
     }
     [data-theme="aizome"].dark {
         --ui-bg: #1b1d20;
@@ -1596,8 +1596,8 @@
         --ui-secondary: #7ea8cb;
         --kenku-paper: #1b1d20;
         --kenku-screentone: 255, 255, 255;
-        --kenku-grain-opacity: 0.035;
-        --kenku-glow-strength: 0.16;
+        --kenku-grain-opacity: 0.025;
+        --kenku-glow-strength: 0.096;
     }
 
     [data-theme="akihabara"] {
@@ -1653,8 +1653,8 @@
         --ui-secondary: #00ffff;
         --kenku-paper: #e3e3e3;
         --kenku-screentone: 0, 0, 0;
-        --kenku-grain-opacity: 0.05;
-        --kenku-glow-strength: 0.1;
+        --kenku-grain-opacity: 0.07;
+        --kenku-glow-strength: 0.18;
     }
     [data-theme="akihabara"].dark {
         --ui-bg: #040404;
@@ -1676,7 +1676,7 @@
         --ui-secondary: #4dffff;
         --kenku-paper: #040404;
         --kenku-screentone: 255, 255, 255;
-        --kenku-grain-opacity: 0.035;
-        --kenku-glow-strength: 0.16;
+        --kenku-grain-opacity: 0.049;
+        --kenku-glow-strength: 0.288;
     }
 }

@@ -69,6 +69,15 @@ describe('generateTheme', () => {
         expect(t.light['--ui-color-primary-500']!.toLowerCase()).toBe('#e5483a');
     });
 
+    it('scales the atmosphere by profile so themes feel distinct (vivid > standard > calm)', () => {
+        const glow = (p?: 'calm' | 'standard' | 'vivid') => Number(generateTheme(KARASU, p).light['--kenku-glow-strength']);
+        const grain = (p?: 'calm' | 'standard' | 'vivid') => Number(generateTheme(KARASU, p).light['--kenku-grain-opacity']);
+        expect(glow('vivid')).toBeGreaterThan(glow('standard'));
+        expect(glow('standard')).toBeGreaterThan(glow('calm'));
+        expect(grain('vivid')).toBeGreaterThan(grain('calm'));
+        expect(glow()).toBe(glow('standard')); // defaults to standard
+    });
+
     it('keeps body text readable (WCAG AA) on the background in both modes', () => {
         const t = generateTheme(KARASU);
         expect(contrastRatio(t.light['--ui-text']!, t.light['--ui-bg']!)).toBeGreaterThanOrEqual(4.5);

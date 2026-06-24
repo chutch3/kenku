@@ -54,6 +54,14 @@ export interface Seeds {
     neutral: string;
 }
 
+/** How strongly a theme leans on the ambient glow + paper grain — gives each theme its own mood. */
+export type AtmosphereProfile = 'calm' | 'standard' | 'vivid';
+
+const GLOW_MULT: Record<AtmosphereProfile, number> = { calm: 0.6, standard: 1, vivid: 1.8 };
+const GRAIN_MULT: Record<AtmosphereProfile, number> = { calm: 0.7, standard: 1, vivid: 1.4 };
+
+const round3 = (x: number) => String(Math.round(x * 1000) / 1000);
+
 /** The CSS-variable map for one colour mode. */
 export type ThemeVars = Record<string, string>;
 
@@ -71,10 +79,12 @@ function rampVars(role: string, ramp: Ramp): ThemeVars {
  * so solid controls stay legible on dark surfaces), and the `--kenku-*` atmosphere vars that actually
  * drive the page background, screentone and grain. Omitting any of these renders the theme broken.
  */
-export function generateTheme(seeds: Seeds): { light: ThemeVars; dark: ThemeVars } {
+export function generateTheme(seeds: Seeds, atmosphere: AtmosphereProfile = 'standard'): { light: ThemeVars; dark: ThemeVars } {
     const primary = buildRamp(seeds.primary);
     const secondary = buildRamp(seeds.secondary);
     const n = buildRamp(seeds.neutral);
+    const glow = GLOW_MULT[atmosphere];
+    const grain = GRAIN_MULT[atmosphere];
     return {
         light: {
             // The shade ramps are mode-independent and live in the base block; Nuxt UI components read
@@ -101,8 +111,8 @@ export function generateTheme(seeds: Seeds): { light: ThemeVars; dark: ThemeVars
             '--ui-secondary': secondary['500']!,
             '--kenku-paper': n['100']!,
             '--kenku-screentone': '0, 0, 0',
-            '--kenku-grain-opacity': '0.05',
-            '--kenku-glow-strength': '0.1',
+            '--kenku-grain-opacity': round3(0.05 * grain),
+            '--kenku-glow-strength': round3(0.1 * glow),
         },
         dark: {
             '--ui-bg': n['950']!,
@@ -124,8 +134,8 @@ export function generateTheme(seeds: Seeds): { light: ThemeVars; dark: ThemeVars
             '--ui-secondary': secondary['400']!,
             '--kenku-paper': n['950']!,
             '--kenku-screentone': '255, 255, 255',
-            '--kenku-grain-opacity': '0.035',
-            '--kenku-glow-strength': '0.16',
+            '--kenku-grain-opacity': round3(0.035 * grain),
+            '--kenku-glow-strength': round3(0.16 * glow),
         },
     };
 }
@@ -134,6 +144,7 @@ export function generateTheme(seeds: Seeds): { light: ThemeVars; dark: ThemeVars
 export interface RenderableTheme {
     id: string;
     seeds: Seeds;
+    atmosphere?: AtmosphereProfile;
     builtin?: boolean;
 }
 
@@ -145,7 +156,7 @@ function declarations(vars: ThemeVars): string {
 
 /** Renders one theme as its `[data-theme]` light block plus a `.dark` override. */
 export function renderThemeCss(theme: RenderableTheme): string {
-    const { light, dark } = generateTheme(theme.seeds);
+    const { light, dark } = generateTheme(theme.seeds, theme.atmosphere);
     return (
         `    [data-theme="${theme.id}"] {\n${declarations(light)}\n    }\n` +
         `    [data-theme="${theme.id}"].dark {\n${declarations(dark)}\n    }`
