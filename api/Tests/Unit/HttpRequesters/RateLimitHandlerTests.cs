@@ -7,6 +7,18 @@ namespace API.Tests.Unit.HttpRequesters;
 
 public class RateLimitHandlerTests
 {
+    // comichubfree flags an IP after a burst and then serves placeholders; it needs a much gentler
+    // per-host rate than the default, while every other host keeps the standard budget.
+    [Theory]
+    [InlineData("comichubfree.com", 90, 20)]
+    [InlineData("www.comichubfree.com", 90, 20)]
+    [InlineData("mangadex.org", 90, 90)]
+    [InlineData("comichubfree.com", 10, 10)] // never raises a host above the global default
+    public void RequestsPerMinuteForHost_ThrottlesComicHubFreeBelowOtherHosts(string host, int defaultRpm, int expected)
+    {
+        Assert.Equal(expected, RateLimitHandler.RequestsPerMinuteForHost(host, defaultRpm));
+    }
+
     [Fact]
     public async Task SendAsync_RateLimitsPerHost_BucketsAreIndependent()
     {

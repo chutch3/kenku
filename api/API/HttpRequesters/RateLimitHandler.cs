@@ -10,6 +10,17 @@ public class RateLimitHandler : DelegatingHandler
     private readonly PartitionedRateLimiter<HttpRequestMessage> _limiter;
     private readonly TimeSpan _requestTimeout;
 
+    /// <summary>comichubfree flags an IP after a burst and then serves placeholders, so it needs a far
+    /// gentler per-host rate than the default 90/min. Other hosts keep the standard budget.</summary>
+    internal const int ComicHubFreeRequestsPerMinute = 20;
+
+    /// <summary>The per-minute request budget for a host: throttled for comichubfree, the default
+    /// otherwise. Never raises a host above the caller's default.</summary>
+    internal static int RequestsPerMinuteForHost(string host, int defaultRpm) =>
+        host.Contains("comichubfree.com", StringComparison.OrdinalIgnoreCase)
+            ? Math.Min(defaultRpm, ComicHubFreeRequestsPerMinute)
+            : defaultRpm;
+
     public RateLimitHandler(KenkuSettings settings) : this(settings, new HttpClientHandler())
     {
     }
@@ -33,16 +44,20 @@ public class RateLimitHandler : DelegatingHandler
         _limiter = PartitionedRateLimiter.Create<HttpRequestMessage, string>(request =>
             RateLimitPartition.GetTokenBucketLimiter(
                 request.RequestUri?.Host ?? string.Empty,
-                _ => new TokenBucketRateLimiterOptions
+                host =>
                 {
-                    AutoReplenishment = true,
-                    // Large QueueLimit to handle batches of chapters (18 chapters * 50 images = 900)
-                    QueueLimit = queueLimit,
-                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    // Replenish every minute to avoid integer division issues with per-second replenishment
-                    ReplenishmentPeriod = TimeSpan.FromMinutes(1),
-                    TokenLimit = rpm,
-                    TokensPerPeriod = rpm
+                    int hostRpm = RequestsPerMinuteForHost(host, rpm);
+                    return new TokenBucketRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        // Large QueueLimit to handle batches of chapters (18 chapters * 50 images = 900)
+                        QueueLimit = queueLimit,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                        // Replenish every minute to avoid integer division issues with per-second replenishment
+                        ReplenishmentPeriod = TimeSpan.FromMinutes(1),
+                        TokenLimit = hostRpm,
+                        TokensPerPeriod = hostRpm
+                    };
                 }));
     }
 
