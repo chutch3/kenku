@@ -76,8 +76,7 @@
    warm washi paper and night reads as deep sumi ink, instead of flat zinc.
    -------------------------------------------------------------------------- */
 @layer base {
-    :root,
-    .light {
+    [data-theme='karasu'] {
         --ui-bg: #f6f1e7; /* washi paper */
         --ui-bg-muted: #efe9da;
         --ui-bg-elevated: #fcf8ef;
@@ -100,7 +99,7 @@
         --kenku-glow-strength: 0.1;
     }
 
-    .dark {
+    [data-theme='karasu'].dark {
         --ui-bg: #0b0c12; /* deep ink night */
         --ui-bg-muted: #101119;
         --ui-bg-elevated: #181a24;
