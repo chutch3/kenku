@@ -1,8 +1,8 @@
 <template>
     <!-- Atmosphere: ink/paper base, manga screentone, grain, ambient glows. -->
     <div class="kenku-atmosphere" aria-hidden="true">
-        <div class="kenku-glow kenku-glow--vermillion" />
-        <div class="kenku-glow kenku-glow--jade" />
+        <div class="kenku-glow kenku-glow--primary" />
+        <div class="kenku-glow kenku-glow--secondary" />
     </div>
 
     <UApp>

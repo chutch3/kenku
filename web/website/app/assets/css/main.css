@@ -158,7 +158,7 @@
     }
 
     ::selection {
-        background: rgba(229, 72, 58, 0.28);
+        background: color-mix(in srgb, var(--ui-primary) 28%, transparent);
         color: var(--ui-text-highlighted);
     }
 
@@ -206,20 +206,20 @@
     border-radius: 9999px;
     filter: blur(120px);
 }
-.kenku-glow--vermillion {
+.kenku-glow--primary {
     top: -18%;
     left: 50%;
     width: 70vw;
     height: 40vh;
     transform: translateX(-50%);
-    background: rgba(229, 72, 58, var(--kenku-glow-strength));
+    background: color-mix(in srgb, var(--ui-primary) calc(var(--kenku-glow-strength) * 100%), transparent);
 }
-.kenku-glow--jade {
+.kenku-glow--secondary {
     bottom: -22%;
     right: -8%;
     width: 45vw;
     height: 45vh;
-    background: rgba(18, 178, 153, calc(var(--kenku-glow-strength) * 0.8));
+    background: color-mix(in srgb, var(--ui-secondary) calc(var(--kenku-glow-strength) * 80%), transparent);
 }
 
 /* ----------------------------------------------------------------------------
@@ -227,11 +227,11 @@
    -------------------------------------------------------------------------- */
 .text-glow-vermillion {
     text-shadow:
-        0 0 18px rgba(229, 72, 58, 0.45),
-        0 0 2px rgba(229, 72, 58, 0.3);
+        0 0 18px color-mix(in srgb, var(--ui-primary) 45%, transparent),
+        0 0 2px color-mix(in srgb, var(--ui-primary) 30%, transparent);
 }
 .text-glow-jade {
-    text-shadow: 0 0 18px rgba(18, 178, 153, 0.45);
+    text-shadow: 0 0 18px color-mix(in srgb, var(--ui-secondary) 45%, transparent);
 }
 
 /* Card lift used on series cards / interactive surfaces. */
@@ -243,7 +243,7 @@
 }
 .kenku-lift:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 38px -12px rgba(229, 72, 58, 0.45);
+    box-shadow: 0 12px 38px -12px color-mix(in srgb, var(--ui-primary) 45%, transparent);
 }
 
 /* ----------------------------------------------------------------------------

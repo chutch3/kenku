@@ -46,6 +46,6 @@ withDefaults(
 
 <style scoped>
 .kenku-mark {
-    color: var(--color-vermillion-500);
+    color: var(--ui-primary);
 }
 </style>

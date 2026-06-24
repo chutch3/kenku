@@ -25,6 +25,18 @@ test('choosing a theme applies it and persists across a reload', async ({ page }
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'trans-pride');
 });
 
+test('the logo recolors with the theme', async ({ page }) => {
+    await stubApi(page);
+    await page.goto('/settings');
+    await page.getByRole('tab', { name: 'Appearance' }).click();
+
+    await page.locator('[data-test="theme-trans-pride"]').click();
+
+    // KenkuMark paints with currentColor, which must follow the theme's primary (trans-pride #87ceeb).
+    const colour = await page.locator('.kenku-mark').first().evaluate((el) => getComputedStyle(el).color);
+    expect(colour).toBe('rgb(135, 206, 235)');
+});
+
 test('building a custom theme applies it with a runtime-injected style block', async ({ page }) => {
     await stubApi(page);
     await page.goto('/settings');
