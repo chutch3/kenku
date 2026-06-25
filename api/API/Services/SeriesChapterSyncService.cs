@@ -69,9 +69,21 @@ public class SeriesChapterSyncService(IEnumerable<SeriesSource> connectors)
             .ToArray();
         Log.DebugFormat("Got {0} chapters from connector.", allChapters.Length);
 
-        // Filter for new Chapters
+        // Source-id keys (connector + id-on-site) among the fetched uploads that already exist in the
+        // table. Checked against the WHOLE table — not just this series' loaded chapters — because the
+        // SourceId PK is global: a connector that mis-scopes an id-on-site can collide across series (the
+        // historical "unscoped issue-N" crash), and an upload re-listed under a new chapter number on
+        // re-sync would otherwise cascade-insert through the new chapter's SourceIds. Either way the only
+        // safe move is to skip an upload we already have, never to hand the DB a duplicate key.
+        var candidateKeys = allChapters.Select(c => c.Item2.Key).ToList();
+        var existingSourceKeys = (await seriesContext.ChapterSourceIds
+            .Where(s => candidateKeys.Contains(s.Key))
+            .Select(s => s.Key)
+            .ToListAsync(ct)).ToHashSet();
+
+        // Filter for new Chapters: new by chapter key AND whose upload isn't already tracked anywhere.
         List<(Chapter chapter, SourceId<Chapter> chapterId)> newChapters = allChapters.Where<(Chapter chapter, SourceId<Chapter> chapterId)>(ch =>
-            manga.Chapters.All(c => c.Key != ch.chapter.Key)).ToList();
+            manga.Chapters.All(c => c.Key != ch.chapter.Key) && !existingSourceKeys.Contains(ch.chapterId.Key)).ToList();
         Log.DebugFormat("Got {0} new chapters.", newChapters.Count);
 
         // Update existing chapters with metadata if it was missing
@@ -88,12 +100,11 @@ public class SeriesChapterSyncService(IEnumerable<SeriesSource> connectors)
         // Add Chapters to Series
         manga.Chapters = manga.Chapters.Union(newChapters.Select(ch => ch.chapter)).ToList();
 
-        // Filter for new ChapterIds
-        List<SourceId<Chapter>> existingChapterIds = manga.Chapters.SelectMany(c => c.SourceIds).ToList();
+        // Filter for new ChapterIds: only uploads whose key isn't already in the table (same global guard
+        // as above — covers intra-batch dups via the earlier DistinctBy, this-series re-syncs, and cross-
+        // series key collisions, through both the explicit add here and the chapter-navigation cascade).
         List<SourceId<Chapter>> newIds = allChapters.Select(ch => ch.chapterId)
-            .Where(newCh => !existingChapterIds.Any(existing =>
-                existing.SeriesSourceName == newCh.SeriesSourceName &&
-                existing.IdOnConnectorSite == newCh.IdOnConnectorSite))
+            .Where(newCh => !existingSourceKeys.Contains(newCh.Key))
             .ToList();
         // Match tracked entities of Chapters
         foreach (SourceId<Chapter> newId in newIds)

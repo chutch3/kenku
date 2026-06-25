@@ -250,6 +250,77 @@ public class SeriesChapterSyncServiceTests : IDisposable
         Assert.Single(await _mangaContext.ChapterSourceIds.ToListAsync());
     }
 
+    // The harder shape: an upload already in the DB (chapter "1") is re-listed by the connector under a
+    // NEW chapter number ("2") — same source-id key. It's new by chapter key, so it slips past the add
+    // filter and cascade-inserts through the new chapter's SourceIds, colliding on PK_ChapterSourceIds.
+    // This is what kept Batman: The Killing Joke and League of Extraordinary Gentlemen stuck on re-sync.
+    [Fact]
+    public async Task Sync_DoesNotReAddAnUploadAlreadyInTheDb_UnderANewChapterNumber()
+    {
+        var manga = new Series("League of Extraordinary Gentlemen", "Desc", "url", SeriesReleaseStatus.Completed, [], [], [], []);
+        _mangaContext.Series.Add(manga);
+        var mockConnector = new Mock<SeriesSource>("GetComics", new[] { "en" }, new[] { "getcomics.org" }, "icon.png", new KenkuSettings());
+        var mangaMcId = new SourceId(manga, "GetComics", "lxg", "url");
+        manga.SourceIds.Add(mangaMcId);
+        _mangaContext.SeriesSourceIds.Add(mangaMcId);
+
+        // Existing chapter whose upload is the pack post.
+        var existing = new Chapter(manga, "1", null, null);
+        var existingId = new ChapterConnectorId(existing, "GetComics", "pack-post", "url");
+        existing.SourceIds.Add(existingId);
+        _mangaContext.Chapters.Add(existing);
+        _mangaContext.ChapterSourceIds.Add(existingId);
+        await _mangaContext.SaveChangesAsync();
+
+        // Connector now lists the SAME pack post under a new number → same source-id key as the existing one.
+        var fetched = new Chapter(manga, "2", null, null);
+        var fetchedId = new ChapterConnectorId(fetched, "GetComics", "pack-post", "url");
+        fetched.SourceIds.Add(fetchedId);
+        mockConnector.Setup(c => c.GetChapters(It.IsAny<SourceId>(), It.IsAny<string>()))
+            .ReturnsAsync([(fetched, fetchedId)]);
+
+        await new SeriesChapterSyncService([mockConnector.Object])
+            .SyncAsync(_mangaContext, _actionsContext, mangaMcId.Key, "en", CancellationToken.None);
+
+        Assert.Single(await _mangaContext.ChapterSourceIds.ToListAsync());
+    }
+
+    // A connector that mis-scopes its id-on-site can produce the same source-id key for two *different*
+    // series (the historical "unscoped issue-N" crash). The sync only loads the target series' chapters,
+    // so it can't see the collision in memory — it must check the whole table, and skip the colliding
+    // upload rather than fail the save on PK_ChapterSourceIds.
+    [Fact]
+    public async Task Sync_DoesNotCrash_WhenTheUploadKeyAlreadyExistsUnderAnotherSeries()
+    {
+        var other = new Series("Other Comic", "Desc", "url", SeriesReleaseStatus.Completed, [], [], [], []);
+        _mangaContext.Series.Add(other);
+        var otherChapter = new Chapter(other, "1", null, null);
+        var sharedId = new ChapterConnectorId(otherChapter, "GetComics", "shared-id", "url");
+        otherChapter.SourceIds.Add(sharedId);
+        _mangaContext.Chapters.Add(otherChapter);
+        _mangaContext.ChapterSourceIds.Add(sharedId);
+
+        var manga = new Series("Target Comic", "Desc", "url", SeriesReleaseStatus.Completed, [], [], [], []);
+        _mangaContext.Series.Add(manga);
+        var mangaMcId = new SourceId(manga, "GetComics", "target", "url");
+        manga.SourceIds.Add(mangaMcId);
+        _mangaContext.SeriesSourceIds.Add(mangaMcId);
+        await _mangaContext.SaveChangesAsync();
+
+        // The connector hands Target a chapter whose source-id key collides with Other's existing upload.
+        var fetched = new Chapter(manga, "1", null, null);
+        var fetchedId = new ChapterConnectorId(fetched, "GetComics", "shared-id", "url");
+        fetched.SourceIds.Add(fetchedId);
+        var mockConnector = new Mock<SeriesSource>("GetComics", new[] { "en" }, new[] { "getcomics.org" }, "icon.png", new KenkuSettings());
+        mockConnector.Setup(c => c.GetChapters(It.IsAny<SourceId>(), It.IsAny<string>()))
+            .ReturnsAsync([(fetched, fetchedId)]);
+
+        await new SeriesChapterSyncService([mockConnector.Object])
+            .SyncAsync(_mangaContext, _actionsContext, mangaMcId.Key, "en", CancellationToken.None);
+
+        Assert.Single(await _mangaContext.ChapterSourceIds.ToListAsync());
+    }
+
     [Fact]
     public async Task Sync_RecordsTheRetrievedChapterCount_OnTheActionRecord()
     {
