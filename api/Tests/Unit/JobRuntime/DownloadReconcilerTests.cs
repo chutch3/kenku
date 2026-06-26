@@ -6,6 +6,7 @@ using API.JobRuntime;
 using API.JobRuntime.Handlers;
 using API.Connectors;
 using API.DownloadClients;
+using API.Schema.JobsContext;
 using API.Schema.SeriesContext;
 using Microsoft.EntityFrameworkCore;
 using Moq;
@@ -118,6 +119,52 @@ public class DownloadReconcilerTests : IDisposable
 
         Assert.Equal(0, enqueued);
         Assert.Empty(await store.GetAllAsync()); // in flight — the completion reconciler owns it
+    }
+
+    [Fact]
+    public async Task Scan_RetiresAParkedFailure_WhenItsChapterIsAlreadyDownloaded()
+    {
+        var (ctx, manga) = await SeedSeries();
+        AddChapter(ctx, manga, "1", downloaded: true); // the goal is already met
+        await ctx.SaveChangesAsync();
+        var sourceId = await ctx.ChapterSourceIds.SingleAsync();
+        var store = new InMemoryJobStore();
+
+        // A download job that failed earlier and parked in NeedsAttention — but the chapter has since
+        // landed on disk by another path (disk scan, manual placement, a later attempt).
+        var parked = await store.EnqueueAsync(new Job(DownloadChapterHandler.Type,
+            DownloadChapterHandler.PayloadFor(sourceId.Key), DateTime.UtcNow,
+            resourceKey: manga.Key, dedupKey: DownloadReconciler.DedupKey(sourceId.Key)));
+        parked.Status = JobStatus.NeedsAttention;
+        await store.UpdateAsync(parked);
+
+        await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow, null, [], 5, default);
+
+        var job = Assert.Single(await store.GetAllAsync());
+        // The zombie is retired: it no longer pins the series to "needs attention" nor blocks re-enqueue.
+        Assert.Equal(JobStatus.Cancelled, job.Status);
+    }
+
+    [Fact]
+    public async Task Scan_KeepsAParkedFailure_WhenItsChapterIsStillMissing()
+    {
+        var (ctx, manga) = await SeedSeries();
+        AddChapter(ctx, manga, "1"); // still missing — the failure is real, not a zombie
+        await ctx.SaveChangesAsync();
+        var sourceId = await ctx.ChapterSourceIds.SingleAsync();
+        var store = new InMemoryJobStore();
+
+        var parked = await store.EnqueueAsync(new Job(DownloadChapterHandler.Type,
+            DownloadChapterHandler.PayloadFor(sourceId.Key), DateTime.UtcNow,
+            resourceKey: manga.Key, dedupKey: DownloadReconciler.DedupKey(sourceId.Key)));
+        parked.Status = JobStatus.NeedsAttention;
+        await store.UpdateAsync(parked);
+
+        await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow, null, [], 5, default);
+
+        // A real failure awaiting the user is left alone (and #31: not blindly re-armed).
+        var job = Assert.Single(await store.GetAllAsync());
+        Assert.Equal(JobStatus.NeedsAttention, job.Status);
     }
 
     [Fact]
