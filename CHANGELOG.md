@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v0.37.2 (2026-06-26)
+
+### Bug Fixes
+
+- Dedup chapter source-ids against the whole table so re-listed and cross-series uploads never
+  duplicate-key the sync
+  ([`f5d202d`](https://github.com/chutch3/kenku/commit/f5d202d2bd795a15f3c59e692f79332aece4c8c7))
+
+
 ## v0.37.1 (2026-06-24)
 
 ### Bug Fixes
