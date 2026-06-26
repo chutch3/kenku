@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v0.37.3 (2026-06-26)
+
+### Bug Fixes
+
+- Fold the chapter into the chapter source-id key so re-used connector ids never collide on
+  PK_ChapterSourceIds
+  ([`7ed53f4`](https://github.com/chutch3/kenku/commit/7ed53f4d6e7e6330cec202b8221e839d534a5065))
+
+
 ## v0.37.2 (2026-06-26)
 
 ### Bug Fixes
