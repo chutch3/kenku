@@ -16,7 +16,7 @@ namespace API.Services;
 /// Resolves a single series' chapter→volume assignments: establishes/refreshes its MangaDex link
 /// (id-match over fuzzy score), applies exact sources merged by confidence, then fills the rest with the
 /// colour-cover heuristic — never clobbering a manual assignment. This is the domain logic behind the
-/// ResolveSeriesVolumes job and the legacy resolve worker, so both behave identically during migration.
+/// ResolveSeriesVolumes job handler.
 /// </summary>
 public class VolumeResolutionService(
     KenkuSettings settings,
