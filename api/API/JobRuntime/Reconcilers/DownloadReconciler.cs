@@ -46,6 +46,25 @@ public class DownloadReconciler(IServiceScopeFactory scopeFactory, IClock clock,
         IDownloadClient? downloadClient, IEnumerable<SeriesSource> connectors, int maxAttempts, CancellationToken ct)
     {
         List<SourceId<Chapter>> missing = await ChapterDownloadService.GetMissingChapters(series, ct);
+        var wantedDedupKeys = missing.Select(m => DedupKey(m.Key)).ToHashSet();
+
+        // Retire parked download failures whose chapter is no longer missing — it landed on disk by another
+        // path (a disk-scan flipped Downloaded, a later attempt, manual placement) or the chapter was
+        // deleted. Such a job is a zombie: retention keeps NeedsAttention forever and its dedup key blocks
+        // re-enqueue, so it both pins the series to "needs attention" and silently suppresses a legitimate
+        // retry. A chapter that is *still* missing keeps its parked job — that is a real failure awaiting the
+        // user, not a zombie (#31: no blind auto-retry).
+        int retired = 0;
+        foreach (Job stale in (await store.GetAllAsync(ct))
+                     .Where(j => j.Type == DownloadChapterHandler.Type && j.Status == JobStatus.NeedsAttention
+                                 && j.DedupKey is { } d && !wantedDedupKeys.Contains(d)))
+        {
+            stale.Status = JobStatus.Cancelled;
+            await store.UpdateAsync(stale, ct);
+            retired++;
+        }
+        if (retired > 0)
+            Log.InfoFormat("Retired {0} stale download job(s) whose chapters are no longer missing.", retired);
 
         var torrentSourceNames = connectors
             .Where(c => c.Kind == Acquirers.AcquisitionKind.Torrent)
