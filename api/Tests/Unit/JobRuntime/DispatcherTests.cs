@@ -220,10 +220,14 @@ public class DispatcherTests
     [Fact]
     public async Task FailingJob_IsLogged_SoFailuresAreVisibleInTheServiceLogsNotOnlyInTheJobRow()
     {
+        // Capture on the Dispatcher's own logger, not the shared root: a root appender also receives every
+        // other test's events under xUnit parallelism, which races GetEvents() and makes this assertion
+        // flaky. Scoped to the Dispatcher logger it sees only the Dispatcher's output and is deterministic.
         var appender = new log4net.Appender.MemoryAppender();
         var repo = (log4net.Repository.Hierarchy.Hierarchy)log4net.LogManager.GetRepository(typeof(Dispatcher).Assembly);
-        repo.Root.AddAppender(appender);
-        repo.Root.Level = log4net.Core.Level.All;
+        var logger = (log4net.Repository.Hierarchy.Logger)repo.GetLogger(typeof(Dispatcher).FullName!);
+        logger.AddAppender(appender);
+        logger.Level = log4net.Core.Level.All;
         repo.Configured = true;
         try
         {
@@ -237,7 +241,7 @@ public class DispatcherTests
         }
         finally
         {
-            repo.Root.RemoveAppender(appender);
+            logger.RemoveAppender(appender);
         }
     }
 }
