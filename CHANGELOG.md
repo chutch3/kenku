@@ -2,6 +2,28 @@
 
 <!-- version list -->
 
+## v0.37.4 (2026-06-26)
+
+### Bug Fixes
+
+- Retire download jobs whose chapter is already satisfied so failed downloads don't zombie the
+  series status
+  ([`1b1f8f6`](https://github.com/chutch3/kenku/commit/1b1f8f6f4dbe7401f59654f90ce751a2e51b1213))
+
+### Documentation
+
+- Drop stale legacy-worker references from the shared domain services
+  ([`4237c32`](https://github.com/chutch3/kenku/commit/4237c32b86660b4b810c2999bf989145e47b329c))
+
+### Testing
+
+- Prove the zombie-job GC on real Postgres via the rollup outcome, and assert the kept job by key
+  ([`63a37fa`](https://github.com/chutch3/kenku/commit/63a37fa3ce72dd5bc16bd67d3f3cb9053e132251))
+
+- Scope the dispatcher log-capture to its own logger so it isn't flaky under parallel runs
+  ([`c71a80a`](https://github.com/chutch3/kenku/commit/c71a80adc7c46904b706b2a3844b80c4795ca6dd))
+
+
 ## v0.37.3 (2026-06-26)
 
 ### Bug Fixes
