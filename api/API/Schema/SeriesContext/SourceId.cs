@@ -25,7 +25,7 @@ public class SourceId<T> : Identifiable where T : Identifiable
 
     public SourceId(T obj, string seriesSourceName, string idOnConnectorSite, string? websiteUrl,
         bool useForDownload = false, string? scanGroup = null, string? language = null)
-        : base(TokenGen.CreateToken(typeof(SourceId<T>), seriesSourceName, idOnConnectorSite))
+        : base(BuildKey(obj, seriesSourceName, idOnConnectorSite))
     {
         this.Obj = obj;
         this.ObjId = obj.Key;
@@ -40,6 +40,16 @@ public class SourceId<T> : Identifiable where T : Identifiable
     public SourceId(T obj, SeriesSource seriesSource, string idOnConnectorSite, string? websiteUrl, bool useForDownload = false,
         string? scanGroup = null, string? language = null)
         : this(obj, seriesSource.Name, idOnConnectorSite, websiteUrl, useForDownload, scanGroup, language) { }
+
+    // A chapter source-id is keyed by the chapter it belongs to as well as (connector, id-on-site):
+    // comic connectors reuse a bare id across chapters and series (GetComics' "1", IndexerBacked's issue
+    // number), so without the chapter those collide on PK_ChapterSourceIds. Series source-ids keep the
+    // plain (connector, id-on-site) key — series ids are already unique on a connector, and re-keying
+    // them would invalidate the sync-job payloads that store the key.
+    private static string BuildKey(T obj, string seriesSourceName, string idOnConnectorSite) =>
+        obj is Chapter
+            ? TokenGen.CreateToken(typeof(SourceId<T>), seriesSourceName, idOnConnectorSite, obj.Key)
+            : TokenGen.CreateToken(typeof(SourceId<T>), seriesSourceName, idOnConnectorSite);
 
     /// <summary>
     /// EF CORE ONLY!!!

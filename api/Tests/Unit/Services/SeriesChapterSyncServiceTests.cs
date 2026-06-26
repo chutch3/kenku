@@ -222,7 +222,7 @@ public class SeriesChapterSyncServiceTests : IDisposable
     // primary key (Key = token(connector, idOnConnectorSite)). They must be de-duplicated before insert,
     // or the save dies on PK_ChapterSourceIds — which is how Batman: The Killing Joke got stuck.
     [Fact]
-    public async Task Sync_DeduplicatesChapterSourceIds_WhenTheConnectorListsAnUploadTwice()
+    public async Task Sync_CollapsesTrueDuplicateUploads_WhenTheConnectorListsTheSameChapterTwice()
     {
         var manga = new Series("Batman: The Killing Joke", "Desc", "url", SeriesReleaseStatus.Completed, [], [], [], []);
         _mangaContext.Series.Add(manga);
@@ -232,17 +232,14 @@ public class SeriesChapterSyncServiceTests : IDisposable
         _mangaContext.SeriesSourceIds.Add(mangaMcId);
         await _mangaContext.SaveChangesAsync();
 
-        // Two distinct chapters whose uploads resolve to the SAME id-on-site → same source-id key. Each
-        // chapter carries its source-id (as page-reader connectors like ComicHubFree do), so both cascade
-        // toward insert with the same PK. The sync must collapse them, not hand the DB a duplicate key.
-        var c1 = new Chapter(manga, "1", null, null);
-        var c2 = new Chapter(manga, "2", null, null);
-        var id1 = new ChapterConnectorId(c1, "ComicHubFree", "batman-the-killing-joke/full", "url");
-        var id2 = new ChapterConnectorId(c2, "ComicHubFree", "batman-the-killing-joke/full", "url");
-        c1.SourceIds.Add(id1);
-        c2.SourceIds.Add(id2);
+        // The same chapter + same upload listed twice → one source-id key. Both cascade toward insert with
+        // the same PK, so the sync must collapse them rather than hand the DB a duplicate key.
+        var chapter = new Chapter(manga, "1", null, null);
+        var id1 = new ChapterConnectorId(chapter, "ComicHubFree", "batman-the-killing-joke/full", "url");
+        var id2 = new ChapterConnectorId(chapter, "ComicHubFree", "batman-the-killing-joke/full", "url");
+        chapter.SourceIds.Add(id1);
         mockConnector.Setup(c => c.GetChapters(It.IsAny<SourceId>(), It.IsAny<string>()))
-            .ReturnsAsync([(c1, id1), (c2, id2)]);
+            .ReturnsAsync([(chapter, id1), (chapter, id2)]);
 
         await new SeriesChapterSyncService([mockConnector.Object])
             .SyncAsync(_mangaContext, _actionsContext, mangaMcId.Key, "en", CancellationToken.None);
@@ -250,47 +247,12 @@ public class SeriesChapterSyncServiceTests : IDisposable
         Assert.Single(await _mangaContext.ChapterSourceIds.ToListAsync());
     }
 
-    // The harder shape: an upload already in the DB (chapter "1") is re-listed by the connector under a
-    // NEW chapter number ("2") — same source-id key. It's new by chapter key, so it slips past the add
-    // filter and cascade-inserts through the new chapter's SourceIds, colliding on PK_ChapterSourceIds.
-    // This is what kept Batman: The Killing Joke and League of Extraordinary Gentlemen stuck on re-sync.
+    // A connector that reuses a bare id-on-site across *different* series (the historical "unscoped
+    // issue-N" / GetComics pack case) used to collide on PK_ChapterSourceIds. The source-id key now folds
+    // in the chapter — which encodes its series — so the same id on a second series is a distinct key and
+    // both uploads coexist instead of one crashing or being silently skipped.
     [Fact]
-    public async Task Sync_DoesNotReAddAnUploadAlreadyInTheDb_UnderANewChapterNumber()
-    {
-        var manga = new Series("League of Extraordinary Gentlemen", "Desc", "url", SeriesReleaseStatus.Completed, [], [], [], []);
-        _mangaContext.Series.Add(manga);
-        var mockConnector = new Mock<SeriesSource>("GetComics", new[] { "en" }, new[] { "getcomics.org" }, "icon.png", new KenkuSettings());
-        var mangaMcId = new SourceId(manga, "GetComics", "lxg", "url");
-        manga.SourceIds.Add(mangaMcId);
-        _mangaContext.SeriesSourceIds.Add(mangaMcId);
-
-        // Existing chapter whose upload is the pack post.
-        var existing = new Chapter(manga, "1", null, null);
-        var existingId = new ChapterConnectorId(existing, "GetComics", "pack-post", "url");
-        existing.SourceIds.Add(existingId);
-        _mangaContext.Chapters.Add(existing);
-        _mangaContext.ChapterSourceIds.Add(existingId);
-        await _mangaContext.SaveChangesAsync();
-
-        // Connector now lists the SAME pack post under a new number → same source-id key as the existing one.
-        var fetched = new Chapter(manga, "2", null, null);
-        var fetchedId = new ChapterConnectorId(fetched, "GetComics", "pack-post", "url");
-        fetched.SourceIds.Add(fetchedId);
-        mockConnector.Setup(c => c.GetChapters(It.IsAny<SourceId>(), It.IsAny<string>()))
-            .ReturnsAsync([(fetched, fetchedId)]);
-
-        await new SeriesChapterSyncService([mockConnector.Object])
-            .SyncAsync(_mangaContext, _actionsContext, mangaMcId.Key, "en", CancellationToken.None);
-
-        Assert.Single(await _mangaContext.ChapterSourceIds.ToListAsync());
-    }
-
-    // A connector that mis-scopes its id-on-site can produce the same source-id key for two *different*
-    // series (the historical "unscoped issue-N" crash). The sync only loads the target series' chapters,
-    // so it can't see the collision in memory — it must check the whole table, and skip the colliding
-    // upload rather than fail the save on PK_ChapterSourceIds.
-    [Fact]
-    public async Task Sync_DoesNotCrash_WhenTheUploadKeyAlreadyExistsUnderAnotherSeries()
+    public async Task Sync_PersistsBothUploads_WhenTheSameConnectorIdAppearsOnAnotherSeries()
     {
         var other = new Series("Other Comic", "Desc", "url", SeriesReleaseStatus.Completed, [], [], [], []);
         _mangaContext.Series.Add(other);
@@ -307,7 +269,7 @@ public class SeriesChapterSyncServiceTests : IDisposable
         _mangaContext.SeriesSourceIds.Add(mangaMcId);
         await _mangaContext.SaveChangesAsync();
 
-        // The connector hands Target a chapter whose source-id key collides with Other's existing upload.
+        // The connector hands Target a chapter that reuses Other's bare id-on-site.
         var fetched = new Chapter(manga, "1", null, null);
         var fetchedId = new ChapterConnectorId(fetched, "GetComics", "shared-id", "url");
         fetched.SourceIds.Add(fetchedId);
@@ -318,7 +280,7 @@ public class SeriesChapterSyncServiceTests : IDisposable
         await new SeriesChapterSyncService([mockConnector.Object])
             .SyncAsync(_mangaContext, _actionsContext, mangaMcId.Key, "en", CancellationToken.None);
 
-        Assert.Single(await _mangaContext.ChapterSourceIds.ToListAsync());
+        Assert.Equal(2, await _mangaContext.ChapterSourceIds.CountAsync());
     }
 
     [Fact]

@@ -187,6 +187,36 @@ public class ChapterTests : IDisposable
         Assert.Equal("Vol 1/Dandadan - Ch.1.cbz", chapter.FileName);
     }
 
+    // The chapter source-id PK is token(connector, idOnConnectorSite, chapter). A connector that reuses a
+    // bare id across chapters (GetComics' "1", IndexerBacked's issue number) must NOT collide on
+    // PK_ChapterSourceIds — the chapter is part of the source-id's identity.
+    [Fact]
+    public void SourceIdKey_IncludesTheChapter_SoTheSameConnectorIdOnDifferentChaptersDoesNotCollide()
+    {
+        var seriesA = new Series("A", "", "", SeriesReleaseStatus.Continuing, [], [], [], []);
+        var seriesB = new Series("B", "", "", SeriesReleaseStatus.Continuing, [], [], [], []);
+        var chapterA = new Chapter(seriesA, "1", null);
+        var chapterB = new Chapter(seriesB, "1", null);
+
+        var idA = new SourceId<Chapter>(chapterA, "GetComics", "1", "urlA");
+        var idB = new SourceId<Chapter>(chapterB, "GetComics", "1", "urlB");
+
+        Assert.NotEqual(idA.Key, idB.Key);
+    }
+
+    // ...but the same upload on the same chapter is still one stable key, so true duplicates collapse.
+    [Fact]
+    public void SourceIdKey_IsStable_ForTheSameChapterAndUpload()
+    {
+        var series = new Series("A", "", "", SeriesReleaseStatus.Continuing, [], [], [], []);
+        var chapter = new Chapter(series, "1", null);
+
+        var id1 = new SourceId<Chapter>(chapter, "GetComics", "1", "url");
+        var id2 = new SourceId<Chapter>(chapter, "GetComics", "1", "url");
+
+        Assert.Equal(id1.Key, id2.Key);
+    }
+
     [Fact]
     public async Task CheckDownloaded_FileAtSubdirectoryPath_StoresRelativePath()
     {

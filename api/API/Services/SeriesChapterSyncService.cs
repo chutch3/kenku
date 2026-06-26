@@ -60,30 +60,21 @@ public class SeriesChapterSyncService(IEnumerable<SeriesSource> connectors)
         ChapterSyncBackfill.Apply(manga.Chapters, fetched);
 
         // Collapse the several uploads a connector may return for one chapter number into one chapter
-        // (clearing the title when they disagree).
-        // Then drop uploads that resolve to the same source-id key (connector + id-on-site): a connector
-        // can list one upload under two chapters (e.g. ComicHubFree's "tpb"/"full" one-shots), and since
-        // each chapter carries its own source-id those would cascade-insert duplicate PK_ChapterSourceIds.
+        // (clearing the title when they disagree), then drop genuine duplicate uploads the connector
+        // listed twice — same chapter + same source-id key — which would cascade-insert a duplicate PK.
         (Chapter chapter, SourceId<Chapter> chapterId)[] allChapters = ChapterTitleReconciler.Reconcile(fetched)
             .DistinctBy(c => c.Item2.Key)
             .ToArray();
         Log.DebugFormat("Got {0} chapters from connector.", allChapters.Length);
 
-        // Source-id keys (connector + id-on-site) among the fetched uploads that already exist in the
-        // table. Checked against the WHOLE table — not just this series' loaded chapters — because the
-        // SourceId PK is global: a connector that mis-scopes an id-on-site can collide across series (the
-        // historical "unscoped issue-N" crash), and an upload re-listed under a new chapter number on
-        // re-sync would otherwise cascade-insert through the new chapter's SourceIds. Either way the only
-        // safe move is to skip an upload we already have, never to hand the DB a duplicate key.
-        var candidateKeys = allChapters.Select(c => c.Item2.Key).ToList();
-        var existingSourceKeys = (await seriesContext.ChapterSourceIds
-            .Where(s => candidateKeys.Contains(s.Key))
-            .Select(s => s.Key)
-            .ToListAsync(ct)).ToHashSet();
+        // Source-id keys already tracked on this series, captured from the loaded graph before we add the
+        // new chapters below. The source-id key folds in the chapter, so a key is unique to one chapter of
+        // one series — an in-memory check is enough; there is no cross-series collision left to guard.
+        var existingSourceKeys = manga.Chapters.SelectMany(c => c.SourceIds).Select(s => s.Key).ToHashSet();
 
-        // Filter for new Chapters: new by chapter key AND whose upload isn't already tracked anywhere.
+        // Filter for new Chapters
         List<(Chapter chapter, SourceId<Chapter> chapterId)> newChapters = allChapters.Where<(Chapter chapter, SourceId<Chapter> chapterId)>(ch =>
-            manga.Chapters.All(c => c.Key != ch.chapter.Key) && !existingSourceKeys.Contains(ch.chapterId.Key)).ToList();
+            manga.Chapters.All(c => c.Key != ch.chapter.Key)).ToList();
         Log.DebugFormat("Got {0} new chapters.", newChapters.Count);
 
         // Update existing chapters with metadata if it was missing
@@ -100,9 +91,9 @@ public class SeriesChapterSyncService(IEnumerable<SeriesSource> connectors)
         // Add Chapters to Series
         manga.Chapters = manga.Chapters.Union(newChapters.Select(ch => ch.chapter)).ToList();
 
-        // Filter for new ChapterIds: only uploads whose key isn't already in the table (same global guard
-        // as above — covers intra-batch dups via the earlier DistinctBy, this-series re-syncs, and cross-
-        // series key collisions, through both the explicit add here and the chapter-navigation cascade).
+        // Filter for new ChapterIds: uploads whose source-id key isn't already tracked on this series
+        // (covers re-syncs and a new scan-group on an existing chapter; intra-batch dups were collapsed
+        // by the DistinctBy above).
         List<SourceId<Chapter>> newIds = allChapters.Select(ch => ch.chapterId)
             .Where(newCh => !existingSourceKeys.Contains(newCh.Key))
             .ToList();
@@ -121,8 +112,6 @@ public class SeriesChapterSyncService(IEnumerable<SeriesSource> connectors)
                 chapterId.UseForDownload = mangaConnectorId.UseForDownload;
         }
 
-        // Throw, don't swallow: a failed save (e.g. a colliding chapter source-id) must fail the job so it
-        // surfaces as NeedsAttention instead of "Succeeded" over a series that persisted nothing.
         // Throw, don't swallow: a failed save (e.g. a colliding chapter source-id) must fail the job so it
         // surfaces as NeedsAttention instead of "Succeeded" over a series that persisted nothing.
         if (await seriesContext.Sync(ct, typeof(SeriesChapterSyncService), "Chapters retrieved") is { success: false } mangaContextException)
