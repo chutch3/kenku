@@ -162,9 +162,10 @@ public class DownloadReconcilerTests : IDisposable
 
         await DownloadReconciler.ScanAndEnqueueAsync(ctx, store, DateTime.UtcNow, null, [], 5, default);
 
-        // A real failure awaiting the user is left alone (and #31: not blindly re-armed).
-        var job = Assert.Single(await store.GetAllAsync());
-        Assert.Equal(JobStatus.NeedsAttention, job.Status);
+        // A real failure awaiting the user is left alone (and #31: not blindly re-armed). Asserted on the
+        // job itself, not the queue size, so it doesn't depend on the store's coalescing behaviour.
+        var kept = await store.GetAsync(parked.Key);
+        Assert.Equal(JobStatus.NeedsAttention, kept!.Status);
     }
 
     [Fact]
