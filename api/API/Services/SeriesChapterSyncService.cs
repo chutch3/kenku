@@ -10,7 +10,7 @@ namespace API.Services;
 /// <summary>
 /// Syncs a series' chapter list from its connector: fetches available chapters, adds the new ones,
 /// backfills volume numbers on existing chapters, and marks new chapters for download if the series is
-/// tracked. Shared by the legacy retrieve worker and the SyncSeriesChapters job handler. Additive only —
+/// tracked. The domain core behind the SyncSeriesChapters job handler. Additive only —
 /// a connector parse miss adds nothing and never deletes local chapters (§4.1).
 /// </summary>
 public class SeriesChapterSyncService(IEnumerable<SeriesSource> connectors)

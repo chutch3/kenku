@@ -8,9 +8,8 @@ namespace API.Services;
 
 /// <summary>
 /// Bundles a VolumeCBZ volume's chapter files into a single <c>Vol N.cbz</c> (and the reverse). This is
-/// the domain logic shared by the legacy bundle/unbundle workers and the ReconcileVolumeBundle job
-/// handler, so both behave identically during the migration. The bundle is the source of truth: unbundle
-/// reconstructs the original chapter files from it and the recorded <see cref="BundleChapterMap"/>.
+/// the domain logic behind the ReconcileVolumeBundle job handler. The bundle is the source of truth:
+/// unbundle reconstructs the original chapter files from it and the recorded <see cref="BundleChapterMap"/>.
 /// </summary>
 public class VolumeBundler(KenkuSettings settings)
 {
