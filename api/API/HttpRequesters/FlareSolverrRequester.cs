@@ -99,6 +99,13 @@ public class FlareSolverrRequester(HttpClient client, KenkuSettings settings) : 
             return new(statusCode);
         }
 
+        // A browser navigating straight to an image URL renders an HTML "view image" wrapper, not
+        // the bytes — useless as a page image. Once the challenge is solved, fetch the asset
+        // directly with the cookie the solve just earned, the same way the browser's own follow-up
+        // request would, instead of returning the wrapper as if it were the image.
+        if (requestType is RequestType.SeriesImage or RequestType.SeriesCover)
+            return await FetchResolvedBinary(url, solution, referrer, cancellationToken);
+
         if (solution["response"]!.Value<string>() is not { } htmlString)
         {
             Log.Error("Wrong format: Cant find response in solution");
@@ -113,6 +120,29 @@ public class FlareSolverrRequester(HttpClient client, KenkuSettings settings) : 
         {
             return new(statusCode) { Content = new StringContent(htmlString) };
         }
+    }
+
+    private async Task<HttpResponseMessage> FetchResolvedBinary(string url, JObject solution, string? referrer,
+        CancellationToken? cancellationToken)
+    {
+        HttpRequestMessage request = new(HttpMethod.Get, url);
+
+        string cookieHeader = string.Join("; ", (solution["cookies"] as JArray ?? [])
+            .OfType<JObject>()
+            .Select(c => $"{c["name"]}={c["value"]}"));
+        if (cookieHeader.Length > 0)
+            request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+
+        // TryAddWithoutValidation, not the typed UserAgent property: this value came back from an
+        // external tool's response, not from our own settings, and the typed header parser rejects
+        // values it considers malformed (see KenkuSettings.SetUserAgent for the same concern).
+        if (solution["userAgent"]?.Value<string>() is { Length: > 0 } ua)
+            request.Headers.TryAddWithoutValidation("User-Agent", ua);
+
+        if (referrer is not null)
+            request.Headers.Referrer = new(referrer);
+
+        return await client.SendAsync(request, cancellationToken ?? CancellationToken.None);
     }
 
     private static bool IsInCorrectFormat(JObject responseObj, [NotNullWhen(false)]out string? reason)
