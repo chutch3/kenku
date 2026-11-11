@@ -18,13 +18,11 @@ namespace API.Connectors;
 
 public class AsuraComic : SeriesSource
 {
-    private readonly KenkuSettings _settings;
-    private readonly RateLimitHandler _rateLimitHandler;
+    private readonly IHeadlessBrowser _browser;
 
-    public AsuraComic(KenkuSettings settings, RateLimitHandler rateLimitHandler, IHttpRequester downloadClient) : base("AsuraComic", ["en"], ["asuracomic.net"], "https://asuracomic.net/images/logo.webp", settings)
+    public AsuraComic(KenkuSettings settings, IHttpRequester downloadClient, IHeadlessBrowser browser) : base("AsuraComic", ["en"], ["asuracomic.net"], "https://asuracomic.net/images/logo.webp", settings)
     {
-        _settings = settings;
-        _rateLimitHandler = rateLimitHandler;
+        _browser = browser;
         this.downloadClient = downloadClient;
     }
 
@@ -341,50 +339,39 @@ public class AsuraComic : SeriesSource
                 .FirstOrDefault(id => id.SeriesSourceName == this.Name)?.WebsiteUrl;
         }
 
-        // Sync wrapper for async MakeRequest
-        ChromiumRequester chromium = new(_settings, _rateLimitHandler);
-        try
+        string html = await _browser.RenderHtmlAsync(chapterId.WebsiteUrl!, referrer);
+        if (string.IsNullOrWhiteSpace(html))
         {
-            using HttpResponseMessage response = await chromium.MakeRequest(chapterId.WebsiteUrl!, RequestType.Default, referrer);
-
-            if ((int)response.StatusCode < 200 || (int)response.StatusCode >= 300)
-            {
-                Log.Error("Failed to load chapter page with Chromium");
-                return [];
-            }
-
-            string html = await response.Content.ReadAsStringAsync();
-            HtmlDocument doc = new();
-            doc.LoadHtml(html);
-
-            Log.DebugFormat("HTML snippet (first 500 chars): {0}", doc.DocumentNode.OuterHtml.Substring(0, Math.Min(500, doc.DocumentNode.OuterHtml.Length)));
-
-            HtmlNodeCollection? imageNodes = doc.DocumentNode.SelectNodes("//img[contains(@alt, 'chapter page') or contains(@alt, 'Chapter') or @class='page-break']");
-            if (imageNodes is null || imageNodes.Count == 0)
-            {
-                Log.Warn("No chapter page images found");
-                return [];
-            }
-
-            string[] imageUrls = imageNodes
-                .Select(i =>
-                {
-                    string src = i.GetAttributeValue("src", "");
-                    if (string.IsNullOrEmpty(src))
-                        src = i.GetAttributeValue("data-src", "");
-                    if (!src.StartsWith("http"))
-                        src = "https://asuracomic.net" + src;
-                    return src;
-                })
-                .Where(u => !string.IsNullOrEmpty(u))
-                .ToArray();
-
-            Log.InfoFormat("Found {0} images for chapter {1}", imageUrls.Length, chapterId.Obj);
-            return imageUrls;
+            Log.Error("Failed to load chapter page with the headless browser");
+            return [];
         }
-        finally
+
+        HtmlDocument doc = new();
+        doc.LoadHtml(html);
+
+        Log.DebugFormat("HTML snippet (first 500 chars): {0}", doc.DocumentNode.OuterHtml.Substring(0, Math.Min(500, doc.DocumentNode.OuterHtml.Length)));
+
+        HtmlNodeCollection? imageNodes = doc.DocumentNode.SelectNodes("//img[contains(@alt, 'chapter page') or contains(@alt, 'Chapter') or @class='page-break']");
+        if (imageNodes is null || imageNodes.Count == 0)
         {
-            chromium.DisposeAsync().AsTask();  // Sync dispose
+            Log.Warn("No chapter page images found");
+            return [];
         }
+
+        string[] imageUrls = imageNodes
+            .Select(i =>
+            {
+                string src = i.GetAttributeValue("src", "");
+                if (string.IsNullOrEmpty(src))
+                    src = i.GetAttributeValue("data-src", "");
+                if (!src.StartsWith("http"))
+                    src = "https://asuracomic.net" + src;
+                return src;
+            })
+            .Where(u => !string.IsNullOrEmpty(u))
+            .ToArray();
+
+        Log.InfoFormat("Found {0} images for chapter {1}", imageUrls.Length, chapterId.Obj);
+        return imageUrls;
     }
 }

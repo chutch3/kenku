@@ -100,6 +100,7 @@ builder.Services
 
 builder.Services.AddSingleton<RateLimitHandler>();
 builder.Services.AddSingleton<IHttpRequester, HttpRequester>();
+builder.Services.AddSingleton<IHeadlessBrowser, ChromiumHeadlessBrowser>();
 
 builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
 {
