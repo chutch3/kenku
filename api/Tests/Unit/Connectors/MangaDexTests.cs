@@ -333,4 +333,48 @@ public class MangaDexTests
 
         Assert.NotNull(results);
     }
+
+    // Every content rating is requested — pornographic included — until ratings become a user setting.
+    private static readonly string[] AllContentRatings =
+        ["contentRating%5B%5D=safe", "contentRating%5B%5D=suggestive", "contentRating%5B%5D=erotica", "contentRating%5B%5D=pornographic"];
+
+    private static (MangaDex, List<string>) MangaDexCapturingUrls(string json)
+    {
+        List<string> urls = [];
+        var mock = new Mock<IHttpRequester>();
+        mock.Setup(c => c.MakeRequest(It.IsAny<string>(), It.IsAny<RequestType>(), It.IsAny<string>(), It.IsAny<CancellationToken?>()))
+            .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json, Encoding.UTF8, "application/json") })
+            .Callback<string, RequestType, string, CancellationToken?>((url, _, _, _) => urls.Add(url));
+        return (new MangaDex(CreateSettings(), mock.Object), urls);
+    }
+
+    [Fact]
+    public async Task SearchManga_RequestsEveryContentRating()
+    {
+        var (mangaDex, urls) = MangaDexCapturingUrls("{\"result\":\"ok\",\"data\":[]}");
+
+        await mangaDex.SearchSeries("Test");
+
+        Assert.All(AllContentRatings, rating => Assert.Contains(rating, Assert.Single(urls)));
+    }
+
+    [Fact]
+    public async Task GetChapters_RequestsEveryContentRating()
+    {
+        var (mangaDex, urls) = MangaDexCapturingUrls("{\"result\":\"ok\",\"total\":0,\"data\":[]}");
+
+        await mangaDex.GetChapters(CreateDummySeries(mangaDex));
+
+        Assert.All(AllContentRatings, rating => Assert.Contains(rating, Assert.Single(urls)));
+    }
+
+    [Fact]
+    public async Task GetRailAsync_RequestsEveryContentRating()
+    {
+        var (mangaDex, urls) = MangaDexCapturingUrls(OneMangaPage(1));
+
+        await mangaDex.GetRailAsync("mangadex-latest", default);
+
+        Assert.All(AllContentRatings, rating => Assert.Contains(rating, Assert.Single(urls)));
+    }
 }
