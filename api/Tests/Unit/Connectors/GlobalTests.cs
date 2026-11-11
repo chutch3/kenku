@@ -41,6 +41,24 @@ public class GlobalTests
     }
 
     [Fact]
+    public async Task SearchMangaScoped_KeepsOtherSourcesResultsWhenOneSourceThrows()
+    {
+        // A blocked or broken source fails its own search loudly; that must cost only its own results,
+        // not the whole all-sources search.
+        var settings = new KenkuSettings { DownloadLanguage = "en" };
+        var services = new ServiceCollection();
+        var broken = Connector(settings, "Broken", ContentType.Manga, API.Acquirers.AcquisitionKind.ImageList, "unused");
+        broken.Setup(c => c.SearchSeries(It.IsAny<string>())).ThrowsAsync(new HttpRequestException("captcha_required"));
+        services.AddSingleton(broken.Object);
+        services.AddSingleton(Connector(settings, "WeebCentral", ContentType.Manga, API.Acquirers.AcquisitionKind.ImageList, "Manga hit").Object);
+        var global = new Global(settings, services.BuildServiceProvider());
+
+        var results = await global.SearchSeriesScoped("q", null, includeTorrents: true);
+
+        Assert.Equal("Manga hit", Assert.Single(results).Item1.Name);
+    }
+
+    [Fact]
     public async Task SearchManga_DropsSourcesThatCannotServeTheDownloadLanguage()
     {
         var settings = new KenkuSettings { DownloadLanguage = "en" };
