@@ -43,8 +43,13 @@ public class Global : SeriesSource
 
         Task<(Series, SourceId<Series>)[]>[] tasks =
             enabledConnectors.Select(c => c.SearchSeries(mangaSearchName)).ToArray();
-        
-        await Task.WhenAll(tasks);
+
+        // A failing source costs only its own results: wait for every search without rethrowing, then
+        // report the failures and keep the rest.
+        await Task.WhenAll(tasks).ContinueWith(_ => { }, TaskContinuationOptions.ExecuteSynchronously);
+        foreach ((SeriesSource connector, Task<(Series, SourceId<Series>)[]> task) in enabledConnectors.Zip(tasks))
+            if (task.IsFaulted)
+                Log.WarnFormat("Search on {0} failed: {1}", connector.Name, task.Exception?.GetBaseException().Message);
 
         // Sources that can't serve the download language are already filtered out above, so every result
         // here is language-appropriate — no further ranking needed.
