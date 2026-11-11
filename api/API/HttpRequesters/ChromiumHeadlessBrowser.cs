@@ -17,13 +17,15 @@ internal sealed class ChromiumHeadlessBrowser : IHeadlessBrowser, IAsyncDisposab
     private IBrowser? _browser;
     private long _activePages = 0;
     private const int MaxPages = 2;
+    private const int SelectorTimeoutMs = 15000;
 
     public ChromiumHeadlessBrowser(KenkuSettings settings)
     {
         _settings = settings;
     }
 
-    public async Task<string> RenderHtmlAsync(string url, string? referrer = null, CancellationToken cancellationToken = default)
+    public async Task<string> RenderHtmlAsync(string url, string? referrer = null, string? waitForSelector = null,
+        CancellationToken cancellationToken = default)
     {
         EnsureBrowserInitialized();
         if (_browser is null)
@@ -38,16 +40,13 @@ internal sealed class ChromiumHeadlessBrowser : IHeadlessBrowser, IAsyncDisposab
         }
 
         Interlocked.Increment(ref _activePages);
-        IPage? page = null;
+        // Each render gets its own browser context so cookies and storage never carry from one render to
+        // the next — the browser is a shared singleton, and some sites restore state over the URL's.
+        IBrowserContext? context = null;
         try
         {
-            page = await _browser.NewPageAsync();
-            await page.SetUserAgentAsync(_settings.UserAgent);
-
-            if (!string.IsNullOrEmpty(referrer))
-            {
-                await page.SetExtraHttpHeadersAsync(new Dictionary<string, string> { { "Referer", referrer } });
-            }
+            context = await _browser.CreateBrowserContextAsync();
+            IPage page = await NewPageAsync(context, referrer);
 
             bool success = false;
             Exception? lastEx = null;
@@ -66,7 +65,7 @@ internal sealed class ChromiumHeadlessBrowser : IHeadlessBrowser, IAsyncDisposab
                     Log.WarnFormat("Timeout for {0} on retry {1}; waiting {2}ms...", url, retry + 1, 1000 * (retry + 1));
                     await Task.Delay(1000 * (retry + 1), cancellationToken);
                     await page.CloseAsync();
-                    page = await _browser.NewPageAsync();
+                    page = await NewPageAsync(context, referrer);
                 }
             }
 
@@ -76,8 +75,22 @@ internal sealed class ChromiumHeadlessBrowser : IHeadlessBrowser, IAsyncDisposab
                 return string.Empty;
             }
 
-            await page.EvaluateExpressionAsync("window.scrollTo(0, document.body.scrollHeight);");
-            await Task.Delay(2000, cancellationToken);
+            if (waitForSelector is null)
+            {
+                await page.EvaluateExpressionAsync("window.scrollTo(0, document.body.scrollHeight);");
+                await Task.Delay(2000, cancellationToken);
+            }
+            else
+            {
+                try
+                {
+                    await page.WaitForSelectorAsync(waitForSelector, new WaitForSelectorOptions { Timeout = SelectorTimeoutMs });
+                }
+                catch (WaitTaskTimeoutException)
+                {
+                    Log.WarnFormat("No element matching '{0}' appeared on {1} within {2}ms.", waitForSelector, url, SelectorTimeoutMs);
+                }
+            }
 
             string html = await page.GetContentAsync();
             Log.DebugFormat("Chromium rendered {0} successfully.", url);
@@ -85,19 +98,28 @@ internal sealed class ChromiumHeadlessBrowser : IHeadlessBrowser, IAsyncDisposab
         }
         finally
         {
-            if (page != null)
+            if (context != null)
             {
                 try
                 {
-                    await page.CloseAsync();
+                    await context.CloseAsync();
                 }
                 catch (Exception ex)
                 {
-                    Log.WarnFormat("Error closing page: {0}", ex.Message);
+                    Log.WarnFormat("Error closing browser context: {0}", ex.Message);
                 }
             }
             Interlocked.Decrement(ref _activePages);
         }
+    }
+
+    private async Task<IPage> NewPageAsync(IBrowserContext context, string? referrer)
+    {
+        IPage page = await context.NewPageAsync();
+        await page.SetUserAgentAsync(_settings.UserAgent);
+        if (!string.IsNullOrEmpty(referrer))
+            await page.SetExtraHttpHeadersAsync(new Dictionary<string, string> { { "Referer", referrer } });
+        return page;
     }
 
     private void EnsureBrowserInitialized()

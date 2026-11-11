@@ -9,7 +9,11 @@ public interface IHeadlessBrowser
 {
     /// <summary>
     /// Navigates to <paramref name="url"/>, lets the page settle, and returns the rendered HTML.
-    /// Returns an empty string if the page could not be loaded.
+    /// With <paramref name="waitForSelector"/>, settling means waiting until an element matching that CSS
+    /// selector appears (the HTML is returned either way once the wait times out); without it, the page
+    /// is scrolled to the bottom and given a fixed delay. Returns an empty string if the page could not
+    /// be loaded.
     /// </summary>
-    Task<string> RenderHtmlAsync(string url, string? referrer = null, CancellationToken cancellationToken = default);
+    Task<string> RenderHtmlAsync(string url, string? referrer = null, string? waitForSelector = null,
+        CancellationToken cancellationToken = default);
 }
