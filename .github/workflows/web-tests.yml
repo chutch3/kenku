@@ -14,7 +14,8 @@ on:
 
 jobs:
   web:
-    runs-on: ubuntu-latest
+    # Pinned: Playwright's browser install doesn't support ubuntu-latest (26.04) yet.
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: ./web/website
