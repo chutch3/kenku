@@ -60,7 +60,7 @@ RUN addgroup -g $GID $UNAME \
 # PuppeteerSharp (Chromium path + no-sandbox args)
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ENV CHROME_BIN=/usr/bin/chromium-browser
-ENV PUPPETEER_ARGS="--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu --no-zygote --single-process"
+ENV PUPPETEER_ARGS="--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu --no-zygote"
 
 # API publish output + the prerendered frontend served from wwwroot.
 COPY --chown=1000:1000 --from=build-env /publish .

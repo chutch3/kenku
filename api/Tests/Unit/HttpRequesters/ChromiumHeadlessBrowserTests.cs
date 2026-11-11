@@ -28,6 +28,23 @@ public class ChromiumHeadlessBrowserTests : IDisposable
         return new Uri(path).AbsoluteUri;
     }
 
+    [Fact]
+    public void LaunchArgs_DropsSingleProcess_WhichCannotHostAnIsolatedContextPerRender()
+    {
+        // The production image used to pass --single-process; with it, Chromium closes the target on every
+        // CreateBrowserContext, so every render would fail.
+        string[] args = ChromiumHeadlessBrowser.LaunchArgs("--no-sandbox --disable-gpu --no-zygote --single-process");
+
+        Assert.Equal(["--no-sandbox", "--disable-gpu", "--no-zygote"], args);
+    }
+
+    [Fact]
+    public void LaunchArgs_DefaultsWhenNoneConfigured()
+    {
+        Assert.Equal(["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+            ChromiumHeadlessBrowser.LaunchArgs(null));
+    }
+
     [RequiresChromiumFact]
     public async Task RenderHtmlAsync_DoesNotCarryPageStateFromOneRenderToTheNext()
     {
