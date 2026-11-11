@@ -334,7 +334,6 @@ public class MangaDexTests
         Assert.NotNull(results);
     }
 
-    // Every content rating is requested — pornographic included — until ratings become a user setting.
     private static readonly string[] AllContentRatings =
         ["contentRating%5B%5D=safe", "contentRating%5B%5D=suggestive", "contentRating%5B%5D=erotica", "contentRating%5B%5D=pornographic"];
 
