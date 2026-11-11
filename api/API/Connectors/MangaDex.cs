@@ -29,8 +29,6 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
         new("mangadex-latest", "Latest updates", ContentType.Manga, 30),
     ];
 
-    // Every content rating, pornographic included (MangaDex's API default leaves it out). Shared by search,
-    // the chapter feed and the discover rails; meant to become a user setting.
     private const string ContentRatings =
         "contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&contentRating%5B%5D=pornographic";
 
