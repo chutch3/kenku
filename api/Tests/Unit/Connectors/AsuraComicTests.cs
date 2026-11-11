@@ -31,7 +31,7 @@ public class AsuraComicTests
     {
         var browser = new Mock<IHeadlessBrowser>();
         browser
-            .Setup(b => b.RenderHtmlAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(b => b.RenderHtmlAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(renderedHtml);
         return browser;
     }
@@ -124,6 +124,6 @@ public class AsuraComicTests
             "https://gg.asuracomic.net/chapter/1/01.webp",
             "https://asuracomic.net/chapter/1/02.webp",
         }, urls);
-        browser.Verify(b => b.RenderHtmlAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
+        browser.Verify(b => b.RenderHtmlAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }
