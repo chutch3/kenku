@@ -145,13 +145,7 @@ internal sealed class ChromiumHeadlessBrowser : IHeadlessBrowser, IAsyncDisposab
                     Headless = true,
                     Timeout = 60000,
                     ExecutablePath = localPath,
-                    Args = Environment.GetEnvironmentVariable("PUPPETEER_ARGS")?.Split(' ', StringSplitOptions.RemoveEmptyEntries) ?? new[]
-                    {
-                        "--no-sandbox",
-                        "--disable-setuid-sandbox",
-                        "--disable-dev-shm-usage",
-                        "--disable-gpu"
-                    }
+                    Args = LaunchArgs(Environment.GetEnvironmentVariable("PUPPETEER_ARGS"))
                 };
                 _browser = Puppeteer.LaunchAsync(launchOptions, null).GetAwaiter().GetResult();
 
@@ -163,6 +157,19 @@ internal sealed class ChromiumHeadlessBrowser : IHeadlessBrowser, IAsyncDisposab
                 _browser = null;
             }
         }
+    }
+
+    // --single-process can't host a separate browser context per render (Chromium closes the target on
+    // creation), and that isolation is what keeps one render's cookies and storage out of the next.
+    internal static string[] LaunchArgs(string? configured)
+    {
+        if (configured is null)
+            return ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"];
+
+        string[] args = configured.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (args.Contains("--single-process"))
+            Log.Warn("Ignoring --single-process in PUPPETEER_ARGS: it cannot host the isolated browser context each render uses.");
+        return args.Where(a => a != "--single-process").ToArray();
     }
 
     public async ValueTask DisposeAsync()
