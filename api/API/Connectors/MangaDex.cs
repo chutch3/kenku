@@ -29,6 +29,11 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
         new("mangadex-latest", "Latest updates", ContentType.Manga, 30),
     ];
 
+    // Every content rating, pornographic included (MangaDex's API default leaves it out). Shared by search,
+    // the chapter feed and the discover rails; meant to become a user setting.
+    private const string ContentRatings =
+        "contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&contentRating%5B%5D=pornographic";
+
     public async Task<List<API.Discovery.DiscoveryEntry>> GetRailAsync(string railId, CancellationToken ct)
     {
         string? order = railId switch
@@ -40,11 +45,9 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
         if (order is null)
             return [];
 
-        // No contentRating filter — the rail relies on MangaDex's API default (safe/suggestive/erotica;
-        // pornographic excluded), unlike SearchSeries which sets it explicitly. Scoped to the user's
-        // download language so the rail only shows series actually readable for them.
+        // Scoped to the user's download language so the rail only shows series actually readable for them.
         string requestUrl =
-            $"https://api.mangadex.org/manga?limit=20&order%5B{order}%5D=desc" +
+            $"https://api.mangadex.org/manga?limit=20&order%5B{order}%5D=desc&{ContentRatings}" +
             $"&availableTranslatedLanguage%5B%5D={Settings.DownloadLanguage}&hasAvailableChapters=true" +
             "&includes%5B%5D=cover_art&includes%5B%5D=author&includes%5B%5D=artist&includes%5B%5D=tag";
 
@@ -89,7 +92,7 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
         {
             string requestUrl =
                 $"https://api.mangadex.org/manga?limit={Limit}&offset={offset}&title={HttpUtility.UrlEncode(mangaSearchName)}" +
-                $"&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica" +
+                $"&{ContentRatings}" +
                 $"&order%5Brelevance%5D=desc&availableTranslatedLanguage%5B%5D=" + Settings.DownloadLanguage + "&includes%5B%5D=manga&includes%5B%5D=cover_art&includes%5B%5D=author&includes%5B%5D=artist&includes%5B%5D=tag";
             offset += Limit;
 
@@ -196,7 +199,7 @@ public class MangaDex : SeriesSource, API.Discovery.IDiscoveryRailProvider
             string requestUrl =
                 $"https://api.mangadex.org/manga/{seriesId.IdOnConnectorSite}/feed?limit={Limit}&offset={offset}&" +
                 $"translatedLanguage%5B%5D={language}&" +
-                $"contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&" +
+                $"{ContentRatings}&" +
                 $"includeFutureUpdates=0&includes%5B%5D=scanlation_group&" +
                 $"includeEmptyPages=0"; // remove entries with no available pages e.g. externally hosted chapters
             offset += Limit;
