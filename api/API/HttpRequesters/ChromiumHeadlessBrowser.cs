@@ -43,10 +43,11 @@ internal sealed class ChromiumHeadlessBrowser : IHeadlessBrowser, IAsyncDisposab
         // Each render gets its own browser context so cookies and storage never carry from one render to
         // the next — the browser is a shared singleton, and some sites restore state over the URL's.
         IBrowserContext? context = null;
+        List<Task> failedRequestLogs = [];
         try
         {
             context = await _browser.CreateBrowserContextAsync();
-            IPage page = await NewPageAsync(context, referrer);
+            IPage page = await NewPageAsync(context, referrer, failedRequestLogs);
 
             bool success = false;
             Exception? lastEx = null;
@@ -65,7 +66,7 @@ internal sealed class ChromiumHeadlessBrowser : IHeadlessBrowser, IAsyncDisposab
                     Log.WarnFormat("Timeout for {0} on retry {1}; waiting {2}ms...", url, retry + 1, 1000 * (retry + 1));
                     await Task.Delay(1000 * (retry + 1), cancellationToken);
                     await page.CloseAsync();
-                    page = await NewPageAsync(context, referrer);
+                    page = await NewPageAsync(context, referrer, failedRequestLogs);
                 }
             }
 
@@ -98,6 +99,12 @@ internal sealed class ChromiumHeadlessBrowser : IHeadlessBrowser, IAsyncDisposab
         }
         finally
         {
+            // Let failed-request logging read its response bodies before the page they belong to goes away.
+            Task[] pendingLogs;
+            lock (failedRequestLogs)
+                pendingLogs = failedRequestLogs.ToArray();
+            await Task.WhenAll(pendingLogs).WaitAsync(TimeSpan.FromSeconds(5)).ContinueWith(_ => { }, TaskContinuationOptions.ExecuteSynchronously);
+
             if (context != null)
             {
                 try
@@ -113,13 +120,44 @@ internal sealed class ChromiumHeadlessBrowser : IHeadlessBrowser, IAsyncDisposab
         }
     }
 
-    private async Task<IPage> NewPageAsync(IBrowserContext context, string? referrer)
+    private async Task<IPage> NewPageAsync(IBrowserContext context, string? referrer, List<Task> failedRequestLogs)
     {
         IPage page = await context.NewPageAsync();
+        page.Response += (_, e) =>
+        {
+            lock (failedRequestLogs)
+                failedRequestLogs.Add(LogFailedDataRequestAsync(e.Response));
+        };
         await page.SetUserAgentAsync(_settings.UserAgent);
         if (!string.IsNullOrEmpty(referrer))
             await page.SetExtraHttpHeadersAsync(new Dictionary<string, string> { { "Referer", referrer } });
         return page;
+    }
+
+    // A site that gates its data API still renders its page shell, so a failed background request is often the
+    // only evidence of why content never appeared (e.g. a 403 captcha_required).
+    private static async Task LogFailedDataRequestAsync(IResponse response)
+    {
+        try
+        {
+            if ((int)response.Status < 400 || response.Request.ResourceType is not (ResourceType.Xhr or ResourceType.Fetch))
+                return;
+            string body;
+            try
+            {
+                body = await response.TextAsync();
+            }
+            catch (Exception)
+            {
+                body = "(body unavailable — the page closed first)";
+            }
+            Log.WarnFormat("Data request {0} {1} returned {2}: {3}", response.Request.Method, response.Url.Split('?')[0],
+                (int)response.Status, body.Length > 300 ? body[..300] : body);
+        }
+        catch (Exception ex)
+        {
+            Log.DebugFormat("Could not log a failed data request: {0}", ex.Message);
+        }
     }
 
     private void EnsureBrowserInitialized()
