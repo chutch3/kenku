@@ -31,7 +31,14 @@ jobs:
       - name: Build the solution
         run: dotnet build ./Kenku.sln --configuration Release --no-restore -p:DisableOpenApiGeneration=true -m:1
 
+      # The headless-browser tests skip without a Chromium binary; give them one so CI runs them.
+      - name: Set up Chrome
+        id: chrome
+        uses: browser-actions/setup-chrome@v2
+
       - name: Run tests with report
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
         run: dotnet test ./Tests/Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=TestResults.trx"
 
       - name: Upload test results
