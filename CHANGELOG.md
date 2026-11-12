@@ -2,6 +2,77 @@
 
 <!-- version list -->
 
+## v0.38.0 (2026-11-12)
+
+### Bug Fixes
+
+- Download ComicHubFree pages past its cached placeholder
+  ([`c854a3b`](https://github.com/chutch3/kenku/commit/c854a3b964484ff306b0b113dca60beed370fdf5))
+
+- Drop --single-process from Chromium, which cannot host a browser context per render
+  ([`3cc8823`](https://github.com/chutch3/kenku/commit/3cc882399f6e3e4959a20020b5fbe0ad6a7eb894))
+
+- Fail an archive download that returns a web page instead of a file
+  ([`7a21041`](https://github.com/chutch3/kenku/commit/7a2104130682a42011df2e3c25bfd14fda6e10c1))
+
+- Fetch the real bytes with the solved cookie instead of FlareSolverr's rendered page for image
+  requests
+  ([`f9e8319`](https://github.com/chutch3/kenku/commit/f9e8319a18d30ce39f421b093cd9245875b133d8))
+
+- Isolate each headless render's browser state and let renders wait for a selector
+  ([`7758b86`](https://github.com/chutch3/kenku/commit/7758b863c26c2ee7207cd8a3dd65cf1a9c29d157))
+
+- Keep other sources' results when one source's search fails
+  ([`bc92160`](https://github.com/chutch3/kenku/commit/bc92160147a39a515d7073758c8dcce6a51dc5e0))
+
+- Report the server's own status when a request fails
+  ([`d384bb6`](https://github.com/chutch3/kenku/commit/d384bb62fa7ca9f3b150c776b6cbe7e5b85b5a0b))
+
+### Continuous Integration
+
+- Pin web checks to ubuntu-24.04, where Playwright can install its browser
+  ([`51caec6`](https://github.com/chutch3/kenku/commit/51caec678da66dbd790c98b42099a3fb930c31a3))
+
+- Run the headless-browser tests in API checks
+  ([`33c32e4`](https://github.com/chutch3/kenku/commit/33c32e46225b4dac3905e09161f7cd63c1676610))
+
+- Stop publishing linux/arm/v7, which Alpine no longer ships chromium for
+  ([`2852ee9`](https://github.com/chutch3/kenku/commit/2852ee9c8b0702a6e699975efb0806a40e1fb0b8))
+
+### Documentation
+
+- Remove stale planning notes and UX-review screenshots
+  ([`3545279`](https://github.com/chutch3/kenku/commit/3545279126667fe92e8fc1de11bad896d1852628))
+
+### Features
+
+- Add the Comix source
+  ([`bce22a4`](https://github.com/chutch3/kenku/commit/bce22a4e372ea07efed4c61deb1b24f3f4f770c8))
+
+- Let a source be off by default until someone turns it on
+  ([`1576f9d`](https://github.com/chutch3/kenku/commit/1576f9d7cec2f0983943fb85821300437ba97c4b))
+
+- Log a browser-rendered page's failed data requests
+  ([`ddffc2f`](https://github.com/chutch3/kenku/commit/ddffc2f0a3e57a10a8200aba8abb6a5b5c7c41af))
+
+- Request every MangaDex content rating
+  ([`8132a46`](https://github.com/chutch3/kenku/commit/8132a46ab3616176a5fb3b4a60e150644dbbbe39))
+
+### Refactoring
+
+- Cap concurrent browser pages with a semaphore instead of polling
+  ([`7464c9e`](https://github.com/chutch3/kenku/commit/7464c9eaf8e148c6a409dea7d8980b3bff5c5f72))
+
+- Drop redundant content-rating comments
+  ([`9adcd3b`](https://github.com/chutch3/kenku/commit/9adcd3b09ea74095c7b81c8f71179a2a09a42dc2))
+
+- Replace ChromiumRequester with a shared DI-singleton headless browser
+  ([`f08817a`](https://github.com/chutch3/kenku/commit/f08817a8c80971b3bf40aa20f439f5c18666f1a9))
+
+- Replace the FlareSolverr fallback with a shared challenge solver
+  ([`3867149`](https://github.com/chutch3/kenku/commit/3867149844358c6089147f332d5684ed8f204a73))
+
+
 ## v0.37.4 (2026-06-26)
 
 ### Bug Fixes
