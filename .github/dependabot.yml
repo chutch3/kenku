@@ -17,3 +17,7 @@ updates:
     directory: "/web/website"
     schedule:
       interval: "weekly"
+    ignore:
+      # 13.x ships no prebuilt binary for the image's Alpine/Node build, so npm ci compiles it and fails.
+      - dependency-name: "better-sqlite3"
+        versions: [">=13"]
