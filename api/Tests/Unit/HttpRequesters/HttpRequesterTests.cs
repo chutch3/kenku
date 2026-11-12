@@ -43,10 +43,11 @@ public class HttpRequesterTests
     }
 
     [Fact]
-    public async Task MakeRequest_NonSuccessWithoutCloudflare_ReturnsInternalServerError()
+    public async Task MakeRequest_NonSuccessWithoutCloudflare_ReturnsTheServersStatus()
     {
-        // Exercises the error-logging branch (which previously blocked on .Result). Must complete and
-        // return 500 without hanging or throwing.
+        // Exercises the error-logging branch (which previously blocked on .Result): it must complete without
+        // hanging or throwing, and report the server's own status so a dead link (404) or a rate limit (429)
+        // isn't mistaken for a server error.
         var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.NotFound)
         {
             Content = new StringContent("not found")
@@ -54,6 +55,6 @@ public class HttpRequesterTests
 
         HttpResponseMessage response = await client.MakeRequest("http://example.test/missing", RequestType.SeriesInfo);
 
-        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 }
