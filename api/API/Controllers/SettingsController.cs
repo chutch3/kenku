@@ -1,4 +1,4 @@
-﻿using API.Controllers.Requests;
+using API.Controllers.Requests;
 using API.Controllers.Responses;
 using API.HttpRequesters;
 using Asp.Versioning;
@@ -182,44 +182,47 @@ public class SettingsController(KenkuSettings settings) : ControllerBase
     }
 
     /// <summary>
-    /// Sets the FlareSolverr-URL
+    /// Sets the challenge solver URL
     /// </summary>
-    /// <param name="flareSolverrUrl">URL of FlareSolverr-Instance</param>
+    /// <param name="challengeSolverUrl">URL of a compatible challenge solver (such as Byparr)</param>
     /// <response code="200"></response>
-    [HttpPatch("FlareSolverr/Url")]
+    [HttpPatch("ChallengeSolver/Url")]
     [ProducesResponseType(Status200OK)]
-    public Ok SetFlareSolverrUrl([FromBody]string flareSolverrUrl)
+    public Ok SetChallengeSolverUrl([FromBody]string challengeSolverUrl)
     {
-        settings.SetFlareSolverrUrl(flareSolverrUrl);
+        settings.SetChallengeSolverUrl(challengeSolverUrl);
         return TypedResults.Ok();
     }
 
     /// <summary>
-    /// Resets the FlareSolverr-URL (HttpClient does not use FlareSolverr anymore)
+    /// Clears the challenge solver URL and disables automatic challenge recovery
     /// </summary>
     /// <response code="200"></response>
-    [HttpDelete("FlareSolverr/Url")]
+    [HttpDelete("ChallengeSolver/Url")]
     [ProducesResponseType(Status200OK)]
-    public Ok ClearFlareSolverrUrl()
+    public Ok ClearChallengeSolverUrl()
     {
-        settings.SetFlareSolverrUrl(string.Empty);
+        settings.SetChallengeSolverUrl(string.Empty);
         return TypedResults.Ok();
     }
 
     /// <summary>
-    /// Test FlareSolverr
+    /// Test the challenge solver
     /// </summary>
-    /// <response code="200">FlareSolverr is working!</response>
-    /// <response code="500">FlareSolverr is not working</response>
-    [HttpPost("FlareSolverr/Test")]
+    /// <response code="200">Challenge solver is working</response>
+    /// <response code="500">Challenge solver is not working</response>
+    [HttpPost("ChallengeSolver/Test")]
     [ProducesResponseType(Status200OK)]
     [ProducesResponseType(Status500InternalServerError)]
-    public async Task<Results<Ok, InternalServerError>> TestFlareSolverrReachable()
+    public async Task<Results<Ok, InternalServerError>> TestChallengeSolverReachable([FromServices] ChallengeSolverClient solver)
     {
         const string knownProtectedUrl = "https://prowlarr.servarr.com/v1/ping";
-        FlareSolverrRequester client = new(new HttpClient(), settings);
-        HttpResponseMessage result = await client.MakeRequest(knownProtectedUrl, RequestType.Default);
-        return result.IsSuccessStatusCode ? TypedResults.Ok() : TypedResults.InternalServerError(); 
+        try
+        {
+            await solver.SolveAsync(knownProtectedUrl, null, HttpContext?.RequestAborted ?? default);
+            return TypedResults.Ok();
+        }
+        catch (HttpRequestException) { return TypedResults.InternalServerError(); }
     }
 
     /// <summary>

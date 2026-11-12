@@ -94,9 +94,8 @@ public static class ApplicationServiceCollectionExtensions
         services.AddSingleton<IChapterAcquirer, ImageListAcquirer>();
         services.AddSingleton<IChapterAcquirer>(sp =>
         {
-            // Reuse the shared RateLimitHandler so direct-archive downloads honour per-host politeness too.
-            var rl = sp.GetRequiredService<RateLimitHandler>();
-            return new DirectArchiveAcquirer(new HttpClient(rl, disposeHandler: false));
+            // Stream archives through the same rate limiting and challenge recovery as source requests.
+            return new DirectArchiveAcquirer(sp.GetRequiredService<IHttpRequester>());
         });
         return services;
     }

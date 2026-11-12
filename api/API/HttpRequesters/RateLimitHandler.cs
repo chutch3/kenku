@@ -6,6 +6,8 @@ namespace API.HttpRequesters;
 
 public class RateLimitHandler : DelegatingHandler
 {
+    // Let solved cookies use the transport's domain/path-aware jar, including across redirects.
+    internal CookieContainer? CookieJar => (InnerHandler as HttpClientHandler)?.CookieContainer;
     private ILog Log { get; } = LogManager.GetLogger(typeof(RateLimitHandler));
     private readonly PartitionedRateLimiter<HttpRequestMessage> _limiter;
     private readonly TimeSpan _requestTimeout;

@@ -5,6 +5,7 @@ using API.Acquirers.Interfaces;
 using API.Acquirers;
 using API.Connectors;
 using API.HttpRequesters;
+using API.HttpRequesters.Interfaces;
 using API.Schema.SeriesContext;
 using Xunit;
 
@@ -12,6 +13,38 @@ namespace API.Tests.Unit.Acquirers;
 
 public class DirectArchiveAcquirerTests
 {
+    /// <summary>Serves the acquirer's requests from a fake-handler HttpClient, recording each request type.</summary>
+    private sealed class ClientRequester(HttpClient http) : IHttpRequester
+    {
+        public List<RequestType> RequestTypes { get; } = [];
+
+        public Task<HttpResponseMessage> MakeRequest(string url, RequestType requestType, string? referrer = null,
+            CancellationToken? cancellationToken = null)
+        {
+            RequestTypes.Add(requestType);
+            return http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken ?? CancellationToken.None);
+        }
+    }
+
+    [Fact]
+    public async Task AcquireAsync_RequestsTheArchiveAsAnArchive_SoItStreamsInsteadOfBuffering()
+    {
+        var (_, _, sourceId, source, settings, tempRoot) = BuildFixture("https://fake.test/chapter1.cbz");
+        try
+        {
+            using var http = new HttpClient(new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([0x50, 0x4B]) }));
+            var requester = new ClientRequester(http);
+
+            await new DirectArchiveAcquirer(requester).AcquireAsync(sourceId, source, Path.Combine(tempRoot, "out.cbz"), CancellationToken.None);
+
+            Assert.Equal([RequestType.Archive], requester.RequestTypes);
+        }
+        finally
+        {
+            try { Directory.Delete(tempRoot, recursive: true); } catch { }
+        }
+    }
+
     private static (Series series, Chapter chapter, SourceId<Chapter> sourceId, FakeSeriesSource source, KenkuSettings settings, string tempRoot)
         BuildFixture(string archiveUrl)
     {
@@ -53,7 +86,7 @@ public class DirectArchiveAcquirerTests
                 new DownloadOption("Spawn #376", "https://getcomics.org/dls/series", "67 MB"),
             ]));
             using var http = new HttpClient(new FakeHttpMessageHandler(_ => throw new InvalidOperationException("must not download")));
-            var acquirer = new DirectArchiveAcquirer(http);
+            var acquirer = new DirectArchiveAcquirer(new ClientRequester(http));
 
             AcquireResult result = await acquirer.AcquireAsync(sourceId, source, Path.Combine(tempRoot, "out.cbz"), CancellationToken.None);
 
@@ -82,7 +115,7 @@ public class DirectArchiveAcquirerTests
                 capturedUrl = req.RequestUri!.ToString();
                 return new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(archiveBytes) };
             }));
-            var acquirer = new DirectArchiveAcquirer(http);
+            var acquirer = new DirectArchiveAcquirer(new ClientRequester(http));
 
             AcquireResult result = await acquirer.AcquireAsync(sourceId, source, saveTo, CancellationToken.None,
                 pinnedArchiveUrl: "https://getcomics.org/dls/series");
@@ -112,7 +145,7 @@ public class DirectArchiveAcquirerTests
                 };
             });
             using var http = new HttpClient(inner);
-            var acquirer = new DirectArchiveAcquirer(http);
+            var acquirer = new DirectArchiveAcquirer(new ClientRequester(http));
 
             AcquireResult result = await acquirer.AcquireAsync(sourceId, source, saveTo, CancellationToken.None);
 
@@ -135,7 +168,7 @@ public class DirectArchiveAcquirerTests
         {
             var inner = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
             using var http = new HttpClient(inner);
-            var acquirer = new DirectArchiveAcquirer(http);
+            var acquirer = new DirectArchiveAcquirer(new ClientRequester(http));
             string saveTo = Path.Combine(tempRoot, "out.cbz");
 
             AcquireResult result = await acquirer.AcquireAsync(sourceId, source, saveTo, CancellationToken.None);
@@ -162,7 +195,7 @@ public class DirectArchiveAcquirerTests
                 Content = new StringContent("<html><body>File not found</body></html>", System.Text.Encoding.UTF8, "text/html")
             });
             using var http = new HttpClient(inner);
-            var acquirer = new DirectArchiveAcquirer(http);
+            var acquirer = new DirectArchiveAcquirer(new ClientRequester(http));
             string saveTo = Path.Combine(tempRoot, "out.cbz");
 
             AcquireResult result = await acquirer.AcquireAsync(sourceId, source, saveTo, CancellationToken.None);
@@ -209,7 +242,7 @@ public class DirectArchiveAcquirerTests
                 return new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([0x50, 0x4B]) };
             });
             using var http = new HttpClient(inner);
-            var acquirer = new DirectArchiveAcquirer(http);
+            var acquirer = new DirectArchiveAcquirer(new ClientRequester(http));
 
             AcquireResult result = await acquirer.AcquireAsync(sourceId, source, saveTo, CancellationToken.None);
 
@@ -233,7 +266,7 @@ public class DirectArchiveAcquirerTests
         try
         {
             var http = new HttpClient(new FakeHttpMessageHandler(_ => throw new InvalidOperationException("must not be called")));
-            var acquirer = new DirectArchiveAcquirer(http);
+            var acquirer = new DirectArchiveAcquirer(new ClientRequester(http));
 
             AcquireResult result = await acquirer.AcquireAsync(sourceId, source, Path.Combine(tempRoot, "x.cbz"), CancellationToken.None);
 
@@ -258,7 +291,7 @@ public class DirectArchiveAcquirerTests
             var emptyId = new SourceId<Chapter>(chapter, "FakeArchive", "s1", null, true);
 
             var http = new HttpClient(new FakeHttpMessageHandler(_ => throw new InvalidOperationException("must not be called")));
-            var acquirer = new DirectArchiveAcquirer(http);
+            var acquirer = new DirectArchiveAcquirer(new ClientRequester(http));
 
             AcquireResult result = await acquirer.AcquireAsync(emptyId, source, Path.Combine(tempRoot, "x.cbz"), CancellationToken.None);
 

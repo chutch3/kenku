@@ -5,9 +5,9 @@ using Xunit;
 
 namespace API.Tests.Unit.HttpRequesters;
 
-public class FlareSolverrRequesterTests
+public class ChallengeSolverRequesterTests
 {
-    // Realistic solved response shape (FlareSolverr and its API-compatible replacement Byparr both
+    // Realistic solved response shape (Byparr and other request.get-compatible solvers
     // return this): a browser-rendered page plus the cookies/UA that got past the challenge.
     private const string SolvedResponse = """
         {"status":"ok","message":"Success","solution":{"url":"https://example.test/page","status":200,
@@ -16,10 +16,10 @@ public class FlareSolverrRequesterTests
         "headers":{},"response":"<html>page</html>"}}
         """;
 
-    private static FlareSolverrRequester CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler)
+    private static ChallengeSolverRequester CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler)
     {
-        var settings = new KenkuSettings { AppData = Path.GetTempPath(), FlareSolverrUrl = "http://flaresolverr.test" };
-        return new FlareSolverrRequester(new HttpClient(new FakeHttpMessageHandler(handler)), settings);
+        var settings = new KenkuSettings { AppData = Path.GetTempPath(), ChallengeSolverUrl = "http://solver.test" };
+        return new ChallengeSolverRequester(new HttpClient(new FakeHttpMessageHandler(handler)), settings);
     }
 
     [Fact]
@@ -39,6 +39,7 @@ public class FlareSolverrRequesterTests
     [Theory]
     [InlineData(RequestType.SeriesImage)]
     [InlineData(RequestType.SeriesCover)]
+    [InlineData(RequestType.Archive)]
     public async Task MakeRequest_BinaryRequestTypes_FetchTheRealBytesWithTheSolvedCookieInsteadOfTheRenderedWrapper(
         RequestType requestType)
     {
@@ -101,4 +102,30 @@ public class FlareSolverrRequesterTests
 
         Assert.Equal(jpegBytes, await response.Content.ReadAsByteArrayAsync());
     }
+
+    [Fact]
+    public async Task ARejectedSolutionsCookiesLeaveTheSharedCookieJar()
+    {
+        // The site still challenges the solved session, so it's rejected; its clearance must not keep riding
+        // along on every later request to that host from the shared transport cookie jar.
+        var settings = new KenkuSettings { AppData = Path.GetTempPath(), ChallengeSolverUrl = "http://solver.test" };
+        using var http = new HttpClient(new FakeHttpMessageHandler(req => req.Method == HttpMethod.Post
+            ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(SolvedResponse) }
+            : ChallengePage()));
+        using var solver = new ChallengeSolverClient(http, settings);
+        var jar = new CookieContainer();
+        var requester = new ChallengeSolverRequester(http, solver, jar);
+
+        using HttpResponseMessage response = await requester.MakeRequest("https://example.test/page/1.jpg", RequestType.SeriesImage);
+
+        Assert.DoesNotContain(jar.GetCookies(new Uri("https://example.test/")), c => c.Name == "cf_clearance");
+    }
+
+    private static HttpResponseMessage ChallengePage()
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.Forbidden) { Content = new StringContent("<title>Just a moment...</title>") };
+        response.Headers.Server.ParseAdd("cloudflare");
+        return response;
+    }
 }
+

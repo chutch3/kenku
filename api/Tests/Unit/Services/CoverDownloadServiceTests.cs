@@ -47,7 +47,7 @@ public class CoverDownloadServiceTests : IDisposable
             Content = new ByteArrayContent(TestImages.Jpeg())
         });
         var rateLimit = new RateLimitHandler(_settings, inner);
-        return new FakeSeriesSource("Fake:Conn", _settings, httpRequester: new HttpRequester(rateLimit, _settings));
+        return new FakeSeriesSource("Fake:Conn", _settings, httpRequester: new HttpRequester(rateLimit, _settings, new ChallengeSolverClient(_settings)));
     }
 
     private async Task<SourceId<Series>> SeedSource(bool useForDownload = true, string coverUrl = "https://example.com/img/cover.png")

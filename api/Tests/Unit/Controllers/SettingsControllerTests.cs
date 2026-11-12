@@ -252,21 +252,21 @@ public class SettingsControllerTests : IDisposable
     }
 
     [Fact]
-    public void SetFlareSolverrUrl_UpdatesUrl()
+    public void SetChallengeSolverUrl_UpdatesUrl()
     {
-        CreateController().SetFlareSolverrUrl("http://localhost:8191");
+        CreateController().SetChallengeSolverUrl("http://localhost:8191");
 
-        Assert.Equal("http://localhost:8191", _settings.FlareSolverrUrl);
+        Assert.Equal("http://localhost:8191", _settings.ChallengeSolverUrl);
     }
 
     [Fact]
-    public void ClearFlareSolverrUrl_SetsUrlToEmpty()
+    public void ClearChallengeSolverUrl_SetsUrlToEmpty()
     {
-        _settings.FlareSolverrUrl = "http://localhost:8191";
+        _settings.ChallengeSolverUrl = "http://localhost:8191";
 
-        CreateController().ClearFlareSolverrUrl();
+        CreateController().ClearChallengeSolverUrl();
 
-        Assert.Equal(string.Empty, _settings.FlareSolverrUrl);
+        Assert.Equal(string.Empty, _settings.ChallengeSolverUrl);
     }
 
     [Fact]

@@ -6,5 +6,6 @@ public enum RequestType
     MangaDexFeed,
     SeriesImage,
     SeriesCover,
-    SeriesInfo
+    SeriesInfo,
+    Archive
 }
