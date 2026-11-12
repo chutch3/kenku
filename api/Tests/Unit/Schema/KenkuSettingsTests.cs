@@ -109,16 +109,6 @@ public class KenkuSettingsTests : IDisposable
     }
 
     [Fact]
-    public void LegacyDisabledConnectors_LoadAsOffChoices_AndAreNotWrittenBack()
-    {
-        // settings.json files written before the on/off map stored a list of disabled sources.
-        var settings = KenkuSettings.FromJson("{\"DisabledConnectors\":[\"MangaDex\",\"WeebCentral\"]}")!;
-
-        Assert.Equal(new Dictionary<string, bool> { ["MangaDex"] = false, ["WeebCentral"] = false }, settings.ConnectorEnabled);
-        Assert.DoesNotContain("DisabledConnectors", Newtonsoft.Json.JsonConvert.SerializeObject(settings));
-    }
-
-    [Fact]
     public void DiscoveryRails_DefaultsEmpty_AndRoundTripsThroughJson()
     {
         // The rail denylist defaults to empty (everything on); a persisted list must load as-is.

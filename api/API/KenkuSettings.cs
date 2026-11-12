@@ -83,18 +83,6 @@ public class KenkuSettings
     /// </summary>
     public Dictionary<string, bool> ConnectorEnabled { get; set; } = new();
 
-    // Settings written before ConnectorEnabled kept a list of disabled sources; read those as "off" choices
-    // without writing the old key back.
-    [JsonProperty("DisabledConnectors")]
-    private HashSet<string> LegacyDisabledConnectors
-    {
-        set
-        {
-            foreach (string name in value)
-                ConnectorEnabled.TryAdd(name, false);
-        }
-    }
-
     /// <summary>
     /// Origins permitted for browser CORS requests. Empty (the default) preserves the historical
     /// "allow any origin" behaviour; populate it to restrict the API to specific frontends.
