@@ -276,4 +276,118 @@ public class ComicHubFreeTests
         Assert.Empty(await ((API.Discovery.IDiscoveryRailProvider)connector).GetRailAsync("nope", CancellationToken.None));
     }
 
+
+    // comichubfree only serves a page image to a request whose Referer is on comichubfree.com; anything else gets an
+    // 80x104 placeholder, and its Cloudflare edge caches whatever a URL's first request got, so one referer-less
+    // fetch pins the placeholder to that URL. The origin also serves a page for a zero-padded number (018.jpg for
+    // 18.jpg), which Cloudflare caches separately, so a poisoned page can be fetched again under a padded URL.
+    private const string ReaderUrl = "https://comichubfree.com/crossed-family-values/issue-2";
+    private const string PageUrl = ReaderUrl + "/47450/18.jpg";
+
+    private static (ComicHubFree Connector, List<(string Url, string? Referer)> Requests) ImageConnector(
+        Func<string, HttpResponseMessage> route)
+    {
+        List<(string, string?)> requests = [];
+        var client = new Mock<IHttpRequester>();
+        client
+            .Setup(c => c.MakeRequest(It.IsAny<string>(), It.IsAny<RequestType>(), It.IsAny<string>(), It.IsAny<CancellationToken?>()))
+            .Callback((string url, RequestType _, string? referrer, CancellationToken? _) => requests.Add((url, referrer)))
+            .ReturnsAsync((string url, RequestType _, string? _, CancellationToken? _) => route(url));
+        return (new ComicHubFree(CreateSettings(), client.Object), requests);
+    }
+
+    private static HttpResponseMessage Image(byte[] bytes) => new(HttpStatusCode.OK) { Content = new ByteArrayContent(bytes) };
+
+    private static async Task<byte[]> ReadAll(Stream? stream)
+    {
+        Assert.NotNull(stream);
+        using MemoryStream copy = new();
+        await stream.CopyToAsync(copy);
+        return copy.ToArray();
+    }
+
+    [Fact]
+    public async Task DownloadImage_SendsTheIssueReaderPageAsReferer()
+    {
+        byte[] page = TestImages.Jpeg();
+        var (connector, requests) = ImageConnector(_ => Image(page));
+
+        byte[] downloaded = await ReadAll(await connector.DownloadImage(PageUrl, CancellationToken.None));
+
+        Assert.Equal(page, downloaded);
+        Assert.Equal([(PageUrl, ReaderUrl)], requests);
+    }
+
+    [Fact]
+    public async Task DownloadImage_RefetchesAZeroPaddedUrl_WhenTheCachedCopyIsThePlaceholder()
+    {
+        byte[] page = TestImages.Jpeg();
+        var (connector, requests) = ImageConnector(url => url.EndsWith("/0018.jpg") ? Image(page) : Image(TestImages.Placeholder()));
+
+        byte[] downloaded = await ReadAll(await connector.DownloadImage(PageUrl, CancellationToken.None));
+
+        Assert.Equal(page, downloaded);
+        Assert.Equal([PageUrl, ReaderUrl + "/47450/018.jpg", ReaderUrl + "/47450/0018.jpg"], requests.Select(r => r.Url));
+        Assert.All(requests, r => Assert.Equal(ReaderUrl, r.Referer));
+    }
+
+    [Fact]
+    public async Task DownloadImage_GivesUpAfterAFewPaddedUrls_LeavingThePlaceholderForTheMissingPageCheck()
+    {
+        byte[] placeholder = TestImages.Placeholder();
+        var (connector, requests) = ImageConnector(_ => Image(placeholder));
+
+        byte[] downloaded = await ReadAll(await connector.DownloadImage(PageUrl, CancellationToken.None));
+
+        Assert.Equal(placeholder, downloaded);
+        Assert.Equal(4, requests.Count); // the page's own URL, then three zero-padded ones
+    }
+
+    [Fact]
+    public async Task DownloadImage_DoesNotRetry_WhenThePageDoesNotExist()
+    {
+        var (connector, requests) = ImageConnector(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
+
+        Assert.Null(await connector.DownloadImage(PageUrl, CancellationToken.None));
+        Assert.Single(requests);
+    }
+
+    [Fact]
+    public async Task DownloadImage_KeepsASmallImageThatIsNotThePlaceholder()
+    {
+        // Only comichubfree's own 80x104 placeholder means a poisoned URL; any other image is the page.
+        using var small = new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32>(200, 200);
+        using MemoryStream encoded = new();
+        await SixLabors.ImageSharp.ImageExtensions.SaveAsJpegAsync(small, encoded);
+        byte[] page = encoded.ToArray();
+        var (connector, requests) = ImageConnector(_ => Image(page));
+
+        byte[] downloaded = await ReadAll(await connector.DownloadImage(PageUrl, CancellationToken.None));
+
+        Assert.Equal(page, downloaded);
+        Assert.Single(requests);
+    }
+
+    [Fact]
+    public async Task DownloadImage_LogsOneWarningForAPageItCouldNotRecover()
+    {
+        var appender = new log4net.Appender.MemoryAppender();
+        var repo = (log4net.Repository.Hierarchy.Hierarchy)log4net.LogManager.GetRepository(typeof(ComicHubFree).Assembly);
+        var logger = (log4net.Repository.Hierarchy.Logger)repo.GetLogger("ComicHubFree");
+        logger.AddAppender(appender);
+        logger.Level = log4net.Core.Level.All;
+        repo.Configured = true;
+        try
+        {
+            var (connector, _) = ImageConnector(_ => Image(TestImages.Placeholder()));
+
+            await connector.DownloadImage(PageUrl, CancellationToken.None);
+
+            Assert.Single(appender.GetEvents(), e => e.Level >= log4net.Core.Level.Warn);
+        }
+        finally
+        {
+            logger.RemoveAppender(appender);
+        }
+    }
 }

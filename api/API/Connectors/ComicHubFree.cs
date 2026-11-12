@@ -2,6 +2,7 @@ using API.HttpRequesters.Interfaces;
 using System.Text.RegularExpressions;
 using System.Web;
 using API.Acquirers;
+using SixLabors.ImageSharp;
 using API.HttpRequesters;
 using API.Schema.SeriesContext;
 using HtmlAgilityPack;
@@ -23,6 +24,11 @@ public class ComicHubFree : SeriesSource, API.Discovery.IDiscoveryRailProvider
     private static readonly Regex IssueNumberRx = new(@"issue-0*(\d+(?:\.\d+)?)$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex PageTitleRx = new(@"^Read\s+(?<name>.+?)\s+(?:Comics\s+)?Online for Free$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex ReleasedRx = new(@"Released:\s*(\d{4})", RegexOptions.Compiled);
+    private static readonly Regex PageFileRx = new(@"/(?<page>\d+)(?<ext>\.[A-Za-z]+)$", RegexOptions.Compiled);
+    // A padded URL only holds the placeholder if something fetched it first without a Referer, so one usually
+    // suffices; a few more cover that without retrying a page forever.
+    private const int MaxPaddedRefetches = 3;
+    private const int PlaceholderWidth = 80, PlaceholderHeight = 104;
 
     public ComicHubFree(KenkuSettings settings, IHttpRequester downloadClient)
         : base("ComicHubFree", ["en"], ["comichubfree.com"], "https://comichubfree.com/images/site/logo.png", settings)
@@ -152,6 +158,69 @@ public class ComicHubFree : SeriesSource, API.Discovery.IDiscoveryRailProvider
         }
         Log.InfoFormat("Found {0} chapters for {1}", chapters.Count, seriesId.Obj.Name);
         return chapters.OrderBy(c => c.Item1, new Chapter.ChapterComparer()).ToArray();
+    }
+
+    // comichubfree serves a page image only to a request whose Referer is on comichubfree.com; anything else gets an
+    // 80x104 placeholder, and its Cloudflare edge keeps whatever a URL's first request got, so one referer-less fetch
+    // pins the placeholder to that URL. The origin also serves a page for a zero-padded number, which the edge caches
+    // separately, so a page whose URL holds the placeholder is fetched again under padded URLs.
+    public override async Task<Stream?> DownloadImage(string imageUrl, CancellationToken ct)
+    {
+        string referer = ReaderPageOf(imageUrl);
+        byte[]? placeholder = null;
+        foreach (string url in WithZeroPaddedPage(imageUrl).Take(1 + MaxPaddedRefetches))
+        {
+            using HttpResponseMessage response = await downloadClient.MakeRequest(url, RequestType.SeriesImage, referer, ct);
+            if (!response.IsSuccessStatusCode)
+                break;
+            byte[] bytes = await response.Content.ReadAsByteArrayAsync(ct);
+            if (!IsPlaceholder(bytes))
+            {
+                if (placeholder is not null)
+                    Log.InfoFormat("Got {0} past its cached placeholder via {1}.", imageUrl, url);
+                return new MemoryStream(bytes);
+            }
+            placeholder = bytes;
+        }
+        if (placeholder is null)
+            return null;
+        // The placeholder goes back so the acquirer's missing-page check reports the page.
+        Log.WarnFormat("{0} is still the cached placeholder; no zero-padded URL got past it.", imageUrl);
+        return new MemoryStream(placeholder);
+    }
+
+    private static bool IsPlaceholder(byte[] bytes)
+    {
+        try
+        {
+            ImageInfo info = Image.Identify(bytes);
+            return info.Width == PlaceholderWidth && info.Height == PlaceholderHeight;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>A page image URL is <c>.../{slug}/issue-N/{id}/{page}.jpg</c>; its reader page (the Referer) is that URL
+    /// with the trailing <c>/{id}/{page}.jpg</c> removed.</summary>
+    private static string ReaderPageOf(string imageUrl)
+    {
+        int page = imageUrl.LastIndexOf('/');
+        int id = page > 0 ? imageUrl.LastIndexOf('/', page - 1) : -1;
+        return id > 0 ? imageUrl[..id] : imageUrl;
+    }
+
+    /// <summary>The image URL, then the same page with one, two, three… leading zeros on its number.</summary>
+    private static IEnumerable<string> WithZeroPaddedPage(string imageUrl)
+    {
+        yield return imageUrl;
+        Match match = PageFileRx.Match(imageUrl);
+        if (!match.Success)
+            yield break;
+        string folder = imageUrl[..match.Index];
+        for (string zeros = "0"; ; zeros += "0")
+            yield return $"{folder}/{zeros}{match.Groups["page"].Value}{match.Groups["ext"].Value}";
     }
 
     internal override async Task<string[]> GetChapterImageUrls(SourceId<Chapter> chapterId)
