@@ -78,10 +78,22 @@ public class KenkuSettings
     public int RefreshLibraryWhileDownloadingEveryMinutes { get; set; } = 10;
 
     /// <summary>
-    /// Names of <see cref="API.Connectors.SeriesSource"/> instances that have been explicitly disabled.
-    /// Connectors absent from this set are considered enabled (opt-out model).
+    /// Explicit on/off choices for <see cref="API.Connectors.SeriesSource"/>s, by name. A source without an entry
+    /// uses its <see cref="API.Connectors.SeriesSource.EnabledByDefault"/>.
     /// </summary>
-    public HashSet<string> DisabledConnectors { get; set; } = [];
+    public Dictionary<string, bool> ConnectorEnabled { get; set; } = new();
+
+    // Settings written before ConnectorEnabled kept a list of disabled sources; read those as "off" choices
+    // without writing the old key back.
+    [JsonProperty("DisabledConnectors")]
+    private HashSet<string> LegacyDisabledConnectors
+    {
+        set
+        {
+            foreach (string name in value)
+                ConnectorEnabled.TryAdd(name, false);
+        }
+    }
 
     /// <summary>
     /// Origins permitted for browser CORS requests. Empty (the default) preserves the historical
@@ -447,21 +459,18 @@ public class KenkuSettings
     /// </summary>
     public void SetConnectorEnabled(string connectorName, bool enabled)
     {
-        if (enabled)
-            DisabledConnectors.Remove(connectorName);
-        else
-            DisabledConnectors.Add(connectorName);
+        ConnectorEnabled[connectorName] = enabled;
         Save();
     }
 
     /// <summary>
-    /// Applies the persisted <see cref="DisabledConnectors"/> set to a collection of connector instances.
-    /// Call this once at startup after the DI container is built.
+    /// Applies the persisted <see cref="ConnectorEnabled"/> choices to a collection of connector instances; a
+    /// connector without a choice gets its own default. Call this once at startup after the DI container is built.
     /// </summary>
-    public void ApplyDisabledConnectors(IEnumerable<SeriesSource> connectors)
+    public void ApplyConnectorChoices(IEnumerable<SeriesSource> connectors)
     {
         foreach (var connector in connectors)
-            connector.Enabled = !DisabledConnectors.Contains(connector.Name);
+            connector.Enabled = ConnectorEnabled.TryGetValue(connector.Name, out bool enabled) ? enabled : connector.EnabledByDefault;
     }
 }
 

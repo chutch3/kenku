@@ -157,31 +157,19 @@ public class SeriesSourceControllerTests
         Assert.Contains("en", ok.Value![0].SupportedLanguages);
     }
 
-    // --- Persistence tests (RED: these fail until KenkuSettings.DisabledConnectors is implemented) ---
+    // --- Persistence: the settings record only explicit on/off choices; a source without one uses its default ---
 
     [Fact]
-    public void SetEnabled_DisableConnector_PersistsToSettings()
+    public void SetEnabled_RecordsTheChoice()
     {
         using var ctx = CreateContext();
         var settings = new KenkuSettings { AppData = Path.GetTempPath() };
-        var connector = MakeConnector("MangaDex", enabled: true);
+        var controller = CreateController(ctx, [MakeConnector("MangaDex").Object, MakeConnector("Comix", enabled: false).Object], settings);
 
-        CreateController(ctx, [connector.Object], settings).SetEnabled("MangaDex", false);
+        controller.SetEnabled("MangaDex", false);
+        controller.SetEnabled("Comix", true);
 
-        Assert.Contains("MangaDex", settings.DisabledConnectors);
-    }
-
-    [Fact]
-    public void SetEnabled_EnablePreviouslyDisabledConnector_RemovesFromSettings()
-    {
-        using var ctx = CreateContext();
-        var settings = new KenkuSettings { AppData = Path.GetTempPath() };
-        settings.DisabledConnectors.Add("MangaDex");
-        var connector = MakeConnector("MangaDex", enabled: false);
-
-        CreateController(ctx, [connector.Object], settings).SetEnabled("MangaDex", true);
-
-        Assert.DoesNotContain("MangaDex", settings.DisabledConnectors);
+        Assert.Equal(new Dictionary<string, bool> { ["MangaDex"] = false, ["Comix"] = true }, settings.ConnectorEnabled);
     }
 
     [Fact]
@@ -193,30 +181,36 @@ public class SeriesSourceControllerTests
         var result = CreateController(ctx, [], settings).SetEnabled("Unknown", false);
 
         Assert.IsType<NotFound<string>>(result.Result);
-        Assert.Empty(settings.DisabledConnectors);
+        Assert.Empty(settings.ConnectorEnabled);
     }
 
     [Fact]
-    public void ApplyDisabledConnectors_SetsEnabledFalseForDisabledNames()
+    public void ApplyConnectorChoices_UsesTheRecordedChoice()
     {
         var settings = new KenkuSettings { AppData = Path.GetTempPath() };
-        settings.DisabledConnectors.Add("MangaDex");
-        var connector = MakeConnector("MangaDex", enabled: true);
+        settings.ConnectorEnabled["MangaDex"] = false;
+        settings.ConnectorEnabled["Comix"] = true;
+        var mangaDex = MakeConnector("MangaDex", enabled: true);
+        var optIn = MakeConnector("Comix", enabled: false);
+        optIn.Setup(c => c.EnabledByDefault).Returns(false);
 
-        settings.ApplyDisabledConnectors([connector.Object]);
+        settings.ApplyConnectorChoices([mangaDex.Object, optIn.Object]);
 
-        Assert.False(connector.Object.Enabled);
+        Assert.False(mangaDex.Object.Enabled);
+        Assert.True(optIn.Object.Enabled); // a recorded "on" beats the source's off-by-default
     }
 
     [Fact]
-    public void ApplyDisabledConnectors_LeavesUnlistedConnectorsEnabled()
+    public void ApplyConnectorChoices_UsesTheSourcesDefault_WhenNoChoiceIsRecorded()
     {
         var settings = new KenkuSettings { AppData = Path.GetTempPath() };
-        settings.DisabledConnectors.Add("Mangaworld");
-        var connector = MakeConnector("MangaDex", enabled: true);
+        var onByDefault = new FakeSeriesSource("MangaDex", settings) { Enabled = false }; // real base default
+        var offByDefault = MakeConnector("Comix", enabled: true);
+        offByDefault.Setup(c => c.EnabledByDefault).Returns(false);
 
-        settings.ApplyDisabledConnectors([connector.Object]);
+        settings.ApplyConnectorChoices([onByDefault, offByDefault.Object]);
 
-        Assert.True(connector.Object.Enabled);
+        Assert.True(onByDefault.Enabled);
+        Assert.False(offByDefault.Object.Enabled);
     }
 }
