@@ -22,7 +22,7 @@
         "@nuxt/eslint": "^1.17.0",
         "@nuxt/image": "^1.11.0",
         "@nuxt/ui": "^4.0.0",
-        "@nuxtjs/mdc": "^0.18.0",
+        "@nuxtjs/mdc": "^0.23.2",
         "@tailwindcss/vite": "^4.1.14",
         "better-sqlite3": "^12.4.1",
         "nuxt": "^4.1.2",
