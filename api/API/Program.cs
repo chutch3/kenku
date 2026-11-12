@@ -159,9 +159,20 @@ app.UseHttpsRedirection();
 // Production startup: migrate the DB, seed defaults, and start the workers. Integration tests host the
 // app with Kenku:RunStartup=false so they can use an in-memory DB and drive workers explicitly, instead
 // of auto-running every worker (and hitting the real network) on boot.
-if (builder.Configuration.GetValue("Kenku:RunStartup", true)
-    && !await StartupTasks.MigrateAndSeedAsync(app, settings, log))
-    return;
+if (builder.Configuration.GetValue("Kenku:RunStartup", true))
+{
+    if (!await StartupTasks.MigrateAndSeedAsync(app, settings, log))
+        return;
+
+    // Load an explicitly supplied beta-test session before hosted workers start making requests.
+    // A malformed/missing configured secret fails startup rather than silently running unverified.
+    if (builder.Configuration["COMIX_BYPARR_SESSION_FILE"] is { Length: > 0 } sessionFile)
+    {
+        await ComixBrowserSessionBootstrap.ImportFromFileAsync(
+            (ChromiumHeadlessBrowser)app.Services.GetRequiredService<IHeadlessBrowser>(), sessionFile);
+        log.Info("Imported the configured Comix browser session. Solver refresh is not automatic.");
+    }
+}
 
 log.Info("Running app.");
 await app.RunAsync();

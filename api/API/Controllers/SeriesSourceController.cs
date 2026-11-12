@@ -25,7 +25,7 @@ public class SeriesSourceController(SeriesContext context, IEnumerable<SeriesSou
     public Ok<List<DTOs.SeriesSource>> GetConnectors()
     {
         return TypedResults.Ok(connectors
-            .Select(c => new DTOs.SeriesSource(c.Name, c.Enabled, c.IconUrl, c.SupportedLanguages, c.Kind, c.ContentType))
+            .Select(ToDto)
             .ToList());
     }
 
@@ -43,7 +43,7 @@ public class SeriesSourceController(SeriesContext context, IEnumerable<SeriesSou
         if (connectors.FirstOrDefault(c => c.Name.Equals(SeriesSourceName, StringComparison.InvariantCultureIgnoreCase)) is not { } connector)
             return TypedResults.NotFound(nameof(SeriesSourceName));
         
-        return TypedResults.Ok(new DTOs.SeriesSource(connector.Name, connector.Enabled, connector.IconUrl, connector.SupportedLanguages, connector.Kind, connector.ContentType));
+        return TypedResults.Ok(ToDto(connector));
     }
     
     /// <summary>
@@ -56,7 +56,7 @@ public class SeriesSourceController(SeriesContext context, IEnumerable<SeriesSou
     {
         return TypedResults.Ok(connectors
             .Where(c => c.Enabled == Enabled)
-            .Select(c => new DTOs.SeriesSource(c.Name, c.Enabled, c.IconUrl, c.SupportedLanguages, c.Kind, c.ContentType))
+            .Select(ToDto)
             .ToList());
     }
 
@@ -81,4 +81,7 @@ public class SeriesSourceController(SeriesContext context, IEnumerable<SeriesSou
         
         return TypedResults.Ok();
     }
+
+    private static DTOs.SeriesSource ToDto(SeriesSourceImpl c) =>
+        new(c.Name, c.Enabled, c.IconUrl, c.SupportedLanguages, c.Kind, c.ContentType);
 }

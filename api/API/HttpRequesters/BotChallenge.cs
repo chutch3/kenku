@@ -1,4 +1,5 @@
 using System.Net;
+using Newtonsoft.Json.Linq;
 
 namespace API.HttpRequesters;
 
@@ -10,6 +11,12 @@ internal static class BotChallenge
             return true;
         if (status is not (403 or 503))
             return false;
+        try
+        {
+            if (JObject.Parse(body).Value<string>("error") == "captcha_required")
+                return true;
+        }
+        catch (Newtonsoft.Json.JsonException) { }
         return server?.Contains("cloudflare", StringComparison.OrdinalIgnoreCase) == true
                && (body.Contains("cf-chl-", StringComparison.OrdinalIgnoreCase)
                    || body.Contains("/cdn-cgi/challenge-platform/", StringComparison.OrdinalIgnoreCase)
@@ -26,3 +33,5 @@ internal static class BotChallenge
             await response.Content.ReadAsStringAsync(ct));
     }
 }
+
+internal sealed class BotChallengeException(string origin) : HttpRequestException($"A browser challenge blocked {origin}.");
