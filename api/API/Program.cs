@@ -99,6 +99,7 @@ builder.Services
     .AddTorrentAcquisitionPath(settings, log);
 
 builder.Services.AddSingleton<RateLimitHandler>();
+builder.Services.AddSingleton<ChallengeSolverClient>();
 builder.Services.AddSingleton<IHttpRequester, HttpRequester>();
 builder.Services.AddSingleton<IHeadlessBrowser, ChromiumHeadlessBrowser>();
 

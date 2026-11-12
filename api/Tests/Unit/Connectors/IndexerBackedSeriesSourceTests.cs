@@ -52,7 +52,7 @@ public class IndexerBackedSeriesSourceTests
             {
                 Content = new ByteArrayContent(jpeg)
             });
-            var requester = new HttpRequester(new RateLimitHandler(settings, inner), settings);
+            var requester = new HttpRequester(new RateLimitHandler(settings, inner), settings, new ChallengeSolverClient(settings));
             var source = new IndexerBackedSeriesSource(new Mock<IIndexerClient>().Object, settings, requester);
             var manga = new Series("Saga", "", "https://metron.cloud/media/cover.jpg", SeriesReleaseStatus.Continuing, [], [], [], []);
             var id = new SourceId<Series>(manga, source, "Saga", null);

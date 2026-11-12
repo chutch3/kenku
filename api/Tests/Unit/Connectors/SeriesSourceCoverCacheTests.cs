@@ -29,7 +29,7 @@ public class SeriesSourceCoverCacheTests
                 Content = new ByteArrayContent(jpeg)
             });
             using var rateLimit = new RateLimitHandler(settings, inner);
-            var downloadClient = new HttpRequester(rateLimit, settings);
+            var downloadClient = new HttpRequester(rateLimit, settings, new ChallengeSolverClient(settings));
             var connector = new FakeSeriesSource("Fake:Conn", settings, httpRequester: downloadClient);
 
             var library = new FileLibrary(Path.Combine(tempRoot, "lib"), "Lib");

@@ -294,7 +294,7 @@ public class WeebCentral : SeriesSource
 		// WeebCentral defers the chapter's page images to an HTMX partial — the bare
 		// /chapters/{id} page contains no <img> tags, so scraping it yields empty stubs.
 		// Request the images partial directly; it returns the <img alt="Page N"> nodes over
-		// plain HTTP (no JS rendering / FlareSolverr needed).
+		// plain HTTP (no JS rendering / challenge solver needed).
 		string imagesUrl = $"{chapterId.WebsiteUrl!.TrimEnd('/')}/images?is_prev=False&current_page=1&reading_style=long_strip";
 		using HttpResponseMessage response = await downloadClient.MakeRequest(imagesUrl, RequestType.Default, referrer ?? chapterId.WebsiteUrl);
 

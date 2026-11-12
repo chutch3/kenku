@@ -77,7 +77,7 @@ Mermaid ER diagram in [`docs/SCHEMA.md`](docs/SCHEMA.md).
 - `Kenku.cs` Worker-Logic
 - `Connectors/**` Source connectors (page scrapers, direct-archive, and indexer-backed torrent sources)
 - `Schema/**` Entity-Framework Schema Definitions
-- `HttpRequesters/**` Networking-Clients for Scraping (HTTP/FlareSolverr/Chromium request strategies)
+- `HttpRequesters/**` Networking-Clients for Scraping (HTTP/challenge-solver/Chromium request strategies)
 - `DownloadClients/**` Download-client integrations for release acquisition (qBittorrent)
 - `Controllers/**` ASP.NET Controllers (Endpoints)
 

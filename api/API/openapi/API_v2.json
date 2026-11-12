@@ -4851,14 +4851,14 @@
         }
       }
     },
-    "/v2/Settings/FlareSolverr/Url": {
+    "/v2/Settings/ChallengeSolver/Url": {
       "patch": {
         "tags": [
           "Settings"
         ],
-        "summary": "Sets the FlareSolverr-URL",
+        "summary": "Sets the challenge solver URL",
         "requestBody": {
-          "description": "URL of FlareSolverr-Instance",
+          "description": "URL of a compatible challenge solver (such as Byparr)",
           "content": {
             "application/json-patch+json; x-version=2.0": {
               "schema": {
@@ -4892,7 +4892,7 @@
         "tags": [
           "Settings"
         ],
-        "summary": "Resets the FlareSolverr-URL (HttpClient does not use FlareSolverr anymore)",
+        "summary": "Clears the challenge solver URL and disables automatic challenge recovery",
         "responses": {
           "200": {
             "description": ""
@@ -4900,18 +4900,18 @@
         }
       }
     },
-    "/v2/Settings/FlareSolverr/Test": {
+    "/v2/Settings/ChallengeSolver/Test": {
       "post": {
         "tags": [
           "Settings"
         ],
-        "summary": "Test FlareSolverr",
+        "summary": "Test the challenge solver",
         "responses": {
           "200": {
-            "description": "FlareSolverr is working!"
+            "description": "Challenge solver is working"
           },
           "500": {
-            "description": "FlareSolverr is not working"
+            "description": "Challenge solver is not working"
           }
         }
       }

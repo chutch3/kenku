@@ -37,7 +37,11 @@ public class KenkuSettings
     /// <summary>Master switch for the torrent feature (search + acquisition). Off by default until the
     /// download/import flow is properly designed. Applied at startup, so toggling it needs a restart.</summary>
     public bool TorrentEnabled { get; set; } = false;
-    public string FlareSolverrUrl { get; set; } = Environment.GetEnvironmentVariable("FLARESOLVERR_URL") ?? string.Empty;
+    /// <summary>Endpoint of a request.get-compatible challenge solver (such as Byparr or FlareSolverr); empty disables it.</summary>
+    public string ChallengeSolverUrl { get; set; } = Environment.GetEnvironmentVariable("CHALLENGE_SOLVER_URL") ?? string.Empty;
+
+    /// <summary>Proxy the challenge solver should use for its own browser on each solve; empty leaves it to the solver.</summary>
+    public string ChallengeSolverProxyUrl { get; set; } = Environment.GetEnvironmentVariable("CHALLENGE_SOLVER_PROXY_URL") ?? string.Empty;
     /// <summary>
     /// Placeholders:
     /// %M Obj Name
@@ -227,9 +231,9 @@ public class KenkuSettings
         Save();
     }
 
-    public void SetFlareSolverrUrl(string url)
+    public void SetChallengeSolverUrl(string url)
     {
-        this.FlareSolverrUrl = url;
+        this.ChallengeSolverUrl = url;
         Save();
     }
 

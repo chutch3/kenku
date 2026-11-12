@@ -7,11 +7,74 @@ namespace API.Tests.Unit.HttpRequesters;
 
 public class HttpRequesterTests
 {
+    [Theory]
+    [InlineData(200, false)]
+    [InlineData(403, true)]
+    [InlineData(404, false)]
+    [InlineData(429, false)]
+    public async Task SolverIsAFallbackOnlyForChallenges(int status, bool shouldSolve)
+    {
+        int solverCalls = 0;
+        KenkuSettings settings = new() { ChallengeSolverUrl = "http://solver.test" };
+        using HttpClient solverHttp = new(new FakeHttpMessageHandler(_ =>
+        {
+            solverCalls++;
+            return ChallengeSolverClientTests.Solved();
+        }));
+        using ChallengeSolverClient solver = new(solverHttp, settings);
+        using RateLimitHandler rate = new(settings, new FakeHttpMessageHandler(_ =>
+        {
+            HttpResponseMessage response = new((HttpStatusCode)status)
+            {
+                Content = new StringContent(shouldSolve ? "<html><title>Just a moment...</title></html>" : "ordinary response")
+            };
+            response.Headers.Server.ParseAdd("cloudflare");
+            return response;
+        }));
+        HttpRequester requester = new(rate, settings, solver);
+        using HttpResponseMessage result = await requester.MakeRequest("https://example.test/a", RequestType.SeriesInfo);
+        Assert.Equal(shouldSolve ? 1 : 0, solverCalls);
+        if (shouldSolve)
+            Assert.Equal("<p>solved</p>", await result.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task ARedirectedChallengeIsSolvedForTheUrlThatWasChallenged()
+    {
+        // origin.test redirects to dest.test, and dest.test challenges. The solve must target dest.test: solving
+        // origin.test yields dest.test cookies, which a solve for origin.test rightly refuses as another host's.
+        string? solvedUrl = null;
+        KenkuSettings settings = new() { ChallengeSolverUrl = "http://solver.test" };
+        using HttpClient solverHttp = new(new FakeHttpMessageHandler(async (request, ct) =>
+        {
+            solvedUrl = Newtonsoft.Json.Linq.JObject.Parse(await request.Content!.ReadAsStringAsync(ct)).Value<string>("url");
+            return ChallengeSolverClientTests.Solved("dest.test");
+        }));
+        using ChallengeSolverClient solver = new(solverHttp, settings);
+        using RateLimitHandler rate = new(settings, new FakeHttpMessageHandler(_ =>
+        {
+            HttpResponseMessage response = new(HttpStatusCode.Forbidden)
+            {
+                Content = new StringContent("<html><title>Just a moment...</title></html>"),
+                RequestMessage = new HttpRequestMessage(HttpMethod.Get, "https://dest.test/page"),
+            };
+            response.Headers.Server.ParseAdd("cloudflare");
+            return response;
+        }));
+        HttpRequester requester = new(rate, settings, solver);
+
+        using HttpResponseMessage result = await requester.MakeRequest("https://origin.test/page", RequestType.SeriesInfo);
+
+        Assert.Equal("https://dest.test/page", solvedUrl);
+        Assert.Equal(HttpStatusCode.OK, result.StatusCode);
+        Assert.Equal("<p>solved</p>", await result.Content.ReadAsStringAsync());
+    }
+
     private static HttpRequester CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler)
     {
         var settings = new KenkuSettings { AppData = Path.GetTempPath() };
         var rateLimit = new RateLimitHandler(settings, new FakeHttpMessageHandler(handler));
-        return new HttpRequester(rateLimit, settings);
+        return new HttpRequester(rateLimit, settings, new ChallengeSolverClient(settings));
     }
 
     [Fact]
@@ -23,7 +86,7 @@ public class HttpRequesterTests
         settings.SetUserAgent("kenku:discovery (self-hosted manga manager)");
         var rateLimit = new RateLimitHandler(settings, new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)));
 
-        var ex = Record.Exception(() => new HttpRequester(rateLimit, settings));
+        var ex = Record.Exception(() => new HttpRequester(rateLimit, settings, new ChallengeSolverClient(settings)));
 
         Assert.Null(ex);
     }

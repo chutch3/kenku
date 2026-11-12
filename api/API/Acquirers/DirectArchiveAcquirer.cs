@@ -2,6 +2,8 @@ using API.Acquirers.Interfaces;
 using API.Connectors;
 using API.Schema.SeriesContext;
 using log4net;
+using API.HttpRequesters;
+using API.HttpRequesters.Interfaces;
 
 namespace API.Acquirers;
 
@@ -11,7 +13,7 @@ namespace API.Acquirers;
 /// are contractually responsible for populating <c>WebsiteUrl</c> with the archive URL itself,
 /// not a viewer/page URL.
 /// </summary>
-public class DirectArchiveAcquirer(HttpClient http) : IChapterAcquirer
+public class DirectArchiveAcquirer(IHttpRequester requester) : IChapterAcquirer
 {
     private static readonly ILog Log = LogManager.GetLogger(typeof(DirectArchiveAcquirer));
 
@@ -51,7 +53,7 @@ public class DirectArchiveAcquirer(HttpClient http) : IChapterAcquirer
 
         try
         {
-            using HttpResponseMessage response = await http.GetAsync(archiveUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+            using HttpResponseMessage response = await requester.MakeRequest(archiveUrl, RequestType.Archive, cancellationToken: ct);
             if (!response.IsSuccessStatusCode)
             {
                 Log.ErrorFormat("Failed to download archive {0}: HTTP {1}", archiveUrl, (int)response.StatusCode);

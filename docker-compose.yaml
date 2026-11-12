@@ -19,7 +19,7 @@ services:
       - POSTGRES_HOST=kenku-pg
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      #- FLARESOLVERR_URL=
+      #- CHALLENGE_SOLVER_URL=
       #- POSTGRES_COMMAND_TIMEOUT=30
       #- POSTGRES_CONNECTION_TIMEOUT=30
       #- CHECK_CHAPTERS_BEFORE_START=true

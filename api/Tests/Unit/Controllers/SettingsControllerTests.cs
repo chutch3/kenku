@@ -252,21 +252,21 @@ public class SettingsControllerTests : IDisposable
     }
 
     [Fact]
-    public void SetFlareSolverrUrl_UpdatesUrl()
+    public void SetChallengeSolverUrl_UpdatesUrl()
     {
-        CreateController().SetFlareSolverrUrl("http://localhost:8191");
+        CreateController().SetChallengeSolverUrl("http://localhost:8191");
 
-        Assert.Equal("http://localhost:8191", _settings.FlareSolverrUrl);
+        Assert.Equal("http://localhost:8191", _settings.ChallengeSolverUrl);
     }
 
     [Fact]
-    public void ClearFlareSolverrUrl_SetsUrlToEmpty()
+    public void ClearChallengeSolverUrl_SetsUrlToEmpty()
     {
-        _settings.FlareSolverrUrl = "http://localhost:8191";
+        _settings.ChallengeSolverUrl = "http://localhost:8191";
 
-        CreateController().ClearFlareSolverrUrl();
+        CreateController().ClearChallengeSolverUrl();
 
-        Assert.Equal(string.Empty, _settings.FlareSolverrUrl);
+        Assert.Equal(string.Empty, _settings.ChallengeSolverUrl);
     }
 
     [Fact]
@@ -469,4 +469,21 @@ public class SettingsControllerTests : IDisposable
         Assert.Equal(["manga", "comicbooks"], _settings.DiscoveryFeeds);
         Assert.Contains("comicbooks", File.ReadAllText(_settings.SettingsFilePath));
     }
+
+    [Fact]
+    public async Task TestChallengeSolver_AsksTheSolverEveryTime_NotACachedSession()
+    {
+        // A connection test must reach the solver: after one success, a stopped solver must report failure.
+        bool solverUp = true;
+        _settings.ChallengeSolverUrl = "http://solver.test";
+        using var http = new HttpClient(new API.Tests.FakeHttpMessageHandler(_ => solverUp
+            ? API.Tests.Unit.HttpRequesters.ChallengeSolverClientTests.Solved("prowlarr.servarr.com")
+            : new HttpResponseMessage(System.Net.HttpStatusCode.BadGateway)));
+        using var solver = new API.HttpRequesters.ChallengeSolverClient(http, _settings);
+
+        Assert.IsType<Ok>((await CreateController().TestChallengeSolverReachable(solver)).Result);
+        solverUp = false;
+        Assert.IsType<InternalServerError>((await CreateController().TestChallengeSolverReachable(solver)).Result);
+    }
 }
+

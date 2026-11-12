@@ -8,10 +8,12 @@ namespace API.HttpRequesters;
 internal class HttpRequester : IHttpRequester
 {
     private readonly HttpClient _client;
-    private readonly FlareSolverrRequester _flareSolverrClient;
+    private readonly ChallengeSolverRequester _challengeSolverRequester;
+    private readonly ChallengeSolverClient _solver;
+    private readonly CookieContainer? _cookies;
     private ILog Log { get; } = LogManager.GetLogger(typeof(HttpRequester));
 
-    public HttpRequester(RateLimitHandler rateLimitHandler, KenkuSettings settings)
+    public HttpRequester(RateLimitHandler rateLimitHandler, KenkuSettings settings, ChallengeSolverClient solver)
     {
         // The request timeout lives in RateLimitHandler so it covers only the network send, not the
         // rate-limit queue wait. HttpClient.Timeout would wrap the whole chain (queue wait included),
@@ -22,30 +24,40 @@ internal class HttpRequester : IHttpRequester
             DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher,
         };
         _client.SetUserAgent(settings.UserAgent);
-        _flareSolverrClient = new FlareSolverrRequester(_client, settings);
+        _solver = solver;
+        _cookies = rateLimitHandler.CookieJar;
+        _challengeSolverRequester = new ChallengeSolverRequester(_client, _solver, _cookies);
     }
 
     public async Task<HttpResponseMessage> MakeRequest(string url, RequestType requestType, string? referrer = null, CancellationToken? cancellationToken = null)
     {
         Log.DebugFormat("Using {0} for {1}", typeof(HttpRequester).FullName, url);
-        HttpRequestMessage requestMessage = new(HttpMethod.Get, url);
+        using HttpRequestMessage requestMessage = new(HttpMethod.Get, url);
+        SolverSession? usedSession = _solver.GetSession(url);
+        usedSession?.Apply(requestMessage, _cookies);
         if (referrer is not null)
             requestMessage.Headers.Referrer = new(referrer);
         Log.DebugFormat("Requesting {0}", url);
 
         try
         {
-            HttpResponseMessage response = await _client.SendAsync(requestMessage, cancellationToken ?? CancellationToken.None);
+            HttpResponseMessage response = await _client.SendAsync(requestMessage,
+                requestType == RequestType.Archive ? HttpCompletionOption.ResponseHeadersRead : HttpCompletionOption.ResponseContentRead,
+                cancellationToken ?? CancellationToken.None);
             Log.DebugFormat("Request {0} returned {1} {2}", url, (int)response.StatusCode, response.StatusCode.ToString());
-            if(response.IsSuccessStatusCode)
-                return response;
-
-            if (response.Headers.Server.Any(s =>
-                    (s.Product?.Name ?? "").Contains("cloudflare", StringComparison.InvariantCultureIgnoreCase)))
+            if (_solver.Enabled && await BotChallenge.IsChallengeAsync(response, cancellationToken ?? CancellationToken.None))
             {
-                Log.Debug("Retrying with FlareSolverr!");
-                return await _flareSolverrClient.MakeRequest(url, requestType, referrer);
+                // After a redirect the challenge belongs to the final URL, and only a session for that origin failed.
+                Uri challenged = response.RequestMessage?.RequestUri ?? new Uri(url);
+                SolverSession? failed = challenged.GetLeftPart(UriPartial.Authority) == new Uri(url).GetLeftPart(UriPartial.Authority)
+                    ? usedSession : null;
+                Log.InfoFormat("Detected a challenge from {0}; recovering through the challenge solver.", challenged.Host);
+                response.Dispose();
+                return await _challengeSolverRequester.RecoverAsync(challenged.ToString(), requestType, referrer, failed,
+                    cancellationToken ?? CancellationToken.None);
             }
+            if (response.IsSuccessStatusCode)
+                return response;
 
             // Only read bodies (async, never .Result) when debug logging is actually enabled. Blocking on
             // .Result here risked thread-pool starvation / sync-over-async deadlocks on every failed request.
