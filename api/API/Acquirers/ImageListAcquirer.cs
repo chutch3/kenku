@@ -73,7 +73,7 @@ public class ImageListAcquirer(KenkuSettings settings) : IChapterAcquirer
                 await imageStream.CopyToAsync(buffered, ct);
                 await imageStream.DisposeAsync();
                 byte[] bytes = buffered.ToArray();
-                pages.Add((bytes, MissingPageDetector.PageArea(bytes)));
+                pages.Add((bytes, PageArea(bytes)));
             }
 
             var missing = MissingPageDetector.Detect(pages.Select(p => p.area).ToList()).ToHashSet();
@@ -130,6 +130,19 @@ public class ImageListAcquirer(KenkuSettings settings) : IChapterAcquirer
     }
 
     /// <summary>The page's pixel area (header-only read), or 0 if the bytes don't decode as an image.</summary>
+    private static long PageArea(byte[] bytes)
+    {
+        try
+        {
+            var info = Image.Identify(new MemoryStream(bytes));
+            return (long)info.Width * info.Height;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
     private async Task<Stream> ProcessImage(Stream imageStream, CancellationToken cancellationToken)
     {
         Log.Debug("Processing image");

@@ -1,5 +1,3 @@
-using SixLabors.ImageSharp;
-
 namespace API.Acquirers;
 
 /// <summary>
@@ -23,23 +21,6 @@ public static class MissingPageDetector
     /// <summary>If even the largest page is below this, there is no real page to compare against — the
     /// whole chapter is placeholders. 256×256 px; every real comic page is far larger.</summary>
     private const long MinPlausiblePageArea = 256 * 256;
-
-    /// <summary>A page image's pixel area, or 0 when it can't be decoded.</summary>
-    public static long PageArea(byte[] bytes)
-    {
-        try
-        {
-            ImageInfo info = Image.Identify(new MemoryStream(bytes));
-            return (long)info.Width * info.Height;
-        }
-        catch
-        {
-            return 0;
-        }
-    }
-
-    /// <summary>Whether a single image is too small to be any real page, judged without the rest of its chapter.</summary>
-    public static bool IsImplausiblePage(long area) => area < MinPlausiblePageArea;
 
     /// <summary>
     /// Returns the indices of pages that look like placeholders / missing data. Pass area <c>0</c> for a

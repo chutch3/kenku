@@ -351,4 +351,43 @@ public class ComicHubFreeTests
         Assert.Null(await connector.DownloadImage(PageUrl, CancellationToken.None));
         Assert.Single(requests);
     }
+
+    [Fact]
+    public async Task DownloadImage_KeepsASmallImageThatIsNotThePlaceholder()
+    {
+        // Only comichubfree's own 80x104 placeholder means a poisoned URL; any other image is the page.
+        using var small = new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32>(200, 200);
+        using MemoryStream encoded = new();
+        await SixLabors.ImageSharp.ImageExtensions.SaveAsJpegAsync(small, encoded);
+        byte[] page = encoded.ToArray();
+        var (connector, requests) = ImageConnector(_ => Image(page));
+
+        byte[] downloaded = await ReadAll(await connector.DownloadImage(PageUrl, CancellationToken.None));
+
+        Assert.Equal(page, downloaded);
+        Assert.Single(requests);
+    }
+
+    [Fact]
+    public async Task DownloadImage_LogsOneWarningForAPageItCouldNotRecover()
+    {
+        var appender = new log4net.Appender.MemoryAppender();
+        var repo = (log4net.Repository.Hierarchy.Hierarchy)log4net.LogManager.GetRepository(typeof(ComicHubFree).Assembly);
+        var logger = (log4net.Repository.Hierarchy.Logger)repo.GetLogger("ComicHubFree");
+        logger.AddAppender(appender);
+        logger.Level = log4net.Core.Level.All;
+        repo.Configured = true;
+        try
+        {
+            var (connector, _) = ImageConnector(_ => Image(TestImages.Placeholder()));
+
+            await connector.DownloadImage(PageUrl, CancellationToken.None);
+
+            Assert.Single(appender.GetEvents(), e => e.Level >= log4net.Core.Level.Warn);
+        }
+        finally
+        {
+            logger.RemoveAppender(appender);
+        }
+    }
 }
