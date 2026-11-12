@@ -5,7 +5,7 @@
         </layout>
     </appender>
     <appender name="RollingLogFileAppender" type="log4net.Appender.RollingFileAppender">
-        <file value="/usr/share/kenku-api/log/Kenku.log" />
+        <file type="log4net.Util.PatternString" value="%property{LogFile}" />
         <appendToFile value="true" />
         <rollingStyle value="Composite" />
         <datePattern value="yyyyMMdd" />
