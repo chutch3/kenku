@@ -67,7 +67,9 @@ internal class HttpRequester : IHttpRequester
                           $"Headers:\n\t{string.Join("\n\t", response.Headers.Select(h => $"{h.Key}: <{string.Join(">, <", h.Value)}"))}>\n" +
                           $"{responseBody}");
             }
-            return new(HttpStatusCode.InternalServerError);
+            HttpStatusCode status = response.StatusCode;
+            response.Dispose();
+            return new(status);
         }
         catch (HttpRequestException e)
         {
