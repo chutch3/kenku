@@ -18,7 +18,7 @@
         "gen:themes": "node scripts/gen-themes.mjs"
     },
     "dependencies": {
-        "@nuxt/content": "^3.7.1",
+        "@nuxt/content": "^3.16.2",
         "@nuxt/eslint": "^1.9.0",
         "@nuxt/image": "^1.11.0",
         "@nuxt/ui": "^4.0.0",
