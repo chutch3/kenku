@@ -99,7 +99,7 @@ public static class StartupTasks
         // Apply persisted connector enable/disable state from settings
         var kenkuSettings = app.Services.GetRequiredService<KenkuSettings>();
         var mangaConnectors = app.Services.GetRequiredService<IEnumerable<SeriesSource>>();
-        kenkuSettings.ApplyDisabledConnectors(mangaConnectors);
+        kenkuSettings.ApplyConnectorChoices(mangaConnectors);
         return true;
     }
 }

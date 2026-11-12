@@ -71,6 +71,9 @@ public abstract class SeriesSource(string name, string[] supportedLanguages, str
     /// <summary>What this source serves. Comic sources opt in; the historical scrapers are manga.</summary>
     [NotMapped] public virtual ContentType ContentType => ContentType.Manga;
 
+    /// <summary>Whether the source is on until someone turns it off. An opt-in source overrides this to false.</summary>
+    [NotMapped] public virtual bool EnabledByDefault => true;
+
     public abstract Task<(Series, SourceId<Series>)[]> SearchSeries(string mangaSearchName);
 
     public abstract Task<(Series, SourceId<Series>)?> GetSeriesFromUrl(string url);
