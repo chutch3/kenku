@@ -22,6 +22,7 @@ string kenkuBanner =
     $"Built at {BuildInformation.BuildAt} for {BuildInformation.Platform} version {BuildInformation.DotNetSdkVersion}\n" +
     $"branch: {ThisAssembly.Git.Branch} commit: {ThisAssembly.Git.Commit} tag: {ThisAssembly.Git.Tag}\n\n";
 
+GlobalContext.Properties[KenkuSettings.LogFileProperty] = new KenkuSettings().LogFilePath;
 XmlConfigurator.ConfigureAndWatch(new FileInfo("Log4Net.config.xml"));
 ILog log = LogManager.GetLogger("Startup");
 log.Info(kenkuBanner);

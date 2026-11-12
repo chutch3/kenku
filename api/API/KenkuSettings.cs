@@ -23,6 +23,9 @@ public class KenkuSettings
 
     [JsonIgnore] public string WorkingDirectory => Path.Join(AppData, "kenku-api");
     [JsonIgnore] public string SettingsFilePath => Path.Join(WorkingDirectory, "settings.json");
+    [JsonIgnore] public string LogFilePath => Path.Join(WorkingDirectory, "log", "Kenku.log");
+    /// <summary>The log4net global property Log4Net.config.xml reads the log file path from.</summary>
+    public const string LogFileProperty = "LogFile";
     [JsonIgnore] public string CoverImageCache => Path.Join(WorkingDirectory, "imageCache");
     [JsonIgnore] public string CoverImageCacheOriginal => Path.Join(CoverImageCache, "original");
     [JsonIgnore] public string CoverImageCacheLarge => Path.Join(CoverImageCache, "large");
