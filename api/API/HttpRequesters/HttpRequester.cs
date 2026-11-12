@@ -47,9 +47,13 @@ internal class HttpRequester : IHttpRequester
             Log.DebugFormat("Request {0} returned {1} {2}", url, (int)response.StatusCode, response.StatusCode.ToString());
             if (_solver.Enabled && await BotChallenge.IsChallengeAsync(response, cancellationToken ?? CancellationToken.None))
             {
-                Log.InfoFormat("Detected a challenge from {0}; recovering through the challenge solver.", new Uri(url).Host);
+                // After a redirect the challenge belongs to the final URL, and only a session for that origin failed.
+                Uri challenged = response.RequestMessage?.RequestUri ?? new Uri(url);
+                SolverSession? failed = challenged.GetLeftPart(UriPartial.Authority) == new Uri(url).GetLeftPart(UriPartial.Authority)
+                    ? usedSession : null;
+                Log.InfoFormat("Detected a challenge from {0}; recovering through the challenge solver.", challenged.Host);
                 response.Dispose();
-                return await _challengeSolverRequester.RecoverAsync(url, requestType, referrer, usedSession,
+                return await _challengeSolverRequester.RecoverAsync(challenged.ToString(), requestType, referrer, failed,
                     cancellationToken ?? CancellationToken.None);
             }
             if (response.IsSuccessStatusCode)

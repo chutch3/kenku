@@ -127,5 +127,27 @@ public class ChallengeSolverRequesterTests
         response.Headers.Server.ParseAdd("cloudflare");
         return response;
     }
+
+    [Fact]
+    public async Task ACachedSessionChallengedDuringTheCooldown_IsStillDiscarded()
+    {
+        // The cooldown stops another solve; it must not stop the failed session from being dropped, or its
+        // cookies keep riding along on every request to that host until it expires.
+        var settings = new KenkuSettings { AppData = Path.GetTempPath(), ChallengeSolverUrl = "http://solver.test" };
+        using var http = new HttpClient(new FakeHttpMessageHandler(req => req.Method == HttpMethod.Post
+            ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(SolvedResponse) }
+            : ChallengePage()));
+        using var solver = new ChallengeSolverClient(http, settings);
+        var jar = new CookieContainer();
+        var requester = new ChallengeSolverRequester(http, solver, jar);
+        const string url = "https://example.test/page";
+        SolverSession cached = await solver.SolveAsync(url, null, default); // starts the cooldown
+        cached.Apply(new HttpRequestMessage(HttpMethod.Get, url), jar);
+
+        using HttpResponseMessage response = await requester.RecoverAsync(url, RequestType.Default, null, cached, default);
+
+        Assert.Null(solver.GetSession(url));
+        Assert.DoesNotContain(jar.GetCookies(new Uri("https://example.test/")), c => c.Name == "cf_clearance");
+    }
 }
 

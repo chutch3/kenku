@@ -38,6 +38,38 @@ public class HttpRequesterTests
             Assert.Equal("<p>solved</p>", await result.Content.ReadAsStringAsync());
     }
 
+    [Fact]
+    public async Task ARedirectedChallengeIsSolvedForTheUrlThatWasChallenged()
+    {
+        // origin.test redirects to dest.test, and dest.test challenges. The solve must target dest.test: solving
+        // origin.test yields dest.test cookies, which a solve for origin.test rightly refuses as another host's.
+        string? solvedUrl = null;
+        KenkuSettings settings = new() { ChallengeSolverUrl = "http://solver.test" };
+        using HttpClient solverHttp = new(new FakeHttpMessageHandler(async (request, ct) =>
+        {
+            solvedUrl = Newtonsoft.Json.Linq.JObject.Parse(await request.Content!.ReadAsStringAsync(ct)).Value<string>("url");
+            return ChallengeSolverClientTests.Solved("dest.test");
+        }));
+        using ChallengeSolverClient solver = new(solverHttp, settings);
+        using RateLimitHandler rate = new(settings, new FakeHttpMessageHandler(_ =>
+        {
+            HttpResponseMessage response = new(HttpStatusCode.Forbidden)
+            {
+                Content = new StringContent("<html><title>Just a moment...</title></html>"),
+                RequestMessage = new HttpRequestMessage(HttpMethod.Get, "https://dest.test/page"),
+            };
+            response.Headers.Server.ParseAdd("cloudflare");
+            return response;
+        }));
+        HttpRequester requester = new(rate, settings, solver);
+
+        using HttpResponseMessage result = await requester.MakeRequest("https://origin.test/page", RequestType.SeriesInfo);
+
+        Assert.Equal("https://dest.test/page", solvedUrl);
+        Assert.Equal(HttpStatusCode.OK, result.StatusCode);
+        Assert.Equal("<p>solved</p>", await result.Content.ReadAsStringAsync());
+    }
+
     private static HttpRequester CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler)
     {
         var settings = new KenkuSettings { AppData = Path.GetTempPath() };

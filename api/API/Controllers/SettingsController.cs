@@ -219,7 +219,7 @@ public class SettingsController(KenkuSettings settings) : ControllerBase
         const string knownProtectedUrl = "https://prowlarr.servarr.com/v1/ping";
         try
         {
-            await solver.SolveAsync(knownProtectedUrl, null, HttpContext?.RequestAborted ?? default);
+            await solver.CheckAsync(knownProtectedUrl, HttpContext?.RequestAborted ?? default);
             return TypedResults.Ok();
         }
         catch (HttpRequestException) { return TypedResults.InternalServerError(); }

@@ -31,6 +31,10 @@ public class ChallengeSolverRequester : IHttpRequester
     internal async Task<HttpResponseMessage> RecoverAsync(string url, RequestType requestType, string? referrer,
         SolverSession? failedSession, CancellationToken ct)
     {
+        // The session that was just challenged is dead whether or not a new solve is allowed right now; the
+        // cooldown only stops another solve.
+        if (failedSession is not null)
+            Discard(url, failedSession);
         try
         {
             SolverSession solved = await _solver.SolveAsync(url, failedSession, ct);
@@ -49,11 +53,7 @@ public class ChallengeSolverRequester : IHttpRequester
             HttpResponseMessage response = await _client.SendAsync(request,
                 requestType == RequestType.Archive ? HttpCompletionOption.ResponseHeadersRead : HttpCompletionOption.ResponseContentRead, ct);
             if (await BotChallenge.IsChallengeAsync(response, ct))
-            {
-                Log.WarnFormat("{0} still challenged the solver's session; discarding it.", new Uri(url).Host);
-                _solver.Reject(url, solved);
-                solved.Forget(_cookies);
-            }
+                Discard(url, solved);
             return response; // one retry only, including for binary assets
         }
         catch (HttpRequestException ex)
@@ -61,6 +61,13 @@ public class ChallengeSolverRequester : IHttpRequester
             Log.Warn(ex.Message);
             return new(HttpStatusCode.ServiceUnavailable);
         }
+    }
+
+    private void Discard(string url, SolverSession session)
+    {
+        Log.WarnFormat("{0} challenged the solver's session; discarding it.", new Uri(url).Host);
+        _solver.Reject(url, session);
+        session.Forget(_cookies);
     }
 
     private static string UnwrapJson(string html)
