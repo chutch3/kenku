@@ -15,8 +15,8 @@ internal sealed class ChromiumHeadlessBrowser : IHeadlessBrowser, IAsyncDisposab
     private readonly KenkuSettings _settings;
     private readonly object _lock = new();
     private IBrowser? _browser;
-    private long _activePages = 0;
     private const int MaxPages = 2;
+    private readonly SemaphoreSlim _pageSlots = new(MaxPages, MaxPages);
     private const int SelectorTimeoutMs = 15000;
 
     public ChromiumHeadlessBrowser(KenkuSettings settings)
@@ -34,12 +34,7 @@ internal sealed class ChromiumHeadlessBrowser : IHeadlessBrowser, IAsyncDisposab
             return string.Empty;
         }
 
-        while (Interlocked.Read(ref _activePages) >= MaxPages)
-        {
-            await Task.Delay(50, cancellationToken);
-        }
-
-        Interlocked.Increment(ref _activePages);
+        await _pageSlots.WaitAsync(cancellationToken);
         // Each render gets its own browser context so cookies and storage never carry from one render to
         // the next — the browser is a shared singleton, and some sites restore state over the URL's.
         IBrowserContext? context = null;
@@ -116,7 +111,7 @@ internal sealed class ChromiumHeadlessBrowser : IHeadlessBrowser, IAsyncDisposab
                     Log.WarnFormat("Error closing browser context: {0}", ex.Message);
                 }
             }
-            Interlocked.Decrement(ref _activePages);
+            _pageSlots.Release();
         }
     }
 
