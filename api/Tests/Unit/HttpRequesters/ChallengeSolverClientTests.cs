@@ -26,6 +26,7 @@ public class ChallengeSolverClientTests
 
     [Theory]
     [InlineData(403, "cloudflare", false, "<title>Just a moment...</title>", true)]
+    [InlineData(403, "", false, "{\"error\":\"captcha_required\"}", true)]
     [InlineData(503, "cloudflare", false, "maintenance", false)]
     [InlineData(403, "cloudflare", false, "forbidden", false)]
     [InlineData(404, "cloudflare", false, "not found", false)]

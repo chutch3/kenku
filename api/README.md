@@ -86,6 +86,7 @@ The container is configured through environment variables:
 | `DOWNLOAD_LOCATION`               | `/Manga`         | Download target directory (path inside the container).                       |
 | `CHALLENGE_SOLVER_URL`            | _(empty)_        | URL of a `request.get`-compatible challenge solver (e.g. Byparr, FlareSolverr), for Cloudflare-challenged sources. |
 | `CHALLENGE_SOLVER_PROXY_URL`      | _(empty)_        | Proxy the solver's own browser should use for each solve; empty leaves it to the solver. |
+| `COMIX_BYPARR_SESSION_FILE`       | _(empty)_        | Diagnostic only: runtime file with a solved Comix session. |
 | `POSTGRES_COMMAND_TIMEOUT`        | `60`             | Postgres command timeout (seconds).                                          |
 | `POSTGRES_CONNECTION_TIMEOUT`     | `30`             | Postgres connection timeout (seconds).                                       |
 | `CHECK_CHAPTERS_BEFORE_START`     | `true`           | Reconcile the "downloaded" state against disk on startup (can be slow).      |
