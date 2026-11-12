@@ -149,6 +149,33 @@ public class DirectArchiveAcquirerTests
         }
     }
 
+    [Fact]
+    public async Task AcquireAsync_Fails_WhenTheServerSendsAWebPageInsteadOfTheArchive()
+    {
+        // A dead or gated download link often answers 200 with an HTML page (an error, login or interstitial
+        // page). Saving it as the .cbz would mark the chapter downloaded with a corrupt archive.
+        var (_, _, sourceId, source, settings, tempRoot) = BuildFixture("https://fake.test/gone.cbz");
+        try
+        {
+            var inner = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("<html><body>File not found</body></html>", System.Text.Encoding.UTF8, "text/html")
+            });
+            using var http = new HttpClient(inner);
+            var acquirer = new DirectArchiveAcquirer(http);
+            string saveTo = Path.Combine(tempRoot, "out.cbz");
+
+            AcquireResult result = await acquirer.AcquireAsync(sourceId, source, saveTo, CancellationToken.None);
+
+            Assert.Contains("web page", Assert.IsType<AcquireResult.Failed>(result).Reason);
+            Assert.False(File.Exists(saveTo), "No file should be written when the server sent a web page.");
+        }
+        finally
+        {
+            try { Directory.Delete(tempRoot, recursive: true); } catch { }
+        }
+    }
+
     /// <summary>A stand-in for a connector (like GetComics) whose chapters carry a post-page URL that
     /// must be resolved to the actual archive URL at download time.</summary>
     private sealed class ResolvingSource(string name, KenkuSettings settings, ArchiveResolution resolution)

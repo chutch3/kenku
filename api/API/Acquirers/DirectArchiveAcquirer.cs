@@ -57,6 +57,11 @@ public class DirectArchiveAcquirer(HttpClient http) : IChapterAcquirer
                 Log.ErrorFormat("Failed to download archive {0}: HTTP {1}", archiveUrl, (int)response.StatusCode);
                 return new AcquireResult.Failed($"archive download failed: HTTP {(int)response.StatusCode}");
             }
+            if (response.Content.Headers.ContentType?.MediaType == "text/html")
+            {
+                Log.ErrorFormat("Archive URL {0} returned a web page instead of a file", archiveUrl);
+                return new AcquireResult.Failed("the archive link returned a web page instead of a file");
+            }
 
             await using FileStream fs = File.Create(saveArchiveFilePath);
             await response.Content.CopyToAsync(fs, ct);
