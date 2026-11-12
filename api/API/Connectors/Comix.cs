@@ -268,7 +268,8 @@ public class Comix : SeriesSource
 
             List<string> urls = [];
             HashSet<string> seen = [];
-            for (int step = 0, idle = 0; step < MaxScrollSteps && idle < IdleStepsAtEnd; step++)
+            int idle = 0;
+            for (int step = 0; step < MaxScrollSteps && idle < IdleStepsAtEnd; step++)
             {
                 if ((await page.QueryAttributesAsync($"{Reader} canvas", "class")).Count > 0)
                     throw new HttpRequestException($"Comix chapter {url} has scrambled (canvas) pages, which are not supported yet.");
@@ -290,6 +291,8 @@ public class Comix : SeriesSource
 
             if (urls.Count == 0)
                 throw new HttpRequestException($"Comix reader on {url} yielded no page images.");
+            if (idle < IdleStepsAtEnd)
+                throw new HttpRequestException($"Comix reader on {url} did not reach the end of the chapter within {MaxScrollSteps} scroll steps.");
             Log.InfoFormat("Found {0} images for chapter {1}", urls.Count, chapterId.Obj);
             return urls.ToArray();
         }, session: Name);

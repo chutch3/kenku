@@ -419,6 +419,16 @@ public class ComixTests
     }
 
     [Fact]
+    public async Task GetChapterImageUrls_ThrowsWhenTheStripNeverReachesItsEnd()
+    {
+        // Running out of scroll steps before the end leaves the tail of the chapter unharvested.
+        var comix = CreateComix(CreateMockClient(""), CreateReaderBrowser(new FakeLongStripReader(pageCount: 1000)));
+
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() => comix.GetChapterImageUrls(ComixChapter(comix)));
+        Assert.Contains("end", ex.Message);
+    }
+
+    [Fact]
     public async Task DownloadImage_SendsNoReferer()
     {
         // The image hosts' hotlink protection is inverted: a comix.to Referer gets 403, none gets the image.
