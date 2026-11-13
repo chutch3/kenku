@@ -4,7 +4,7 @@
             <div class="grow-1 basis-0 flex gap-2 flex-row max-sm:flex-wrap max-2xl:order-2 items-center">
                 <p class="text-dimmed">{{ data?.totalCount }} {{ kind === 'comic' ? 'issues' : 'chapters' }}</p>
                 <UFieldGroup>
-                    <UInput v-model="filter.name" placeholder="Name" />
+                    <UInput v-model.nullable="filter.name" placeholder="Name" />
                     <UButton icon="i-lucide-rotate-ccw" variant="outline" size="xs" aria-label="Clear name filter" @click="filter.name = undefined" />
                 </UFieldGroup>
             </div>
@@ -37,7 +37,7 @@
                     <UButton icon="i-lucide-rotate-ccw" variant="outline" size="xs" aria-label="Clear volume filter" @click="filter.volumeNumber = undefined" />
                 </UFieldGroup>
                 <UFieldGroup>
-                    <UInput v-model="filter.chapterNumber" :placeholder="kind === 'comic' ? '#' : 'Ch'" class="w-30" />
+                    <UInput v-model.nullable="filter.chapterNumber" :placeholder="kind === 'comic' ? '#' : 'Ch'" class="w-30" />
                     <UButton icon="i-lucide-rotate-ccw" variant="outline" size="xs" aria-label="Clear chapter filter" @click="filter.chapterNumber = undefined" />
                 </UFieldGroup>
             </div>

@@ -4,7 +4,7 @@
             <UButton color="primary" icon="i-lucide-rotate-ccw" class="max-md:order-1" @click="resetFilter" />
             <USelect v-model="params.action" :items="ActionTypes" class="w-70 max-md:order-3" @change="refreshData" />
             <UInput
-                v-model="params.start"
+                v-model.nullable="params.start"
                 icon="i-lucide-chevron-first"
                 class="w-70 max-md:order-4"
                 type="datetime-local"
@@ -13,7 +13,7 @@
                 <UButton color="primary" icon="i-lucide-infinity" @click="noTimeLimit" />
             </UTooltip>
             <UInput
-                v-model="params.end"
+                v-model.nullable="params.end"
                 icon="i-lucide-chevron-last"
                 type="datetime-local"
                 class="w-70 max-md:order-5"

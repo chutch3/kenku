@@ -41,7 +41,7 @@ test('picking a genre updates the rails on the next Discover visit', async ({ pa
     // Edit genres on the settings page (SPA navigation, warm caches). Picking a genre auto-saves.
     await page.getByRole('link', { name: 'Settings' }).first().click();
     await page.getByRole('tab', { name: 'Discovery' }).click();
-    await page.getByRole('button', { name: 'Show popup' }).click();
+    await page.getByRole('button', { name: 'Genre rails' }).click();
     await page.getByRole('option', { name: 'Horror', exact: true }).click();
 
     // The auto-save refetches Settings; that must not collapse the whole tab UI to the loading spinner
@@ -67,7 +67,7 @@ test('the genre list offers only AniList genres — no free-text like "Gore"', a
 
     await page.goto('/settings');
     await page.getByRole('tab', { name: 'Discovery' }).click();
-    await page.getByRole('button', { name: 'Show popup' }).click();
+    await page.getByRole('button', { name: 'Genre rails' }).click();
 
     // The valid genres are offered; an unsupported genre simply isn't in the list to pick.
     await expect(page.getByRole('option', { name: 'Horror', exact: true })).toBeVisible();

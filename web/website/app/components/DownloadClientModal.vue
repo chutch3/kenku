@@ -2,26 +2,26 @@
     <UModal v-bind="$props" :title="isEdit ? 'Edit Download Client' : 'Add Download Client'">
         <template #body>
             <UFormField label="Name">
-                <UInput v-model="requestData.name" placeholder="qBittorrent" class="w-full" />
+                <UInput v-model.nullable="requestData.name" placeholder="qBittorrent" class="w-full" />
             </UFormField>
             <UFormField label="Type" class="mt-2">
                 <USelect v-model="requestData.type" :items="typeOptions" class="w-full" />
             </UFormField>
             <UFormField label="URL" class="mt-2">
-                <UInput v-model="requestData.baseUrl" placeholder="http://qbittorrent:8080" class="w-full" />
+                <UInput v-model.nullable="requestData.baseUrl" placeholder="http://qbittorrent:8080" class="w-full" />
             </UFormField>
             <UFormField label="Username" class="mt-2">
-                <UInput v-model="requestData.username" class="w-full" />
+                <UInput v-model.nullable="requestData.username" class="w-full" />
             </UFormField>
             <UFormField label="Password" class="mt-2">
                 <UInput
-                    v-model="requestData.password"
+                    v-model.nullable="requestData.password"
                     type="password"
                     class="w-full"
                     :placeholder="isEdit ? 'Leave blank to keep current password' : ''" />
             </UFormField>
             <UFormField label="Category" class="mt-2">
-                <UInput v-model="requestData.category" placeholder="kenku" class="w-full" />
+                <UInput v-model.nullable="requestData.category" placeholder="kenku" class="w-full" />
             </UFormField>
             <UFormField label="Priority" class="mt-2">
                 <UInput v-model.number="requestData.priority" type="number" class="w-full" />
