@@ -16,7 +16,7 @@
             <UFormField label="Headers">
                 <div class="flex flex-col gap-2">
                     <div v-for="(value, name, index) in requestData.headers" :key="index" class="flex gap-1">
-                        <UInput :model-value="name" disabled class="grow" />
+                        <UInput :model-value="String(name)" disabled class="grow" />
                         <UInput :model-value="value" disabled class="grow" />
                         <UButton icon="i-lucide-minus" color="secondary" variant="outline" @click="delete requestData.headers[name]" />
                     </div>
