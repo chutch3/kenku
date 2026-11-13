@@ -2,6 +2,82 @@
 
 <!-- version list -->
 
+## v0.38.1 (2026-11-13)
+
+### Bug Fixes
+
+- Write the log file under APP_DATA
+  ([`480347a`](https://github.com/chutch3/kenku/commit/480347abaeaaa2b7ece28cf0f366516548c9de63))
+
+### Chores
+
+- Bump @iconify-json/lucide from 1.2.69 to 1.2.152 in /web/website
+  ([`e373e93`](https://github.com/chutch3/kenku/commit/e373e934f3105a6cf05ebe17c765ddf8af81a354))
+
+- Bump @nuxtjs/mdc from 0.18.0 to 0.23.2 in /web/website
+  ([`2291136`](https://github.com/chutch3/kenku/commit/229113659bc21a50146861b5b272a4903be73b10))
+
+- Bump @vue/test-utils from 2.4.10 to 2.5.1 in /web/website
+  ([`3aebcf1`](https://github.com/chutch3/kenku/commit/3aebcf1c3ef663b4dd9cce858b80851dd83a53b2))
+
+- Bump actions/checkout from 4 to 7
+  ([`7b310aa`](https://github.com/chutch3/kenku/commit/7b310aa7e158dbf9410dfe4089164f62d2e1c774))
+
+- Bump actions/setup-dotnet from 5 to 6
+  ([`221102b`](https://github.com/chutch3/kenku/commit/221102bd5ac84ef6424b63914fb15a44cfcb0888))
+
+- Bump actions/setup-node from 4 to 7
+  ([`08ccdfc`](https://github.com/chutch3/kenku/commit/08ccdfc7e7d6ac9b0a407e1af5806a0170a81a36))
+
+- Bump Asp.Versioning.Mvc.ApiExplorer from 8.1.1 to 10.2.1
+  ([`640c9c6`](https://github.com/chutch3/kenku/commit/640c9c62906d656a0a52de9c6dd88ffbe4d0c92b))
+
+- Bump better-sqlite3 from 12.4.1 to 13.0.3 in /web/website
+  ([`6cf2f32`](https://github.com/chutch3/kenku/commit/6cf2f32dfa28f0da2b37ee9090f1fbbb337e09e9))
+
+- Bump docker/build-push-action from 6.18.0 to 7.4.0
+  ([`0d9b0a7`](https://github.com/chutch3/kenku/commit/0d9b0a78253ddb4950287a0590bf492e0d51f8d3))
+
+- Bump docker/setup-buildx-action from 3.12.0 to 4.4.1
+  ([`9884c27`](https://github.com/chutch3/kenku/commit/9884c273ff02d0f0ee52f9d93be452c83e770ee0))
+
+- Bump docker/setup-qemu-action from 3.7.0 to 4.4.0
+  ([`e58dec8`](https://github.com/chutch3/kenku/commit/e58dec8a1b446f1cdfb8484e34a54474d087b868))
+
+- Bump eslint to 10 with @nuxt/eslint 1.17
+  ([`ca26a84`](https://github.com/chutch3/kenku/commit/ca26a842980e9e7c4abf95b1e3b5e7ffd307bcb0))
+
+- Bump GitInfo from 3.6.0 to 3.6.1
+  ([`bd0498a`](https://github.com/chutch3/kenku/commit/bd0498a987221895f8a263fd73ff913647a6d88a))
+
+- Bump HtmlAgilityPack from 1.12.4 to 1.13.1
+  ([`0576a49`](https://github.com/chutch3/kenku/commit/0576a499a74133092193034839d13446629be79e))
+
+- Bump LinkDotNet.BuildInformation from 2.1.2 to 2.2.0
+  ([`80b75b5`](https://github.com/chutch3/kenku/commit/80b75b5918e7832194d83f3405902e867e5f5f97))
+
+- Bump log4net from 3.3.0 to 3.5.0
+  ([`2772898`](https://github.com/chutch3/kenku/commit/27728984f43ca37c54b99ceaf78b65dec6f4d910))
+
+- Bump nuxt to 4.6 and @nuxt/ui to 4.12
+  ([`ccf7b46`](https://github.com/chutch3/kenku/commit/ccf7b460988e98379ab1aca63c211a86d6a8dba0))
+
+- Bump PuppeteerSharp to 25.15.0
+  ([`23b45e1`](https://github.com/chutch3/kenku/commit/23b45e15dbf2a5953c03af6308a9837971bb6df1))
+
+- Bump python-semantic-release/python-semantic-release from 10.5.3 to 10.7.0
+  ([`d1d87ce`](https://github.com/chutch3/kenku/commit/d1d87ce68b1199873f8a290225ae8ec7410ef72f))
+
+- Bump the EF Core packages to 10.0.8
+  ([`aa35fee`](https://github.com/chutch3/kenku/commit/aa35fee74905643dfcae212ebb06267953e8be4a))
+
+- Bump vue-tsc from 2.2.12 to 3.3.14
+  ([`2f153c2`](https://github.com/chutch3/kenku/commit/2f153c277be52f62432714fb5942ee8e12d81858))
+
+- Hold dependabot on better-sqlite3 12
+  ([`e4aa39f`](https://github.com/chutch3/kenku/commit/e4aa39f1a12318c260ae86740f8461aa3e57cbf4))
+
+
 ## v0.38.0 (2026-11-12)
 
 ### Bug Fixes
