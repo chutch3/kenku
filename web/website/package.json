@@ -29,7 +29,7 @@
         "tailwindcss": "^4.3.5"
     },
     "devDependencies": {
-        "@iconify-json/lucide": "^1.2.152",
+        "@iconify-json/lucide": "^1.2.154",
         "@nuxt/test-utils": "^4.4.0",
         "@playwright/test": "^1.60.0",
         "@vue/test-utils": "^2.5.1",
