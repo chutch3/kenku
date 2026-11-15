@@ -34,7 +34,7 @@
         "@playwright/test": "^1.60.0",
         "@vue/test-utils": "^2.5.1",
         "eslint": "^10.14.0",
-        "happy-dom": "^20.9.0",
+        "happy-dom": "^21.0.4",
         "nuxt-open-fetch": "^0.13.5",
         "openapi-typescript": "^7.9.1",
         "postcss": "^8.4.0",
